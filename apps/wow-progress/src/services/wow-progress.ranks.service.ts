@@ -82,7 +82,13 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
 
       this.logger.log('WoW Progress Service initialized successfully');
     } catch (errorOrException) {
-      this.logger.error('Failed to initialize WoW Progress Service', errorOrException);
+      this.logger.error(
+        {
+          logTag: WowProgressRanksService.name,
+          message: 'Failed to initialize WoW Progress Service',
+          error: JSON.stringify(errorOrException),
+        }
+      );
     }
   }
 
@@ -90,6 +96,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
    * Initialize browser and page
    */
   private async initializeBrowser(): Promise<void> {
+    const logTag = this.initializeBrowser.name;
     try {
       this.browser = await chromium.launch({
         headless: true,
@@ -114,7 +121,14 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
 
       this.logger.log('Browser initialized successfully');
     } catch (errorOrException) {
-      this.logger.error('Failed to initialize browser', errorOrException);
+      this.logger.error(
+        {
+          logTag,
+          message: 'Failed to initialize browser',
+          error: JSON.stringify(errorOrException),
+        }
+      );
+
       throw errorOrException;
     }
   }
