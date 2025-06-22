@@ -16,13 +16,9 @@ import {
 } from '@nestjs/common';
 
 import {
-  CharacterJobQueue,
-  charactersQueue,
   delay,
   GuildJobQueue,
   guildsQueue,
-  ProfileJobQueue,
-  profileQueue,
   WowProgressLink,
   DownloadSummary,
   DownloadResult,
@@ -58,14 +54,8 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
-    @InjectRepository(CharactersProfileEntity)
-    private readonly charactersProfileRepository: Repository<CharactersProfileEntity>,
     @InjectQueue(guildsQueue.name)
     private readonly queueGuilds: Queue<GuildJobQueue, number>,
-    @InjectQueue(profileQueue.name)
-    private readonly queueProfile: Queue<ProfileJobQueue, number>,
-    @InjectQueue(charactersQueue.name)
-    private readonly queueCharacters: Queue<CharacterJobQueue, number>,
   ) {
     chromium.use(stealth());
   }

@@ -18,7 +18,10 @@ import {
   GLOBAL_OSINT_KEY,
   ICharacterQueueWP,
   LFG_STATUS,
-  OSINT_LFG_WOW_PROGRESS, OSINT_SOURCE, ProfileJobQueue, profileQueue, toSlug,
+  OSINT_LFG_WOW_PROGRESS,
+  OSINT_SOURCE,
+  ProfileJobQueue,
+  profileQueue, toSlug,
 } from '@app/resources';
 
 @Injectable()
@@ -45,7 +48,7 @@ export class WowProgressLfgService {
     try {
       this.logger.log('————————————————————————————————————');
       /**
-       * Revoke characters status from old NOW => to PREV
+       * Revoke character status from old NOW => to PREV
        */
       await delay(60);
       const charactersLfgRemoveOld = await this.charactersProfileRepository.update(
