@@ -5,7 +5,7 @@ import { In, Repository } from 'typeorm';
 import { CharactersProfileEntity, KeysEntity, RealmsEntity } from '@app/pg';
 import { from, lastValueFrom } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
-import * as cheerio from 'cheerio/dist/browser';
+import * as cheerio from 'cheerio';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -37,9 +37,7 @@ export class WowProgressLfgService {
     private readonly queueProfile: Queue<ProfileJobQueue, number>,
     @InjectQueue(charactersQueue.name)
     private readonly queueCharacters: Queue<CharacterJobQueue, number>,
-  ) {
-
-  }
+  ) { }
 
   @Cron(CronExpression.EVERY_5_MINUTES)
   async indexWowProgressLfg(clearance: string = GLOBAL_OSINT_KEY): Promise<void> {

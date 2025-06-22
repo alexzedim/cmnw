@@ -8,4 +8,5 @@ export { coreConfig } from './core.config';
 export { cmnwConfig } from './cmnw.config';
 export { lokiConfig } from './loki.config';
 export { dmaConfig } from './dma.config';
+export { s3Config } from './s3.config';
 export * from './interfaces';
