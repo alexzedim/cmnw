@@ -3,7 +3,6 @@ import fs from 'fs-extra';
 import path from 'path';
 import zlib from 'zlib';
 import { InjectQueue } from '@nestjs/bullmq';
-import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CharactersProfileEntity, KeysEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
@@ -11,10 +10,12 @@ import { promisify } from 'util';
 import { chromium } from 'playwright-extra';
 import stealth from 'puppeteer-extra-plugin-stealth'
 import { Browser, Page } from 'playwright';
+import { S3Service } from './s3.service';
 import {
   Injectable,
   Logger,
   OnApplicationBootstrap,
+  OnApplicationShutdown,
 } from '@nestjs/common';
 
 import {
@@ -25,7 +26,6 @@ import {
   guildsQueue,
   ProfileJobQueue,
   profileQueue,
-  formatBytes,
 } from '@app/resources';
 
 
@@ -33,16 +33,18 @@ export interface WowProgressLink {
   href: string;
   text: string;
   fileName: string;
-  isDownloaded: boolean;
 }
 
-export interface DownloadResult {
+interface DownloadResult {
   success: boolean;
-  fileName: string;
-  filePath?: string;
+  skip: boolean;
+  fileName?: string;
+  s3Key?: string;
   fileSize?: number;
+  s3Location?: string;
   error?: string;
 }
+
 
 export interface DownloadSummary {
   totalFiles: number;
@@ -54,10 +56,10 @@ export interface DownloadSummary {
 }
 
 @Injectable()
-export class WowProgressRanksService implements OnApplicationBootstrap {
+export class WowProgressRanksService implements OnApplicationBootstrap, OnApplicationShutdown {
   private readonly logger = new Logger(WowProgressRanksService.name);
   private readonly baseUrl = 'https://www.wowprogress.com/export/ranks/';
-  private readonly downloadPath = path.join(process.cwd(), 'files', 'wow-progress');
+  private readonly s3Bucket = 'cmnw-wow-progress';
   private readonly maxRetries = 3;
   private readonly retryDelay = 2; // 2 seconds
   private readonly requestDelay = 1; // 1 second between requests
@@ -66,7 +68,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap {
   private page: Page;
 
   constructor(
-    private httpService: HttpService,
+    private s3Service: S3Service,
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(RealmsEntity)
@@ -84,14 +86,10 @@ export class WowProgressRanksService implements OnApplicationBootstrap {
   }
 
   async onApplicationBootstrap(): Promise<void> {
-    // await this.indexWowProgress(GLOBAL_OSINT_KEY, osintConfig.isIndexWowProgress);
-
     this.logger.log('Initializing WoW Progress Service...');
 
     try {
       await this.initializeBrowser();
-      await this.ensureDownloadDirectory();
-
       // Optional: Start downloading on bootstrap
       await this.downloadAllRanks();
 
@@ -136,21 +134,6 @@ export class WowProgressRanksService implements OnApplicationBootstrap {
   }
 
   /**
-   * Ensure download directory exists
-   */
-  private async ensureDownloadDirectory(): Promise<void> {
-    try {
-      if (!fs.existsSync(this.downloadPath)) {
-        fs.mkdirSync(this.downloadPath, { recursive: true });
-        this.logger.log(`Created download directory: ${this.downloadPath}`);
-      }
-    } catch (error) {
-      this.logger.error('Failed to create download directory', error);
-      throw error;
-    }
-  }
-
-  /**
    * Parse all available rank files from the main directory
    */
   async parseAvailableFiles(): Promise<WowProgressLink[]> {
@@ -174,28 +157,22 @@ export class WowProgressRanksService implements OnApplicationBootstrap {
             // Filter for actual rank files
             return link.href &&
               link.text &&
-              !link.href.endsWith('../') &&
-              !link.text.includes('HEADER.txt') &&
-              (link.text.includes('.json.gz') || link.text.includes('.json'));
+              link.href.includes('eu_')
           });
       });
 
       // Process links and check if already downloaded
       const processedLinks: WowProgressLink[] = links.map(link => {
         const fileName = link.text.trim();
-        const filePath = path.join(this.downloadPath, fileName);
-        const isDownloaded = fs.existsSync(filePath);
 
         return {
           href: link.href,
           text: link.text,
           fileName,
-          isDownloaded
         };
       });
 
       this.logger.log(`Found ${processedLinks.length} rank files`);
-      this.logger.log(`Already downloaded: ${processedLinks.filter(l => l.isDownloaded).length}`);
 
       return processedLinks;
     } catch (error) {
@@ -208,41 +185,45 @@ export class WowProgressRanksService implements OnApplicationBootstrap {
    * Download a single file with retry logic
    */
   async downloadFile(link: WowProgressLink): Promise<DownloadResult> {
-    const filePath = path.join(this.downloadPath, link.fileName);
 
-    // Skip if already exists
-    if (fs.existsSync(filePath)) {
+    const fileName = link.fileName;
+
+    const isFileExists = await this.s3Service.getFileMetadata(fileName);
+
+    if (isFileExists.exists) {
+      this.logger.log(`  ⏭️ Skipped: ${fileName}`);
       return {
         success: true,
+        skip: true,
         fileName: link.fileName,
-        filePath,
-        fileSize: fs.statSync(filePath).size
+        fileSize: isFileExists.size,
       };
     }
 
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
-        this.logger.log(`Downloading ${link.fileName} (attempt ${attempt}/${this.maxRetries})`);
+        this.logger.log(`Downloading ${fileName} (attempt ${attempt}/${this.maxRetries})`);
 
-        const result = await this.downloadWithFetch(link.href, filePath);
+        const result = await this.downloadWithFetch(link.href, fileName);
 
         if (result.success) {
-          this.logger.log(`✅ Downloaded: ${link.fileName} (${result.fileSize} bytes)`);
+          this.logger.log(`✅ Downloaded: ${fileName} (${result.fileSize} bytes)`);
           return result;
         }
 
         if (attempt < this.maxRetries) {
-          this.logger.warn(`Retrying ${link.fileName} in ${this.retryDelay}ms...`);
+          this.logger.warn(`Retrying ${fileName} in ${this.retryDelay}ms...`);
           await delay(this.retryDelay);
         }
 
       } catch (error) {
-        this.logger.error(`Attempt ${attempt} failed for ${link.fileName}:`, error.message);
+        this.logger.error(`Attempt ${attempt} failed for ${fileName}:`, error.message);
 
         if (attempt === this.maxRetries) {
           return {
             success: false,
-            fileName: link.fileName,
+            skip: false,
+            fileName: fileName,
             error: error.message
           };
         }
@@ -253,6 +234,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap {
 
     return {
       success: false,
+      skip: false,
       fileName: link.fileName,
       error: 'Max retries exceeded'
     };
@@ -261,7 +243,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap {
   /**
    * Download file using fetch in browser context
    */
-  private async downloadWithFetch(url: string, filePath: string): Promise<DownloadResult> {
+  private async downloadWithFetch(url: string, fileName: string): Promise<DownloadResult> {
     try {
       // First ensure we have a session by visiting the main page
       await this.page.goto(this.baseUrl, { waitUntil: 'domcontentloaded' });
@@ -288,10 +270,15 @@ export class WowProgressRanksService implements OnApplicationBootstrap {
           }
 
           const arrayBuffer = await response.arrayBuffer();
+
+          // Extract content type from response headers if not provided
+          const responseContentType = response.headers.get('content-type');
+
           return {
             success: true,
             data: Array.from(new Uint8Array(arrayBuffer)),
-            size: arrayBuffer.byteLength
+            size: arrayBuffer.byteLength,
+            contentType: responseContentType
           };
 
         } catch (error) {
@@ -306,14 +293,17 @@ export class WowProgressRanksService implements OnApplicationBootstrap {
         throw new Error(result.error);
       }
 
-      // Save file
+      // Determine content type
       const buffer = Buffer.from(result.data);
-      fs.writeFileSync(filePath, buffer);
+      await this.s3Service.writeFile(fileName, buffer, {
+        contentType: 'application/gzip',
+        metadata: { 'export-type': 'rankings', 'compression': 'gzip' }
+      });
 
       return {
         success: true,
-        fileName: path.basename(filePath),
-        filePath,
+        skip: false,
+        fileName: fileName,
         fileSize: result.size
       };
 
@@ -325,27 +315,36 @@ export class WowProgressRanksService implements OnApplicationBootstrap {
   /**
    * Download all rank files
    */
-  async downloadAllRanks(forceRedownload = false): Promise<DownloadSummary> {
+  async downloadAllRanks(): Promise<DownloadSummary> {
     try {
+      const isExists = await this.s3Service.ensureBucketExists();
+      if (!isExists) return;
+
       this.logger.log('Starting bulk download of WoW Progress ranks...');
 
-      const links = await this.parseAvailableFiles();
-      const filesToDownload = forceRedownload ? links : links.filter(link => !link.isDownloaded);
+      const filesToDownload = await this.parseAvailableFiles();
+      const linksCount = filesToDownload.length;
 
       this.logger.log(`Downloading ${filesToDownload.length} files...`);
 
       const results: DownloadResult[] = [];
+
       let successful = 0;
       let failed = 0;
       let skipped = 0;
 
-      for (let i = 0; i < filesToDownload.length; i++) {
+      for (let i = 0; i < linksCount; i++) {
         const link = filesToDownload[i];
 
-        this.logger.log(`Progress: ${i + 1}/${filesToDownload.length} - ${link.fileName}`);
+        this.logger.log(`Progress: ${i + 1}/${linksCount} - ${link.fileName}`);
 
         const result = await this.downloadFile(link);
         results.push(result);
+
+        if (result.skip) {
+          skipped++;
+          continue;
+        }
 
         if (result.success) {
           successful++;
@@ -360,15 +359,12 @@ export class WowProgressRanksService implements OnApplicationBootstrap {
         }
       }
 
-      // Count skipped files
-      skipped = links.length - filesToDownload.length;
-
       const summary: DownloadSummary = {
-        totalFiles: links.length,
+        totalFiles: linksCount,
         successful,
         failed,
         skipped,
-        downloadPath: this.downloadPath,
+        downloadPath: this.s3Bucket,
         results
       };
 
@@ -388,83 +384,11 @@ export class WowProgressRanksService implements OnApplicationBootstrap {
   }
 
   /**
-   * Download specific server/tier combinations
-   */
-  async downloadSpecificFiles(filters: {
-    servers?: string[];
-    tiers?: string[];
-    regions?: string[];
-  }): Promise<DownloadSummary> {
-    try {
-      const allLinks = await this.parseAvailableFiles();
-
-      // Filter based on criteria
-      const filteredLinks = allLinks.filter(link => {
-        const fileName = link.fileName.toLowerCase();
-
-        // Check server filter
-        if (filters.servers && filters.servers.length > 0) {
-          const hasServer = filters.servers.some(server =>
-            fileName.includes(server.toLowerCase())
-          );
-          if (!hasServer) return false;
-        }
-
-        // Check tier filter
-        if (filters.tiers && filters.tiers.length > 0) {
-          const hasTier = filters.tiers.some(tier =>
-            fileName.includes(`tier${tier}`) || fileName.includes(`t${tier}`)
-          );
-          if (!hasTier) return false;
-        }
-
-        // Check region filter
-        if (filters.regions && filters.regions.length > 0) {
-          const hasRegion = filters.regions.some(region =>
-            fileName.startsWith(region.toLowerCase())
-          );
-          if (!hasRegion) return false;
-        }
-
-        return true;
-      });
-
-      this.logger.log(`Filtered to ${filteredLinks.length} files based on criteria`);
-
-      // Download filtered files
-      const results: DownloadResult[] = [];
-
-      for (const link of filteredLinks) {
-        const result = await this.downloadFile(link);
-        results.push(result);
-
-        await delay(this.requestDelay);
-      }
-
-      const successful = results.filter(r => r.success).length;
-      const failed = results.filter(r => !r.success).length;
-
-      return {
-        totalFiles: filteredLinks.length,
-        successful,
-        failed,
-        skipped: 0,
-        downloadPath: this.downloadPath,
-        results
-      };
-
-    } catch (error) {
-      this.logger.error('Specific download failed', error);
-      throw error;
-    }
-  }
-
-  /**
    * Extract and parse a downloaded .json.gz file
    */
   async extractFile(fileName: string): Promise<any> {
     try {
-      const filePath = path.join(this.downloadPath, fileName);
+      const filePath = path.join(this.s3Bucket, fileName);
 
       if (!fs.existsSync(filePath)) {
         throw new Error(`File not found: ${fileName}`);
@@ -489,52 +413,6 @@ export class WowProgressRanksService implements OnApplicationBootstrap {
 
     } catch (error) {
       this.logger.error(`Failed to extract ${fileName}:`, error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get download statistics
-   */
-  getDownloadStats(): {
-    downloadPath: string;
-    totalFiles: number;
-    totalSize: string;
-    files: Array<{ name: string; size: number; modified: Date; }>;
-  } {
-    try {
-      if (!fs.existsSync(this.downloadPath)) {
-        return {
-          downloadPath: this.downloadPath,
-          totalFiles: 0,
-          totalSize: '0 B',
-          files: []
-        };
-      }
-
-      const files = fs.readdirSync(this.downloadPath)
-        .map(fileName => {
-          const filePath = path.join(this.downloadPath, fileName);
-          const stats = fs.statSync(filePath);
-          return {
-            name: fileName,
-            size: stats.size,
-            modified: stats.mtime
-          };
-        })
-        .sort((a, b) => b.modified.getTime() - a.modified.getTime());
-
-      const totalSize = files.reduce((sum, file) => sum + file.size, 0);
-
-      return {
-        downloadPath: this.downloadPath,
-        totalFiles: files.length,
-        totalSize: formatBytes(totalSize),
-        files
-      };
-
-    } catch (error) {
-      this.logger.error('Failed to get download stats', error);
       throw error;
     }
   }
