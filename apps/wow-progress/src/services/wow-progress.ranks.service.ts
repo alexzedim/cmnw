@@ -421,7 +421,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
           continue;
         }
 
-        const guildRankings = jsonRankings
+        const guildRankings = (jsonRankings as Array<unknown>)
           .filter(guild => isWowProgressJson(guild))
           .map((wowProgressGuild) =>
             this.transformWowProgressToGuildJobs(wowProgressGuild, realm.slug)
