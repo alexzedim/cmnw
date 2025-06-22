@@ -1,7 +1,7 @@
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
-import { CharactersProfileEntity, KeysEntity, RealmsEntity } from '@app/pg';
+import { KeysEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { chromium } from 'playwright-extra';
 import stealth from 'puppeteer-extra-plugin-stealth'
