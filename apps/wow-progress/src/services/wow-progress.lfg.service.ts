@@ -50,7 +50,6 @@ export class WowProgressLfgService {
       /**
        * Revoke character status from old NOW => to PREV
        */
-      await delay(60);
       const charactersLfgRemoveOld = await this.charactersProfileRepository.update(
         {
           lfgStatus: LFG_STATUS.OLD,
