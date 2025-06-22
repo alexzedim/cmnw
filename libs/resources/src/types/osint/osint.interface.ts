@@ -508,3 +508,39 @@ export interface IExpansionList {
   BFA: IExpansionSet;
   SHDW: IExpansionSet;
 }
+
+
+export interface WowProgressLink {
+  href: string;
+  text: string;
+  fileName: string;
+}
+
+export interface DownloadResult {
+  success: boolean;
+  skip: boolean;
+  fileName?: string;
+  s3Key?: string;
+  fileSize?: number;
+  s3Location?: string;
+  error?: string;
+}
+
+
+export interface DownloadSummary {
+  totalFiles: number;
+  successful: number;
+  failed: number;
+  skipped: number;
+  downloadPath: string;
+  results: DownloadResult[];
+}
+
+export interface WowProgressJson {
+  score: number;
+  world_rank: number;
+  area_rank: number;
+  realm_rank: number;
+  name: string;
+  url: string;
+}

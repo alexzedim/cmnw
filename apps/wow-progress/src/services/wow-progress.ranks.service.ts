@@ -1,16 +1,13 @@
 import { Queue } from 'bullmq';
-import fs from 'fs-extra';
-import path from 'path';
-
 import { InjectQueue } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CharactersProfileEntity, KeysEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
-import { promisify } from 'util';
 import { chromium } from 'playwright-extra';
 import stealth from 'puppeteer-extra-plugin-stealth'
 import { Browser, Page } from 'playwright';
 import { S3Service } from './s3.service';
+import ms from 'ms';
 import {
   Injectable,
   Logger,
@@ -23,37 +20,23 @@ import {
   charactersQueue,
   delay,
   GuildJobQueue,
-  guildsQueue, OSINT_LFG_WOW_PROGRESS,
+  guildsQueue,
   ProfileJobQueue,
   profileQueue,
+  WowProgressLink,
+  DownloadSummary,
+  DownloadResult,
+  isValidArray,
+  isWowProgressJson,
+  extractRealmName,
+  findRealm,
+  WowProgressJson,
+  toGuid, getKeys,
+  GLOBAL_OSINT_KEY,
+  OSINT_SOURCE,
+  IGuildJob,
 } from '@app/resources';
 
-
-export interface WowProgressLink {
-  href: string;
-  text: string;
-  fileName: string;
-}
-
-interface DownloadResult {
-  success: boolean;
-  skip: boolean;
-  fileName?: string;
-  s3Key?: string;
-  fileSize?: number;
-  s3Location?: string;
-  error?: string;
-}
-
-
-export interface DownloadSummary {
-  totalFiles: number;
-  successful: number;
-  failed: number;
-  skipped: number;
-  downloadPath: string;
-  results: DownloadResult[];
-}
 
 @Injectable()
 export class WowProgressRanksService implements OnApplicationBootstrap, OnApplicationShutdown {
@@ -63,6 +46,8 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
   private readonly maxRetries = 3;
   private readonly retryDelay = 2; // 2 seconds
   private readonly requestDelay = 1; // 1 second between requests
+  private keyEntities: KeysEntity[];
+  private guildJobsItx = 0;
 
   private browser: Browser;
   private page: Page;
@@ -87,17 +72,17 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
 
   async onApplicationBootstrap(): Promise<void> {
     this.logger.log('Initializing WoW Progress Service...');
-    await this.a();
-    return;
+    // await this.extractAllGuildRanks();
+    // return;
     try {
       await this.initializeBrowser();
       // Optional: Start downloading on bootstrap
       await this.downloadAllRanks();
+      await this.extractAllGuildRanks();
 
       this.logger.log('WoW Progress Service initialized successfully');
-    } catch (error) {
-      this.logger.error('Failed to initialize WoW Progress Service', error);
-      throw error;
+    } catch (errorOrException) {
+      this.logger.error('Failed to initialize WoW Progress Service', errorOrException);
     }
   }
 
@@ -128,9 +113,9 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
       });
 
       this.logger.log('Browser initialized successfully');
-    } catch (error) {
-      this.logger.error('Failed to initialize browser', error);
-      throw error;
+    } catch (errorOrException) {
+      this.logger.error('Failed to initialize browser', errorOrException);
+      throw errorOrException;
     }
   }
 
@@ -378,15 +363,81 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
 
       return summary;
 
-    } catch (error) {
-      this.logger.error('Bulk download failed', error);
-      throw error;
+    } catch (errorOrException) {
+      this.logger.error('Bulk download failed', errorOrException);
+      throw errorOrException;
     }
   }
 
-  /**
-   * Clean up browser resources
-   */
+  async extractAllGuildRanks(
+    clearance: string = GLOBAL_OSINT_KEY,
+  ) {
+    const logTag = this.extractAllGuildRanks.name;
+
+    try {
+      const listWowProgressGzipFiles = await this.s3Service.findGzFiles(this.s3Bucket, 'eu_');
+
+      this.keyEntities = await getKeys(this.keysRepository, clearance, false, true);
+
+      for (const fileName of listWowProgressGzipFiles) {
+        const realmName = extractRealmName(fileName);
+        if (!realmName) continue;
+
+        const realm = await findRealm(this.realmsRepository, realmName);
+        if (!realm) continue;
+
+        const jsonRankings = await this.s3Service.readAndDecompressGzFile(this.s3Bucket, fileName);
+
+        const isGuildRankingArray = isValidArray(jsonRankings);
+        if (!isGuildRankingArray) continue;
+
+        const guildRankings = jsonRankings
+          .filter(guild => isWowProgressJson(guild))
+          .map((wowProgressGuild) =>
+            this.transformWowProgressToGuildJobs(wowProgressGuild, realm.slug)
+          );
+
+        await this.queueGuilds.addBulk(guildRankings);
+      }
+
+    } catch (errorOrException) {
+      this.logger.error(`${logTag}: ${errorOrException.message}`, errorOrException);
+    }
+  }
+
+  transformWowProgressToGuildJobs = (
+    obj: WowProgressJson, realmSlug: string
+  ): IGuildJob => {
+    const guildGuid = toGuid(obj.name, realmSlug);
+
+    const { client, secret, token } =
+      this.keyEntities[this.guildJobsItx % this.keyEntities.length];
+
+    this.guildJobsItx = this.guildJobsItx + 1;
+
+    return {
+      name: guildGuid,
+      data: {
+        guid: guildGuid,
+        name: obj.name,
+        realm: realmSlug,
+        accessToken: token,
+        clientId: client,
+        clientSecret: secret,
+        createOnlyUnique: true,
+        forceUpdate: ms('12h'),
+        iteration: this.guildJobsItx,
+        region: 'eu',
+        createdBy: OSINT_SOURCE.WOW_PROGRESS,
+        updatedBy: OSINT_SOURCE.WOW_PROGRESS,
+      },
+      opts: {
+        jobId: guildGuid,
+        priority: 3,
+      }
+    };
+  };
+
   async onApplicationShutdown(): Promise<void> {
     try {
       if (this.page) {
@@ -396,23 +447,8 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
         await this.browser.close();
       }
       this.logger.log('Browser resources cleaned up');
-    } catch (error) {
-      this.logger.error('Error during cleanup', error);
-    }
-  }
-
-  async a() {
-    const logTag = this.a.name;
-    try {
-      const b = await this.s3Service.findGzFiles(this.s3Bucket, 'eu_');
-
-      for (const fileName of b) {
-        const t = await this.s3Service.readAndDecompressGzFile(this.s3Bucket, fileName);
-        console.log(t);
-      }
-
-    } catch (e) {
-      console.log(e);
+    } catch (errorOrException) {
+      this.logger.error('Error during cleanup', errorOrException);
     }
   }
 }

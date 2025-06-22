@@ -1,5 +1,7 @@
 import { DefaultJobOptions, WorkerOptions } from 'bullmq';
 import { LFG_STATUS, OSINT_SOURCE } from '@app/resources/constants';
+import { GuildJobQueue } from '@app/resources/types';
+import { JobsOptions } from 'bullmq/dist/esm/types';
 
 export interface IQueue {
   readonly name: string;
@@ -52,4 +54,10 @@ export interface IQRealm {
   slug: string;
   name: string;
   region: 'eu';
+}
+
+export interface IGuildJob {
+  name: string;
+  data: GuildJobQueue;
+  opts: JobsOptions;
 }

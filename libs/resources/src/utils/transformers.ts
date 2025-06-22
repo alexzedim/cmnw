@@ -1,5 +1,4 @@
-import { toGold } from '@app/resources/utils/converters';
-import { BlizzardApiNamedField, ConvertPrice } from '@app/resources/types';
+import { toGold, BlizzardApiNamedField, ConvertPrice } from '@app/resources';
 
 export const transformNamedField = <T extends object>(value: T, key = 'name') => {
   if (!value) return null;
@@ -44,4 +43,9 @@ export const transformPrice = (order: ConvertPrice) => {
   if (order.buyout) return toGold(order.buyout);
   if (order.bid) return toGold(order.bid);
   return undefined;
+};
+
+export const extractRealmName = (filename: string): string | null => {
+  const match = filename.match(/eu_(.+?)_tier/);
+  return match ? match[1] : null;
 };
