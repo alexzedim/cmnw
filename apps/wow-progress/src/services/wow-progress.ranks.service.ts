@@ -1,7 +1,7 @@
 import { Queue } from 'bullmq';
 import fs from 'fs-extra';
 import path from 'path';
-import zlib from 'zlib';
+
 import { InjectQueue } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CharactersProfileEntity, KeysEntity, RealmsEntity } from '@app/pg';
@@ -23,7 +23,7 @@ import {
   charactersQueue,
   delay,
   GuildJobQueue,
-  guildsQueue,
+  guildsQueue, OSINT_LFG_WOW_PROGRESS,
   ProfileJobQueue,
   profileQueue,
 } from '@app/resources';
@@ -87,7 +87,8 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
 
   async onApplicationBootstrap(): Promise<void> {
     this.logger.log('Initializing WoW Progress Service...');
-
+    await this.a();
+    return;
     try {
       await this.initializeBrowser();
       // Optional: Start downloading on bootstrap
@@ -384,40 +385,6 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
   }
 
   /**
-   * Extract and parse a downloaded .json.gz file
-   */
-  async extractFile(fileName: string): Promise<any> {
-    try {
-      const filePath = path.join(this.s3Bucket, fileName);
-
-      if (!fs.existsSync(filePath)) {
-        throw new Error(`File not found: ${fileName}`);
-      }
-
-      const fileBuffer = fs.readFileSync(filePath);
-
-      // Decompress if .gz file
-      let decompressed: Buffer;
-      if (fileName.endsWith('.gz')) {
-        const gunzip = promisify(zlib.gunzip);
-        decompressed = await gunzip(fileBuffer);
-      } else {
-        decompressed = fileBuffer;
-      }
-
-      // Parse JSON
-      const jsonData = JSON.parse(decompressed.toString('utf8'));
-
-      this.logger.log(`Extracted ${fileName}: ${JSON.stringify(jsonData).length} characters`);
-      return jsonData;
-
-    } catch (error) {
-      this.logger.error(`Failed to extract ${fileName}:`, error);
-      throw error;
-    }
-  }
-
-  /**
    * Clean up browser resources
    */
   async onApplicationShutdown(): Promise<void> {
@@ -431,6 +398,21 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
       this.logger.log('Browser resources cleaned up');
     } catch (error) {
       this.logger.error('Error during cleanup', error);
+    }
+  }
+
+  async a() {
+    const logTag = this.a.name;
+    try {
+      const b = await this.s3Service.findGzFiles(this.s3Bucket, 'eu_');
+
+      for (const fileName of b) {
+        const t = await this.s3Service.readAndDecompressGzFile(this.s3Bucket, fileName);
+        console.log(t);
+      }
+
+    } catch (e) {
+      console.log(e);
     }
   }
 }

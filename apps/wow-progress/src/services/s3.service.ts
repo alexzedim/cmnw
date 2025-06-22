@@ -1,16 +1,18 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectS3, S3 } from 'nestjs-s3';
+import { promisify } from 'util';
+import zlib from 'zlib';
 import {
   BucketAlreadyOwnedByYou,
   CreateBucketCommand,
+  GetObjectCommand,
   HeadBucketCommand,
   HeadObjectCommand,
-  ListObjectsV2Command,
+  ListObjectsV2Command, ListObjectsV2CommandInput,
   PutBucketEncryptionCommand,
   PutBucketVersioningCommand,
-  PutObjectCommand
+  PutObjectCommand,
 } from '@aws-sdk/client-s3';
-
 
 @Injectable()
 export class S3Service {
@@ -20,8 +22,7 @@ export class S3Service {
   constructor(
     @InjectS3()
     private readonly s3: S3,
-  ) {
-  }
+  ) { }
 
   async ensureBucketExists(): Promise<boolean> {
     try {
@@ -284,5 +285,88 @@ export class S3Service {
     };
 
     return contentTypes[extension || ''] || 'application/octet-stream';
+  }
+
+  async findGzFiles(
+    bucketName: string,
+    prefix?: string,
+    maxKeys: number = 1000
+  ): Promise<string[]> {
+    const gzFiles: string[] = [];
+    let continuationToken: string | undefined;
+    let requestCount = 0;
+
+    try {
+      do {
+        const params: ListObjectsV2CommandInput = {
+          Bucket: bucketName,
+          Prefix: prefix,
+          ContinuationToken: continuationToken,
+          MaxKeys: Math.min(maxKeys, 1000), // AWS max is 1000
+        };
+
+        const command = new ListObjectsV2Command(params);
+        const response = await this.s3.send(command);
+        requestCount++;
+
+        if (response.Contents) {
+          const gzFilesInBatch = response.Contents
+            .filter(obj => obj.Key && obj.Key.endsWith('.gz'))
+            .map(obj => obj.Key!);
+
+          gzFiles.push(...gzFilesInBatch);
+
+          // Log progress for large buckets
+          if (requestCount % 10 === 0) {
+            this.logger.log(`Processed ${requestCount} batches, found ${gzFiles.length} .gz files so far`);
+          }
+        }
+
+        continuationToken = response.NextContinuationToken;
+      } while (continuationToken); // This loop continues until ALL files are retrieved
+
+      this.logger.log(`Total requests: ${requestCount}, Total .gz files found: ${gzFiles.length}`);
+      return gzFiles;
+    } catch (error) {
+      throw new Error(`Failed to list .gz files from S3: ${error.message}`);
+    }
+  }
+
+  async readAndDecompressGzFile(
+    bucketName: string,
+    fileName: string,
+    encoding: BufferEncoding = 'utf8'
+  ): Promise<string> {
+    try {
+      const command = new GetObjectCommand({
+        Bucket: bucketName,
+        Key: fileName,
+      });
+
+      const response = await this.s3.send(command);
+
+      if (!response.Body) {
+        throw new Error('Empty response body from S3');
+      }
+
+      // Convert stream to buffer
+      const chunks: Buffer[] = [];
+      const stream = response.Body as any;
+
+      for await (const chunk of stream) {
+        chunks.push(chunk);
+      }
+
+      const compressedBuffer = Buffer.concat(chunks);
+
+      const gunzip = promisify(zlib.gunzip)
+      const decompressedBuffer = await gunzip(compressedBuffer);
+
+      const jsonData = JSON.parse(decompressedBuffer.toString(encoding));
+
+      return jsonData;
+    } catch (error) {
+      throw new Error(`Failed to read and decompress .gz file from S3: ${error.message}`);
+    }
   }
 }
