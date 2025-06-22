@@ -12,7 +12,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import {
   CharacterJobQueue,
-  charactersQueue, delay,
+  charactersQueue,
   findRealm,
   getKeys, getRandomElement,
   GLOBAL_OSINT_KEY,
@@ -58,6 +58,7 @@ export class WowProgressLfgService {
           lfgStatus: null,
         },
       );
+
       this.logger.log(
         `${charactersLfgRemoveOld.affected} characters removed from LFG-${LFG_STATUS.OLD}`,
       );
@@ -234,7 +235,7 @@ export class WowProgressLfgService {
       ]);
 
       this.logger.log(
-        `${logTag}: Added to character queue: ${characterQueue.guid}`,
+        `Added to character queue: ${characterQueue.guid}`,
       );
     } catch (errorOrException) {
       this.logger.error(
