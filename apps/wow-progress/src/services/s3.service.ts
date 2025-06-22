@@ -263,6 +263,7 @@ export class S3Service {
         const params: ListObjectsV2CommandInput = {
           Bucket: bucketName,
           Prefix: prefix,
+          ContinuationToken: continuationToken,
           MaxKeys: Math.min(maxKeys, 1000), // AWS max is 1000
         };
 
