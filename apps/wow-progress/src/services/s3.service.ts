@@ -8,11 +8,13 @@ import {
   GetObjectCommand,
   HeadBucketCommand,
   HeadObjectCommand,
-  ListObjectsV2Command, ListObjectsV2CommandInput,
+  ListObjectsV2Command,
+  ListObjectsV2CommandInput,
   PutBucketEncryptionCommand,
   PutBucketVersioningCommand,
   PutObjectCommand,
 } from '@aws-sdk/client-s3';
+
 
 @Injectable()
 export class S3Service {
@@ -160,46 +162,6 @@ export class S3Service {
     }
   }
 
-  // Check multiple files at once
-  async checkMultipleFiles(keys: string[]): Promise<Record<string, boolean>> {
-    const results: Record<string, boolean> = {};
-
-    // Use Promise.allSettled for concurrent checks
-    const promises = keys.map(async (key) => ({
-      key,
-      exists: await this.fileExists(key),
-    }));
-
-    const settled = await Promise.allSettled(promises);
-
-    settled.forEach((result, index) => {
-      if (result.status === 'fulfilled') {
-        results[result.value.key] = result.value.exists;
-      } else {
-        results[keys[index]] = false;
-        this.logger.error(`Failed to check file '${keys[index]}':`, result.reason);
-      }
-    });
-
-    return results;
-  }
-
-  // List files with prefix (useful for checking folder contents)
-  async listFiles(prefix?: string, maxKeys: number = 1000): Promise<string[]> {
-    try {
-      const response = await this.s3.send(new ListObjectsV2Command({
-        Bucket: this.bucketName,
-        Prefix: prefix,
-        MaxKeys: maxKeys,
-      }));
-
-      return response.Contents?.map(obj => obj.Key!) || [];
-    } catch (error) {
-      this.logger.error(`Error listing files with prefix '${prefix}':`, error);
-      throw error;
-    }
-  }
-
   // Write file to S3 bucket
   async writeFile(
     key: string,
@@ -301,7 +263,6 @@ export class S3Service {
         const params: ListObjectsV2CommandInput = {
           Bucket: bucketName,
           Prefix: prefix,
-          ContinuationToken: continuationToken,
           MaxKeys: Math.min(maxKeys, 1000), // AWS max is 1000
         };
 
@@ -336,7 +297,7 @@ export class S3Service {
     bucketName: string,
     fileName: string,
     encoding: BufferEncoding = 'utf8'
-  ): Promise<string> {
+  ): Promise<unknown> {
     try {
       const command = new GetObjectCommand({
         Bucket: bucketName,
@@ -362,9 +323,7 @@ export class S3Service {
       const gunzip = promisify(zlib.gunzip)
       const decompressedBuffer = await gunzip(compressedBuffer);
 
-      const jsonData = JSON.parse(decompressedBuffer.toString(encoding));
-
-      return jsonData;
+      return JSON.parse(decompressedBuffer.toString(encoding));
     } catch (error) {
       throw new Error(`Failed to read and decompress .gz file from S3: ${error.message}`);
     }
