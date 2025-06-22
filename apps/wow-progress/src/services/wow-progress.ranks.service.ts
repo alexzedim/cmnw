@@ -230,6 +230,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
    * Download file using fetch in browser context
    */
   private async downloadWithFetch(url: string, fileName: string): Promise<DownloadResult> {
+    const logTag = this.downloadWithFetch.name;
     try {
       // First ensure we have a session by visiting the main page
       await this.page.goto(this.baseUrl, { waitUntil: 'domcontentloaded' });
@@ -293,8 +294,15 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
         fileSize: result.size
       };
 
-    } catch (error) {
-      throw new Error(`Download failed: ${error.message}`);
+    } catch (errorOrException) {
+      this.logger.error(
+        {
+          logTag,
+          message: errorOrException.message,
+          error: JSON.stringify(errorOrException),
+        }
+      );
+      throw new Error(`Download failed: ${errorOrException.message}`);
     }
   }
 
@@ -302,6 +310,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
    * Download all rank files
    */
   async downloadAllRanks(): Promise<DownloadSummary> {
+    const logTag = this.downloadAllRanks.name;
     try {
       const isExists = await this.s3Service.ensureBucketExists();
       if (!isExists) return;
@@ -364,7 +373,13 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
       return summary;
 
     } catch (errorOrException) {
-      this.logger.error('Bulk download failed', errorOrException);
+      this.logger.error(
+        {
+          logTag,
+          message: 'Bulk download failed',
+          error: errorOrException,
+        }
+      );
       throw errorOrException;
     }
   }
@@ -377,19 +392,30 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
     try {
       const listWowProgressGzipFiles = await this.s3Service.findGzFiles(this.s3Bucket, 'eu_');
 
+      this.logger.log(`Found ${listWowProgressGzipFiles.length} rank files`);
+
       this.keyEntities = await getKeys(this.keysRepository, clearance, false, true);
 
       for (const fileName of listWowProgressGzipFiles) {
         const realmName = extractRealmName(fileName);
-        if (!realmName) continue;
+        if (!realmName) {
+          this.logger.log(`  ⏭️ Skipped: unable to extract realm ${realmName}`);
+          continue;
+        }
 
         const realm = await findRealm(this.realmsRepository, realmName);
-        if (!realm) continue;
+        if (!realm) {
+          this.logger.log(`  ⏭️ Skipped: findRealm ${realm.slug} not found`);
+          continue;
+        }
 
         const jsonRankings = await this.s3Service.readAndDecompressGzFile(this.s3Bucket, fileName);
 
         const isGuildRankingArray = isValidArray(jsonRankings);
-        if (!isGuildRankingArray) continue;
+        if (!isGuildRankingArray) {
+          this.logger.log(`  ⏭️ Skipped: realm ${realm.slug} not found`);
+          continue;
+        }
 
         const guildRankings = jsonRankings
           .filter(guild => isWowProgressJson(guild))
@@ -398,10 +424,17 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
           );
 
         await this.queueGuilds.addBulk(guildRankings);
+        this.logger.log(`  ✅ Successful: add ${guildRankings.length} guild jobs to queue`);
       }
 
     } catch (errorOrException) {
-      this.logger.error(`${logTag}: ${errorOrException.message}`, errorOrException);
+      this.logger.error(
+        {
+          logTag,
+          message: errorOrException.message,
+          error: errorOrException,
+        }
+      );
     }
   }
 
@@ -448,7 +481,11 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
       }
       this.logger.log('Browser resources cleaned up');
     } catch (errorOrException) {
-      this.logger.error('Error during cleanup', errorOrException);
+      this.logger.error(
+        {
+          error: JSON.stringify(errorOrException),
+        }
+      );
     }
   }
 }
