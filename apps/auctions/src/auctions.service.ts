@@ -107,7 +107,7 @@ export class AuctionsService implements OnApplicationBootstrap {
     const logTag = this.indexCommodity.name;
     try {
       const { isIndexCommodity } = dmaConfig;
-      this.logger.log(`isIndexCommodity: ${isIndexCommodity}`);
+      this.logger.debug(`isIndexCommodity: ${isIndexCommodity}`);
       if (!isIndexCommodity) return;
 
       const [keyEntity] = await getKeys(this.keysRepository, clearance, true);
@@ -115,6 +115,13 @@ export class AuctionsService implements OnApplicationBootstrap {
       const realmEntity = await this.realmsRepository.findOneBy({
         connectedRealmId: REALM_ENTITY_ANY.id,
       });
+
+      const isCommodityLockExists = Boolean(this.redisService.exists(`COMMODITY:TS:${realmEntity.commoditiesTimestamp}:LOCK`));
+      if (isCommodityLockExists) {
+        this.logger.debug(`isCommodityLockExists: ${isCommodityLockExists}`);
+        return;
+      }
+
 
       const commodityJob = await this.queue.getJob('COMMODITY');
 
@@ -135,6 +142,8 @@ export class AuctionsService implements OnApplicationBootstrap {
         commoditiesTimestamp: realmEntity.commoditiesTimestamp,
         isAssetClassIndex: true,
       });
+      // lock commodity job
+      await this.redisService.set(`COMMODITY:TS:${realmEntity.commoditiesTimestamp}:LOCK`, 1, 'EX', 60 * 4);
 
       this.logger.debug(
         `realm: ${realmEntity.connectedRealmId} | ts: ${realmEntity.commoditiesTimestamp}`,
