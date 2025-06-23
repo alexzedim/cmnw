@@ -84,6 +84,8 @@ export class AuctionsService implements OnApplicationBootstrap {
               clientSecret: keyEntity.secret,
               accessToken: keyEntity.token,
               isAssetClassIndex: true,
+            }, {
+              jobId: `${realmEntity.connectedRealmId}`
             });
 
             this.logger.debug(
@@ -141,6 +143,9 @@ export class AuctionsService implements OnApplicationBootstrap {
         connectedRealmId: realmEntity.connectedRealmId,
         commoditiesTimestamp: realmEntity.commoditiesTimestamp,
         isAssetClassIndex: true,
+      }, {
+        jobId: `COMMODITY:${realmEntity.commoditiesTimestamp}`,
+        delay: 5_000,
       });
       // lock commodity job
       await this.redisService.set(`COMMODITY:TS:${realmEntity.commoditiesTimestamp}:LOCK`, 1, 'EX', 60 * 4);
