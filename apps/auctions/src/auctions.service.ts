@@ -109,7 +109,7 @@ export class AuctionsService implements OnApplicationBootstrap {
     const logTag = this.indexCommodity.name;
     try {
       const { isIndexCommodity } = dmaConfig;
-      this.logger.debug(`isIndexCommodity: ${isIndexCommodity}`);
+      this.logger.debug(`${logTag}: ${isIndexCommodity}`);
       if (!isIndexCommodity) return;
 
       const [keyEntity] = await getKeys(this.keysRepository, clearance, true);
