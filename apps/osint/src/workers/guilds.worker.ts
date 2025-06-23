@@ -716,8 +716,10 @@ export class GuildsWorker extends WorkerHost {
     guild: GuildJobQueue,
   ): Promise<GuildExistsOrCreate> {
     const forceUpdate = guild.forceUpdate || OSINT_4_HOURS_MS;
+
     const nameSlug = toSlug(guild.name);
     const timestampNow = new Date().getTime();
+
     const realmEntity = await findRealm(this.realmsRepository, guild.realm);
     if (!realmEntity) {
       throw new NotFoundException(`Realm ${guild.realm} not found`);
@@ -735,12 +737,12 @@ export class GuildsWorker extends WorkerHost {
 
       const guildNew = this.guildsRepository.create({
         guid: guid,
-        id: guild.id || null,
+        id: Number(guild.id) || null,
         name: capitalize(guild.name),
         realm: realmEntity.slug,
         realmId: realmEntity.id,
         realmName: realmEntity.name,
-        statusCode: 100,
+        statusCode: STATUS_CODES.DEFAULT_STATUS,
         createdBy: createdBy,
         updatedBy: OSINT_SOURCE.GUILD_GET,
       });
