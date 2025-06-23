@@ -409,7 +409,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
 
         const realm = await findRealm(this.realmsRepository, realmName);
         if (!realm) {
-          this.logger.log(`  ⏭️ Skipped: findRealm ${realm.slug} not found`);
+          this.logger.log(`  ⏭️ Skipped: findRealm ${realmName} not found`);
           continue;
         }
 
