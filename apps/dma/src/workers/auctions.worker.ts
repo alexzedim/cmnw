@@ -129,8 +129,10 @@ export class AuctionsWorker extends WorkerHost {
       );
 
       if (isCommodity) {
+        const jobId = job.id;
+
         await this.redisService.set(`COMMODITY:TS:${timestamp}`, timestamp);
-        await this.redisService.del(`COMMODITY:TS:${previousTimestamp}:LOCK`);
+        await this.redisService.del(jobId);
         await job.updateProgress(80);
       }
 

@@ -135,6 +135,8 @@ export class AuctionsService implements OnApplicationBootstrap {
         }
       }
 
+      const jobId = `COMMODITY:${realmEntity.commoditiesTimestamp}`;
+
       await this.queue.add('COMMODITY', {
         region: 'eu',
         clientId: keyEntity.client,
@@ -144,14 +146,14 @@ export class AuctionsService implements OnApplicationBootstrap {
         commoditiesTimestamp: realmEntity.commoditiesTimestamp,
         isAssetClassIndex: true,
       }, {
-        jobId: `COMMODITY:${realmEntity.commoditiesTimestamp}`,
+        jobId: jobId,
         delay: 5_000,
       });
       // lock commodity job
-      await this.redisService.set(`COMMODITY:TS:${realmEntity.commoditiesTimestamp}:LOCK`, 1, 'EX', 60 * 4);
+      const lock = await this.redisService.set(jobId, realmEntity.commoditiesTimestamp);
 
       this.logger.debug(
-        `realm: ${realmEntity.connectedRealmId} | ts: ${realmEntity.commoditiesTimestamp}`,
+        `realm: ${realmEntity.connectedRealmId} | ts: ${realmEntity.commoditiesTimestamp} | lock ${lock}`,
       );
     } catch (errorOrException) {
       this.logger.error({
