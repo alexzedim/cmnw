@@ -481,7 +481,10 @@ export class CharactersWorker extends WorkerHost {
       const mounts = Array.from(mountEntities.values())
         .map((pet) => this.mountsRepository.create(pet));
 
-      await this.mountsRepository.save(mounts, { chunk: 10 });
+      await this.mountsRepository.upsert(mounts, {
+        conflictPaths: ['id'], // unique constraint columns
+        skipUpdateIfNoValuesChanged: true
+      });
     } catch (errorOrException) {
       this.logger.error({
         logTag: 'indexMounts',
@@ -632,7 +635,10 @@ export class CharactersWorker extends WorkerHost {
       const pets = Array.from(petEntities.values())
         .map((pet) => this.petsRepository.create(pet));
 
-      await this.petsRepository.save(pets, { chunk: 10 });
+      await this.petsRepository.upsert(pets, {
+        conflictPaths: ['id'], // unique constraint columns
+        skipUpdateIfNoValuesChanged: true
+      });
     } catch (errorOrException) {
       this.logger.error({ logTag: 'indexPets', error: JSON.stringify(errorOrException) });
     }
