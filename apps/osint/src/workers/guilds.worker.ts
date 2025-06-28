@@ -170,17 +170,17 @@ export class GuildsWorker extends WorkerHost {
 
   private async updateRoster(guildEntity: GuildsEntity, roster: IGuildRoster, isNew: boolean) {
     try {
+      const { members: updatedRosterMembers } = roster;
+
+      if (!updatedRosterMembers.length) {
+        this.logger.debug(`Guild roster for ${guildEntity.guid} was not found!`);
+        return;
+      }
+
       const guildsMembersEntities =
         await this.characterGuildsMembersRepository.findBy({
           guildGuid: guildEntity.guid,
         });
-
-      const { members: updatedRosterMembers } = roster;
-
-      if (!updatedRosterMembers.length) {
-        this.logger.warn(`Guild roster for ${guildEntity.guid} was not found!`);
-        return;
-      }
 
       const [originalRoster, updatedRoster] = [
         new Map(
