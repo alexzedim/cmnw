@@ -29,7 +29,7 @@ services:
 
   # Docker Networks
 networks:
-  # All container connect in a network
+  # All containers connect in a network
   cmnw-network:
     driver: bridge
 

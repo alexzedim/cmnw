@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ItemsEntity, MarketEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
@@ -27,7 +28,6 @@ import {
   toGold,
   transformPrice,
 } from '@app/resources';
-import { Processor, WorkerHost } from '@nestjs/bullmq';
 
 @Processor(auctionsQueue.name, auctionsQueue.workerOptions)
 @Injectable()
