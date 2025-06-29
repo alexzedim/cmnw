@@ -1,4 +1,5 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { dmaConfig } from '@app/configuration';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -25,7 +26,6 @@ import {
   toGold,
   TOLERANCE_ENUM, WOW_TOKEN_ITEM_ID,
 } from '@app/resources';
-import { dmaConfig } from '@app/configuration';
 
 @Injectable()
 export class AuctionsService implements OnApplicationBootstrap {
