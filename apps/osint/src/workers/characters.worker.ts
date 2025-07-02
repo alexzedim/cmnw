@@ -7,7 +7,9 @@ import { In, Repository } from 'typeorm';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import { difference, get } from 'lodash';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-
+import { coreConfig } from '@app/configuration';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
 import {
   ACTION_LOG,
   API_HEADERS_ENUM,
@@ -56,8 +58,6 @@ import {
   RealmsEntity,
 } from '@app/pg';
 
-import { coreConfig } from '@app/configuration';
-
 @Processor(charactersQueue.name, charactersQueue.workerOptions)
 @Injectable()
 export class CharactersWorker extends WorkerHost {
@@ -68,6 +68,8 @@ export class CharactersWorker extends WorkerHost {
   private BNet: BlizzAPI;
 
   constructor(
+    @InjectRedis()
+    private readonly redisService: Redis,
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(ProfessionsEntity)
@@ -418,9 +420,7 @@ export class CharactersWorker extends WorkerHost {
             updatedMountIds.add(mount.mount.id);
 
             if (isIndex) {
-              const isMountExists = await this.mountsRepository.exist({
-                where: { id: mount.mount.id },
-              });
+              const isMountExists = await this.mountsRepository.existsBy({ id: mount.mount.id });
 
               if (!isMountExists) {
                 const mountEntity = this.mountsRepository.create({
@@ -478,8 +478,7 @@ export class CharactersWorker extends WorkerHost {
 
   private async indexMounts(mountEntities: MountsEntity[]) {
     try {
-      const mounts = Array.from(mountEntities.values())
-        .map((pet) => this.mountsRepository.create(pet));
+      const mounts = Array.from(mountEntities.values());
 
       await this.mountsRepository.upsert(mounts, {
         conflictPaths: ['id'], // unique constraint columns
@@ -561,9 +560,7 @@ export class CharactersWorker extends WorkerHost {
               );
 
               if (isIndexNotUnique) {
-                const isPetExists = await this.petsRepository.exists({
-                  where: { id: creatureId },
-                });
+                const isPetExists = Boolean(await this.redisService.exists(`PETS:${petId}`));
 
                 if (!isPetExists) {
                   const petEntity = this.petsRepository.create({
@@ -609,18 +606,25 @@ export class CharactersWorker extends WorkerHost {
       );
 
       await this.charactersPetsRepository.save(characterPetsEntities);
-      await this.charactersPetsRepository.delete({
-        characterGuid: characterGuid,
-        petId: In(removePetIds),
-      });
+
+      const isPetsToDelete = Boolean(removePetIds.length);
+      if (isPetsToDelete) {
+        await this.charactersPetsRepository.delete({
+          characterGuid: characterGuid,
+          petId: In(removePetIds),
+        });
+      }
 
       petsCollection.petsNumber = pets.length;
       petsCollection.statusCode = STATUS_CODES.SUCCESS_PETS;
 
-      if (hashB.length)
+      if (hashB.length) {
         petsCollection.hashB = BigInt(hash64(hashB.join('.'))).toString(16);
-      if (hashA.length)
+      }
+
+      if (hashA.length) {
         petsCollection.hashA = BigInt(hash64(hashA.join('.'))).toString(16);
+      }
 
       return petsCollection;
     } catch (errorOrException) {
@@ -632,13 +636,19 @@ export class CharactersWorker extends WorkerHost {
 
   private async indexPets(petEntities: Map<number, PetsEntity>) {
     try {
-      const pets = Array.from(petEntities.values())
-        .map((pet) => this.petsRepository.create(pet));
+      const pets = Array.from(petEntities.values());
 
-      await this.petsRepository.upsert(pets, {
-        conflictPaths: ['id'], // unique constraint columns
-        skipUpdateIfNoValuesChanged: true
-      });
+      await Promise.allSettled(
+        pets.map(
+          async (pet) => {
+            const isPetExists = await this.petsRepository.existsBy({ id: pet.id });
+            if (!isPetExists) {
+              await this.petsRepository.save(pet);
+              await this.redisService.set(`PETS:${pet.id}`, 1)
+            }
+          }
+        )
+      );
     } catch (errorOrException) {
       this.logger.error({ logTag: 'indexPets', error: JSON.stringify(errorOrException) });
     }
