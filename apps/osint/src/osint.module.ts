@@ -29,6 +29,7 @@ import {
     TypeOrmModule.forFeature([
       CharactersEntity,
       CharactersGuildsMembersEntity,
+      CharactersGuildsLogsEntity,
       CharactersMountsEntity,
       CharactersPetsEntity,
       CharactersProfessionsEntity,
@@ -39,7 +40,6 @@ import {
       PetsEntity,
       ProfessionsEntity,
       RealmsEntity,
-      CharactersGuildsLogsEntity,
     ]),
     RedisModule.forRoot({
       type: 'single',
