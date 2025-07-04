@@ -57,7 +57,7 @@ export class AuctionsService implements OnApplicationBootstrap {
     const logTag = this.indexAuctions.name;
     try {
       const { isIndexAuctions } = dmaConfig;
-      this.logger.log(`${logTag}: ${isIndexAuctions}`);
+      this.logger.debug(`${logTag}: ${isIndexAuctions}`);
       if (!isIndexAuctions) return;
 
       await delay(30);
@@ -118,24 +118,17 @@ export class AuctionsService implements OnApplicationBootstrap {
         connectedRealmId: REALM_ENTITY_ANY.id,
       });
 
-      const isCommodityLockExists = Boolean(this.redisService.exists(`COMMODITY:TS:${realmEntity.commoditiesTimestamp}:LOCK`));
-      if (isCommodityLockExists) {
-        this.logger.debug(`isCommodityLockExists: ${isCommodityLockExists}`);
-        return;
-      }
+      const jobId = `COMMODITY:${realmEntity.commoditiesTimestamp}`;
 
-
-      const commodityJob = await this.queue.getJob('COMMODITY');
+      const commodityJob = await this.queue.getJob(jobId);
 
       if (commodityJob) {
         const isCommodityJobActive = await commodityJob.isActive();
         if (isCommodityJobActive) {
-          this.logger.debug(`realm: ${realmEntity.connectedRealmId} | active`);
+          this.logger.debug(`realm: ${realmEntity.connectedRealmId} | job active`);
           return;
         }
       }
-
-      const jobId = `COMMODITY:${realmEntity.commoditiesTimestamp}`;
 
       await this.queue.add('COMMODITY', {
         region: 'eu',
@@ -149,11 +142,9 @@ export class AuctionsService implements OnApplicationBootstrap {
         jobId: jobId,
         delay: 5_000,
       });
-      // lock commodity job
-      const lock = await this.redisService.set(jobId, realmEntity.commoditiesTimestamp);
 
       this.logger.debug(
-        `realm: ${realmEntity.connectedRealmId} | ts: ${realmEntity.commoditiesTimestamp} | lock ${lock}`,
+        `realm: ${realmEntity.connectedRealmId} | ts: ${realmEntity.commoditiesTimestamp}`,
       );
     } catch (errorOrException) {
       this.logger.error({
@@ -192,7 +183,7 @@ export class AuctionsService implements OnApplicationBootstrap {
 
       const { price, lastModified, last_updated_timestamp: timestamp } = response;
 
-      const isWowTokenExists = await this.marketRepository.exist({
+      const isWowTokenExists = await this.marketRepository.exists({
         where: {
           timestamp: timestamp,
           itemId: WOW_TOKEN_ITEM_ID,
