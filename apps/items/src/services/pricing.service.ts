@@ -7,7 +7,7 @@ import path from 'path';
 import csv from 'async-csv';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { get } from 'lodash';
-import { DISENCHANT, MILLING, PROSPECT } from './lib';
+import { DISENCHANT, MILLING, PROSPECT } from '../lib';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { KeysEntity, PricingEntity, SkillLineEntity, SpellEffectEntity, SpellReagentsEntity } from '@app/pg';

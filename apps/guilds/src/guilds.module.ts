@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { postgresConfig, redisConfig } from '@app/configuration';
+import { bullConfig, postgresConfig, redisConfig } from '@app/configuration';
 import { GuildsService } from './guilds.service';
 import { BullModule } from '@nestjs/bullmq';
 import { guildsQueue } from '@app/resources/queues/guilds.queue';
@@ -14,9 +14,9 @@ import { CharactersEntity, GuildsEntity, KeysEntity } from '@app/pg';
     TypeOrmModule.forFeature([KeysEntity, GuildsEntity, CharactersEntity]),
     BullModule.forRoot({
       connection: {
-        host: redisConfig.host,
-        port: redisConfig.port,
-        password: redisConfig.password,
+        host: bullConfig.host,
+        port: bullConfig.port,
+        password: bullConfig.password,
       },
     }),
     BullModule.registerQueue({

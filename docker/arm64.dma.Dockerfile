@@ -30,11 +30,9 @@ COPY .. .
 
 RUN npm install -g @nestjs/cli
 
-RUN nest build auctions \
+RUN nest build market \
   && nest build items \
-  && nest build dma \
-  && nest build gold \
-  && nest build contracts
+  && nest build dma
 
 CMD ["node"]
 

@@ -38,6 +38,7 @@ export class GoldService implements OnApplicationBootstrap {
 
   @Cron(CronExpression.EVERY_HOUR)
   private async indexGold(): Promise<void> {
+    const logTag = this.indexGold.name;
     try {
       const response = await this.httpService.axiosRef.get<string>(DMA_SOURCE_GOLD);
 
@@ -89,14 +90,14 @@ export class GoldService implements OnApplicationBootstrap {
       const marketEntitiesCount = marketEntities.length;
 
       this.logger.log(
-        `indexGold: ${ordersCount} of ${marketEntitiesCount} orders on timestamp ${timestamp} inserted`,
+        `${logTag}: ${ordersCount} of ${marketEntitiesCount} orders on timestamp ${timestamp} inserted`,
       );
 
       await this.realmsRepository.update({}, { goldTimestamp: timestamp });
     } catch (errorOrException) {
       this.logger.error(
         {
-          logTag: 'indexGold',
+          logTag: logTag,
           error: errorOrException,
         }
       );
@@ -109,6 +110,7 @@ export class GoldService implements OnApplicationBootstrap {
     connectedRealmIds: Set<number>,
     timestamp: number,
   ): Promise<MarketEntity> {
+    const logTag = this.createMarketEntity.name;
     try {
       const realmEntity = realmsEntity.has(order.realm)
         ? realmsEntity.get(order.realm)
@@ -126,7 +128,7 @@ export class GoldService implements OnApplicationBootstrap {
       );
 
       if (!isValid) {
-        this.logger.warn(`createMarketEntity: is not valid | realm ${order.realm}`);
+        this.logger.warn(`${logTag}: is not valid | realm ${order.realm}`);
         return;
       }
 
@@ -178,7 +180,7 @@ export class GoldService implements OnApplicationBootstrap {
     } catch (error) {
       this.logger.error(
         {
-          logTag: 'createMarketEntity',
+          logTag: logTag,
           error: error,
         }
       );

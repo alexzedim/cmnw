@@ -5,7 +5,7 @@ import { charactersQueue } from '@app/resources';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CharactersEntity, KeysEntity } from '@app/pg';
-import { postgresConfig, redisConfig } from '@app/configuration';
+import { bullConfig, postgresConfig, redisConfig } from '@app/configuration';
 
 @Module({
   imports: [
@@ -14,9 +14,9 @@ import { postgresConfig, redisConfig } from '@app/configuration';
     TypeOrmModule.forFeature([KeysEntity, CharactersEntity]),
     BullModule.forRoot({
       connection: {
-        host: redisConfig.host,
-        port: redisConfig.port,
-        password: redisConfig.password,
+        host: bullConfig.host,
+        port: bullConfig.port,
+        password: bullConfig.password,
       },
     }),
     BullModule.registerQueue({
