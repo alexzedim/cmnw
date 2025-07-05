@@ -51,6 +51,7 @@ export class RealmsService implements OnModuleInit {
 
   @Cron(CronExpression.EVERY_WEEK)
   async indexRealms(clearance: string = GLOBAL_KEY): Promise<void> {
+    const logTag =this.indexRealms.name;
     try {
       const [keyEntity] = await getKeys(this.keysRepository, clearance);
 
@@ -87,7 +88,12 @@ export class RealmsService implements OnModuleInit {
         );
       }
     } catch (errorOrException) {
-      this.logger.error(`indexRealms: ${errorOrException}`);
+      this.logger.error(
+        {
+          logTag: logTag,
+          error: errorOrException,
+        }
+      );
     }
   }
 
@@ -100,6 +106,7 @@ export class RealmsService implements OnModuleInit {
   private async getRealmsWarcraftLogsId(from = 246, to = 517): Promise<void> {
     if (from < 1) from = 1;
     const count = Math.abs(from - to);
+    const logTag = this.getRealmsWarcraftLogsId.name;
 
     await lastValueFrom(
       range(from, count).pipe(
@@ -125,7 +132,12 @@ export class RealmsService implements OnModuleInit {
               `getRealmsWarcraftLogsID: ${realmId}:${realmName} | ${realmEntity.id} updated!`,
             );
           } catch (errorOrException) {
-            this.logger.error(`getRealmsWarcraftLogsID: ${errorOrException}`);
+            this.logger.error(
+              {
+                logTag: logTag,
+                error: errorOrException,
+              }
+            );
           }
         }, 2),
       ),

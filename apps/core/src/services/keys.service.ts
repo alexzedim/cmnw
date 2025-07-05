@@ -36,29 +36,40 @@ export class KeysService implements OnApplicationBootstrap {
   }
 
   private async initKeys(): Promise<void> {
-    const keysJson = readFileSync(
-      join(__dirname, '..', '..', '..', coreConfig.path),
-      'utf8',
-    );
-    const { keys } = JSON.parse(keysJson);
+    const logTag = this.initKeys.name;
+    try {
+      const keysJson = readFileSync(
+        join(__dirname, '..', '..', '..', coreConfig.path),
+        'utf8',
+      );
+      const { keys } = JSON.parse(keysJson);
 
-    await lastValueFrom(
-      from(keys).pipe(
-        mergeMap(async (key: IKeyConfig) => {
-          let keyEntity = await this.keysRepository.findOneBy({
-            client: key.client,
-          });
-          if (!keyEntity) {
-            keyEntity = this.keysRepository.create(key);
-            await this.keysRepository.save(keyEntity);
-          }
-        }, 5),
-      ),
-    );
+      await lastValueFrom(
+        from(keys).pipe(
+          mergeMap(async (key: IKeyConfig) => {
+            let keyEntity = await this.keysRepository.findOneBy({
+              client: key.client,
+            });
+            if (!keyEntity) {
+              keyEntity = this.keysRepository.create(key);
+              await this.keysRepository.save(keyEntity);
+            }
+          }, 5),
+        ),
+      );
+    } catch (errorOrException) {
+      this.logger.error(
+        {
+          logTag: logTag,
+          error: errorOrException,
+        }
+      );
+    }
   }
 
   @Cron(CronExpression.EVERY_5_MINUTES)
   private async indexBlizzardKeys(): Promise<void> {
+    const logTag = this.indexBlizzardKeys.name;
     try {
       const now = DateTime.now();
       const keysEntity = await this.keysRepository.findBy({
@@ -110,8 +121,8 @@ export class KeysService implements OnApplicationBootstrap {
     } catch (errorOrException) {
       this.logger.error(
         {
-          logTag: 'indexBlizzardKeys',
-          error: JSON.stringify(errorOrException),
+          logTag: logTag,
+          error: errorOrException,
         }
       );
     }
@@ -119,6 +130,7 @@ export class KeysService implements OnApplicationBootstrap {
 
   @Cron(CronExpression.EVERY_5_MINUTES)
   private async indexWarcraftLogsKeys(): Promise<void> {
+    const logTag = this.indexWarcraftLogsKeys.name;
     try {
       const keyEntities = await this.keysRepository.findBy({
         tags: ArrayContains([GLOBAL_WCL_KEY_V2, 'v2']),
@@ -148,8 +160,8 @@ export class KeysService implements OnApplicationBootstrap {
     } catch (errorOrException) {
       this.logger.error(
         {
-          logTag: 'indexWarcraftLogsKeys',
-          error: JSON.stringify(errorOrException),
+          logTag: logTag,
+          error: errorOrException,
         }
       );
     }
