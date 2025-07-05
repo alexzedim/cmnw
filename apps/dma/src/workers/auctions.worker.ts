@@ -66,7 +66,7 @@ export class AuctionsWorker extends WorkerHost {
        * @description If no connected realm passed, then deal with it, as COMMODITY
        * @description Else, it's an auctions' request
        */
-      const isCommodity = job.name === 'COMMODITY' && args.connectedRealmId === REALM_ENTITY_ANY.id;
+      const isCommodity = args.connectedRealmId === REALM_ENTITY_ANY.id;
 
       const previousTimestamp = isCommodity
         ? args.commoditiesTimestamp
@@ -90,7 +90,10 @@ export class AuctionsWorker extends WorkerHost {
       );
 
       const isAuctionsValid = isAuctions(marketResponse);
-      if (!isAuctionsValid) return 504;
+      if (!isAuctionsValid) {
+        this.logger.debug(`realm ${job.data.connectedRealmId} | No new data available`);
+        return 504;
+      }
 
       await job.updateProgress(15);
 
