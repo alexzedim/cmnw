@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { WarcraftLogsService } from './warcraft-logs.service';
-import { postgresConfig, redisConfig } from '@app/configuration';
+import { bullConfig, postgresConfig, redisConfig } from '@app/configuration';
 import { BullModule } from '@nestjs/bullmq';
 import { charactersQueue } from '@app/resources';
 import { ScheduleModule } from '@nestjs/schedule';
