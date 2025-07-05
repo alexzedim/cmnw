@@ -146,7 +146,7 @@ export class RealmsWorker extends WorkerHost {
       this.logger.error(
         {
           logTag: RealmsWorker.name,
-          error: JSON.stringify(errorOrException),
+          error: errorOrException,
         }
       );
     }
