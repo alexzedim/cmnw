@@ -1,11 +1,8 @@
 export enum APP_LABELS {
-  A = 'auctions',
   C = 'core',
   CH = 'characters',
   CMNW = 'cmnw',
-  CONTRACTS = 'contracts',
   D = 'dma',
-  GOLD = 'gold',
   G = 'guilds',
   I = 'items',
   L = 'ladder',
