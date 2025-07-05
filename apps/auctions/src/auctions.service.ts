@@ -6,18 +6,15 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { DateTime } from 'luxon';
 import { InjectRepository } from '@nestjs/typeorm';
 import { KeysEntity, MarketEntity, RealmsEntity } from '@app/pg';
-import { InjectRedis } from '@nestjs-modules/ioredis';
 import { LessThan, Not, Repository } from 'typeorm';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import { BlizzAPI } from '@alexzedim/blizzapi';
-import Redis from 'ioredis';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
   AuctionJobQueue,
   auctionsQueue,
   BlizzardApiWowToken,
-  delay,
   getKey,
   getKeys,
   GLOBAL_DMA_KEY,
@@ -35,8 +32,6 @@ export class AuctionsService implements OnApplicationBootstrap {
   });
 
   constructor(
-    @InjectRedis()
-    private readonly redisService: Redis,
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(RealmsEntity)
@@ -60,7 +55,6 @@ export class AuctionsService implements OnApplicationBootstrap {
       this.logger.debug(`${logTag}: ${isIndexAuctions}`);
       if (!isIndexAuctions) return;
 
-      await delay(30);
       await this.queue.drain(true);
 
       const [keyEntity] = await getKeys(this.keysRepository, clearance, true);
@@ -76,6 +70,8 @@ export class AuctionsService implements OnApplicationBootstrap {
       await lastValueFrom(
         from(realmsEntity).pipe(
           mergeMap(async (realmEntity) => {
+            const jobId = `AUCTION:${realmEntity.connectedRealmId}`;
+
             await this.queue.add(`${realmEntity.connectedRealmId}`, {
               connectedRealmId: realmEntity.connectedRealmId,
               auctionsTimestamp: realmEntity.auctionsTimestamp,
@@ -85,7 +81,8 @@ export class AuctionsService implements OnApplicationBootstrap {
               accessToken: keyEntity.token,
               isAssetClassIndex: true,
             }, {
-              jobId: `${realmEntity.connectedRealmId}`
+              jobId: jobId,
+              priority: 2,
             });
 
             this.logger.debug(
@@ -99,7 +96,7 @@ export class AuctionsService implements OnApplicationBootstrap {
     } catch (errorOrException) {
       this.logger.error({
         logTag,
-        error: JSON.stringify(errorOrException)
+        error: errorOrException
       });
     }
   }
@@ -140,7 +137,7 @@ export class AuctionsService implements OnApplicationBootstrap {
         isAssetClassIndex: true,
       }, {
         jobId: jobId,
-        delay: 5_000,
+        priority: 1,
       });
 
       this.logger.debug(
@@ -149,13 +146,14 @@ export class AuctionsService implements OnApplicationBootstrap {
     } catch (errorOrException) {
       this.logger.error({
         logTag,
-        error: JSON.stringify(errorOrException)
+        error: errorOrException
       });
     }
   }
 
   @Cron(CronExpression.EVERY_5_MINUTES)
   async indexTokens(clearance: string = GLOBAL_DMA_KEY): Promise<void> {
+    const logTag = this.indexTokens.name;
     try {
       const key = await getKey(this.keysRepository, clearance);
 
@@ -211,7 +209,10 @@ export class AuctionsService implements OnApplicationBootstrap {
 
       await this.marketRepository.save(wowTokenEntity);
     } catch (errorOrException) {
-      this.logger.warn(`indexTokens ${errorOrException}`);
+      this.logger.error({
+        logTag,
+        error: errorOrException
+      });
     }
   }
 
