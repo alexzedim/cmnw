@@ -30,7 +30,7 @@ services:
   bull-mq:
     image: redis:7.4.3-alpine
     restart: always
-    container_name: redis
+    container_name: bull-mq
     command: redis-server --requirepass $REDIS_PASSWORD --appendonly yes
     volumes:
       - redis:/data:rw,z
