@@ -13,21 +13,7 @@ services:
   auctions:
     image: ghcr.io/alexzedim/dma:latest
     restart: always
-    command: [ 'node', 'dist/apps/auctions/main.js' ]
-    env_file:
-      - stack.env
-
-  gold:
-    image: ghcr.io/alexzedim/dma:latest
-    restart: always
-    command: [ 'node', 'dist/apps/gold/main.js' ]
-    env_file:
-      - stack.env
-
-  contracts:
-    image: ghcr.io/alexzedim/dma:latest
-    restart: always
-    command: [ 'node', 'dist/apps/contracts/main.js' ]
+    command: [ 'node', 'dist/apps/market/main.js' ]
     env_file:
       - stack.env
 

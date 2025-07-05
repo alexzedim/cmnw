@@ -1,11 +1,10 @@
 import { Module } from '@nestjs/common';
-import { ItemsService } from './items.service';
-import { PricingService } from './pricing.service';
+import { PricingService, ItemsService } from './services';
 import { BullModule } from '@nestjs/bullmq';
 import { itemsQueue, pricingQueue } from '@app/resources';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { postgresConfig, redisConfig } from '@app/configuration';
+import { bullConfig, postgresConfig } from '@app/configuration';
 import {
   ItemsEntity,
   KeysEntity,
@@ -29,9 +28,9 @@ import {
     ]),
     BullModule.forRoot({
       connection: {
-        host: redisConfig.host,
-        port: redisConfig.port,
-        password: redisConfig.password,
+        host: bullConfig.host,
+        port: bullConfig.port,
+        password: bullConfig.password,
       },
     }),
     BullModule.registerQueue({

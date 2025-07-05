@@ -6,9 +6,8 @@ on:
       - 'v*' # Trigger for tags starting with 'v' (e.g., v1.0, v2.3.1)
       - '!v*-beta' # Exclude beta tags
     paths:
-      - 'apps/auctions/**'
+      - 'apps/market/**'
       - 'apps/items/**'
-      - 'apps/gold/**'
       - 'apps/wowtoken/**'
       - 'apps/dma/**'
       - 'libs/**'

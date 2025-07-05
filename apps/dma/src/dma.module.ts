@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { postgresConfig, redisConfig } from '@app/configuration';
+import { bullConfig, postgresConfig, redisConfig } from '@app/configuration';
 import { BullModule } from '@nestjs/bullmq';
 import { auctionsQueue, itemsQueue, pricingQueue, valuationsQueue } from '@app/resources';
 import { AuctionsWorker, ItemsWorker } from './workers';
@@ -21,9 +21,9 @@ import { RedisModule } from '@nestjs-modules/ioredis';
     }),
     BullModule.forRoot({
       connection: {
-        host: redisConfig.host,
-        port: redisConfig.port,
-        password: redisConfig.password,
+        host: bullConfig.host,
+        port: bullConfig.port,
+        password: bullConfig.password,
       },
     }),
     BullModule.registerQueue({

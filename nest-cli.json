@@ -14,13 +14,13 @@
     ]
   },
   "projects": {
-    "auctions": {
+    "market": {
       "type": "application",
-      "root": "apps/auctions",
+      "root": "apps/market",
       "entryFile": "main",
-      "sourceRoot": "apps/auctions/src",
+      "sourceRoot": "apps/market/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/auctions/tsconfig.app.json"
+        "tsConfigPath": "apps/market/tsconfig.app.json"
       }
     },
     "characters": {
@@ -48,15 +48,6 @@
       "sourceRoot": "apps/conglomerat/src",
       "compilerOptions": {
         "tsConfigPath": "apps/conglomerat/tsconfig.app.json"
-      }
-    },
-    "contracts": {
-      "type": "application",
-      "root": "apps/contracts",
-      "entryFile": "main",
-      "sourceRoot": "apps/contracts/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/contracts/tsconfig.app.json"
       }
     },
     "core": {
@@ -93,15 +84,6 @@
       "sourceRoot": "libs/e2e/src",
       "compilerOptions": {
         "tsConfigPath": "libs/e2e/tsconfig.lib.json"
-      }
-    },
-    "gold": {
-      "type": "application",
-      "root": "apps/gold",
-      "entryFile": "main",
-      "sourceRoot": "apps/gold/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/gold/tsconfig.app.json"
       }
     },
     "guilds": {

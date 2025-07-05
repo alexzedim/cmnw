@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { postgresConfig, redisConfig, s3Config } from '@app/configuration';
+import { bullConfig, postgresConfig, redisConfig, s3Config } from '@app/configuration';
 import { S3Service, WowProgressLfgService, WowProgressRanksService } from './services';
 import { BullModule } from '@nestjs/bullmq';
 import { charactersQueue, guildsQueue, profileQueue } from '@app/resources';
@@ -20,9 +20,9 @@ import { S3Module } from 'nestjs-s3';
     TypeOrmModule.forFeature([KeysEntity, RealmsEntity, CharactersProfileEntity]),
     BullModule.forRoot({
       connection: {
-        host: redisConfig.host,
-        port: redisConfig.port,
-        password: redisConfig.password,
+        host: bullConfig.host,
+        port: bullConfig.port,
+        password: bullConfig.password,
       },
     }),
     BullModule.registerQueue({

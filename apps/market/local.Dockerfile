@@ -27,7 +27,7 @@ COPY . .
 
 COPY --from=development /usr/src/app/dist ./dist
 
-CMD ["node", "dist/apps/gold/main.js"]
+CMD ["node", "dist/apps/market/main.js"]
 
 
 

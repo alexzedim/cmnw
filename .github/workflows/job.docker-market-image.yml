@@ -5,7 +5,7 @@ on:
     tags:
       - 'v*-dev'
     paths:
-      - 'apps/auctions/**'
+      - 'apps/market/**'
       - 'libs/**'
       - 'package.json'
 
@@ -51,7 +51,7 @@ jobs:
             type=semver,pattern={{version}},value=${{ env.TAG_NAME }}
           labels: |
             maintainer = "alexzedim"
-            org.opencontainers.image.title = "Auctions"
+            org.opencontainers.image.title = "Market"
             org.opencontainers.image.vendor = "cmnw"
             org.opencontainers.image.url = "https://raw.githubusercontent.com/alexzedim/cmnw-next/master/public/static/cmnw.png"
             org.opencontainers.image.source = "https://github.com/alexzedim/cmnw"
@@ -70,7 +70,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: ./apps/auctions/Dockerfile
+          file: ./apps/market/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

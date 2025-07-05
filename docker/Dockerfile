@@ -32,12 +32,10 @@ RUN nest build conglomerat \
   && nest build osint \
   && nest build dma \
   && nest build core \
-  && nest build gold \
   && nest build items \
   && nest build ladder \
   && nest build guilds \
-  && nest build auctions \
-  && nest build contracts \
+  && nest build market \
   && nest build valuations \
   && nest build characters \
   && nest build wow-progress \
