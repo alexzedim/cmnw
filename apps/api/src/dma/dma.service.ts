@@ -14,7 +14,7 @@ import {
   WOW_TOKEN_ITEM_ID,
   WowtokenDto,
 } from '@app/resources';
-import { ItemRealmDto } from './dto';
+import { ItemRealmDto } from '@app/resources';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { InjectRedis } from '@nestjs-modules/ioredis';

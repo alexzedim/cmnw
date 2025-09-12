@@ -23,6 +23,7 @@ import {
   SkillLineEntity,
   SpellEffectEntity,
   SpellReagentsEntity,
+  UsersEntity,
 } from '@app/pg';
 
 export const postgresConfig: TypeOrmModuleOptions = {
@@ -54,7 +55,8 @@ export const postgresConfig: TypeOrmModuleOptions = {
     PricingEntity,
     SkillLineEntity,
     SpellEffectEntity,
-    SpellReagentsEntity
+    SpellReagentsEntity,
+    UsersEntity
   ],
   synchronize: true,
   namingStrategy: new SnakeNamingStrategy(),

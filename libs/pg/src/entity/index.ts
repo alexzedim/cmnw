@@ -1,3 +1,5 @@
+/** AUTH ENTITY */
+export * from './users.entity';
 /** OSINT ENTITY */
 export * from './characters.entity';
 export * from './characters-profile.entity';
