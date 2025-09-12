@@ -6,12 +6,12 @@ COPY --from=node / /
 ARG CR_PAT
 ENV CR_PAT=$CR_PAT
 
-LABEL org.opencontainers.image.title = "OSINT"
-LABEL org.opencontainers.image.licenses = "MPL-2.0"
-LABEL org.opencontainers.image.vendor = "alexzedim"
-LABEL org.opencontainers.image.url = "https://raw.githubusercontent.com/alexzedim/cmnw-next/master/public/static/cmnw.png"
-LABEL org.opencontainers.image.source = "https://github.com/alexzedim/cmnw"
-LABEL org.opencontainers.image.description = "Intelligence always wins"
+LABEL org.opencontainers.image.title="OSINT"
+LABEL org.opencontainers.image.licenses="MPL-2.0"
+LABEL org.opencontainers.image.vendor="alexzedim"
+LABEL org.opencontainers.image.url="https://raw.githubusercontent.com/alexzedim/cmnw-next/master/public/static/cmnw.png"
+LABEL org.opencontainers.image.source="https://github.com/alexzedim/cmnw"
+LABEL org.opencontainers.image.description="Intelligence always wins"
 
 WORKDIR /usr/src/app
 
@@ -21,7 +21,7 @@ RUN git clone https://github.com/alexzedim/cmnw-secrets.git
 RUN mv cmnw-secrets/* .
 RUN rm -rf cmnw-secrets
 
-COPY ../package.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Installing private github packages #
 RUN echo //npm.pkg.github.com/:_authToken=${CR_PAT} >> ~/.npmrc
@@ -29,17 +29,38 @@ RUN echo @alexzedim:registry=https://npm.pkg.github.com/ >> ~/.npmrc
 
 RUN corepack pnpm install
 
-COPY .. .
+COPY . .
 
-RUN apt update
-RUN apt install -y chromium-browser
+# Update system packages and install required dependencies
+RUN apt-get update && apt-get install -y \
+    wget \
+    gnupg \
+    ca-certificates \
+    fonts-liberation \
+    libasound2 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libatspi2.0-0 \
+    libcups2 \
+    libdbus-1-3 \
+    libdrm2 \
+    libgtk-3-0 \
+    libnspr4 \
+    libnss3 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxkbcommon0 \
+    libxrandr2 \
+    xvfb \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN npm install -g @nestjs/cli
 RUN corepack enable
 
-# Installing playwright #
+# Installing playwright - updated approach for version 1.53.1+
 RUN npx playwright install-deps
-RUN npx playwright install
+RUN npx playwright install chromium
 
 RUN nest build characters \
   && nest build guilds \
