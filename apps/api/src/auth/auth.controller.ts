@@ -1,57 +1,105 @@
-import { Controller, Get, HttpCode, HttpStatus, Logger, Query, Req, UseGuards } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Logger, Req, Res, UseGuards } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiForbiddenResponse,
   ApiInternalServerErrorResponse,
-  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiServiceUnavailableResponse,
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { AuthService } from './auth.service';
 import { AuthGuard } from '@nestjs/passport';
-import { AccountGetDto } from '@app/resources/dto/account-get.dto';
+import { AuthResponseDto } from '@app/resources';
+import { Response } from 'express';
 
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  // private readonly logger = new Logger(AuthController.name, { timestamp: true });
+  private readonly logger = new Logger(AuthController.name, { timestamp: true });
 
-  constructor(
-    private readonly authService: AuthService
-  ) { }
+  constructor() {}
 
+  @ApiOperation({ description: 'Initiate Discord OAuth authentication' })
+  @ApiOkResponse({ description: 'Redirects to Discord OAuth' })
   @Get('/discord')
   @UseGuards(AuthGuard('discord'))
-  async getUserFromDiscordLogin(@Req() req): Promise<any> {
-    // TODO auth
-    return req.user;
+  async discordAuth(): Promise<void> {
+    // This endpoint initiates the Discord OAuth flow
+    // The actual redirect is handled by passport
   }
 
+  @ApiOperation({ description: 'Discord OAuth callback' })
+  @ApiOkResponse({ type: AuthResponseDto, description: 'Discord authentication successful' })
+  @ApiUnauthorizedResponse({ description: 'Discord authentication failed' })
+  @ApiForbiddenResponse({ description: 'Discord OAuth access denied' })
+  @ApiBadRequestResponse({ description: 'Invalid Discord OAuth response' })
+  @ApiServiceUnavailableResponse({ description: 'Discord OAuth service unavailable' })
+  @ApiInternalServerErrorResponse({ description: 'Internal server error during Discord OAuth' })
+  @HttpCode(HttpStatus.OK)
+  @Get('/discord/callback')
+  @UseGuards(AuthGuard('discord'))
+  async discordCallback(@Req() req, @Res() res: Response): Promise<void> {
+    try {
+      this.logger.log('Discord OAuth callback received', 'discordCallback');
+      const authResponse: AuthResponseDto = req.user;
+      
+      // In a real application, you might:
+      // 1. Generate a JWT token
+      // 2. Set secure cookies
+      // 3. Redirect to frontend with success status
+      
+      // For now, return the auth response as JSON
+      res.json(authResponse);
+    } catch (error) {
+      this.logger.error(
+        'Error in Discord callback',
+        error instanceof Error ? error.stack : String(error),
+        'discordCallback'
+      );
+      res.status(500).json({ success: false, message: 'Authentication failed' });
+    }
+  }
+
+  @ApiOperation({ description: 'Initiate Battle.net OAuth authentication' })
+  @ApiOkResponse({ description: 'Redirects to Battle.net OAuth' })
   @Get('/battlenet')
   @UseGuards(AuthGuard('battlenet'))
-  async getUserFromBattleNetLogin(@Req() req): Promise<any> {
-    // TODO auth
-    return req.user;
+  async battlenetAuth(): Promise<void> {
+    // This endpoint initiates the Battle.net OAuth flow
+    // The actual redirect is handled by passport
   }
 
-  @ApiOperation({ description: 'Request account from conglomerat database' })
-  @ApiOkResponse({ description: 'Returns user account if exists' })
-  @ApiNotFoundResponse({ description: 'User account not found!' })
-  @ApiUnauthorizedResponse({ description: 'You need authenticate yourself before request' })
-  @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
-  @ApiBadRequestResponse({ description: 'The server could not understand the request due to invalid syntax' })
-  @ApiServiceUnavailableResponse({ description: 'Server is under maintenance or overloaded' })
-  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
+  @ApiOperation({ description: 'Battle.net OAuth callback' })
+  @ApiOkResponse({ type: AuthResponseDto, description: 'Battle.net authentication successful' })
+  @ApiUnauthorizedResponse({ description: 'Battle.net authentication failed' })
+  @ApiForbiddenResponse({ description: 'Battle.net OAuth access denied' })
+  @ApiBadRequestResponse({ description: 'Invalid Battle.net OAuth response' })
+  @ApiServiceUnavailableResponse({ description: 'Battle.net OAuth service unavailable' })
+  @ApiInternalServerErrorResponse({ description: 'Internal server error during Battle.net OAuth' })
   @HttpCode(HttpStatus.OK)
-  @Get('/account')
-  async getAccount(@Query() input: AccountGetDto): Promise<any> {
-    return await this.authService.getAccount(input);
+  @Get('/battlenet/callback')
+  @UseGuards(AuthGuard('battlenet'))
+  async battlenetCallback(@Req() req, @Res() res: Response): Promise<void> {
+    try {
+      this.logger.log('Battle.net OAuth callback received', 'battlenetCallback');
+      const authResponse: AuthResponseDto = req.user;
+      
+      // In a real application, you might:
+      // 1. Generate a JWT token
+      // 2. Set secure cookies
+      // 3. Redirect to frontend with success status
+      
+      // For now, return the auth response as JSON
+      res.json(authResponse);
+    } catch (error) {
+      this.logger.error(
+        'Error in Battle.net callback',
+        error instanceof Error ? error.stack : String(error),
+        'battlenetCallback'
+      );
+      res.status(500).json({ success: false, message: 'Authentication failed' });
+    }
   }
 
-  async addAccountIndex(@Query() input: AccountGetDto) {
-    return await this.authService.addAccountIndex(input);
-  }
 }

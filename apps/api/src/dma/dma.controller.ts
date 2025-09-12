@@ -31,7 +31,7 @@ import {
   WowtokenDto,
 } from '@app/resources';
 import { ItemsEntity, MarketEntity } from '@app/pg';
-import { ItemRealmDto } from './dto';
+import { ItemRealmDto } from '@app/resources';
 
 @ApiTags('dma')
 @Controller('dma')

@@ -1,11 +1,11 @@
-import { PassportStrategy } from '@nestjs/passport/dist';
+import { Injectable, Logger } from '@nestjs/common';
+import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-oauth2';
 import { AuthService } from '../auth.service';
-import { Injectable } from '@nestjs/common';
-import { stringify } from 'querystring';
-import { cmnwConfig } from '@app/configuration';
+import { AuthResponseDto, BattleNetProfile } from '@app/resources';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
+import { stringify } from 'querystring';
 
 /**
  * Review full list of available scopes here: https://develop.battle.net/documentation/guides/using-oauth
@@ -13,33 +13,55 @@ import { lastValueFrom } from 'rxjs';
 
 @Injectable()
 export class BattleNetStrategy extends PassportStrategy(Strategy, 'battlenet') {
-  constructor(private authService: AuthService, private httpService: HttpService) {
+  private readonly logger = new Logger(BattleNetStrategy.name, { timestamp: true });
+
+  constructor(
+    private readonly authService: AuthService, 
+    private readonly httpService: HttpService
+  ) {
     super({
-      authorizationURL: `https://eu.battle.net/oauth/authorize?${stringify({
-        client_id: cmnwConfig.clientId,
-        redirect_uri: cmnwConfig.redirectUri,
-        response_type: 'code',
-        scope: 'wow.profile',
-      })}`,
-      // TODO probably function here, not sure
-      // Authorization: 'Basic Base64',
-      tokenURL: `https://${cmnwConfig.clientId}:${cmnwConfig.clientSecret}@eu.battle.net/oauth/token`,
-      clientID: cmnwConfig.clientId,
-      clientSecret: cmnwConfig.clientSecret,
-      grant_type: 'client_credentials',
+      authorizationURL: `https://eu.battle.net/oauth/authorize`,
+      tokenURL: 'https://eu.battle.net/oauth/token',
+      clientID: process.env.BATTLENET_CLIENT_ID,
+      clientSecret: process.env.BATTLENET_CLIENT_SECRET,
+      callbackURL: process.env.BATTLENET_CALLBACK_URL,
       scope: 'wow.profile',
-      redirect_uri: cmnwConfig.redirectUri,
-      region: 'eu',
     });
   }
 
-  async validate(accessToken: string): Promise<any> {
-    console.log(`accessToken: ${accessToken}`);
-    const { data } = await lastValueFrom(
-      this.httpService.get('https://eu.battle.net/oauth/userinfo', {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      }),
-    );
-    console.log(data);
+  async validate(accessToken: string): Promise<AuthResponseDto> {
+    try {
+      this.logger.log('Battle.net OAuth validation started', 'validate');
+      
+      const { data } = await lastValueFrom(
+        this.httpService.get('https://eu.battle.net/oauth/userinfo', {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }),
+      );
+
+      this.logger.log(`Battle.net OAuth validation for user: ${data.id}`, 'validate');
+      
+      const battleNetProfile: BattleNetProfile = {
+        id: data.id || data.sub,
+        battletag: data.battletag,
+        sub: data.sub,
+      };
+
+      const authResponse = await this.authService.handleBattleNetAuth(battleNetProfile);
+      
+      this.logger.log(
+        `Battle.net OAuth successful for user: ${data.id}, isNewUser: ${authResponse.isNewUser}`, 
+        'validate'
+      );
+      
+      return authResponse;
+    } catch (error) {
+      this.logger.error(
+        'Battle.net OAuth validation failed',
+        error instanceof Error ? error.stack : String(error),
+        'validate'
+      );
+      throw error;
+    }
   }
 }
