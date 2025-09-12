@@ -1,5 +1,5 @@
 FROM node:lts AS node
-FROM ubuntu:24.10
+FROM ubuntu:latest
 
 COPY --from=node / /
 
