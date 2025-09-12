@@ -30,6 +30,8 @@ import {
   ReqGetItemDto,
   WowtokenDto,
 } from '@app/resources';
+import { ItemsEntity, MarketEntity } from '@app/pg';
+import { ItemRealmDto } from './dto';
 
 @ApiTags('dma')
 @Controller('dma')
@@ -52,7 +54,7 @@ export class DmaController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/item')
-  async getItem(@Query() input: ItemCrossRealmDto): Promise<LeanDocument<Item>> {
+  async getItem(@Query() input: ReqGetItemDto): Promise<ItemsEntity> {
     return this.dmaService.getItem(input);
   }
 
@@ -72,7 +74,7 @@ export class DmaController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/token')
-  async getWowToken(@Query() input: WowtokenDto): Promise<LeanDocument<Token>[]> {
+  async getWowToken(@Query() input: WowtokenDto): Promise<MarketEntity[]> {
     return this.dmaService.getWowToken(input);
   }
 
@@ -92,7 +94,7 @@ export class DmaController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/item/valuations')
-  getItemValuations(@Query() input: ItemCrossRealmDto): Promise<ItemValuationsDto> {
+  getItemValuations(@Query() input: ItemRealmDto): Promise<ItemValuationsDto> {
     return this.dmaService.getItemValuations(input);
   }
 
@@ -152,7 +154,7 @@ export class DmaController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/item/quotes')
-  async getAssetQuotes(@Query() input: ItemCrossRealmDto): Promise<ItemQuotesDto> {
+  async getAssetQuotes(@Query() input: ItemRealmDto): Promise<ItemQuotesDto> {
     return this.dmaService.getAssetQuotes(input);
   }
 
@@ -172,7 +174,7 @@ export class DmaController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/item/feed')
-  async getItemFeed(@Query() input: ItemCrossRealmDto): Promise<ItemFeedDto> {
+  async getItemFeed(@Query() input: ItemRealmDto): Promise<ItemFeedDto> {
     return this.dmaService.getItemFeed(input);
   }
 }
