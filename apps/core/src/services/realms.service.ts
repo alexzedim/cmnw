@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, OnApplicationBootstrap, OnModuleInit } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 import { InjectQueue } from '@nestjs/bullmq';
 import { BlizzAPI } from '@alexzedim/blizzapi';
@@ -13,6 +13,7 @@ import { lastValueFrom, mergeMap, range } from 'rxjs';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
+  delay,
   findRealm,
   getKeys,
   GLOBAL_KEY,
@@ -23,7 +24,7 @@ import {
 } from '@app/resources';
 
 @Injectable()
-export class RealmsService implements OnModuleInit {
+export class RealmsService implements OnApplicationBootstrap {
   private readonly logger = new Logger(RealmsService.name, { timestamp: true });
 
   private BNet: BlizzAPI;
@@ -69,7 +70,7 @@ export class RealmsService implements OnModuleInit {
     }
   }
 
-  async onModuleInit(): Promise<void> {
+  async onApplicationBootstrap(): Promise<void> {
     await this.init();
     await this.indexRealms(GLOBAL_KEY);
     await this.getRealmsWarcraftLogsId();
@@ -79,6 +80,8 @@ export class RealmsService implements OnModuleInit {
     const anyRealmEntity = this.realmsRepository.create(REALM_ENTITY_ANY);
     await this.realmsRepository.save(anyRealmEntity);
     this.logger.log(`init: Realm AANNYY was seeded`);
+    this.logger.debug(`realms: wait for 180 seconds`);
+    await delay(60 * 3);
   }
 
   @Cron(CronExpression.EVERY_WEEK)
