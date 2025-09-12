@@ -5,10 +5,10 @@ import cheerio from 'cheerio';
 
 import {
   isCharacterRaidLogResponse,
-  IWarcraftLogsConfig,
   RaidCharacter,
   toGuid,
 } from '@app/resources';
+import { IOsintConfig } from '@app/configuration';
 
 @Injectable()
 export class TestsCommunity {
@@ -22,7 +22,7 @@ export class TestsCommunity {
    * @description get Warcraft Logs Report IDs by page
    */
   async getLogsFromPage(
-    config: IWarcraftLogsConfig,
+    config: IOsintConfig,
     realmId = 1,
     page = 1,
   ): Promise<Array<string>> {
@@ -30,7 +30,7 @@ export class TestsCommunity {
       const warcraftLogsURI = 'https://www.warcraftlogs.com/zone/reports';
 
       const response = await this.httpService.axiosRef.get<string>(
-        `${warcraftLogsURI}?zone=${config.raidTier}&server=${realmId}&page=${page}`,
+        `${warcraftLogsURI}?zone=${config.wclCurrentRaidTier}&server=${realmId}&page=${page}`,
       );
 
       const wclHTML = cheerio.load(response.data);
