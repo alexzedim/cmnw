@@ -4,6 +4,7 @@ import { TestsDma } from './tests.dma';
 import { TestsBench } from './tests.bench';
 import { TestsCommunity } from './tests.community';
 import { TestsCore } from './tests.core';
+import { TestsWorker } from './tests.worker';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { postgresConfig } from '@app/configuration';
 import { ItemsEntity, KeysEntity, MarketEntity, RealmsEntity } from '@app/pg';
@@ -17,6 +18,6 @@ import { HttpModule } from '@nestjs/axios';
     TypeOrmModule.forFeature([KeysEntity, RealmsEntity, MarketEntity, ItemsEntity]),
   ],
   controllers: [],
-  providers: [TestsOsint, TestsDma, TestsCore, TestsBench, TestsCommunity],
+  providers: [TestsOsint, TestsDma, TestsCore, TestsBench, TestsCommunity, TestsWorker],
 })
 export class TestsModule {}
