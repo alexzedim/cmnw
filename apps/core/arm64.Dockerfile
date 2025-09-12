@@ -25,7 +25,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 RUN echo //npm.pkg.github.com/:_authToken=${CR_PAT} >> ~/.npmrc
 RUN echo @alexzedim:registry=https://npm.pkg.github.com/ >> ~/.npmrc
 
-RUN corepack pnpm install --frozen-lockfile --network-timeout 1000000
+RUN corepack pnpm install
 
 COPY . .
 

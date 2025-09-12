@@ -39,7 +39,7 @@ jobs:
           CR_PAT: ${{ secrets.CR_PAT }}
 
       - name: Install dependencies
-        run: corepack pnpm install --frozen-lockfile
+        run: corepack pnpm install
 
       - name: Docker meta
         id: meta

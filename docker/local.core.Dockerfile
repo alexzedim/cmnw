@@ -11,7 +11,7 @@ RUN npm install -g @nestjs/cli
 RUN corepack enable
 
 COPY ../package.json ./
-RUN corepack pnpm install --frozen-lockfile
+RUN corepack pnpm install
 
 COPY .. .
 

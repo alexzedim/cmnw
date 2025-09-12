@@ -8,7 +8,7 @@ COPY package*.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 RUN corepack pnpm add glob rimraf webpack
 
-RUN corepack pnpm install --frozen-lockfile --dev
+RUN corepack pnpm install --dev
 
 COPY . .
 
@@ -25,7 +25,7 @@ WORKDIR /usr/src/app
 
 COPY package*.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-RUN corepack pnpm install --frozen-lockfile --prod
+RUN corepack pnpm install --prod
 
 COPY . .
 
