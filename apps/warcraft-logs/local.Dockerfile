@@ -2,15 +2,15 @@ FROM node:lts-alpine AS development
 
 WORKDIR /usr/src/app
 
-COPY package*.json ./
+COPY package*.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-RUN yarn add glob rimraf webpack
+RUN corepack pnpm add glob rimraf webpack
 
-RUN yarn --only=development
+RUN corepack pnpm install --frozen-lockfile --dev
 
 COPY . .
 
-RUN yarn run build
+RUN corepack pnpm run build
 
 FROM node:lts-alpine as production
 
@@ -19,15 +19,18 @@ ENV NODE_ENV=${NODE_ENV}
 
 WORKDIR /usr/src/app
 
-COPY package*.json ./
+COPY package*.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-RUN yarn --only=production
+RUN corepack pnpm install --frozen-lockfile --prod
 
 COPY . .
 
 COPY --from=development /usr/src/app/dist ./dist
 
 CMD ["node", "dist/apps/warcraft-logs/main.js"]
+
+
+
 
 
 

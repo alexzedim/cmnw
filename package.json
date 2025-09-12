@@ -17,6 +17,11 @@
     "url": "https://github.com/alexzedim/cmnw.git"
   },
   "languageName": "node",
+  "packageManager": "pnpm@10.15.1",
+  "engines": {
+    "node": ">=18.0.0",
+    "pnpm": ">=10.0.0"
+  },
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "nest build",

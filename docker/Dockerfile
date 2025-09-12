@@ -15,6 +15,7 @@ RUN apt-get install -y git
 WORKDIR /usr/src/app
 
 RUN npm install -g @nestjs/cli
+RUN corepack enable
 
 RUN git config --global url."https://alexzedim:${CR_PAT}@github.com/".insteadOf "https://github.com/"
 
@@ -22,9 +23,10 @@ RUN git clone https://github.com/alexzedim/cmnw-secrets.git
 
 RUN mv cmnw-secrets/* cmnw-secrets/.[^.]* . && rmdir cmnw-secrets/
 
-COPY ../package.json ./
+COPY ../package.json ../pnpm-lock.yaml ./
+COPY ../pnpm-workspace.yaml ./
 
-RUN yarn install
+RUN corepack pnpm install --frozen-lockfile
 
 COPY .. .
 

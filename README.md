@@ -97,10 +97,12 @@
 
 ### Prerequisites
 
-- Node.js 18+ and npm/yarn
+- Node.js 18+ and pnpm 10+
 - Docker & Docker Compose
 - PostgreSQL 17+
 - Redis 7+
+
+> **Note**: This project uses pnpm 10.15.1. If you have an older version of pnpm installed globally, use `./pnpm.ps1` (Windows PowerShell) or `./pnpm.cmd` (Windows Command Prompt) to ensure you're using the correct version via corepack.
 
 ### 🔧 Installation
 
@@ -110,7 +112,7 @@ git clone https://github.com/alexzedim/cmnw.git
 cd cmnw
 
 # Install dependencies
-yarn install
+pnpm install
 
 # Copy environment configuration
 cp .env.example .env
@@ -133,10 +135,10 @@ docker-compose -f docker-compose.dma.yml up -d
 
 ```bash
 # Build the project
-yarn build
+pnpm build
 
 # Start development server
-yarn start:dev
+pnpm start:dev
 
 # Run specific microservice
 nest start osint --watch
@@ -188,16 +190,16 @@ Comprehensive testing with **[Jest](https://jestjs.io)** framework:
 
 ```bash
 # Run all tests
-yarn test
+pnpm test
 
 # Run tests with coverage
-yarn test:cov
+pnpm test:cov
 
 # Run e2e tests
-yarn test:e2e
+pnpm test:e2e
 
 # Watch mode for development
-yarn test:watch
+pnpm test:watch
 ```
 
 ### 📋 Test Coverage

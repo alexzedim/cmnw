@@ -19,20 +19,23 @@ RUN git clone https://github.com/AlexZeDim/cmnw-secrets.git
 RUN mv cmnw-secrets/* .
 RUN rm -rf cmnw-secrets
 
-COPY package.json ./
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Installing private github packages #
 RUN echo //npm.pkg.github.com/:_authToken=${CR_PAT} >> ~/.npmrc
 RUN echo @alexzedim:registry=https://npm.pkg.github.com/ >> ~/.npmrc
 
-RUN yarn install --network-timeout 1000000
+RUN corepack pnpm install --frozen-lockfile --network-timeout 1000000
 
 COPY . .
 
 RUN npm install -g @nestjs/cli
+RUN corepack enable
 RUN nest build market
 
 CMD ["node", "dist/apps/market/main.js"]
+
+
 
 
 

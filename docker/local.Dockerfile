@@ -8,9 +8,11 @@ LABEL org.opencontainers.image.source = "https://github.com/alexzedim/cmnw"
 WORKDIR /usr/src/app
 
 RUN npm install -g @nestjs/cli
+RUN corepack enable
 
-COPY ../package.json ./
-RUN yarn install
+COPY ../package.json ../pnpm-lock.yaml ./
+COPY ../pnpm-workspace.yaml ./
+RUN corepack pnpm install --frozen-lockfile
 
 COPY .. .
 
@@ -28,3 +30,4 @@ RUN nest build conglomerat \
   && nest build warcraft-logs
 
 CMD wait && ["node"]
+
