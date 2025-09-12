@@ -168,6 +168,189 @@ export class GuildsWorker extends WorkerHost {
     }
   }
 
+  private async processIntersectionMember(
+    guildEntity: GuildsEntity,
+    roster: IGuildRoster,
+    guildMemberId: number,
+    originalRoster: Map<number, CharactersGuildsMembersEntity>,
+    updatedRoster: Map<number, any>,
+  ): Promise<void> {
+    try {
+      const guildMemberOriginal = originalRoster.get(guildMemberId);
+      const guildMemberUpdated = updatedRoster.get(guildMemberId);
+      const isRankChanged = guildMemberUpdated.rank !== guildMemberOriginal.rank;
+
+      if (!isRankChanged) return;
+
+      const isNotGuildMaster =
+        guildMemberOriginal.rank !== OSINT_GM_RANK || guildMemberUpdated.rank !== OSINT_GM_RANK;
+      const isDemote = guildMemberUpdated.rank > guildMemberOriginal.rank;
+      // const isPromote = guildMemberUpdated.rank < guildMemberOriginal.rank;
+
+      const eventAction = isDemote
+        ? ACTION_LOG.DEMOTE
+        : ACTION_LOG.PROMOTE;
+
+      if (isNotGuildMaster) {
+        const logEntityGuildMemberDemote =
+          this.charactersGuildsLogsRepository.create({
+          characterGuid: guildMemberOriginal.characterGuid,
+          guildGuid: guildEntity.guid,
+          original: String(guildMemberOriginal.rank),
+          updated: String(guildMemberUpdated.rank),
+          action: eventAction,
+          scannedAt: guildEntity.updatedAt,
+          createdAt: roster.updatedAt,
+        });
+
+        await Promise.allSettled([
+          this.charactersGuildsLogsRepository.save(logEntityGuildMemberDemote),
+          this.charactersRepository.update(
+            { guid: guildMemberUpdated.guid, id: guildMemberUpdated.id },
+            {
+              guildRank : guildMemberUpdated.rank,
+              updatedBy: OSINT_SOURCE.GUILD_ROSTER,
+            },
+          ),
+          this.characterGuildsMembersRepository.update(
+            {
+              characterGuid: guildMemberOriginal.characterGuid,
+              guildGuid: guildEntity.guid,
+            },
+            {
+              rank: guildMemberUpdated.rank,
+              updatedBy: OSINT_SOURCE.GUILD_ROSTER,
+            },
+          ),
+        ]);
+      }
+    } catch (errorOrException) {
+      this.logger.error(
+        {
+          logTag: 'membersIntersectIds',
+          guildGuid: guildEntity.guid,
+          error: JSON.stringify(errorOrException),
+        }
+      );
+    }
+  }
+
+  private async processJoinMember(
+    guildEntity: GuildsEntity,
+    roster: IGuildRoster,
+    guildMemberId: number,
+    updatedRoster: Map<number, any>,
+  ): Promise<void> {
+    try {
+      const guildMemberUpdated = updatedRoster.get(guildMemberId);
+      const isNotGuildMaster = guildMemberUpdated.rank !== OSINT_GM_RANK;
+
+      const charactersGuildsMembersEntity =
+        this.characterGuildsMembersRepository.create({
+          guildGuid: guildEntity.guid,
+          guildId: guildEntity.id,
+          characterId: guildMemberUpdated.id,
+          characterGuid: guildMemberUpdated.guid,
+          realmId: guildEntity.realmId,
+          realmName: guildEntity.realmName,
+          realm: guildEntity.realm,
+          rank: guildMemberUpdated.rank,
+          createdBy: OSINT_SOURCE.GUILD_ROSTER,
+          updatedBy: OSINT_SOURCE.GUILD_ROSTER,
+          lastModified: roster.updatedAt,
+        });
+
+      if (isNotGuildMaster) {
+        const logEntityGuildMemberJoin =
+          this.charactersGuildsLogsRepository.create({
+            characterGuid: guildMemberUpdated.guid,
+            guildGuid: guildEntity.guid,
+            updated: String(guildMemberUpdated.rank),
+            action: ACTION_LOG.JOIN,
+            scannedAt: guildEntity.updatedAt,
+            createdAt: roster.updatedAt,
+          });
+
+        await this.charactersGuildsLogsRepository.save(logEntityGuildMemberJoin);
+      }
+      await Promise.allSettled([
+        this.characterGuildsMembersRepository.save(
+          charactersGuildsMembersEntity,
+        ),
+        this.charactersRepository.update(
+          { guid: guildMemberUpdated.guid, id: guildMemberUpdated.id },
+          {
+            guild: guildEntity.name,
+            guildId: guildEntity.id,
+            guildGuid: guildEntity.guid,
+            guildRank: guildMemberUpdated.rank,
+            updatedBy: OSINT_SOURCE.GUILD_ROSTER,
+          },
+        ),
+      ]);
+    } catch (errorOrException) {
+      this.logger.error(
+        {
+          logTag: 'membersJoinedIds',
+          guildGuid: guildEntity.guid,
+          error: JSON.stringify(errorOrException),
+        }
+      );
+    }
+  }
+
+  private async processLeaveMember(
+    guildEntity: GuildsEntity,
+    roster: IGuildRoster,
+    guildMemberId: number,
+    originalRoster: Map<number, CharactersGuildsMembersEntity>,
+  ): Promise<void> {
+    try {
+      const guildMemberOriginal = originalRoster.get(guildMemberId);
+      const isNotGuildMaster = guildMemberOriginal.rank !== OSINT_GM_RANK;
+
+      if (isNotGuildMaster) {
+        const logEntityGuildMemberLeave =
+          this.charactersGuildsLogsRepository.create({
+            characterGuid: guildMemberOriginal.characterGuid,
+            guildGuid: guildEntity.guid,
+            original: String(guildMemberOriginal.rank),
+            action: ACTION_LOG.LEAVE,
+            scannedAt: guildEntity.updatedAt,
+            createdAt: roster.updatedAt,
+          })
+        await this.charactersGuildsLogsRepository.save(logEntityGuildMemberLeave);
+      }
+      await Promise.allSettled([
+        this.characterGuildsMembersRepository.delete({
+          guildGuid: guildEntity.guid,
+          characterGuid: guildMemberOriginal.characterGuid,
+        }),
+        this.charactersRepository.update(
+          {
+            guid: guildMemberOriginal.characterGuid,
+            guildGuid: guildEntity.guid,
+          },
+          {
+            guild: null,
+            guildId: null,
+            guildGuid: null,
+            guildRank: null,
+            updatedBy: OSINT_SOURCE.GUILD_ROSTER,
+          },
+        ),
+      ]);
+    } catch (errorOrException) {
+      this.logger.error(
+        {
+          logTag: 'membersLeaveIds',
+          guildGuid: guildEntity.guid,
+          error: JSON.stringify(errorOrException),
+        }
+      );
+    }
+  }
+
   private async updateRoster(guildEntity: GuildsEntity, roster: IGuildRoster, isNew: boolean) {
     try {
       const { members: updatedRosterMembers } = roster;
@@ -212,67 +395,15 @@ export class GuildsWorker extends WorkerHost {
       if (interLength) {
         await lastValueFrom(
           from(membersIntersectIds).pipe(
-            mergeMap(async (guildMemberId) => {
-              try {
-                const guildMemberOriginal = originalRoster.get(guildMemberId);
-                const guildMemberUpdated = updatedRoster.get(guildMemberId);
-                const isRankChanged =
-                  guildMemberUpdated.rank !== guildMemberOriginal.rank;
-
-                if (!isRankChanged) return;
-
-                const isNotGuildMaster =
-                  guildMemberOriginal.rank !== OSINT_GM_RANK || guildMemberUpdated.rank !== OSINT_GM_RANK;
-                const isDemote = guildMemberUpdated.rank > guildMemberOriginal.rank;
-                // const isPromote = guildMemberUpdated.rank < guildMemberOriginal.rank;
-
-                const eventAction = isDemote
-                  ? ACTION_LOG.DEMOTE
-                  : ACTION_LOG.PROMOTE;
-
-                if (isNotGuildMaster) {
-                  const logEntityGuildMemberDemote =
-                    this.charactersGuildsLogsRepository.create({
-                    characterGuid: guildMemberOriginal.characterGuid,
-                    guildGuid: guildEntity.guid,
-                    original: String(guildMemberOriginal.rank),
-                    updated: String(guildMemberUpdated.rank),
-                    action: eventAction,
-                    scannedAt: guildEntity.updatedAt,
-                    createdAt: roster.updatedAt,
-                  });
-
-                  await Promise.allSettled([
-                    this.charactersGuildsLogsRepository.save(logEntityGuildMemberDemote),
-                    this.charactersRepository.update(
-                      { guid: guildMemberUpdated.guid, id: guildMemberUpdated.id },
-                      {
-                        guildRank : guildMemberUpdated.rank,
-                        updatedBy: OSINT_SOURCE.GUILD_ROSTER,
-                      },
-                    ),
-                    this.characterGuildsMembersRepository.update(
-                      {
-                        characterGuid: guildMemberOriginal.characterGuid,
-                        guildGuid: guildEntity.guid,
-                      },
-                      {
-                        rank: guildMemberUpdated.rank,
-                        updatedBy: OSINT_SOURCE.GUILD_ROSTER,
-                      },
-                    ),
-                  ]);
-                }
-              } catch (errorOrException) {
-                this.logger.error(
-                  {
-                    logTag: 'membersIntersectIds',
-                    guildGuid: guildEntity.guid,
-                    error: JSON.stringify(errorOrException),
-                  }
-                );
-              }
-            }),
+            mergeMap((guildMemberId) =>
+              this.processIntersectionMember(
+                guildEntity,
+                roster,
+                guildMemberId,
+                originalRoster,
+                updatedRoster,
+              )
+            ),
           ),
         );
       }
@@ -280,64 +411,14 @@ export class GuildsWorker extends WorkerHost {
       if (joinsLength && !isNew) {
         await lastValueFrom(
           from(membersJoinedIds).pipe(
-            mergeMap(async (guildMemberId) => {
-              try {
-                const guildMemberUpdated = updatedRoster.get(guildMemberId);
-                const isNotGuildMaster = guildMemberUpdated.rank !== OSINT_GM_RANK;
-
-                const charactersGuildsMembersEntity =
-                  this.characterGuildsMembersRepository.create({
-                    guildGuid: guildEntity.guid,
-                    guildId: guildEntity.id,
-                    characterId: guildMemberUpdated.id,
-                    characterGuid: guildMemberUpdated.guid,
-                    realmId: guildEntity.realmId,
-                    realmName: guildEntity.realmName,
-                    realm: guildEntity.realm,
-                    rank: guildMemberUpdated.rank,
-                    createdBy: OSINT_SOURCE.GUILD_ROSTER,
-                    updatedBy: OSINT_SOURCE.GUILD_ROSTER,
-                    lastModified: roster.updatedAt,
-                  });
-
-                if (isNotGuildMaster) {
-                  const logEntityGuildMemberJoin =
-                    this.charactersGuildsLogsRepository.create({
-                      characterGuid: guildMemberUpdated.guid,
-                      guildGuid: guildEntity.guid,
-                      updated: String(guildMemberUpdated.rank),
-                      action: ACTION_LOG.JOIN,
-                      scannedAt: guildEntity.updatedAt,
-                      createdAt: roster.updatedAt,
-                    });
-
-                  await this.charactersGuildsLogsRepository.save(logEntityGuildMemberJoin);
-                }
-                await Promise.allSettled([
-                  this.characterGuildsMembersRepository.save(
-                    charactersGuildsMembersEntity,
-                  ),
-                  this.charactersRepository.update(
-                    { guid: guildMemberUpdated.guid, id: guildMemberUpdated.id },
-                    {
-                      guild: guildEntity.name,
-                      guildId: guildEntity.id,
-                      guildGuid: guildEntity.guid,
-                      guildRank: guildMemberUpdated.rank,
-                      updatedBy: OSINT_SOURCE.GUILD_ROSTER,
-                    },
-                  ),
-                ]);
-              } catch (errorOrException) {
-                this.logger.error(
-                  {
-                    logTag: 'membersJoinedIds',
-                    guildGuid: guildEntity.guid,
-                    error: JSON.stringify(errorOrException),
-                  }
-                );
-              }
-            }),
+            mergeMap((guildMemberId) =>
+              this.processJoinMember(
+                guildEntity,
+                roster,
+                guildMemberId,
+                updatedRoster,
+              )
+            ),
           ),
         );
       }
@@ -345,52 +426,14 @@ export class GuildsWorker extends WorkerHost {
       if (leaveLength) {
         await lastValueFrom(
           from(membersLeaveIds).pipe(
-            mergeMap(async (guildMemberId) => {
-              try {
-                const guildMemberOriginal = originalRoster.get(guildMemberId);
-                const isNotGuildMaster = guildMemberOriginal.rank !== OSINT_GM_RANK;
-
-                if (isNotGuildMaster) {
-                  const logEntityGuildMemberLeave =
-                    this.charactersGuildsLogsRepository.create({
-                      characterGuid: guildMemberOriginal.characterGuid,
-                      guildGuid: guildEntity.guid,
-                      original: String(guildMemberOriginal.rank),
-                      action: ACTION_LOG.LEAVE,
-                      scannedAt: guildEntity.updatedAt,
-                      createdAt: roster.updatedAt,
-                    })
-                  await this.charactersGuildsLogsRepository.save(logEntityGuildMemberLeave);
-                }
-                await Promise.allSettled([
-                  this.characterGuildsMembersRepository.delete({
-                    guildGuid: guildEntity.guid,
-                    characterGuid: guildMemberOriginal.characterGuid,
-                  }),
-                  this.charactersRepository.update(
-                    {
-                      guid: guildMemberOriginal.characterGuid,
-                      guildGuid: guildEntity.guid,
-                    },
-                    {
-                      guild: null,
-                      guildId: null,
-                      guildGuid: null,
-                      guildRank: null,
-                      updatedBy: OSINT_SOURCE.GUILD_ROSTER,
-                    },
-                  ),
-                ]);
-              } catch (errorOrException) {
-                this.logger.error(
-                  {
-                    logTag: 'membersLeaveIds',
-                    guildGuid: guildEntity.guid,
-                    error: JSON.stringify(errorOrException),
-                  }
-                );
-              }
-            }),
+            mergeMap((guildMemberId) =>
+              this.processLeaveMember(
+                guildEntity,
+                roster,
+                guildMemberId,
+                originalRoster,
+              )
+            ),
           ),
         );
       }
@@ -473,6 +516,93 @@ export class GuildsWorker extends WorkerHost {
     }
   }
 
+  private async processRosterMember(
+    member: any,
+    guildEntity: GuildsEntity,
+    guildNameSlug: string,
+    roster: IGuildRoster,
+    BNet: BlizzAPI,
+  ): Promise<void> {
+    try {
+      const isMember = 'character' in member && 'rank' in member;
+      if (!isMember) return;
+
+      const isGM = member.rank === OSINT_GM_RANK;
+      const realmSlug = member.character.realm.slug ?? guildEntity.realm;
+      const guid = toSlug(`${member.character.name}@${realmSlug}`);
+      const level = member.character.level ? member.character.level : null;
+      const characterClass = PLAYABLE_CLASS.has(
+        member.character.playable_class.id,
+      )
+        ? PLAYABLE_CLASS.get(member.character.playable_class.id)
+        : null;
+
+      if (isGM) {
+        // --- Force update GM character for further diff compare --- //
+        await this.characterQueue.add(
+          guid,
+          {
+            guid,
+            name: member.character.name,
+            realm: guildEntity.realm,
+            guild: guildEntity.name,
+            guildGuid: toGuid(guildNameSlug, guildEntity.realm),
+            guildId: guildEntity.id,
+            class: characterClass,
+            faction: guildEntity.faction,
+            level,
+            lastModified: guildEntity.lastModified,
+            updatedBy: OSINT_SOURCE.GUILD_ROSTER,
+            createdBy: OSINT_SOURCE.GUILD_ROSTER,
+            accessToken: BNet.accessTokenObject.access_token,
+            clientId: BNet.clientId,
+            clientSecret: BNet.clientSecret,
+            createOnlyUnique: false,
+            forceUpdate: 1,
+            guildRank: 0,
+            region: 'eu',
+          },
+          {
+            jobId: guid,
+            priority: 2,
+          },
+        );
+      }
+
+      const guildMember: ICharacterGuildMember = {
+        guid,
+        id: member.character.id,
+        name: member.character.name,
+        guildNameSlug,
+        rank: Number(member.rank),
+        level,
+        class: characterClass,
+      };
+
+      await characterAsGuildMember(
+        this.charactersRepository,
+        guildEntity,
+        guildMember,
+      );
+
+      roster.members.push({
+        guid,
+        id: member.character.id,
+        rank: member.rank,
+        level,
+      });
+    } catch (errorOrException) {
+      this.logger.error(
+        {
+          logTag: 'getRoster',
+          member: member.character.id,
+          guildGuid: guildEntity.guid,
+          error: JSON.stringify(errorOrException),
+        }
+      );
+    }
+  }
+
   private async getRoster(
     guildEntity: GuildsEntity,
     BNet: BlizzAPI,
@@ -490,86 +620,15 @@ export class GuildsWorker extends WorkerHost {
 
       await lastValueFrom(
         from(response.members).pipe(
-          mergeMap(async (member) => {
-            try {
-              const isMember = 'character' in member && 'rank' in member;
-              if (!isMember) return;
-
-              const isGM = member.rank === OSINT_GM_RANK;
-              const realmSlug = member.character.realm.slug ?? guildEntity.realm;
-              const guid = toSlug(`${member.character.name}@${realmSlug}`);
-              const level = member.character.level ? member.character.level : null;
-              const characterClass = PLAYABLE_CLASS.has(
-                member.character.playable_class.id,
-              )
-                ? PLAYABLE_CLASS.get(member.character.playable_class.id)
-                : null;
-
-              if (isGM) {
-                // --- Force update GM character for further diff compare --- //
-                await this.characterQueue.add(
-                  guid,
-                  {
-                    guid,
-                    name: member.character.name,
-                    realm: guildEntity.realm,
-                    guild: guildEntity.name,
-                    guildGuid: toGuid(guildNameSlug, guildEntity.realm),
-                    guildId: guildEntity.id,
-                    class: characterClass,
-                    faction: guildEntity.faction,
-                    level,
-                    lastModified: guildEntity.lastModified,
-                    updatedBy: OSINT_SOURCE.GUILD_ROSTER,
-                    createdBy: OSINT_SOURCE.GUILD_ROSTER,
-                    accessToken: BNet.accessTokenObject.access_token,
-                    clientId: BNet.clientId,
-                    clientSecret: BNet.clientSecret,
-                    createOnlyUnique: false,
-                    forceUpdate: 1,
-                    guildRank: 0,
-                    region: 'eu',
-                  },
-                  {
-                    jobId: guid,
-                    priority: 2,
-                  },
-                );
-              }
-
-              const guildMember: ICharacterGuildMember = {
-                guid,
-                id: member.character.id,
-                name: member.character.name,
-                guildNameSlug,
-                rank: Number(member.rank),
-                level,
-                class: characterClass,
-              };
-
-              await characterAsGuildMember(
-                this.charactersRepository,
-                guildEntity,
-                guildMember,
-              );
-
-              roster.members.push({
-                guid,
-                id: member.character.id,
-                rank: member.rank,
-                level,
-              });
-            } catch (errorOrException) {
-              this.logger.error(
-                {
-                  logTag: 'getRoster',
-                  member: member.character.id,
-                  guildGuid: guildEntity.guid,
-                  error: JSON.stringify(errorOrException),
-                }
-              );
-            }
-          }, 20),
+          mergeMap((member) =>
+            this.processRosterMember(
+              member,
+              guildEntity,
+              guildNameSlug,
+              roster,
+              BNet,
+            )
+          , 20),
         ),
       );
 
