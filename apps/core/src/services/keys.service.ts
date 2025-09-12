@@ -133,7 +133,7 @@ export class KeysService implements OnApplicationBootstrap {
     const logTag = this.indexWarcraftLogsKeys.name;
     try {
       const keyEntities = await this.keysRepository.findBy({
-        tags: ArrayContains([GLOBAL_WCL_KEY_V2, 'v2']),
+        tags: ArrayContains([GLOBAL_WCL_KEY_V2]),
       });
 
       for (const keyEntity of keyEntities) {
@@ -150,12 +150,12 @@ export class KeysService implements OnApplicationBootstrap {
             password: keyEntity.secret,
           },
         });
-
+        this.logger.debug(data);
         keyEntity.token = data.access_token;
         keyEntity.expiredIn = data.expires_in;
 
         await this.keysRepository.save(keyEntity);
-        this.logger.log(`Updated: key ${keyEntity.client}`);
+        this.logger.log(`Updated: key ${keyEntity.client} | wcl`);
       }
     } catch (errorOrException) {
       this.logger.error(
