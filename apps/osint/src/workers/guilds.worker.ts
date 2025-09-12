@@ -240,6 +240,7 @@ export class GuildsWorker extends WorkerHost {
     rosterUpdatedAt: Date,
     guildMemberId: number,
     updatedRoster: Map<number, any>,
+    isFirstTimeRosterIndexed: boolean = false,
   ): Promise<void> {
     try {
       const guildMemberUpdated = updatedRoster.get(guildMemberId);
@@ -260,7 +261,7 @@ export class GuildsWorker extends WorkerHost {
           lastModified: rosterUpdatedAt,
         });
 
-      if (isNotGuildMaster) {
+      if (isNotGuildMaster && !isFirstTimeRosterIndexed) {
         const logEntityGuildMemberJoin =
           this.charactersGuildsLogsRepository.create({
             characterGuid: guildMemberUpdated.guid,
@@ -273,6 +274,7 @@ export class GuildsWorker extends WorkerHost {
 
         await this.charactersGuildsLogsRepository.save(logEntityGuildMemberJoin);
       }
+
       await Promise.allSettled([
         this.characterGuildsMembersRepository.save(
           charactersGuildsMembersEntity,
@@ -377,6 +379,8 @@ export class GuildsWorker extends WorkerHost {
         )
       ];
 
+      const isFirstTimeRosterIndexed = originalRoster.size === 0;
+
       const originalRosterCharIds = Array.from(originalRoster.keys());
       const updatedRosterCharIds = Array.from(updatedRoster.keys());
 
@@ -419,6 +423,7 @@ export class GuildsWorker extends WorkerHost {
                 rosterUpdateAt,
                 guildMemberId,
                 updatedRoster,
+                isFirstTimeRosterIndexed,
               )
             ),
           ),
