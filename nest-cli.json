@@ -1,11 +1,11 @@
 {
   "collection": "@nestjs/schematics",
-  "sourceRoot": "apps/conglomerat/src",
+  "sourceRoot": "apps/api/src",
   "monorepo": true,
-  "root": "apps/conglomerat",
+  "root": "apps/api",
   "compilerOptions": {
     "webpack": true,
-    "tsConfigPath": "apps/conglomerat/tsconfig.app.json",
+    "tsConfigPath": "apps/api/tsconfig.app.json",
     "assets": [
       {
         "include": "../config/*.yaml",

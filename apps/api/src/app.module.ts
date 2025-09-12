@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
-import { mongoConfig, mongoOptionsConfig, redisConfig } from '@app/configuration';
+import { bullConfig, mongoConfig, mongoOptionsConfig, redisConfig } from '@app/configuration';
 import { BullModule } from '@nestjs/bullmq';
 import { OsintModule } from './osint/osint.module';
 import { DmaModule } from './dma/dma.module';

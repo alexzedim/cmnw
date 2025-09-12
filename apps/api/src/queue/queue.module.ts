@@ -1,9 +1,9 @@
 import { MiddlewareConsumer, Module } from '@nestjs/common';
-import { redisConfig } from '@app/configuration';
+import { bullConfig } from '@app/configuration';
 import { BullModule } from '@nestjs/bullmq';
 import { ExpressAdapter } from '@bull-board/express';
-import { BullBoardModule } from 'nestjs-bull-board';
-import { Express } from 'express';
+import { BullBoardModule } from '@bull-board/nestjs';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import {
   auctionsQueue,
   charactersQueue,
@@ -45,21 +45,17 @@ import {
       name: valuationsQueue.name,
     }),
     BullBoardModule.forRoot({ route: '/queues', adapter: ExpressAdapter }),
-    BullBoardModule.forFeature(...QueueListBoard),
+    BullBoardModule.forFeature(
+      { name: auctionsQueue.name, adapter: BullMQAdapter },
+      { name: charactersQueue.name, adapter: BullMQAdapter },
+      { name: guildsQueue.name, adapter: BullMQAdapter },
+      { name: realmsQueue.name, adapter: BullMQAdapter },
+      { name: itemsQueue.name, adapter: BullMQAdapter },
+      { name: pricingQueue.name, adapter: BullMQAdapter },
+      { name: valuationsQueue.name, adapter: BullMQAdapter },
+    ),
   ],
   controllers: [],
   providers: [],
 })
-export class QueueModule {
-  private router: Express;
-
-  constructor(
-
-  ) {
-    this.router = router;
-  }
-
-  configure(consumer: MiddlewareConsumer): void {
-    consumer.apply(this.router).forRoutes('/queues');
-  }
-}
+export class QueueModule {}
