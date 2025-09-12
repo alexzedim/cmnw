@@ -2,6 +2,7 @@ import { Job } from 'bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { BlizzAPI } from '@alexzedim/blizzapi';
+import { AxiosError } from 'axios';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
@@ -33,6 +34,49 @@ export class RealmsWorker extends WorkerHost {
     private readonly realmsRepository: Repository<RealmsEntity>,
   ) {
     super();
+  }
+
+  /**
+   * Handle AxiosError specifically with detailed error information
+   * @param error - The error to handle
+   * @param jobData - Job context data for additional logging
+   * @param additionalInfo - Additional context information
+   */
+  private handleAxiosError(error: unknown, jobData?: RealmJobQueue, additionalInfo?: Record<string, any>): void {
+    if (error instanceof AxiosError) {
+      const errorInfo = {
+        logTag: RealmsWorker.name,
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url,
+        method: error.config?.method?.toUpperCase(),
+        responseData: error.response?.data,
+        code: error.code,
+        jobData: jobData ? {
+          id: jobData.id,
+          name: jobData.name,
+          slug: jobData.slug,
+          region: jobData.region,
+        } : undefined,
+        ...additionalInfo,
+      };
+
+      this.logger.error(errorInfo);
+    } else {
+      // Fallback for non-Axios errors
+      this.logger.error({
+        logTag: RealmsWorker.name,
+        error,
+        jobData: jobData ? {
+          id: jobData.id,
+          name: jobData.name,
+          slug: jobData.slug,
+          region: jobData.region,
+        } : undefined,
+        ...additionalInfo,
+      });
+    }
   }
 
   public async process(job: Job<RealmJobQueue, number>): Promise<void> {
@@ -143,12 +187,10 @@ export class RealmsWorker extends WorkerHost {
       await this.realmsRepository.save(realmEntity);
       await job.updateProgress(100);
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: RealmsWorker.name,
-          error: errorOrException,
-        }
-      );
+      this.handleAxiosError(errorOrException, job.data, {
+        jobId: job.id,
+        progress: job.progress,
+      });
     }
   }
 }

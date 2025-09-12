@@ -5,6 +5,7 @@ import { BlizzAPI } from '@alexzedim/blizzapi';
 import { Queue } from 'bullmq';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { HttpService } from '@nestjs/axios';
+import { AxiosError } from 'axios';
 import { InjectRepository } from '@nestjs/typeorm';
 import { KeysEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
@@ -36,6 +37,37 @@ export class RealmsService implements OnModuleInit {
     @InjectQueue(realmsQueue.name)
     private readonly queue: Queue<RealmJobQueue, number>,
   ) {}
+
+  /**
+   * Handle AxiosError specifically with detailed error information
+   * @param error - The error to handle
+   * @param logTag - Context tag for logging
+   * @param additionalInfo - Additional context information
+   */
+  private handleAxiosError(error: unknown, logTag: string, additionalInfo?: Record<string, any>): void {
+    if (error instanceof AxiosError) {
+      const errorInfo = {
+        logTag,
+        message: error.message,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url,
+        method: error.config?.method?.toUpperCase(),
+        responseData: error.response?.data,
+        code: error.code,
+        ...additionalInfo,
+      };
+
+      this.logger.error(errorInfo);
+    } else {
+      // Fallback for non-Axios errors
+      this.logger.error({
+        logTag,
+        error,
+        ...additionalInfo,
+      });
+    }
+  }
 
   async onModuleInit(): Promise<void> {
     await this.init();
@@ -132,12 +164,10 @@ export class RealmsService implements OnModuleInit {
               `getRealmsWarcraftLogsID: ${realmId}:${realmName} | ${realmEntity.id} updated!`,
             );
           } catch (errorOrException) {
-            this.logger.error(
-              {
-                logTag: logTag,
-                error: errorOrException,
-              }
-            );
+            this.handleAxiosError(errorOrException, logTag, {
+              realmId,
+              url: `https://www.warcraftlogs.com/server/id/${realmId}`,
+            });
           }
         }, 2),
       ),
