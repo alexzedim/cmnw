@@ -26,7 +26,7 @@ RUN mv cmnw-secrets/* cmnw-secrets/.[^.]* . && rmdir cmnw-secrets/
 COPY ../package.json ../pnpm-lock.yaml ./
 COPY ../pnpm-workspace.yaml ./
 
-RUN corepack pnpm install --frozen-lockfile
+RUN corepack pnpm install
 
 COPY .. .
 

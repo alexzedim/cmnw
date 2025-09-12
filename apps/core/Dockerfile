@@ -26,7 +26,7 @@ RUN echo @alexzedim:registry=https://npm.pkg.github.com/ >> ~/.npmrc
 
 RUN npm install -g @nestjs/cli
 RUN corepack enable
-RUN corepack pnpm install --frozen-lockfile
+RUN corepack pnpm install
 
 COPY . .
 
