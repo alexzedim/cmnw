@@ -170,7 +170,7 @@ export class GuildsWorker extends WorkerHost {
 
   private async processIntersectionMember(
     guildEntity: GuildsEntity,
-    roster: IGuildRoster,
+    rosterUpdatedAt: Date,
     guildMemberId: number,
     originalRoster: Map<number, CharactersGuildsMembersEntity>,
     updatedRoster: Map<number, any>,
@@ -200,7 +200,7 @@ export class GuildsWorker extends WorkerHost {
           updated: String(guildMemberUpdated.rank),
           action: eventAction,
           scannedAt: guildEntity.updatedAt,
-          createdAt: roster.updatedAt,
+          createdAt: rosterUpdatedAt,
         });
 
         await Promise.allSettled([
@@ -237,7 +237,7 @@ export class GuildsWorker extends WorkerHost {
 
   private async processJoinMember(
     guildEntity: GuildsEntity,
-    roster: IGuildRoster,
+    rosterUpdatedAt: Date,
     guildMemberId: number,
     updatedRoster: Map<number, any>,
   ): Promise<void> {
@@ -257,7 +257,7 @@ export class GuildsWorker extends WorkerHost {
           rank: guildMemberUpdated.rank,
           createdBy: OSINT_SOURCE.GUILD_ROSTER,
           updatedBy: OSINT_SOURCE.GUILD_ROSTER,
-          lastModified: roster.updatedAt,
+          lastModified: rosterUpdatedAt,
         });
 
       if (isNotGuildMaster) {
@@ -268,7 +268,7 @@ export class GuildsWorker extends WorkerHost {
             updated: String(guildMemberUpdated.rank),
             action: ACTION_LOG.JOIN,
             scannedAt: guildEntity.updatedAt,
-            createdAt: roster.updatedAt,
+            createdAt: rosterUpdatedAt,
           });
 
         await this.charactersGuildsLogsRepository.save(logEntityGuildMemberJoin);
@@ -301,7 +301,7 @@ export class GuildsWorker extends WorkerHost {
 
   private async processLeaveMember(
     guildEntity: GuildsEntity,
-    roster: IGuildRoster,
+    rosterUpdatedAt: Date,
     guildMemberId: number,
     originalRoster: Map<number, CharactersGuildsMembersEntity>,
   ): Promise<void> {
@@ -317,7 +317,7 @@ export class GuildsWorker extends WorkerHost {
             original: String(guildMemberOriginal.rank),
             action: ACTION_LOG.LEAVE,
             scannedAt: guildEntity.updatedAt,
-            createdAt: roster.updatedAt,
+            createdAt: rosterUpdatedAt,
           })
         await this.charactersGuildsLogsRepository.save(logEntityGuildMemberLeave);
       }
@@ -392,13 +392,15 @@ export class GuildsWorker extends WorkerHost {
       const joinsLength = membersJoinedIds.length;
       const leaveLength = membersLeaveIds.length;
 
+      const rosterUpdateAt = roster.updatedAt;
+
       if (interLength) {
         await lastValueFrom(
           from(membersIntersectIds).pipe(
             mergeMap((guildMemberId) =>
               this.processIntersectionMember(
                 guildEntity,
-                roster,
+                rosterUpdateAt,
                 guildMemberId,
                 originalRoster,
                 updatedRoster,
@@ -414,7 +416,7 @@ export class GuildsWorker extends WorkerHost {
             mergeMap((guildMemberId) =>
               this.processJoinMember(
                 guildEntity,
-                roster,
+                rosterUpdateAt,
                 guildMemberId,
                 updatedRoster,
               )
@@ -429,7 +431,7 @@ export class GuildsWorker extends WorkerHost {
             mergeMap((guildMemberId) =>
               this.processLeaveMember(
                 guildEntity,
-                roster,
+                rosterUpdateAt,
                 guildMemberId,
                 originalRoster,
               )
