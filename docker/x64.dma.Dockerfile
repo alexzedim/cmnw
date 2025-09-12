@@ -24,15 +24,18 @@ COPY ../package.json ./
 RUN echo //npm.pkg.github.com/:_authToken=${CR_PAT} >> ~/.npmrc
 RUN echo @alexzedim:registry=https://npm.pkg.github.com/ >> ~/.npmrc
 
-RUN yarn install --network-timeout 1000000
+RUN corepack pnpm install --frozen-lockfile --network-timeout 1000000
 
 COPY .. .
 
 RUN npm install -g @nestjs/cli
+RUN corepack enable
 
 RUN nest build market \
   && nest build items \
   && nest build dma
 
 CMD ["node"]
+
+
 

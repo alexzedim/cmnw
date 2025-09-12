@@ -33,13 +33,13 @@ jobs:
           registry-url: 'https://npm.pkg.github.com' # Specify the GitHub Packages registry URL
           scope: '@alexzedim' # Your npm scope
 
-      - name: Setup yarn
-        run: npm install -g yarn
+      - name: Enable corepack
+        run: corepack enable
         env:
           CR_PAT: ${{ secrets.CR_PAT }}
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: corepack pnpm install --frozen-lockfile
 
       - name: Docker meta
         id: meta
@@ -80,3 +80,5 @@ jobs:
       - name: Image digest
         run: |
           echo "Tag name ${{ steps.package-version.outputs.current-version}}"
+
+
