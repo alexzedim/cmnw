@@ -1,7 +1,4 @@
-FROM node:lts AS node
-FROM ubuntu:latest
-
-COPY --from=node / /
+FROM node:lts
 
 ARG CR_PAT
 ENV CR_PAT=$CR_PAT
@@ -15,23 +12,7 @@ LABEL org.opencontainers.image.description="Intelligence always wins"
 
 WORKDIR /usr/src/app
 
-# Clone config from private github repo #
-RUN git config --global url."https://alexzedim:${CR_PAT}@github.com/".insteadOf "https://github.com/"
-RUN git clone https://github.com/alexzedim/cmnw-secrets.git
-RUN mv cmnw-secrets/* .
-RUN rm -rf cmnw-secrets
-
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-
-# Installing private github packages #
-RUN echo //npm.pkg.github.com/:_authToken=${CR_PAT} >> ~/.npmrc
-RUN echo @alexzedim:registry=https://npm.pkg.github.com/ >> ~/.npmrc
-
-RUN corepack pnpm install
-
-COPY . .
-
-# Update system packages and install required dependencies
+# Update system packages and install required dependencies for Playwright
 RUN apt-get update && apt-get install -y \
     wget \
     gnupg \
@@ -55,8 +36,24 @@ RUN apt-get update && apt-get install -y \
     xvfb \
     && rm -rf /var/lib/apt/lists/*
 
-RUN npm install -g @nestjs/cli
+# Clone config from private github repo #
+RUN git config --global url."https://alexzedim:${CR_PAT}@github.com/".insteadOf "https://github.com/"
+RUN git clone https://github.com/alexzedim/cmnw-secrets.git
+RUN mv cmnw-secrets/* .
+RUN rm -rf cmnw-secrets
+
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+
+# Installing private github packages #
+RUN echo //npm.pkg.github.com/:_authToken=${CR_PAT} >> ~/.npmrc
+RUN echo @alexzedim:registry=https://npm.pkg.github.com/ >> ~/.npmrc
+
 RUN corepack enable
+RUN corepack pnpm install
+
+COPY . .
+
+RUN npm install -g @nestjs/cli
 
 # Installing playwright - updated approach for version 1.53.1+
 RUN npx playwright install-deps
