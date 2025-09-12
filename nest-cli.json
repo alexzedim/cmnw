@@ -41,13 +41,13 @@
         "tsConfigPath": "libs/configuration/tsconfig.lib.json"
       }
     },
-    "conglomerat": {
+    "api": {
       "type": "application",
-      "root": "apps/conglomerat",
+      "root": "apps/api",
       "entryFile": "main",
-      "sourceRoot": "apps/conglomerat/src",
+      "sourceRoot": "apps/api/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/conglomerat/tsconfig.app.json"
+        "tsConfigPath": "apps/api/tsconfig.app.json"
       }
     },
     "core": {

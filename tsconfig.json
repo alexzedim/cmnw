@@ -23,12 +23,6 @@
       "@app/configuration/*": [
         "libs/configuration/src/*"
       ],
-      "@app/e2e": [
-        "libs/e2e/src"
-      ],
-      "@app/e2e/*": [
-        "libs/e2e/src/*"
-      ],
       "@app/logger": [
         "libs/logger/src"
       ],
