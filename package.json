@@ -124,7 +124,13 @@
     "overrides": {
       "@nestjs/terminus": "11.0.0",
       "reflect-metadata": "0.2.2"
-    }
+    },
+    "ignoredBuiltDependencies": [
+      "@nestjs/core",
+      "@scarf/scarf",
+      "farmhash",
+      "msgpackr-extract"
+    ]
   },
   "jest": {
     "moduleFileExtensions": [
