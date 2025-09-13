@@ -50,15 +50,6 @@
         "tsConfigPath": "apps/core/tsconfig.app.json"
       }
     },
-    "discord": {
-      "type": "application",
-      "root": "apps/discord",
-      "entryFile": "main",
-      "sourceRoot": "apps/discord/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/discord/tsconfig.app.json"
-      }
-    },
     "dma": {
       "type": "application",
       "root": "apps/dma",
@@ -66,15 +57,6 @@
       "sourceRoot": "apps/dma/src",
       "compilerOptions": {
         "tsConfigPath": "apps/dma/tsconfig.app.json"
-      }
-    },
-    "e2e": {
-      "type": "library",
-      "root": "libs/e2e",
-      "entryFile": "index",
-      "sourceRoot": "libs/e2e/src",
-      "compilerOptions": {
-        "tsConfigPath": "libs/e2e/tsconfig.lib.json"
       }
     },
     "guilds": {
@@ -93,15 +75,6 @@
       "sourceRoot": "apps/items/src",
       "compilerOptions": {
         "tsConfigPath": "apps/items/tsconfig.app.json"
-      }
-    },
-    "keys": {
-      "type": "application",
-      "root": "apps/keys",
-      "entryFile": "main",
-      "sourceRoot": "apps/keys/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/keys/tsconfig.app.json"
       }
     },
     "ladder": {
@@ -156,15 +129,6 @@
       "sourceRoot": "libs/pg/src",
       "compilerOptions": {
         "tsConfigPath": "libs/pg/tsconfig.lib.json"
-      }
-    },
-    "realms": {
-      "type": "application",
-      "root": "apps/realms",
-      "entryFile": "main",
-      "sourceRoot": "apps/realms/src",
-      "compilerOptions": {
-        "tsConfigPath": "apps/realms/tsconfig.app.json"
       }
     },
     "resources": {
