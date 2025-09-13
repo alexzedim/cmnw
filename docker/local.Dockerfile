@@ -16,7 +16,7 @@ RUN corepack pnpm install
 
 COPY .. .
 
-RUN nest build conglomerat \
+RUN nest build api \
   && nest build osint \
   && nest build dma \
   && nest build core \

@@ -1,6 +1,5 @@
 FROM node:22.15
 
-
 LABEL org.opencontainers.image.title = "CMNW"
 LABEL org.opencontainers.image.vendor = "cmnw"
 LABEL org.opencontainers.image.url = "https://raw.githubusercontent.com/alexzedim/cmnw-next/master/public/static/cmnw.png"
@@ -23,7 +22,7 @@ RUN corepack pnpm install
 
 COPY .. .
 
-RUN nest build conglomerat \
+RUN nest build api \
   && nest build osint \
   && nest build dma \
   && nest build core \

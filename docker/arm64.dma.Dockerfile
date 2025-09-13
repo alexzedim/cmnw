@@ -10,11 +10,6 @@ LABEL org.opencontainers.image.description = "Intelligence always wins"
 
 WORKDIR /usr/src/app
 
-# Clone config from private github repo #
-RUN git clone https://github.com/alexzedim/cmnw-secrets.git
-RUN mv cmnw-secrets/* .
-RUN rm -rf cmnw-secrets
-
 COPY ../package.json ./
 
 # Installing private github packages #
