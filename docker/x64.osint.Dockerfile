@@ -35,12 +35,13 @@ RUN apt-get update && apt-get install -y \
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-# Installing private github packages #
-ARG CR_PAT
+# Configure npm registry for scoped packages (no auth needed for public packages)
 RUN echo @alexzedim:registry=https://npm.pkg.github.com/ >> ~/.npmrc
-RUN echo //npm.pkg.github.com/:_authToken=${CR_PAT} >> ~/.npmrc
 
+# Enable corepack before using it
 RUN corepack enable
+
+# Install dependencies
 RUN corepack pnpm install
 
 COPY . .
