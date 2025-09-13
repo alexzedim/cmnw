@@ -4,7 +4,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { KeysService, RealmsWorker, RealmsService } from './services';
 import { KeysEntity, RealmsEntity } from '@app/pg';
-import { bullConfig, postgresConfig, redisConfig } from '@app/configuration';
+import { bullConfig, postgresConfig, redisConfig, s3Config } from '@app/configuration';
+import { S3Module } from '@app/s3';
 import { BullModule } from '@nestjs/bullmq';
 import { realmsQueue } from '@app/resources';
 
@@ -12,6 +13,7 @@ import { realmsQueue } from '@app/resources';
   imports: [
     HttpModule,
     ScheduleModule.forRoot(),
+    S3Module.forRoot(s3Config),
     TypeOrmModule.forRoot(postgresConfig),
     TypeOrmModule.forFeature([KeysEntity, RealmsEntity]),
     BullModule.forRoot({

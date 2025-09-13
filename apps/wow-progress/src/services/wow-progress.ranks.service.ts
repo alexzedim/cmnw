@@ -6,7 +6,7 @@ import { Repository } from 'typeorm';
 import { chromium } from 'playwright-extra';
 import stealth from 'puppeteer-extra-plugin-stealth'
 import { Browser, Page } from 'playwright';
-import { S3Service } from './s3.service';
+import { S3Service } from '@app/s3';
 import ms from 'ms';
 import {
   Injectable,
@@ -38,7 +38,6 @@ import {
 export class WowProgressRanksService implements OnApplicationBootstrap, OnApplicationShutdown {
   private readonly logger = new Logger(WowProgressRanksService.name);
   private readonly baseUrl = 'https://www.wowprogress.com/export/ranks/';
-  private readonly s3Bucket = 'cmnw-wow-progress';
   private readonly maxRetries = 3;
   private readonly retryDelay = 2; // 2 seconds
   private readonly requestDelay = 1; // 1 second between requests
@@ -363,7 +362,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
         successful,
         failed,
         skipped,
-        downloadPath: this.s3Bucket,
+        downloadPath: 'cmnw-default',
         results
       };
 
@@ -394,7 +393,10 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
     const logTag = this.extractAllGuildRanks.name;
 
     try {
-      const listWowProgressGzipFiles = await this.s3Service.findGzFiles(this.s3Bucket, 'eu_');
+      const listWowProgressGzipFiles = await this.s3Service.findGzFiles(
+        'cmnw-default',
+        'eu_'
+      );
 
       this.logger.log(`Found ${listWowProgressGzipFiles.length} rank files`);
 
@@ -413,7 +415,10 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
           continue;
         }
 
-        const jsonRankings = await this.s3Service.readAndDecompressGzFile(this.s3Bucket, fileName);
+        const jsonRankings = await this.s3Service.readAndDecompressGzFile(
+          fileName,
+          'cmnw-default'
+        );
 
         const isGuildRankingArray = isValidArray(jsonRankings);
         if (!isGuildRankingArray) {

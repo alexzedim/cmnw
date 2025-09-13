@@ -4,7 +4,8 @@ import { BullModule } from '@nestjs/bullmq';
 import { itemsQueue, pricingQueue } from '@app/resources';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { bullConfig, postgresConfig } from '@app/configuration';
+import { bullConfig, postgresConfig, s3Config } from '@app/configuration';
+import { S3Module } from '@app/s3';
 import {
   ItemsEntity,
   KeysEntity,
@@ -17,6 +18,7 @@ import {
 @Module({
   imports: [
     ScheduleModule.forRoot(),
+    S3Module.forRoot(s3Config),
     TypeOrmModule.forRoot(postgresConfig),
     TypeOrmModule.forFeature([
       KeysEntity,

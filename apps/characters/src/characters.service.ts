@@ -16,7 +16,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RegionIdOrName } from 'blizzapi';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
-import { readFileSync } from 'fs';
+import { S3Service } from '@app/s3';
 import ms from 'ms';
 import { osintConfig } from '@app/configuration';
 
@@ -35,6 +35,7 @@ export class CharactersService implements OnApplicationBootstrap {
     private readonly charactersRepository: Repository<CharactersEntity>,
     @InjectQueue(charactersQueue.name)
     private readonly queue: Queue<CharacterJobQueue, number>,
+    private readonly s3Service: S3Service,
   ) {}
 
   async onApplicationBootstrap() {
@@ -133,10 +134,16 @@ export class CharactersService implements OnApplicationBootstrap {
       this.logger.log(`${logTag}: isIndexCharactersFromFile: ${isIndexCharactersFromFile}`);
       if (!isIndexCharactersFromFile) return;
 
-      const charactersJson = readFileSync(
-        './files/characters.json',
-        'utf8',
-      );
+      // Load characters from S3 cmnw-default bucket
+      let charactersJson: string;
+      try {
+        charactersJson = await this.s3Service.readFile('characters.json', 'cmnw-default');
+        this.logger.log(`${logTag}: Characters loaded from S3 (cmnw-default)`);
+      } catch (error) {
+        this.logger.error(`${logTag}: File not found in S3 bucket 'cmnw-default': characters.json`);
+        throw new Error('Characters file not found in S3: characters.json');
+      }
+      
       const characters: Array<Pick<CharactersEntity, 'guid'>> = JSON.parse(charactersJson);
 
       this.keyEntities = await getKeys(this.keysRepository, GLOBAL_OSINT_KEY, false);
