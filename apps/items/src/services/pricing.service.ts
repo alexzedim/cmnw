@@ -1,9 +1,8 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { S3Service } from '@app/s3';
 import { InjectQueue } from '@nestjs/bullmq';
 import { BlizzAPI } from 'blizzapi';
 import { Queue } from 'bullmq';
-import fs from 'fs-extra';
-import path from 'path';
 import csv from 'async-csv';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { get } from 'lodash';
@@ -49,7 +48,20 @@ export class PricingService implements OnApplicationBootstrap {
     private readonly spellReagentsRepository: Repository<SpellReagentsEntity>,
     @InjectRepository(SpellEffectEntity)
     private readonly spellEffectRepository: Repository<SpellEffectEntity>,
+    private readonly s3Service: S3Service,
   ) { }
+
+  /**
+   * Helper method to read CSV files from S3 cmnw-default bucket
+   */
+  private async readCsvFile(fileName: string): Promise<string> {
+    try {
+      return await this.s3Service.readFile(fileName, 'cmnw-default');
+    } catch (error) {
+      this.logger.error(`CSV file not found in S3 bucket 'cmnw-default': ${fileName}`);
+      throw new Error(`CSV file not found in S3: ${fileName}`);
+    }
+  }
 
   async onApplicationBootstrap(): Promise<void> {
     await this.indexPricing(GLOBAL_DMA_KEY, dmaConfig.isItemsPricingInit);
@@ -236,12 +248,7 @@ export class PricingService implements OnApplicationBootstrap {
     }
 
     try {
-      const pathToFile = path.join(__dirname, '..', '..', '..', 'files', 'skilllineability.csv')
-
-      const skillLineAbilityCsv = fs.readFileSync(
-        pathToFile,
-        'utf8',
-      );
+      const skillLineAbilityCsv = await this.readCsvFile('skilllineability.csv');
 
       const skillLineAbilityRows: any[] = await csv.parse(skillLineAbilityCsv, {
         columns: true,
@@ -310,12 +317,7 @@ export class PricingService implements OnApplicationBootstrap {
     }
 
     try {
-      const pathToFile = path.join(__dirname, '..', '..', '..', 'files', 'spelleffect.csv')
-
-      const spellEffectCsv = fs.readFileSync(
-        pathToFile,
-        'utf8',
-      );
+      const spellEffectCsv = await this.readCsvFile('spelleffect.csv');
 
       const spellEffectRows: any[] = await csv.parse(spellEffectCsv, {
         columns: true,
@@ -377,12 +379,7 @@ export class PricingService implements OnApplicationBootstrap {
     }
 
     try {
-      const pathToFile = path.join(__dirname, '..', '..', '..', 'files', 'spellreagents.csv')
-
-      const spellReagentsCsv = fs.readFileSync(
-        pathToFile,
-        'utf8',
-      );
+      const spellReagentsCsv = await this.readCsvFile('spellreagents.csv');
 
       const spellReagentsRows: any[] = await csv.parse(spellReagentsCsv, {
         columns: true,

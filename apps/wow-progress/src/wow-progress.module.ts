@@ -1,21 +1,19 @@
 import { Module } from '@nestjs/common';
 import { bullConfig, postgresConfig, redisConfig, s3Config } from '@app/configuration';
-import { S3Service, WowProgressLfgService, WowProgressRanksService } from './services';
+import { WowProgressLfgService, WowProgressRanksService } from './services';
 import { BullModule } from '@nestjs/bullmq';
 import { charactersQueue, guildsQueue, profileQueue } from '@app/resources';
 import { ScheduleModule } from '@nestjs/schedule';
 import { HttpModule } from '@nestjs/axios';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CharactersProfileEntity, KeysEntity, RealmsEntity } from '@app/pg';
-import { S3Module } from 'nestjs-s3';
+import { S3Module } from '@app/s3';
 
 @Module({
   imports: [
     HttpModule,
     ScheduleModule.forRoot(),
-    S3Module.forRoot({
-      config: s3Config,
-    }),
+    S3Module.forRoot(s3Config),
     TypeOrmModule.forRoot(postgresConfig),
     TypeOrmModule.forFeature([KeysEntity, RealmsEntity, CharactersProfileEntity]),
     BullModule.forRoot({
@@ -42,7 +40,6 @@ import { S3Module } from 'nestjs-s3';
   providers: [
     WowProgressRanksService,
     WowProgressLfgService,
-    S3Service
   ],
 })
 export class WowProgressModule {}

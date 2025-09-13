@@ -1,7 +1,6 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { coreConfig } from '@app/configuration';
-import { join } from 'path';
-import { readFileSync } from 'fs';
+import { S3Service } from '@app/s3';
 import { IKeyConfig } from '@app/configuration/interfaces/key.interface';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { DateTime } from 'luxon';
@@ -27,6 +26,7 @@ export class KeysService implements OnApplicationBootstrap {
     private httpService: HttpService,
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
+    private readonly s3Service: S3Service,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -38,10 +38,18 @@ export class KeysService implements OnApplicationBootstrap {
   private async initKeys(): Promise<void> {
     const logTag = this.initKeys.name;
     try {
-      const keysJson = readFileSync(
-        join(__dirname, '..', '..', '..', coreConfig.path),
-        'utf8',
-      );
+      // Load keys from S3 cmnw-default bucket
+      const s3Key = `config/${coreConfig.path.split('/').pop()}`;
+      
+      let keysJson: string;
+      try {
+        keysJson = await this.s3Service.readFile(s3Key, 'cmnw-default');
+        this.logger.log(`${logTag}: Keys loaded from S3 (cmnw-default)`);
+      } catch (error) {
+        this.logger.error(`${logTag}: File not found in S3 bucket 'cmnw-default': ${s3Key}`);
+        throw new Error(`Keys configuration file not found in S3: ${s3Key}`);
+      }
+      
       const { keys } = JSON.parse(keysJson);
 
       await lastValueFrom(
