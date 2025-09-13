@@ -80,7 +80,12 @@ export class GoldService implements OnApplicationBootstrap {
         ),
       );
 
-      marketOrders.push(...goldMarketEntities);
+      // Filter out null entities before adding to marketOrders
+      const validGoldMarketEntities = goldMarketEntities.filter(
+        (entity): entity is MarketEntity => entity !== null
+      );
+      
+      marketOrders.push(...validGoldMarketEntities);
 
       const ordersCount = marketOrders.length;
 
@@ -109,7 +114,7 @@ export class GoldService implements OnApplicationBootstrap {
     realmsEntity: Map<string, RealmsEntity>,
     connectedRealmIds: Set<number>,
     timestamp: number,
-  ): Promise<MarketEntity> {
+  ): Promise<MarketEntity | null> {
     const logTag = this.createMarketEntity.name;
     try {
       const realmEntity = realmsEntity.has(order.realm)
@@ -129,7 +134,7 @@ export class GoldService implements OnApplicationBootstrap {
 
       if (!isValid) {
         this.logger.warn(`${logTag}: is not valid | realm ${order.realm}`);
-        return;
+        return null;
       }
 
       realmsEntity.set(order.realm, realmEntity);
@@ -147,11 +152,17 @@ export class GoldService implements OnApplicationBootstrap {
         counterparty,
       });
 
-      if (!isGoldValid) return;
+      if (!isGoldValid) {
+        this.logger.debug(`${logTag}: Invalid gold order data for ${orderId}`);
+        return null;
+      }
       const value = round(price * (quantity / 1000), 2);
 
       const isQuantityLimit = quantity > 100_000_000;
-      if (isQuantityLimit) return;
+      if (isQuantityLimit) {
+        this.logger.debug(`${logTag}: Quantity limit exceeded for ${orderId}: ${quantity}`);
+        return null;
+      }
 
       let faction = FACTION.ANY;
 
@@ -184,6 +195,7 @@ export class GoldService implements OnApplicationBootstrap {
           error: error,
         }
       );
+      return null;
     }
   }
 }

@@ -174,50 +174,60 @@ export class AuctionsWorker extends WorkerHost {
     timestamp: number,
     connectedRealmId: number,
     isCommodity: boolean,
-  ) {
-    return orders.map((order) => {
-      if (!order.item.id) return;
-      const marketEntity = this.marketRepository.create({
-        orderId: `${order.id}`,
-        itemId: order.item.id,
-        connectedRealmId: connectedRealmId,
-        timeLeft: order.time_left,
-        timestamp: timestamp,
-      });
-
-      const isPetOrder = marketEntity.itemId === 82800;
-
-      const bid = 'bid' in order ? toGold((order as IAuctionsOrder).bid) : null;
-
-      const price = transformPrice(order);
-      if (!price) return;
-
-      if (!isCommodity) {
-        for (const [path, key] of ITEM_KEY_GUARD.entries()) {
-          if (path in order.item) marketEntity[key] = order.item[path];
+  ): MarketEntity[] {
+    return orders
+      .map((order) => {
+        // Skip orders without valid item.id
+        if (!order.item.id) {
+          this.logger.debug(`Skipping order ${order.id} - missing item.id`);
+          return null;
         }
 
-        if (isPetOrder) {
-          // TODO pet fix for pet cage item
-          const petList: Partial<IPetList> = {};
-          for (const [path, key] of PETS_KEY_GUARD.entries()) {
-            if (path in order.item) petList[key] = order.item[path];
+        const marketEntity = this.marketRepository.create({
+          orderId: `${order.id}`,
+          itemId: order.item.id,
+          connectedRealmId: connectedRealmId,
+          timeLeft: order.time_left,
+          timestamp: timestamp,
+        });
+
+        const isPetOrder = marketEntity.itemId === 82800;
+
+        const bid = 'bid' in order ? toGold((order as IAuctionsOrder).bid) : null;
+
+        const price = transformPrice(order);
+        if (!price) {
+          this.logger.debug(`Skipping order ${order.id} - invalid price`);
+          return null;
+        }
+
+        if (!isCommodity) {
+          for (const [path, key] of ITEM_KEY_GUARD.entries()) {
+            if (path in order.item) marketEntity[key] = order.item[path];
+          }
+
+          if (isPetOrder) {
+            // TODO pet fix for pet cage item
+            const petList: Partial<IPetList> = {};
+            for (const [path, key] of PETS_KEY_GUARD.entries()) {
+              if (path in order.item) petList[key] = order.item[path];
+            }
           }
         }
-      }
 
-      const quantity = 'quantity' in order ? (order as ICommodityOrder).quantity : 1;
+        const quantity = 'quantity' in order ? (order as ICommodityOrder).quantity : 1;
 
-      marketEntity.type = isCommodity ? MARKET_TYPE.C : MARKET_TYPE.A;
+        marketEntity.type = isCommodity ? MARKET_TYPE.C : MARKET_TYPE.A;
 
-      if (bid) marketEntity.bid = bid;
-      if (price) marketEntity.price = price;
-      if (quantity) marketEntity.quantity = quantity;
+        if (bid) marketEntity.bid = bid;
+        if (price) marketEntity.price = price;
+        if (quantity) marketEntity.quantity = quantity;
 
-      const isValue = Boolean(price) && Boolean(quantity);
-      if (isValue) marketEntity.value = price * quantity;
+        const isValue = Boolean(price) && Boolean(quantity);
+        if (isValue) marketEntity.value = price * quantity;
 
-      return marketEntity;
-    });
+        return marketEntity;
+      })
+      .filter((entity): entity is MarketEntity => entity !== null); // Filter out null values and provide type guard
   }
 }
