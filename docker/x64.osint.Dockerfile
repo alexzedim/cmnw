@@ -1,6 +1,5 @@
 FROM node:lts
 
-
 LABEL org.opencontainers.image.title="OSINT"
 LABEL org.opencontainers.image.licenses="MPL-2.0"
 LABEL org.opencontainers.image.vendor="alexzedim"
