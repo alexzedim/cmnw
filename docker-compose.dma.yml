@@ -10,7 +10,7 @@ services:
     env_file:
       - stack.env
 
-  auctions:
+  market:
     image: ghcr.io/alexzedim/dma:latest
     restart: always
     command: [ 'node', 'dist/apps/market/main.js' ]
