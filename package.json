@@ -152,13 +152,14 @@
     "moduleNameMapper": {
       "@app/configuration": "<rootDir>/libs/configuration/src",
       "@app/configuration/(.*)": "<rootDir>/libs/configuration/src/$1",
-      "@app/resources": "<rootDir>/libs/resources/src",
-      "@app/resources/(.*)": "<rootDir>/libs/resources/src/$1",
       "@app/mongo": "<rootDir>/libs/mongo/src",
       "@app/mongo/(.*)": "<rootDir>/libs/mongo/src/$1",
       "@app/pg": "<rootDir>/libs/pg/src",
       "@app/pg/(.*)": "<rootDir>/libs/pg/src/$1",
-      "^@app/logger(|/.*)$": "<rootDir>/libs/logger/src/$1"
+      "@app/resources": "<rootDir>/libs/resources/src",
+      "@app/resources/(.*)": "<rootDir>/libs/resources/src/$1",
+      "^@app/logger(|/.*)$": "<rootDir>/libs/logger/src/$1",
+      "^@app/s3(|/.*)$": "<rootDir>/libs/s3/src/$1"
     }
   }
 }

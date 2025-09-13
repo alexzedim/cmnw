@@ -46,6 +46,12 @@
       ],
       "@app/resources/*": [
         "libs/resources/src/*"
+      ],
+      "@app/s3": [
+        "libs/s3/src"
+      ],
+      "@app/s3/*": [
+        "libs/s3/src/*"
       ]
     }
   }
