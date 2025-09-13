@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { bullConfig, postgresConfig, redisConfig } from '@app/configuration';
+import { bullConfig, postgresConfig } from '@app/configuration';
 import { GuildsService } from './guilds.service';
 import { BullModule } from '@nestjs/bullmq';
 import { guildsQueue } from '@app/resources/queues/guilds.queue';

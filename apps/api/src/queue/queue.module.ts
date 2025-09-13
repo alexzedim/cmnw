@@ -1,4 +1,4 @@
-import { MiddlewareConsumer, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { bullConfig } from '@app/configuration';
 import { BullModule } from '@nestjs/bullmq';
 import { ExpressAdapter } from '@bull-board/express';

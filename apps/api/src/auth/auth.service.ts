@@ -1,7 +1,6 @@
 import {
   Injectable,
   Logger,
-  UnauthorizedException,
   InternalServerErrorException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';

@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException, OnApplicationBootstrap, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, OnApplicationBootstrap } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 import { InjectQueue } from '@nestjs/bullmq';
 import { BlizzAPI } from '@alexzedim/blizzapi';

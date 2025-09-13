@@ -4,7 +4,6 @@ import {
   Entity,
   Index,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
 } from 'typeorm';
 import { CMNW_ENTITY_ENUM } from '@app/pg';
 

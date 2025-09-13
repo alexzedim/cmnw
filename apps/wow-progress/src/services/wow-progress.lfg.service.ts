@@ -257,7 +257,7 @@ export class WowProgressLfgService {
       const listingLookingForGuild = wowProgressHTML.html('table.rating tbody tr');
 
       await Promise.allSettled(
-        wowProgressHTML(listingLookingForGuild).map(async (x, node) => {
+        wowProgressHTML(listingLookingForGuild).map(async (_x, node) => {
           const tableRowElement = wowProgressHTML(node).find('td');
           const [preName, preGuild, preRaid, preRealm, preItemLevel, preTimestamp] =
             tableRowElement;

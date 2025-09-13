@@ -31,7 +31,6 @@ import {
   CharacterJobQueue,
   CharactersLfgDto,
   charactersQueue,
-  EVENT_LOG,
   findRealm,
   getKeys,
   GLOBAL_OSINT_KEY,

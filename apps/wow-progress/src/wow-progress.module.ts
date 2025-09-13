@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { bullConfig, postgresConfig, redisConfig, s3Config } from '@app/configuration';
+import { bullConfig, postgresConfig, s3Config } from '@app/configuration';
 import { WowProgressLfgService, WowProgressRanksService } from './services';
 import { BullModule } from '@nestjs/bullmq';
 import { charactersQueue, guildsQueue, profileQueue } from '@app/resources';

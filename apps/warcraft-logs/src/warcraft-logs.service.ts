@@ -112,7 +112,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         Pick<CharactersRaidLogsEntity, 'logId' | 'createdAt'>
       >();
 
-      wclHTML(wclTable).each((itx, element) => {
+      wclHTML(wclTable).each((_itx, element) => {
         const momentFormat = wclHTML(element)
           .children()
           .find('td > span.moment-format')

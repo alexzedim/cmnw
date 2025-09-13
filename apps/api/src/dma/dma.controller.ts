@@ -23,7 +23,6 @@ import { DmaService } from './dma.service';
 
 import {
   ItemChartDto,
-  ItemCrossRealmDto,
   ItemFeedDto,
   ItemQuotesDto,
   ItemValuationsDto,

@@ -73,11 +73,11 @@ export class CharactersWorker extends WorkerHost {
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(ProfessionsEntity)
-    private readonly professionsRepository: Repository<ProfessionsEntity>,
+    private readonly _professionsRepository: Repository<ProfessionsEntity>,
     @InjectRepository(GuildsEntity)
-    private readonly guildsRepository: Repository<GuildsEntity>,
+    private readonly _guildsRepository: Repository<GuildsEntity>,
     @InjectRepository(CharactersGuildsMembersEntity)
-    private readonly characterGuildsMembersRepository: Repository<CharactersGuildsMembersEntity>,
+    private readonly _characterGuildsMembersRepository: Repository<CharactersGuildsMembersEntity>,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(CharactersEntity)
@@ -654,7 +654,7 @@ export class CharactersWorker extends WorkerHost {
     }
   }
 
-  private async getProfessions(
+  private async _getProfessions(
     nameSlug: string,
     realmSlug: string,
     BNet: BlizzAPI,

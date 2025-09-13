@@ -4,7 +4,6 @@ import {
   IChartOrder,
   IQItemValuation,
   ItemChartDto,
-  ItemCrossRealmDto,
   ItemFeedDto,
   ItemQuotesDto,
   MARKET_TYPE,
@@ -32,13 +31,13 @@ export class DmaService {
     @InjectRedis()
     private readonly redisService: Redis,
     @InjectRepository(KeysEntity)
-    private readonly keysRepository: Repository<KeysEntity>,
+    private readonly _keysRepository: Repository<KeysEntity>,
     @InjectRepository(ItemsEntity)
     private readonly itemsRepository: Repository<ItemsEntity>,
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
     @InjectQueue(valuationsQueue.name)
-    private readonly queueValuations: Queue<IQItemValuation, number>,
+    private readonly _queueValuations: Queue<IQItemValuation, number>,
   ) {}
 
   // TODO validation on DTO level
@@ -53,7 +52,7 @@ export class DmaService {
     return await this.itemsRepository.findOneBy({ id });
   }
 
-  async getItemValuations(input: ItemRealmDto): Promise<any> {
+  async getItemValuations(_input: ItemRealmDto): Promise<any> {
     // TODO: Implement item valuations logic
     throw new BadRequestException('Item valuations not yet implemented');
   }
@@ -108,7 +107,7 @@ export class DmaService {
     return { yAxis: yPriceAxis, xAxis: timestamps, dataset };
   }
 
-  async getGoldChart(input: ReqGetItemDto): Promise<ItemChartDto> {
+  async getGoldChart(_input: ReqGetItemDto): Promise<ItemChartDto> {
     // For gold charts, we use itemId = 1 (gold currency)
     const goldItemId = 1;
 
@@ -158,7 +157,7 @@ export class DmaService {
   }
 
   async priceAxisCommodity(args: IBuildYAxis): Promise<number[]> {
-    const { itemId, isGold } = args;
+    const { itemId, isGold: _isGold } = args;
 
     const blocks = 20;
 
@@ -266,7 +265,7 @@ export class DmaService {
     const item = await this.queryItem(input.itemRealm);
 
     // Parse realm from itemRealm format: "itemId@realmSlug"
-    const [itemIdStr, realmSlug] = input.itemRealm.split('@');
+    const [_itemIdStr, realmSlug] = input.itemRealm.split('@');
 
     if (!realmSlug) {
       throw new BadRequestException('Realm information required for item feed. Use format: itemId@realmSlug');

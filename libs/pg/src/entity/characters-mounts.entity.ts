@@ -5,7 +5,6 @@ import {
   Entity,
   Index,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
 } from 'typeorm';
 
 @Index('ix__characters_mounts__mount_id', ['mountId'], {})

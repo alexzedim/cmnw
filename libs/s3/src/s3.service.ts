@@ -32,12 +32,12 @@ export class S3Service implements OnModuleInit {
     @InjectS3()
     private readonly s3: S3,
     @Inject('S3_MODULE_OPTIONS')
-    private readonly moduleOptions: S3ModuleOptions,
+    private readonly _moduleOptions: S3ModuleOptions,
   ) {
-    this.defaultBucket = moduleOptions.defaultBucket || 'cmnw-default';
-    if (moduleOptions.buckets) {
-      moduleOptions.buckets.forEach(bucket => {
-        this.buckets.set(bucket.bucketName, bucket);
+    this.defaultBucket = this._moduleOptions.defaultBucket || 'cmnw-default';
+    this.buckets = new Map();
+    if (this._moduleOptions.buckets) {
+      this._moduleOptions.buckets.forEach(_bucket => {
       });
     }
   }

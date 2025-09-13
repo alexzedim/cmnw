@@ -52,7 +52,7 @@ export class GoldService implements OnApplicationBootstrap {
       const timestamp = DateTime.now().toMillis();
 
       await Promise.allSettled(
-        exchangeListingPage(goldListingMarkup).map((index, element) => {
+        exchangeListingPage(goldListingMarkup).map((_index, element) => {
           const orderId = exchangeListingPage(element).attr('href');
           const realm = exchangeListingPage(element).find('.tc-server').text();
           const faction = exchangeListingPage(element).find('.tc-side').text();

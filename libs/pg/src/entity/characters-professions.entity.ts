@@ -4,7 +4,6 @@ import {
   CreateDateColumn,
   Entity,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
 } from 'typeorm';
 
 @Entity({ name: CMNW_ENTITY_ENUM.CHARACTERS_PROFESSIONS })

@@ -5,7 +5,6 @@ import {
   Entity,
   Index,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
 } from 'typeorm';
 
 @Index('ix__characters_pets__pet_id', ['petId'], {})

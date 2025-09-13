@@ -1,8 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { Strategy, StrategyOptions } from 'passport-discord';
+import { Strategy, StrategyOptions, VerifyCallback } from 'passport-discord';
 import { AuthService } from '../auth.service';
-import { AuthResponseDto, DiscordProfile } from '@app/resources';
+import { DiscordProfile } from '@app/resources';
 
 @Injectable()
 export class DiscordStrategy extends PassportStrategy(Strategy, 'discord') {
@@ -18,10 +18,11 @@ export class DiscordStrategy extends PassportStrategy(Strategy, 'discord') {
   }
 
   async validate(
-    accessToken: string,
-    refreshToken: string,
+    _accessToken: string,
+    _refreshToken: string,
     profile: any,
-  ): Promise<AuthResponseDto> {
+    _done: VerifyCallback,
+  ): Promise<any> {
     try {
       this.logger.log(`Discord OAuth validation for user: ${profile.id}`, 'validate');
       
