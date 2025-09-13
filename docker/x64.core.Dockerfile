@@ -12,7 +12,9 @@ WORKDIR /usr/src/app
 COPY ../package.json ./
 
 # Installing private github packages #
+ARG CR_PAT
 RUN echo @alexzedim:registry=https://npm.pkg.github.com/ >> ~/.npmrc
+RUN echo //npm.pkg.github.com/:_authToken=${CR_PAT} >> ~/.npmrc
 
 RUN corepack pnpm install
 
