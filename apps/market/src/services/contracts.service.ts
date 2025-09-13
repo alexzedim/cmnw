@@ -205,6 +205,7 @@ export class ContractsService implements OnApplicationBootstrap {
     const contractId = `${itemId}-${today.day}.${today.month}@${timestamp}`;
 
     try {
+      // Check if contract exists but don't rely solely on this check for race conditions
       const isContractExists = await this.contractRepository.exists({
         where: {
           id: contractId,
@@ -295,7 +296,8 @@ export class ContractsService implements OnApplicationBootstrap {
         return;
       }
 
-      const contractEntity = this.contractRepository.create({
+      // Create contract data object with all required fields
+      const contractData = {
         id: contractId,
         itemId: itemId,
         connectedRealmId: REALM_ENTITY_ANY.connectedRealmId,
@@ -310,11 +312,52 @@ export class ContractsService implements OnApplicationBootstrap {
         quantity: validation.quantity.value,
         openInterest: validation.openInterest.value,
         type: CONTRACT_TYPE.T,
-      });
+      };
 
-      await this.contractRepository.save(contractEntity);
-
-      this.logger.log(`${logTag}: ${contractId}`);
+      // Use upsert to handle duplicate key conflicts gracefully
+      // This prevents the 23505 unique constraint violation errors
+      try {
+        await this.contractRepository.query(
+          `INSERT INTO contracts(
+            id, item_id, connected_realm_id, timestamp, day, week, month, year, 
+            price, price_median, price_top, quantity, oi, type
+          ) VALUES($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+          ON CONFLICT (id) DO UPDATE SET
+            price = EXCLUDED.price,
+            price_median = EXCLUDED.price_median,
+            price_top = EXCLUDED.price_top,
+            quantity = EXCLUDED.quantity,
+            oi = EXCLUDED.oi,
+            type = EXCLUDED.type`,
+          [
+            contractData.id,
+            contractData.itemId,
+            contractData.connectedRealmId,
+            contractData.timestamp,
+            contractData.day,
+            contractData.week,
+            contractData.month,
+            contractData.year,
+            contractData.price,
+            contractData.priceMedian,
+            contractData.priceTop,
+            contractData.quantity,
+            contractData.openInterest,
+            contractData.type
+          ]
+        );
+        
+        this.logger.log(`${logTag}: ${contractId} - upserted successfully`);
+      } catch (dbError) {
+        // Log the error but don't throw it unless it's something other than a constraint violation
+        // that somehow got through
+        this.logger.error({
+          logTag,
+          contractId,
+          error: `Upsert failed: ${JSON.stringify(dbError)}`
+        });
+        throw dbError;
+      }
 
     } catch (errorOrException) {
       this.logger.error(
