@@ -1,3 +1,8 @@
+import * as dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config({ quiet: true });
+
 import { NestFactory } from '@nestjs/core';
 import { CharactersModule } from './characters.module';
 import { LoggerService } from '@app/logger';
