@@ -33,11 +33,6 @@ RUN apt-get update && apt-get install -y \
     xvfb \
     && rm -rf /var/lib/apt/lists/*
 
-# Clone config from private github repo #
-RUN git clone https://github.com/alexzedim/cmnw-secrets.git
-RUN mv cmnw-secrets/* .
-RUN rm -rf cmnw-secrets
-
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 # Installing private github packages #
