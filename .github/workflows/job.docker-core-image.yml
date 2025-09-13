@@ -21,7 +21,6 @@ jobs:
       contents: read
       packages: read # Important: Grant read access to packages
     env:
-      GITHUB_TOKEN: ${{ secrets.CR_PAT }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -44,8 +43,6 @@ jobs:
 
       - name: Install dependencies
         run: corepack pnpm install
-        env:
-          CR_PAT: ${{ secrets.CR_PAT }}
 
       - name: Docker meta
         id: meta
@@ -69,7 +66,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.CR_PAT }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build & Push (GHCR)
         id: build-push-action
@@ -80,8 +77,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            CR_PAT=${{ secrets.CR_PAT }}
 
       - name: Image digest
         run: |

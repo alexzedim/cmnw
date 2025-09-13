@@ -36,7 +36,6 @@ jobs:
       - name: Enable corepack
         run: corepack enable
         env:
-          CR_PAT: ${{ secrets.CR_PAT }}
 
       - name: Install dependencies
         run: corepack pnpm install
@@ -63,7 +62,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.CR_PAT }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build & Push (GHCR)
         id: build-push-action
@@ -75,7 +74,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            CR_PAT=${{ secrets.CR_PAT }}
 
       - name: Image digest
         run: |
