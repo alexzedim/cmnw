@@ -1,5 +1,5 @@
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
-import { OSINT_SOURCE } from '@app/resources';
+import { OSINT_SOURCE } from '@app/resources/constants/osint.constants';
 import {
   Column,
   CreateDateColumn,
