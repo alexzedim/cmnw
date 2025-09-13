@@ -5,6 +5,7 @@
 
 dist
 docker
+files
 node_modules
 volumes
 
