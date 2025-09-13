@@ -1,4 +1,4 @@
-name: Create Auctions Development Image
+name: Create Market Development Image
 
 on:
   push:
