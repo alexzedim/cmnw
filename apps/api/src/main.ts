@@ -1,3 +1,8 @@
+import * as dotenv from 'dotenv';
+
+// Load environment variables from .env file
+dotenv.config({ quiet: true });
+
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
