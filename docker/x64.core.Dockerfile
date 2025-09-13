@@ -9,19 +9,23 @@ LABEL org.opencontainers.image.description = "Intelligence always wins"
 
 WORKDIR /usr/src/app
 
-COPY ../package.json ./
+# Copy package files first for better Docker layer caching
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-# Installing private github packages #
-ARG CR_PAT
+# Enable corepack before using it
+RUN corepack enable
+
+# Configure npm registry for scoped packages (no auth needed for public packages)
 RUN echo @alexzedim:registry=https://npm.pkg.github.com/ >> ~/.npmrc
-RUN echo //npm.pkg.github.com/:_authToken=${CR_PAT} >> ~/.npmrc
 
+# Install dependencies
 RUN corepack pnpm install
 
-COPY .. .
-
+# Install NestJS CLI globally
 RUN npm install -g @nestjs/cli
-RUN corepack enable
+
+# Copy source code
+COPY . .
 
 RUN nest build core
 
