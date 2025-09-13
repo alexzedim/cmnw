@@ -84,7 +84,7 @@ export class GoldService implements OnApplicationBootstrap {
       const validGoldMarketEntities = goldMarketEntities.filter(
         (entity): entity is MarketEntity => entity !== null
       );
-      
+
       marketOrders.push(...validGoldMarketEntities);
 
       const ordersCount = marketOrders.length;
@@ -140,7 +140,7 @@ export class GoldService implements OnApplicationBootstrap {
       realmsEntity.set(order.realm, realmEntity);
       connectedRealmIds.add(realmEntity.connectedRealmId);
 
-      const [url, orderId] = order.orderId.split('=') || null;
+      const [_url, orderId] = order.orderId.split('=') || null;
       const price = parseFloat(order.price.replace(/ ₽/g, ''));
       const quantity = parseInt(order.quantity.replace(/\s/g, ''));
       const counterparty = order.owner.replace('\n', '').trim();
