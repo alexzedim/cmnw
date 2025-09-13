@@ -1,15 +1,15 @@
-import { Injectable, Logger, NotFoundException, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, NotFoundException, OnApplicationBootstrap } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 import { InjectQueue } from '@nestjs/bullmq';
 import { BlizzAPI } from '@alexzedim/blizzapi';
 import { Queue } from 'bullmq';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { HttpService } from '@nestjs/axios';
-import { AxiosError } from 'axios';
 import { InjectRepository } from '@nestjs/typeorm';
 import { KeysEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { lastValueFrom, mergeMap, range } from 'rxjs';
+import { LoggerService } from '@app/logger';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
@@ -25,7 +25,7 @@ import {
 
 @Injectable()
 export class RealmsService implements OnApplicationBootstrap {
-  private readonly logger = new Logger(RealmsService.name, { timestamp: true });
+  private readonly logger = new LoggerService(RealmsService.name);
 
   private BNet: BlizzAPI;
 
@@ -39,36 +39,6 @@ export class RealmsService implements OnApplicationBootstrap {
     private readonly queue: Queue<RealmJobQueue, number>,
   ) {}
 
-  /**
-   * Handle AxiosError specifically with detailed error information
-   * @param error - The error to handle
-   * @param logTag - Context tag for logging
-   * @param additionalInfo - Additional context information
-   */
-  private handleAxiosError(error: unknown, logTag: string, additionalInfo?: Record<string, any>): void {
-    if (error instanceof AxiosError) {
-      const errorInfo = {
-        logTag,
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        url: error.config?.url,
-        method: error.config?.method?.toUpperCase(),
-        responseData: error.response?.data,
-        code: error.code,
-        ...additionalInfo,
-      };
-
-      this.logger.error(errorInfo);
-    } else {
-      // Fallback for non-Axios errors
-      this.logger.error({
-        logTag,
-        error,
-        ...additionalInfo,
-      });
-    }
-  }
 
   async onApplicationBootstrap(): Promise<void> {
     await this.init();
@@ -79,14 +49,14 @@ export class RealmsService implements OnApplicationBootstrap {
   async init() {
     const anyRealmEntity = this.realmsRepository.create(REALM_ENTITY_ANY);
     await this.realmsRepository.save(anyRealmEntity);
-    this.logger.log(`init: Realm AANNYY was seeded`);
-    this.logger.debug(`realms: wait for 180 seconds`);
+    this.logger.log({ logTag: 'init', message: 'Realm AANNYY was seeded' });
+    this.logger.debug({ logTag: 'realms', message: 'wait for 180 seconds' });
     await delay(60 * 3);
   }
 
   @Cron(CronExpression.EVERY_WEEK)
   async indexRealms(clearance: string = GLOBAL_KEY): Promise<void> {
-    const logTag =this.indexRealms.name;
+    const logTag = this.indexRealms.name;
     try {
       const [keyEntity] = await getKeys(this.keysRepository, clearance);
 
@@ -105,7 +75,7 @@ export class RealmsService implements OnApplicationBootstrap {
       );
 
       for (const { id, name, slug } of realmList) {
-        this.logger.log(`${id}:${name}`);
+        this.logger.log({ logTag, realmId: id, realmName: name, message: `Processing realm: ${id}:${name}` });
         await this.queue.add(
           slug,
           {
@@ -123,12 +93,7 @@ export class RealmsService implements OnApplicationBootstrap {
         );
       }
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: logTag,
-          error: errorOrException,
-        }
-      );
+      this.logger.error({ logTag, errorOrException });
     }
   }
 
@@ -163,13 +128,19 @@ export class RealmsService implements OnApplicationBootstrap {
               { warcraftLogsId: realmId },
             );
 
-            this.logger.debug(
-              `getRealmsWarcraftLogsID: ${realmId}:${realmName} | ${realmEntity.id} updated!`,
-            );
-          } catch (errorOrException) {
-            this.handleAxiosError(errorOrException, logTag, {
+            this.logger.debug({
+              logTag,
               realmId,
-              url: `https://www.warcraftlogs.com/server/id/${realmId}`,
+              realmName,
+              entityId: realmEntity.id,
+              message: `getRealmsWarcraftLogsID: ${realmId}:${realmName} | ${realmEntity.id} updated!`
+            });
+          } catch (errorOrException) {
+            this.logger.error({
+              logTag,
+              errorOrException,
+              realmId,
+              url: `https://www.warcraftlogs.com/server/id/${realmId}`
             });
           }
         }, 2),
