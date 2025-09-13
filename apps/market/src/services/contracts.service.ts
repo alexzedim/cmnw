@@ -13,6 +13,7 @@ import {
   IItemOpenInterest,
   IItemPriceAndQuantity,
   isContractArraysEmpty,
+  validateContractData,
   WOW_TOKEN_ITEM_ID,
 } from '@app/resources';
 
@@ -268,6 +269,32 @@ export class ContractsService implements OnApplicationBootstrap {
         .select('SUM(m.value)', 'oi')
         .getRawOne<IItemOpenInterest>();
 
+      // Validate and convert quantity and openInterest using type guards
+      const validation = validateContractData(
+        itemPriceAndQuantity.q,
+        itemOpenInterest.oi
+      );
+
+      if (!validation.isValid) {
+        if (!validation.quantity.isValid) {
+          this.logger.error({
+            logTag,
+            contractId,
+            error: validation.quantity.error
+          });
+        }
+
+        if (!validation.openInterest.isValid) {
+          this.logger.error({
+            logTag,
+            contractId,
+            error: validation.openInterest.error
+          });
+        }
+
+        return;
+      }
+
       const contractEntity = this.contractRepository.create({
         id: contractId,
         itemId: itemId,
@@ -280,8 +307,8 @@ export class ContractsService implements OnApplicationBootstrap {
         price: itemPriceAndQuantity.p,
         priceMedian: percentile50,
         priceTop: percentile98,
-        quantity: itemPriceAndQuantity.q,
-        openInterest: itemOpenInterest.oi,
+        quantity: validation.quantity.value,
+        openInterest: validation.openInterest.value,
         type: CONTRACT_TYPE.T,
       });
 
