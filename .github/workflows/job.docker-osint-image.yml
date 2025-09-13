@@ -81,6 +81,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
+            CR_PAT=${{ secrets.CR_PAT }}
 
       - name: Image digest
         run: |
