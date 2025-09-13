@@ -20,7 +20,7 @@ jobs:
     permissions:
       contents: read
       packages: read # Important: Grant read access to packages
-    env:
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4

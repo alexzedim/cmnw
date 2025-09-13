@@ -35,7 +35,6 @@ jobs:
 
       - name: Enable corepack
         run: corepack enable
-        env:
 
       - name: Install dependencies
         run: corepack pnpm install
