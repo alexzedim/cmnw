@@ -44,7 +44,6 @@ jobs:
 
       - name: Install dependencies
         run: corepack pnpm install
-        env:
 
       - name: Docker meta
         id: meta
