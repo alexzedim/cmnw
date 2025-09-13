@@ -1,6 +1,7 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { CMNW_ENTITY_ENUM } from '@app/pg';
-import { DMA_SOURCE, ItemNames, ItemPricing } from '@app/resources';
+import { ItemNames, ItemPricing } from '@app/resources';
+import { DMA_SOURCE } from '@app/resources/constants/dma.constants';
 
 // @todo index
 @Entity({ name: CMNW_ENTITY_ENUM.PRICING })

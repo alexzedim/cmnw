@@ -1,5 +1,6 @@
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
-import { IActionsModifier, MARKET_TYPE, IPetList } from '@app/resources';
+import { IActionsModifier, IPetList } from '@app/resources';
+import { MARKET_TYPE } from '@app/resources/constants/dma.constants';
 import {
   Column,
   CreateDateColumn,
