@@ -81,16 +81,11 @@ export class ContractsService implements OnApplicationBootstrap {
         updateResult = result.affected || 0;
       }
 
-      this.logger.log(`${logTag}: ${contractItems} || ${updateResult}`);
+      this.logger.log({ logTag, contractItems, updateResult, message: `Set commodity items as contracts: ${contractItems} items, ${updateResult} updated` });
 
       return updateResult;
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: logTag,
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({ logTag, errorOrException });
     }
   }
 
@@ -98,7 +93,7 @@ export class ContractsService implements OnApplicationBootstrap {
   private async buildCommodityTimestampContracts() {
     const logTag = this.buildCommodityTimestampContracts.name;
     try {
-      this.logger.log(`${logTag} started`);
+      this.logger.log({ logTag, message: 'Building commodity timestamp contracts started' });
 
       const commodityItems = await this.itemsRepository
         .createQueryBuilder('items')
@@ -124,11 +119,11 @@ export class ContractsService implements OnApplicationBootstrap {
       const commodityItemsIds = commodityItems.map((item) => item.id);
       const commodityTimestamps = timestamps.map((t) => t.timestamp);
 
-      this.logger.log(`${logTag}: items ${commodityItemsIds.length} || timestamps ${commodityTimestamps.length} || today ${today.toISO()} || ytd ${ytd}`);
+      this.logger.log({ logTag, itemCount: commodityItemsIds.length, timestampCount: commodityTimestamps.length, today: today.toISO(), ytd, message: `Processing ${commodityItemsIds.length} items with ${commodityTimestamps.length} timestamps` });
 
       const isGuard = isContractArraysEmpty(commodityTimestamps, commodityItemsIds);
       if (isGuard) {
-        this.logger.warn(`${logTag}: No items or timestamps provided empty`);
+        this.logger.warn({ logTag, message: 'No items or timestamps provided, skipping processing' });
         return;
       }
 

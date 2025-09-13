@@ -113,16 +113,17 @@ export class ValuationsService implements OnApplicationBootstrap {
        * such as REAGENT / DERIVATIVE
        */
       if (args.includes('pricing')) {
-        this.logger.debug('pricing stage started');
+        const logTag = 'buildAssetIndex';
+        this.logger.debug({ logTag, stage: 'pricing', message: 'Pricing stage started' });
         await this.PricingModel
-          .find()
+          .find({})
           .cursor()
           .eachAsync(async (pricing: Pricing) => {
             for (const { _id } of pricing.derivatives) {
               const item = await this.ItemModel.findById(_id);
               if (item) {
                 item.asset_class.addToSet(VALUATION_TYPE.DERIVATIVE);
-                this.logger.debug(`item: ${_id}, asset_class: ${VALUATION_TYPE.DERIVATIVE}`);
+                this.logger.debug({ logTag, itemId: _id, assetClass: VALUATION_TYPE.DERIVATIVE, message: `Added derivative asset class to item: ${_id}` });
                 await item.save();
               }
             }
@@ -130,12 +131,12 @@ export class ValuationsService implements OnApplicationBootstrap {
               const item = await this.ItemModel.findById(_id);
               if (item) {
                 item.asset_class.addToSet(VALUATION_TYPE.REAGENT);
-                this.logger.debug(`item: ${_id}, asset_class: ${VALUATION_TYPE.REAGENT}`);
+                this.logger.debug({ logTag, itemId: _id, assetClass: VALUATION_TYPE.REAGENT, message: `Added reagent asset class to item: ${_id}` });
                 await item.save();
               }
             }
           }, { parallel: 20 });
-        this.logger.debug('pricing stage ended');
+        this.logger.debug({ logTag, stage: 'pricing', message: 'Pricing stage ended' });
       }
       /**
        * This stage add asset_classes from auction_db
@@ -254,7 +255,8 @@ export class ValuationsService implements OnApplicationBootstrap {
         this.logger.debug('tags stage ended');
       }
     } catch (errorOrException) {
-      this.logger.error(`buildAssetIndex: ${errorOrException}`)
+      const logTag = 'buildAssetIndex';
+      this.logger.error({ logTag, errorOrException });
     }
   }
 }

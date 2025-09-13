@@ -94,9 +94,7 @@ export class GoldService implements OnApplicationBootstrap {
       const marketEntities = await this.marketRepository.save(marketOrders);
       const marketEntitiesCount = marketEntities.length;
 
-      this.logger.log(
-        `${logTag}: ${ordersCount} of ${marketEntitiesCount} orders on timestamp ${timestamp} inserted`,
-      );
+      this.logger.log({ logTag, ordersCount, marketEntitiesCount, timestamp, connectedRealmCount: connectedRealmIds.size, message: `Inserted ${marketEntitiesCount} of ${ordersCount} gold orders for timestamp ${timestamp}` });
 
       // Update only the realms that had gold orders processed
       if (connectedRealmIds.size > 0) {
@@ -106,12 +104,7 @@ export class GoldService implements OnApplicationBootstrap {
         );
       }
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: logTag,
-          error: errorOrException,
-        }
-      );
+      this.logger.error({ logTag, errorOrException });
     }
   }
 
@@ -139,7 +132,7 @@ export class GoldService implements OnApplicationBootstrap {
       );
 
       if (!isValid) {
-        this.logger.warn(`${logTag}: is not valid | realm ${order.realm}`);
+        this.logger.warn({ logTag, realm: order.realm, price: order.price, quantity: order.quantity, message: `Invalid order data for realm: ${order.realm}` });
         return null;
       }
 
@@ -159,7 +152,7 @@ export class GoldService implements OnApplicationBootstrap {
       });
 
       if (!isGoldValid) {
-        this.logger.debug(`${logTag}: Invalid gold order data for ${orderId}`);
+        this.logger.debug({ logTag, orderId, price, quantity, counterparty, message: `Invalid gold order data for order: ${orderId}` });
         return null;
       }
       const value = round(price * (quantity / 1000), 2);
@@ -194,13 +187,8 @@ export class GoldService implements OnApplicationBootstrap {
         price,
         timestamp,
       });
-    } catch (error) {
-      this.logger.error(
-        {
-          logTag: logTag,
-          error: error,
-        }
-      );
+    } catch (errorOrException) {
+      this.logger.error({ logTag, errorOrException });
       return null;
     }
   }

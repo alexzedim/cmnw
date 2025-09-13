@@ -58,6 +58,7 @@ export class LadderService implements OnApplicationBootstrap {
     clearance: string = GLOBAL_OSINT_KEY,
     onlyLast = true,
   ): Promise<void> {
+    const logTag = this.indexPvPLadder.name;
     try {
       const keys = await getKeys(this.keysRepository, clearance, true, false);
       const [key] = keys;
@@ -111,18 +112,17 @@ export class LadderService implements OnApplicationBootstrap {
 
           // await this.queueCharacters.addBulk(characterJobs);
 
-          this.logger.log(
-            `indexPvPLadder: Season ${season.id} | Bracket ${bracket} | Players: ${characterJobs.length}`,
-          );
+          this.logger.log({ 
+            logTag, 
+            seasonId: season.id, 
+            bracket, 
+            playerCount: characterJobs.length, 
+            message: `Processed PvP ladder: Season ${season.id}, Bracket ${bracket}, Players: ${characterJobs.length}` 
+          });
         }
       }
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: 'indexPvPLadder',
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({ logTag, errorOrException });
     }
   }
 
@@ -131,6 +131,7 @@ export class LadderService implements OnApplicationBootstrap {
     clearance: string = GLOBAL_OSINT_KEY,
     onlyLast = true,
   ): Promise<void> {
+    const logTag = this.indexMythicPlusLadder.name;
     try {
       const keys = await getKeys(this.keysRepository, clearance, true);
       const [key] = keys;
@@ -230,9 +231,15 @@ export class LadderService implements OnApplicationBootstrap {
 
               await this.queueCharacters.addBulk(characterJobMembers);
 
-              this.logger.log(
-                `indexMythicPlusLadder: Realm ${connectedRealmId} | Dungeon ${dungeonId} | Week ${period} | Group ${group.ranking} | Characters: ${characterJobMembers.length}`,
-              );
+              this.logger.log({
+                logTag,
+                connectedRealmId,
+                dungeonId,
+                period,
+                groupRanking: group.ranking,
+                characterCount: characterJobMembers.length,
+                message: `Processed M+ ladder: Realm ${connectedRealmId}, Dungeon ${dungeonId}, Week ${period}, Group ${group.ranking}, Characters: ${characterJobMembers.length}`
+              });
             }
           }
         }
@@ -240,12 +247,7 @@ export class LadderService implements OnApplicationBootstrap {
 
       await this.redisService.set(`week:${w}`, w);
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: 'indexMythicPlusLadder',
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({ logTag, errorOrException });
     }
   }
 }

@@ -21,8 +21,9 @@ export class AuthService {
    * Handle Discord OAuth authentication
    */
   async handleDiscordAuth(profile: DiscordProfile): Promise<AuthResponseDto> {
+    const logTag = 'handleDiscordAuth';
     try {
-      this.logger.log(`Processing Discord OAuth for user: ${profile.id}`, 'handleDiscordAuth');
+      this.logger.log({ logTag, discordId: profile.id, username: profile.username, message: `Processing Discord OAuth for user: ${profile.id}` });
       
       let user = await this.userRepository.findOne({
         where: { discordId: profile.id },
@@ -48,7 +49,7 @@ export class AuthService {
 
         user = await this.userRepository.save(user);
         isNewUser = true;
-        this.logger.log(`Created new Discord user: ${user.id}`, 'handleDiscordAuth');
+        this.logger.log({ logTag, userId: user.id, discordId: profile.id, message: `Created new Discord user: ${user.id}` });
       } else {
         // Update existing user's Discord data and last login
         user.discordUsername = profile.username;
@@ -66,16 +67,12 @@ export class AuthService {
         }
 
         user = await this.userRepository.save(user);
-        this.logger.log(`Updated existing Discord user: ${user.id}`, 'handleDiscordAuth');
+        this.logger.log({ logTag, userId: user.id, discordId: profile.id, message: `Updated existing Discord user: ${user.id}` });
       }
 
       return this.createAuthResponse(user, isNewUser, 'Discord authentication successful');
-    } catch (error) {
-      this.logger.error(
-        `Error processing Discord OAuth for user: ${profile.id}`,
-        error instanceof Error ? error.stack : String(error),
-        'handleDiscordAuth'
-      );
+    } catch (errorOrException) {
+      this.logger.error({ logTag, discordId: profile.id, errorOrException, message: `Error processing Discord OAuth for user: ${profile.id}` });
       
       throw new InternalServerErrorException('Discord authentication failed');
     }
@@ -85,8 +82,9 @@ export class AuthService {
    * Handle Battle.net OAuth authentication
    */
   async handleBattleNetAuth(profile: BattleNetProfile): Promise<AuthResponseDto> {
+    const logTag = 'handleBattleNetAuth';
     try {
-      this.logger.log(`Processing Battle.net OAuth for user: ${profile.id}`, 'handleBattleNetAuth');
+      this.logger.log({ logTag, battlenetId: profile.id, battletag: profile.battletag, message: `Processing Battle.net OAuth for user: ${profile.id}` });
       
       let user = await this.userRepository.findOne({
         where: { battlenetId: profile.id },
@@ -108,7 +106,7 @@ export class AuthService {
 
         user = await this.userRepository.save(user);
         isNewUser = true;
-        this.logger.log(`Created new Battle.net user: ${user.id}`, 'handleBattleNetAuth');
+        this.logger.log({ logTag, userId: user.id, battlenetId: profile.id, battletag: profile.battletag, message: `Created new Battle.net user: ${user.id}` });
       } else {
         // Update existing user's Battle.net data and last login
         user.battlenetBattletag = profile.battletag;
@@ -120,16 +118,12 @@ export class AuthService {
         }
 
         user = await this.userRepository.save(user);
-        this.logger.log(`Updated existing Battle.net user: ${user.id}`, 'handleBattleNetAuth');
+        this.logger.log({ logTag, userId: user.id, battlenetId: profile.id, battletag: profile.battletag, message: `Updated existing Battle.net user: ${user.id}` });
       }
 
       return this.createAuthResponse(user, isNewUser, 'Battle.net authentication successful');
-    } catch (error) {
-      this.logger.error(
-        `Error processing Battle.net OAuth for user: ${profile.id}`,
-        error instanceof Error ? error.stack : String(error),
-        'handleBattleNetAuth'
-      );
+    } catch (errorOrException) {
+      this.logger.error({ logTag, battlenetId: profile.id, battletag: profile.battletag, errorOrException, message: `Error processing Battle.net OAuth for user: ${profile.id}` });
       
       throw new InternalServerErrorException('Battle.net authentication failed');
     }
@@ -139,15 +133,12 @@ export class AuthService {
    * Find user by ID
    */
   async findUserById(id: string): Promise<UsersEntity | null> {
+    const logTag = 'findUserById';
     try {
       const user = await this.userRepository.findOne({ where: { id } });
       return user;
-    } catch (error) {
-      this.logger.error(
-        `Error finding user by ID: ${id}`,
-        error instanceof Error ? error.stack : String(error),
-        'findUserById'
-      );
+    } catch (errorOrException) {
+      this.logger.error({ logTag, userId: id, errorOrException, message: `Error finding user by ID: ${id}` });
       return null;
     }
   }

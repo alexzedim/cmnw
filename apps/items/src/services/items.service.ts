@@ -54,9 +54,9 @@ export class ItemsService implements OnApplicationBootstrap {
     isItemsForceUpdate = true,
     isItemsIndex = true,
   ): Promise<void> {
-    const logTag = this.buildItems.name;
+    const logTag = this.indexItems.name;
     try {
-      this.logger.log(`${logTag}: isItemsIndex: ${isItemsIndex}, isItemsForceUpdate: ${isItemsForceUpdate}`);
+      this.logger.log({ logTag, isItemsIndex, isItemsForceUpdate, from, to, message: `Index items: enabled=${isItemsIndex}, forceUpdate=${isItemsForceUpdate}, range=${from}-${to}` });
       if (!isItemsIndex) return;
 
       const count = Math.abs(from - to);
@@ -90,24 +90,19 @@ export class ItemsService implements OnApplicationBootstrap {
               },
             );
 
-            this.logger.log(`${logTag}: item ${itemId} placed in queue`);
+            this.logger.log({ logTag, itemId, message: `Item ${itemId} placed in queue` });
           }),
         ),
       );
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: logTag,
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({ logTag, errorOrException });
     }
   }
 
   async buildItems(isItemsBuild = false): Promise<void> {
     const logTag = this.buildItems.name;
     try {
-      this.logger.log(`${logTag}: isItemsBuild ${isItemsBuild}`);
+      this.logger.log({ logTag, isItemsBuild, message: `Build items enabled: ${isItemsBuild}` });
       if (!isItemsBuild) return;
 
       const filesPath = path.join(__dirname, '..', '..', '..', 'files');
@@ -122,12 +117,7 @@ export class ItemsService implements OnApplicationBootstrap {
         await this.extendItemsWithExpansionTicker(filesPath, `itemsparse.csv`);
 
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: logTag,
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({ logTag, errorOrException });
     }
   }
 

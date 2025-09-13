@@ -70,8 +70,9 @@ export class OsintService {
   ) {}
 
   async getGuild(input: GuildIdDto) {
+    const logTag = 'getGuild';
     try {
-      this.logger.log(`Fetching guild: ${input.guid}`, 'getGuild');
+      this.logger.log({ logTag, guildGuid: input.guid, message: `Fetching guild: ${input.guid}` });
       const [nameSlug, realmSlug] = input.guid.split('@');
 
       const realmEntity = await findRealm(this.realmsRepository, realmSlug);
@@ -104,36 +105,33 @@ export class OsintService {
     });
 
       if (!guild) {
-        this.logger.warn(`Guild not found but queued for indexing: ${guid}`, 'getGuild');
+        this.logger.warn({ logTag, guildGuid: guid, message: `Guild not found but queued for indexing: ${guid}` });
         throw new NotFoundException(
           `Guild: ${guid} not found, but will be added to OSINT-DB on existence shortly`,
         );
       }
 
-      this.logger.log(`Successfully fetched guild: ${guid} with ${guildMembers.length} members`, 'getGuild');
+      this.logger.log({ logTag, guildGuid: guid, memberCount: guildMembers.length, message: `Successfully fetched guild: ${guid} with ${guildMembers.length} members` });
       return {
         guild,
         members: guildMembers,
         memberCount: guildMembers.length
       };
-    } catch (error) {
-      if (error instanceof BadRequestException || error instanceof NotFoundException) {
-        throw error;
+    } catch (errorOrException) {
+      if (errorOrException instanceof BadRequestException || errorOrException instanceof NotFoundException) {
+        throw errorOrException;
       }
       
-      this.logger.error(
-        `Error fetching guild: ${input.guid}`,
-        error instanceof Error ? error.stack : String(error),
-        'getGuild'
-      );
+      this.logger.error({ logTag, guildGuid: input.guid, errorOrException, message: `Error fetching guild: ${input.guid}` });
       
       throw new ServiceUnavailableException(`Error fetching guild data for ${input.guid}`);
     }
   }
 
   async getCharacter(input: CharacterIdDto) {
+    const logTag = 'getCharacter';
     try {
-      this.logger.log(`Fetching character: ${input.guid}`, 'getCharacter');
+      this.logger.log({ logTag, characterGuid: input.guid, message: `Fetching character: ${input.guid}` });
       const [nameSlug, realmSlug] = input.guid.split('@');
 
       const realmEntity = await findRealm(this.realmsRepository, realmSlug);
@@ -174,32 +172,29 @@ export class OsintService {
     );
 
       if (!character) {
-        this.logger.warn(`Character not found but queued for indexing: ${guid}`, 'getCharacter');
+        this.logger.warn({ logTag, characterGuid: guid, message: `Character not found but queued for indexing: ${guid}` });
         throw new NotFoundException(
           `Character: ${guid} not found, but will be added to OSINT-DB on existence shortly`,
         );
       }
 
-      this.logger.log(`Successfully fetched character: ${guid}`, 'getCharacter');
+      this.logger.log({ logTag, characterGuid: guid, message: `Successfully fetched character: ${guid}` });
       return character;
-    } catch (error) {
-      if (error instanceof BadRequestException || error instanceof NotFoundException) {
-        throw error;
+    } catch (errorOrException) {
+      if (errorOrException instanceof BadRequestException || errorOrException instanceof NotFoundException) {
+        throw errorOrException;
       }
       
-      this.logger.error(
-        `Error fetching character: ${input.guid}`,
-        error instanceof Error ? error.stack : String(error),
-        'getCharacter'
-      );
+      this.logger.error({ logTag, characterGuid: input.guid, errorOrException, message: `Error fetching character: ${input.guid}` });
       
       throw new ServiceUnavailableException(`Error fetching character data for ${input.guid}`);
     }
   }
 
   async getCharactersByHash(input: CharacterHashDto) {
+    const logTag = 'getCharactersByHash';
     try {
-      this.logger.log(`Fetching characters by hash: ${input.hash}`, 'getCharactersByHash');
+      this.logger.log({ logTag, hash: input.hash, message: `Fetching characters by hash: ${input.hash}` });
       const [type, hash] = input.hash.split('@');
       const isHashField = CHARACTER_HASH_FIELDS.has(<CharacterHashFieldType>type);
       if (!isHashField) {
@@ -216,26 +211,23 @@ export class OsintService {
         take: 100,
       });
 
-      this.logger.log(`Found ${characters.length} characters by hash: ${input.hash}`, 'getCharactersByHash');
+      this.logger.log({ logTag, hash: input.hash, characterCount: characters.length, message: `Found ${characters.length} characters by hash: ${input.hash}` });
       return characters;
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
+    } catch (errorOrException) {
+      if (errorOrException instanceof BadRequestException) {
+        throw errorOrException;
       }
       
-      this.logger.error(
-        `Error fetching characters by hash: ${input.hash}`,
-        error instanceof Error ? error.stack : String(error),
-        'getCharactersByHash'
-      );
+      this.logger.error({ logTag, hash: input.hash, errorOrException, message: `Error fetching characters by hash: ${input.hash}` });
       
       throw new ServiceUnavailableException(`Error processing hash query: ${input.hash}`);
     }
   }
 
   async getCharactersLfg(input: CharactersLfgDto) {
+    const logTag = 'getCharactersLfg';
     try {
-      this.logger.log('Fetching characters looking for guild', 'getCharactersLfg');
+      this.logger.log({ logTag, filters: input, message: 'Fetching characters looking for guild' });
       const where: FindOptionsWhere<CharactersProfileEntity> = {
         lfgStatus: LFG_STATUS.NEW,
       };
@@ -250,14 +242,10 @@ export class OsintService {
 
       const characters = await this.charactersProfileRepository.findBy(where);
       
-      this.logger.log(`Found ${characters.length} characters looking for guild`, 'getCharactersLfg');
+      this.logger.log({ logTag, characterCount: characters.length, message: `Found ${characters.length} characters looking for guild` });
       return characters;
-    } catch (error) {
-      this.logger.error(
-        'Error fetching LFG characters',
-        error instanceof Error ? error.stack : String(error),
-        'getCharactersLfg'
-      );
+    } catch (errorOrException) {
+      this.logger.error({ logTag, errorOrException, message: 'Error fetching LFG characters' });
       
       throw new HttpException(
         'Error fetching characters looking for guild',
@@ -267,8 +255,9 @@ export class OsintService {
   }
 
   async getCharacterLogs(input: CharacterIdDto) {
+    const logTag = 'getCharacterLogs';
     try {
-      this.logger.log(`Fetching logs for character: ${input.guid}`, 'getCharacterLogs');
+      this.logger.log({ logTag, characterGuid: input.guid, message: `Fetching logs for character: ${input.guid}` });
       
       const logs = await this.logsRepository.find({
         where: {
@@ -278,22 +267,19 @@ export class OsintService {
         order: { createdAt: 'DESC' },
       });
 
-      this.logger.log(`Found ${logs.length} logs for character: ${input.guid}`, 'getCharacterLogs');
+      this.logger.log({ logTag, characterGuid: input.guid, logCount: logs.length, message: `Found ${logs.length} logs for character: ${input.guid}` });
       return logs;
-    } catch (error) {
-      this.logger.error(
-        `Error fetching character logs: ${input.guid}`,
-        error instanceof Error ? error.stack : String(error),
-        'getCharacterLogs'
-      );
+    } catch (errorOrException) {
+      this.logger.error({ logTag, characterGuid: input.guid, errorOrException, message: `Error fetching character logs: ${input.guid}` });
       
       throw new ServiceUnavailableException(`Error fetching logs for character ${input.guid}`);
     }
   }
 
   async getGuildLogs(input: GuildIdDto) {
+    const logTag = 'getGuildLogs';
     try {
-      this.logger.log(`Fetching logs for guild: ${input.guid}`, 'getGuildLogs');
+      this.logger.log({ logTag, guildGuid: input.guid, message: `Fetching logs for guild: ${input.guid}` });
       
       const logs = await this.logsRepository.find({
         where: {
@@ -303,53 +289,43 @@ export class OsintService {
         order: { createdAt: 'DESC' },
       });
 
-      this.logger.log(`Found ${logs.length} logs for guild: ${input.guid}`, 'getGuildLogs');
+      this.logger.log({ logTag, guildGuid: input.guid, logCount: logs.length, message: `Found ${logs.length} logs for guild: ${input.guid}` });
       return logs;
-    } catch (error) {
-      this.logger.error(
-        `Error fetching guild logs: ${input.guid}`,
-        error instanceof Error ? error.stack : String(error),
-        'getGuildLogs'
-      );
+    } catch (errorOrException) {
+      this.logger.error({ logTag, guildGuid: input.guid, errorOrException, message: `Error fetching guild logs: ${input.guid}` });
       
       throw new ServiceUnavailableException(`Error fetching logs for guild ${input.guid}`);
     }
   }
   async getRealmPopulation(realmId: string): Promise<string[]> {
+    const logTag = 'getRealmPopulation';
     try {
-      this.logger.log(`Fetching realm population for: ${realmId}`, 'getRealmPopulation');
+      this.logger.log({ logTag, realmId, message: `Fetching realm population for: ${realmId}` });
       
       // TODO: Implement actual realm population logic
       // This could involve aggregating character counts by realm
       const mockPopulation = [realmId, `${realmId}-population-data`];
       
-      this.logger.warn(`Returning mock data for realm population: ${realmId}`, 'getRealmPopulation');
+      this.logger.warn({ logTag, realmId, message: `Returning mock data for realm population: ${realmId}` });
       return mockPopulation;
-    } catch (error) {
-      this.logger.error(
-        `Error fetching realm population: ${realmId}`,
-        error instanceof Error ? error.stack : String(error),
-        'getRealmPopulation'
-      );
+    } catch (errorOrException) {
+      this.logger.error({ logTag, realmId, errorOrException, message: `Error fetching realm population: ${realmId}` });
       
       throw new ServiceUnavailableException(`Error fetching realm population for ${realmId}`);
     }
   }
 
   async getRealms(input: RealmDto) {
+    const logTag = 'getRealms';
     try {
-      this.logger.log('Fetching realms with filters', 'getRealms');
+      this.logger.log({ logTag, filters: input, message: 'Fetching realms with filters' });
       
       const realms = await this.realmsRepository.findBy(input);
       
-      this.logger.log(`Found ${realms.length} realms matching criteria`, 'getRealms');
+      this.logger.log({ logTag, realmCount: realms.length, message: `Found ${realms.length} realms matching criteria` });
       return realms;
-    } catch (error) {
-      this.logger.error(
-        'Error fetching realms',
-        error instanceof Error ? error.stack : String(error),
-        'getRealms'
-      );
+    } catch (errorOrException) {
+      this.logger.error({ logTag, errorOrException, message: 'Error fetching realms' });
       
       throw new ServiceUnavailableException('Error fetching realms data');
     }
