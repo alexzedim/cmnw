@@ -5,7 +5,7 @@ import { mergeMap } from 'rxjs/operators';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MarketEntity, RealmsEntity } from '@app/pg';
-import { Repository } from 'typeorm';
+import { Repository, In } from 'typeorm';
 import { DateTime } from 'luxon';
 import * as cheerio from 'cheerio';
 import {
@@ -98,7 +98,13 @@ export class GoldService implements OnApplicationBootstrap {
         `${logTag}: ${ordersCount} of ${marketEntitiesCount} orders on timestamp ${timestamp} inserted`,
       );
 
-      await this.realmsRepository.update({}, { goldTimestamp: timestamp });
+      // Update only the realms that had gold orders processed
+      if (connectedRealmIds.size > 0) {
+        await this.realmsRepository.update(
+          { connectedRealmId: In(Array.from(connectedRealmIds)) },
+          { goldTimestamp: timestamp }
+        );
+      }
     } catch (errorOrException) {
       this.logger.error(
         {
@@ -160,7 +166,7 @@ export class GoldService implements OnApplicationBootstrap {
 
       const isQuantityLimit = quantity > 100_000_000;
       if (isQuantityLimit) {
-        this.logger.debug(`${logTag}: Quantity limit exceeded for ${orderId}: ${quantity}`);
+        // this.logger.debug(`${logTag}: Quantity limit exceeded for ${orderId}: ${quantity}`);
         return null;
       }
 
