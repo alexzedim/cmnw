@@ -154,7 +154,7 @@ export class KeysService implements OnApplicationBootstrap {
             password: keyEntity.secret,
           },
         });
-        this.logger.debug(data);
+
         keyEntity.token = data.access_token;
         keyEntity.expiredIn = data.expires_in;
 

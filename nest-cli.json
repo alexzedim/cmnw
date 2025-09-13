@@ -47,7 +47,9 @@
       "entryFile": "main",
       "sourceRoot": "apps/core/src",
       "compilerOptions": {
-        "tsConfigPath": "apps/core/tsconfig.app.json"
+        "tsConfigPath": "apps/core/tsconfig.app.json",
+        "webpack": true,
+        "webpackConfigPath": "apps/core/webpack.config.js"
       }
     },
     "discord": {
