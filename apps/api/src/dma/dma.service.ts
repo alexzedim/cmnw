@@ -214,13 +214,10 @@ export class DmaService {
       }
 
       return priceLevelDataset;
-    } catch (error) {
+    } catch (errorOrException) {
       // Log error and return empty dataset for this timestamp
-      this.logger.error(
-        `Error processing timestamp ${timestamp} for item ${itemId}`,
-        error instanceof Error ? error.stack : String(error),
-        'processTimestampData'
-      );
+      const logTag = 'processTimestampData';
+      this.logger.error({ logTag, timestamp, itemId, errorOrException, message: `Error processing timestamp ${timestamp} for item ${itemId}` });
       return yPriceAxis.map((priceLevel, ytx) => ({
         lt: yPriceAxis[ytx + 1] ?? priceLevel,
         x: itx,
@@ -249,12 +246,9 @@ export class DmaService {
       );
 
       return { dataset };
-    } catch (error) {
-      this.logger.error(
-        `Error building chart dataset for item ${itemId}`,
-        error instanceof Error ? error.stack : String(error),
-        'buildChartDataset'
-      );
+    } catch (errorOrException) {
+      const logTag = 'buildChartDataset';
+      this.logger.error({ logTag, itemId, errorOrException, message: `Error building chart dataset for item ${itemId}` });
       // Return empty dataset on error
       return { dataset: [] };
     }

@@ -55,10 +55,11 @@ export class PricingService implements OnApplicationBootstrap {
    * Helper method to read CSV files from S3 cmnw-default bucket
    */
   private async readCsvFile(fileName: string): Promise<string> {
+    const logTag = 'readCsvFile';
     try {
       return await this.s3Service.readFile(fileName, 'cmnw-default');
-    } catch (error) {
-      this.logger.error(`CSV file not found in S3 bucket 'cmnw-default': ${fileName}`);
+    } catch (errorOrException) {
+      this.logger.error({ logTag, fileName, bucket: 'cmnw-default', errorOrException, message: `CSV file not found in S3 bucket: ${fileName}` });
       throw new Error(`CSV file not found in S3: ${fileName}`);
     }
   }
@@ -82,12 +83,12 @@ export class PricingService implements OnApplicationBootstrap {
     const logTag = this.libPricing.name;
     try {
       if (!isItemsPricingLab) {
-        this.logger.debug(`${logTag}: isItemsPricingLab: ${isItemsPricingLab}`);
+        this.logger.debug({ logTag, isItemsPricingLab, message: `Items pricing lab disabled: ${isItemsPricingLab}` });
         return;
       }
 
       const deletePricing = await this.pricingRepository.delete({ createdBy: DMA_SOURCE.LAB });
-      this.logger.log(`${logTag}: ${DMA_SOURCE.LAB} | deleted ${deletePricing.affected}`);
+      this.logger.log({ logTag, source: DMA_SOURCE.LAB, deletedCount: deletePricing.affected, message: `Deleted ${deletePricing.affected} lab pricing entries` });
 
       const reversePricingMethod = this.pricingRepository.create({
         media: 'MEDIA',
@@ -154,12 +155,7 @@ export class PricingService implements OnApplicationBootstrap {
       }
 
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: logTag,
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({ logTag, errorOrException });
     }
   }
 
@@ -168,7 +164,7 @@ export class PricingService implements OnApplicationBootstrap {
     const logTag = this.indexPricing.name;
     try {
       if (!isItemsPricingInit) {
-        this.logger.log(`${logTag}: isItemsPricingInit: ${isItemsPricingInit}`);
+        this.logger.log({ logTag, isItemsPricingInit, message: `Items pricing init disabled: ${isItemsPricingInit}` });
         return;
       }
 

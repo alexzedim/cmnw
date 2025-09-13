@@ -63,7 +63,7 @@ export class GuildsService implements OnApplicationBootstrap {
     let guildJobsSuccessItx = 0;
 
     try {
-      this.logger.log(`${logTag}: isIndexGuildsFromCharacters ${isIndexGuildsFromCharacters}`)
+      this.logger.log({ logTag, isIndexGuildsFromCharacters, message: `Index guilds from characters: ${isIndexGuildsFromCharacters}` });
       if (isIndexGuildsFromCharacters) return;
 
 
@@ -79,7 +79,7 @@ export class GuildsService implements OnApplicationBootstrap {
 
       uniqueGuildGuidsCount = uniqueGuildGuids.length;
 
-      this.logger.log(`${logTag}: ${uniqueGuildGuidsCount} unique guilds found`);
+      this.logger.log({ logTag, uniqueGuildGuidsCount, message: `Found ${uniqueGuildGuidsCount} unique guilds` });
 
       const guildJobs = uniqueGuildGuids.map((guild) => {
         const { client, secret, token } =
@@ -115,42 +115,38 @@ export class GuildsService implements OnApplicationBootstrap {
         return guildJobData;
       });
 
-      this.logger.log(`${logTag}: ${guildJobsItx} jobs created`);
-
+      this.logger.log({ logTag, guildJobsItx, message: `Created ${guildJobsItx} guild jobs` });
       await lastValueFrom(
         from(guildJobs).pipe(
           bufferCount(500),
           concatMap(async (guildJobsBatch) => {
             try {
               await this.queueGuilds.addBulk(guildJobsBatch);
-              this.logger.log(`${logTag}: ${guildJobsSuccessItx} + ${guildJobsBatch.length} of ${guildJobsItx} guild jobs added to queue`);
+              this.logger.log({ logTag, currentBatch: guildJobsBatch.length, totalJobs: guildJobsItx, processed: guildJobsSuccessItx, message: `Added ${guildJobsBatch.length} guild jobs to queue` });
               guildJobsSuccessItx = guildJobsBatch.length;
-            } catch (error) {
-              this.logger.error(
-                {
-                  logTag: 'guildJobsBatch',
-                  uniqueGuildGuidsCount,
-                  guildJobsItx,
-                  guildJobsSuccessItx,
-                  error: JSON.stringify(error),
-                }
-              );
+            } catch (errorOrException) {
+              this.logger.error({
+                logTag: 'guildJobsBatch',
+                uniqueGuildGuidsCount,
+                guildJobsItx,
+                guildJobsSuccessItx,
+                errorOrException,
+                message: 'Error adding guild jobs batch to queue'
+              });
             }
           })
         )
       )
 
-      this.logger.log(`${logTag}: ${guildJobsSuccessItx} of ${guildJobsItx} | ${uniqueGuildGuidsCount} guild jobs added to queue`);
+      this.logger.log({ logTag, guildJobsSuccessItx, guildJobsItx, uniqueGuildGuidsCount, message: `Completed: ${guildJobsSuccessItx} of ${guildJobsItx} guild jobs added from ${uniqueGuildGuidsCount} unique guilds` });
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag,
-          uniqueGuildGuidsCount,
-          guildJobsItx,
-          guildJobsSuccessItx,
-          error: errorOrException,
-        }
-      );
+      this.logger.error({
+        logTag,
+        uniqueGuildGuidsCount,
+        guildJobsItx,
+        guildJobsSuccessItx,
+        errorOrException
+      });
     }
   }
 
@@ -160,14 +156,14 @@ export class GuildsService implements OnApplicationBootstrap {
     try {
       const jobs = await this.queueGuilds.count();
       if (jobs > 1_000) {
-        this.logger.warn(`${logTag}: ${jobs} jobs found`);
+        this.logger.warn({ logTag, jobCount: jobs, message: `Too many jobs (${jobs}), skipping guild indexing` });
         return;
       }
 
       const globalConcurrency = await this.queueGuilds.getGlobalConcurrency();
       const updatedConcurrency = await this.queueGuilds.setGlobalConcurrency(10);
 
-      this.logger.log(`${guildsQueue.name}: globalConcurrency: ${globalConcurrency} | updatedConcurrency: ${updatedConcurrency}`);
+      this.logger.log({ logTag, queueName: guildsQueue.name, globalConcurrency, updatedConcurrency, message: `Updated concurrency from ${globalConcurrency} to ${updatedConcurrency}` });
 
       let guildIteration = 0;
       this.keyEntities = await getKeys(this.keysRepository, clearance, false, true);
@@ -185,7 +181,7 @@ export class GuildsService implements OnApplicationBootstrap {
       this.offset = this.offset + (isRotate ? OSINT_GUILD_LIMIT : 0);
 
       if (this.offset >= guildsCount) {
-        this.logger.warn(`${logTag}: END_OF offset ${this.offset} >= guildsCount ${guildsCount}`);
+        this.logger.warn({ logTag, offset: this.offset, guildsCount, message: `End of guilds reached, resetting offset` });
         this.offset = 0;
       }
 

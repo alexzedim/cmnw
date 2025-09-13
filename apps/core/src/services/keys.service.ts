@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { S3Service } from '@app/s3';
 import { IKeyConfig } from '@app/configuration/interfaces/key.interface';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -8,6 +8,7 @@ import { from, lastValueFrom, mergeMap } from 'rxjs';
 import { InjectRepository } from '@nestjs/typeorm';
 import { KeysEntity } from '@app/pg';
 import { ArrayContains, Repository } from 'typeorm';
+import { LoggerService } from '@app/logger';
 import {
   BlizzardApiKeys,
   GLOBAL_BLIZZARD_KEY,
@@ -19,7 +20,7 @@ import {
 
 @Injectable()
 export class KeysService implements OnApplicationBootstrap {
-  private readonly logger = new Logger(KeysService.name, { timestamp: true });
+  private readonly logger = new LoggerService(KeysService.name);
 
   constructor(
     private httpService: HttpService,
@@ -40,9 +41,9 @@ export class KeysService implements OnApplicationBootstrap {
       let keysJson: string;
       try {
         keysJson = await this.s3Service.readFile('keys.json', 'cmnw-default');
-        this.logger.log(`${logTag}: Keys loaded from S3 (cmnw-default)`);
+        this.logger.log({ logTag, message: 'Keys loaded from S3 (cmnw-default)' });
       } catch (error) {
-        this.logger.error(`${logTag}: File not found in S3 bucket 'cmnw-default'`);
+        this.logger.error({ logTag, errorOrException: error, message: 'File not found in S3 bucket cmnw-default' });
         throw new Error(`Keys configuration file not found in S3`);
       }
 
@@ -62,12 +63,7 @@ export class KeysService implements OnApplicationBootstrap {
         ),
       );
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: logTag,
-          error: errorOrException,
-        }
-      );
+      this.logger.error({ logTag, errorOrException });
     }
   }
 
@@ -118,17 +114,12 @@ export class KeysService implements OnApplicationBootstrap {
 
         keyEntity.token = data.access_token;
         keyEntity.expiredIn = data.expires_in;
-        this.logger.log(`Updated: key ${keyEntity.client}`);
+        this.logger.log({ logTag, client: keyEntity.client, message: `Updated key: ${keyEntity.client}` });
 
         await this.keysRepository.save(keyEntity);
       }
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: logTag,
-          error: errorOrException,
-        }
-      );
+      this.logger.error({ logTag, errorOrException });
     }
   }
 
@@ -159,15 +150,10 @@ export class KeysService implements OnApplicationBootstrap {
         keyEntity.expiredIn = data.expires_in;
 
         await this.keysRepository.save(keyEntity);
-        this.logger.log(`Updated: key ${keyEntity.client} | wcl`);
+        this.logger.log({ logTag, client: keyEntity.client, keyType: 'wcl', message: `Updated WCL key: ${keyEntity.client}` });
       }
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: logTag,
-          error: errorOrException,
-        }
-      );
+      this.logger.error({ logTag, errorOrException });
     }
   }
 }

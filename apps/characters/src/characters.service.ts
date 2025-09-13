@@ -51,14 +51,14 @@ export class CharactersService implements OnApplicationBootstrap {
     try {
       const jobs = await this.queue.count();
       if (jobs > 10_000) {
-        this.logger.warn(`${logTag}: ${jobs} jobs found`);
+        this.logger.warn({ logTag, jobCount: jobs, message: `${jobs} jobs found, skipping indexing` });
         return;
       }
 
       const globalConcurrency = await this.queue.getGlobalConcurrency();
       const updatedConcurrency = await this.queue.setGlobalConcurrency(10);
 
-      this.logger.log(`${charactersQueue.name}: globalConcurrency: ${globalConcurrency} | updatedConcurrency: ${updatedConcurrency}`);
+      this.logger.log({ logTag, queueName: charactersQueue.name, globalConcurrency, updatedConcurrency, message: `Queue concurrency updated from ${globalConcurrency} to ${updatedConcurrency}` });
 
       let characterIteration = 0;
       this.keyEntities = await getKeys(this.keysRepository, clearance, false, true);
@@ -76,7 +76,7 @@ export class CharactersService implements OnApplicationBootstrap {
       this.offset = this.offset + (isRotate ? OSINT_CHARACTER_LIMIT : 0);
 
       if (this.offset >= charactersCount) {
-        this.logger.warn(`${logTag}: END_OF offset ${this.offset} >= charactersCount ${charactersCount}`);
+        this.logger.warn({ logTag, offset: this.offset, charactersCount, message: `End of characters reached, resetting offset` });
         this.offset = 0;
       }
 
@@ -114,14 +114,9 @@ export class CharactersService implements OnApplicationBootstrap {
         ),
       );
 
-      this.logger.log(`${logTag}: offset ${this.offset} | ${characters.length} characters`);
+      this.logger.log({ logTag, offset: this.offset, characterCount: characters.length, message: `Processed ${characters.length} characters at offset ${this.offset}` });
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: logTag,
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({ logTag, errorOrException });
     }
   }
 
@@ -131,16 +126,16 @@ export class CharactersService implements OnApplicationBootstrap {
   ) {
     const logTag = this.indexFromFile.name;
     try {
-      this.logger.log(`${logTag}: isIndexCharactersFromFile: ${isIndexCharactersFromFile}`);
+      this.logger.log({ logTag, isIndexCharactersFromFile, message: `Index from file: ${isIndexCharactersFromFile}` });
       if (!isIndexCharactersFromFile) return;
 
       // Load characters from S3 cmnw-default bucket
       let charactersJson: string;
       try {
         charactersJson = await this.s3Service.readFile('characters.json', 'cmnw-default');
-        this.logger.log(`${logTag}: Characters loaded from S3 (cmnw-default)`);
+        this.logger.log({ logTag, bucket: 'cmnw-default', filename: 'characters.json', message: 'Characters loaded from S3' });
       } catch (error) {
-        this.logger.error(`${logTag}: File not found in S3 bucket 'cmnw-default': characters.json`);
+        this.logger.error({ logTag, bucket: 'cmnw-default', filename: 'characters.json', errorOrException: error, message: 'File not found in S3 bucket' });
         throw new Error('Characters file not found in S3: characters.json');
       }
       
@@ -153,7 +148,7 @@ export class CharactersService implements OnApplicationBootstrap {
 
       const charactersCount = characters.length;
 
-      this.logger.log(`${logTag}: file has been found | ${charactersCount} characters`);
+      this.logger.log({ logTag, charactersCount, message: `Characters file loaded with ${charactersCount} characters` });
 
       for (const character of characters) {
         const [nameSlug, realmSlug] = character.guid.split('@');
@@ -178,14 +173,9 @@ export class CharactersService implements OnApplicationBootstrap {
         characterIteration = characterIteration + 1;
       }
 
-      this.logger.log(`${logTag}: found ${charactersCount} | inserted ${characterIteration} characters`);
+      this.logger.log({ logTag, charactersCount, insertedCount: characterIteration, message: `Processed ${charactersCount} characters, inserted ${characterIteration}` });
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: logTag,
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({ logTag, errorOrException });
     }
   }
 }

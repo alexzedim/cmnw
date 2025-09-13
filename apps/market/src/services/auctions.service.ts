@@ -52,7 +52,7 @@ export class AuctionsService implements OnApplicationBootstrap {
     const logTag = this.indexAuctions.name;
     try {
       const { isIndexAuctions } = dmaConfig;
-      this.logger.debug(`${logTag}: ${isIndexAuctions}`);
+      this.logger.debug({ logTag, isIndexAuctions, message: `Index auctions enabled: ${isIndexAuctions}` });
       if (!isIndexAuctions) return;
 
       await this.queue.drain(true);
@@ -85,19 +85,18 @@ export class AuctionsService implements OnApplicationBootstrap {
               priority: 2,
             });
 
-            this.logger.debug(
-              `realm: ${realmEntity.connectedRealmId} | ts: ${
-                realmEntity.auctionsTimestamp
-              }, ${typeof realmEntity.auctionsTimestamp}`,
-            );
+            this.logger.debug({ 
+              logTag, 
+              connectedRealmId: realmEntity.connectedRealmId, 
+              auctionsTimestamp: realmEntity.auctionsTimestamp,
+              timestampType: typeof realmEntity.auctionsTimestamp,
+              message: `Processing realm auctions: ${realmEntity.connectedRealmId}` 
+            });
           }),
         ),
       );
     } catch (errorOrException) {
-      this.logger.error({
-        logTag,
-        error: errorOrException
-      });
+      this.logger.error({ logTag, errorOrException });
     }
   }
 
@@ -106,7 +105,7 @@ export class AuctionsService implements OnApplicationBootstrap {
     const logTag = this.indexCommodity.name;
     try {
       const { isIndexCommodity } = dmaConfig;
-      this.logger.debug(`${logTag}: ${isIndexCommodity}`);
+      this.logger.debug({ logTag, isIndexCommodity, message: `Index commodity enabled: ${isIndexCommodity}` });
       if (!isIndexCommodity) return;
 
       const [keyEntity] = await getKeys(this.keysRepository, clearance, true);
@@ -122,7 +121,7 @@ export class AuctionsService implements OnApplicationBootstrap {
       if (commodityJob) {
         const isCommodityJobActive = await commodityJob.isActive();
         if (isCommodityJobActive) {
-          this.logger.debug(`realm: ${realmEntity.connectedRealmId} | job active`);
+          this.logger.debug({ logTag, connectedRealmId: realmEntity.connectedRealmId, jobId, message: 'Commodity job already active' });
           return;
         }
       }
@@ -140,14 +139,9 @@ export class AuctionsService implements OnApplicationBootstrap {
         priority: 1,
       });
 
-      this.logger.debug(
-        `realm: ${realmEntity.connectedRealmId} | ts: ${realmEntity.commoditiesTimestamp}`,
-      );
+      this.logger.debug({ logTag, connectedRealmId: realmEntity.connectedRealmId, commoditiesTimestamp: realmEntity.commoditiesTimestamp, message: 'Processing commodity data' });
     } catch (errorOrException) {
-      this.logger.error({
-        logTag,
-        error: errorOrException
-      });
+      this.logger.error({ logTag, errorOrException });
     }
   }
 
@@ -175,7 +169,7 @@ export class AuctionsService implements OnApplicationBootstrap {
 
       const isWowTokenValid = isWowToken(response);
       if (!isWowTokenValid) {
-        this.logger.warn(`Token response not valid`);
+        this.logger.warn({ logTag, response, message: 'Token response not valid' });
         return;
       }
 
