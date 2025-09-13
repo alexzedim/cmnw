@@ -233,7 +233,6 @@ Automated deployment via **GitHub Actions** with multi-platform support:
    cp .env.production .env
    
    # Set deployment secrets
-   export CR_PAT="your_github_token"
    export ENC_PASSWORD="your_encryption_key"
    ```
 
