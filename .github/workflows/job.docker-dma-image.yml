@@ -44,6 +44,8 @@ jobs:
 
       - name: Install dependencies
         run: corepack pnpm install
+        env:
+          CR_PAT: ${{ secrets.CR_PAT }}
 
       - name: Docker meta
         id: meta
