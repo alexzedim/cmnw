@@ -7,7 +7,6 @@ import {
   CharactersGuildsLogsEntity,
 } from '@app/pg';
 import {
-  IGuildRoster,
   ACTION_LOG,
   OSINT_GM_RANK,
   OSINT_SOURCE,

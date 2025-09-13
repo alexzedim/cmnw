@@ -5,7 +5,6 @@ import { AuthService } from '../auth.service';
 import { AuthResponseDto, BattleNetProfile } from '@app/resources';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
-import { stringify } from 'querystring';
 
 /**
  * Review full list of available scopes here: https://develop.battle.net/documentation/guides/using-oauth

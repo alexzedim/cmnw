@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { postgresConfig, redisConfig, bullConfig } from '@app/configuration';
+import { postgresConfig, bullConfig } from '@app/configuration';
 import { BullModule } from '@nestjs/bullmq';
 import { OsintController } from './osint.controller';
 import { OsintService } from './osint.service';

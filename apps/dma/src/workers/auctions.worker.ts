@@ -44,7 +44,7 @@ export class AuctionsWorker extends WorkerHost {
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(ItemsEntity)
-    private readonly itemsRepository: Repository<ItemsEntity>,
+    private readonly _itemsRepository: Repository<ItemsEntity>,
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
   ) {

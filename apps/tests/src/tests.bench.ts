@@ -379,7 +379,7 @@ export class TestsBench implements OnApplicationBootstrap {
     const realmsEntity = new Map<string, RealmsEntity>([]);
     const timestamp = new Date().getTime();
 
-    exchangeListingPage(goldListingMarkup).each((index, element) => {
+    exchangeListingPage(goldListingMarkup).each((_index, element) => {
       const orderId = exchangeListingPage(element).attr('href');
       const realm = exchangeListingPage(element).find('.tc-server').text();
       const faction = exchangeListingPage(element).find('.tc-side').text();
@@ -417,7 +417,7 @@ export class TestsBench implements OnApplicationBootstrap {
 
             realmsEntity.set(order.realm, realmEntity);
 
-            const [url, orderId] = order.orderId.split('=');
+            const [_url, orderId] = order.orderId.split('=');
             const price = parseFloat(order.price.replace(/ ₽/g, ''));
             const quantity = parseInt(order.quantity.replace(/\s/g, ''));
             const counterparty = order.owner.replace('\n', '').trim();
@@ -474,7 +474,7 @@ export class TestsBench implements OnApplicationBootstrap {
     const wpPage = page.html('body > pre:nth-child(3) > a');
 
     await Promise.allSettled(
-      page(wpPage).map(async (x, node) => {
+      page(wpPage).map(async (_x, node) => {
         const isAttributes = 'attribs' in node && node.attribs.href.includes('eu_');
         if (!isAttributes) return;
 
@@ -524,7 +524,7 @@ export class TestsBench implements OnApplicationBootstrap {
       const getBestPerfAvg = await page.getByText('Best Perf. Avg').allInnerTexts();
       const [getBestPerfAvgValue] = getBestPerfAvg;
 
-      const [text, value] = getBestPerfAvgValue.trim().split('\n');
+      const [_text, value] = getBestPerfAvgValue.trim().split('\n');
 
       const isMythicLogsValid = !isNaN(Number(value.trim()));
       if (isMythicLogsValid) {

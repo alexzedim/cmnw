@@ -152,8 +152,8 @@ export class ContractsService implements OnApplicationBootstrap {
   }
 
   @Cron('00 10,18 * * *')
-  private async buildGoldIntradayContracts() {
-    const logTag = this.buildGoldIntradayContracts.name;
+  private async _buildGoldIntradayContracts() {
+    const logTag = this._buildGoldIntradayContracts.name;
     try {
       this.logger.log(`${logTag} started`);
 

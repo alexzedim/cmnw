@@ -31,6 +31,9 @@ export class RealmConnected extends Document {
 
   @Prop({ type: Number, default: 0 })
     golds: number;
+
+  @Prop({ type: Number, default: 0 })
+    valuations: number;
 }
 
 export const RealmConnectedSchema = SchemaFactory.createForClass(RealmConnected);

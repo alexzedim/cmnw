@@ -5,7 +5,6 @@ import {
   CreateDateColumn,
   Entity,
   PrimaryColumn,
-  UpdateDateColumn,
 } from 'typeorm';
 
 @Entity({ name: CMNW_ENTITY_ENUM.CHARACTERS_PROFILE })

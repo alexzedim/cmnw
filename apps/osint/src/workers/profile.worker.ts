@@ -39,7 +39,7 @@ export class ProfileWorker extends WorkerHost {
   constructor(
     private httpService: HttpService,
     @InjectQueue(profileQueue.name)
-    private readonly queue: Queue<ProfileJobQueue, number>,
+    private readonly _queue: Queue<ProfileJobQueue, number>,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(CharactersProfileEntity)
@@ -140,7 +140,7 @@ export class ProfileWorker extends WorkerHost {
       const getBestPerfAvg = await page.getByText('Best Perf. Avg').allInnerTexts();
       const [getBestPerfAvgValue] = getBestPerfAvg;
 
-      const [text, value] = getBestPerfAvgValue.trim().split('\n');
+      const [_text, value] = getBestPerfAvgValue.trim().split('\n');
 
       const isLogsNumberValid = !isNaN(Number(value.trim()));
       if (isLogsNumberValid) {
@@ -180,7 +180,7 @@ export class ProfileWorker extends WorkerHost {
       const wpHTML = wowProgressProfilePage.html('.language');
 
       await Promise.allSettled(
-        wowProgressProfilePage(wpHTML).map((index, node) => {
+        wowProgressProfilePage(wpHTML).map((_index, node) => {
           const characterText = wowProgressProfilePage(node).text();
           const [key, stringValue] = characterText.split(':');
           const isKeyExists = CHARACTER_PROFILE_MAPPING.has(key);

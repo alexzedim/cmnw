@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { cmnwConfig } from '@app/configuration';
 import { BlizzAPI } from '@alexzedim/blizzapi';
 import { API_HEADERS_ENUM, apiConstParams, TOLERANCE_ENUM } from '@app/resources';

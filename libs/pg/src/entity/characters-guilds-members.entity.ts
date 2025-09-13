@@ -6,7 +6,6 @@ import {
   Entity,
   Index,
   PrimaryGeneratedColumn,
-  UpdateDateColumn,
 } from 'typeorm';
 
 @Index('ix__characters_guilds_members__guild_guid', ['guildGuid'], {})
