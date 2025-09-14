@@ -60,7 +60,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
   }
 
   async onApplicationBootstrap(): Promise<void> {
-    this.logger.log('Initializing WoW Progress Service...');
+    this.logger.log({ logTag: 'onApplicationBootstrap', message: 'Initializing WoW Progress Service...' });
     // await this.extractAllGuildRanks();
     // return;
     try {
@@ -69,15 +69,13 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
       await this.downloadAllRanks();
       await this.extractAllGuildRanks();
 
-      this.logger.log('WoW Progress Service initialized successfully');
+      this.logger.log({ logTag: 'onApplicationBootstrap', message: 'WoW Progress Service initialized successfully' });
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: WowProgressRanksService.name,
-          message: 'Failed to initialize WoW Progress Service',
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({
+        logTag: 'onApplicationBootstrap',
+        message: 'Failed to initialize WoW Progress Service',
+        errorOrException,
+      });
     }
   }
 
@@ -108,15 +106,13 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
       });
 
-      this.logger.log('Browser initialized successfully');
+      this.logger.log({ logTag: 'initializeBrowser', message: 'Browser initialized successfully' });
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag,
-          message: 'Failed to initialize browser',
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({
+        logTag,
+        message: 'Failed to initialize browser',
+        errorOrException,
+      });
 
       throw errorOrException;
     }
@@ -127,7 +123,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
    */
   async parseAvailableFiles(): Promise<WowProgressLink[]> {
     try {
-      this.logger.log('Parsing available files...');
+      this.logger.log({ logTag: 'parseAvailableFiles', message: 'Parsing available files...' });
 
       // Navigate to the main ranks directory
       await this.page.goto(this.baseUrl, {
@@ -161,11 +157,11 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
         };
       });
 
-      this.logger.log(`Found ${processedLinks.length} rank files`);
+      this.logger.log({ logTag: 'parseAvailableFiles', message: `Found ${processedLinks.length} rank files` });
 
       return processedLinks;
     } catch (error) {
-      this.logger.error('Failed to parse available files', error);
+      this.logger.error({ logTag: 'parseAvailableFiles', message: 'Failed to parse available files', errorOrException: error });
       throw error;
     }
   }
@@ -180,7 +176,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
     const isFileExists = await this.s3Service.getFileMetadata(fileName);
 
     if (isFileExists.exists) {
-      this.logger.log(`  ⏭️ Skipped: ${fileName}`);
+      this.logger.log({ logTag: 'downloadFile', message: `⏭️ Skipped: ${fileName}` });
       return {
         success: true,
         skip: true,
@@ -191,22 +187,22 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
 
     for (let attempt = 1; attempt <= this.maxRetries; attempt++) {
       try {
-        this.logger.log(`Downloading ${fileName} (attempt ${attempt}/${this.maxRetries})`);
+        this.logger.log({ logTag: 'downloadFile', message: `Downloading ${fileName} (attempt ${attempt}/${this.maxRetries})` });
 
         const result = await this.downloadWithFetch(link.href, fileName);
 
         if (result.success) {
-          this.logger.log(`✅ Downloaded: ${fileName} (${result.fileSize} bytes)`);
+          this.logger.log({ logTag: 'downloadFile', message: `✅ Downloaded: ${fileName} (${result.fileSize} bytes)` });
           return result;
         }
 
         if (attempt < this.maxRetries) {
-          this.logger.warn(`Retrying ${fileName} in ${this.retryDelay}ms...`);
+          this.logger.warn({ logTag: 'downloadFile', message: `Retrying ${fileName} in ${this.retryDelay}ms...` });
           await delay(this.retryDelay);
         }
 
       } catch (error) {
-        this.logger.error(`Attempt ${attempt} failed for ${fileName}:`, error.message);
+        this.logger.error({ logTag: 'downloadFile', message: `Attempt ${attempt} failed for ${fileName}: ${error.message}` });
 
         if (attempt === this.maxRetries) {
           return {
@@ -298,13 +294,11 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
       };
 
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag,
-          message: errorOrException.message,
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({
+        logTag,
+        message: errorOrException.message,
+        errorOrException,
+      });
       throw new Error(`Download failed: ${errorOrException.message}`);
     }
   }
@@ -318,12 +312,12 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
       const isExists = await this.s3Service.ensureBucketExists();
       if (!isExists) return;
 
-      this.logger.log('Starting bulk download of WoW Progress ranks...');
+      this.logger.log({ logTag: 'downloadAllRanks', message: 'Starting bulk download of WoW Progress ranks...' });
 
       const filesToDownload = await this.parseAvailableFiles();
       const linksCount = filesToDownload.length;
 
-      this.logger.log(`Downloading ${filesToDownload.length} files...`);
+      this.logger.log({ logTag: 'downloadAllRanks', message: `Downloading ${filesToDownload.length} files...` });
 
       const results: DownloadResult[] = [];
 
@@ -334,7 +328,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
       for (let i = 0; i < linksCount; i++) {
         const link = filesToDownload[i];
 
-        this.logger.log(`Progress: ${i + 1}/${linksCount} - ${link.fileName}`);
+        this.logger.log({ logTag: 'downloadAllRanks', message: `Progress: ${i + 1}/${linksCount} - ${link.fileName}` });
 
         const result = await this.downloadFile(link);
         results.push(result);
@@ -348,7 +342,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
           successful++;
         } else {
           failed++;
-          this.logger.error(`Failed to download ${link.fileName}: ${result.error}`);
+          this.logger.error({ logTag: 'downloadAllRanks', message: `Failed to download ${link.fileName}: ${result.error}` });
         }
 
         // Rate limiting between downloads
@@ -366,23 +360,21 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
         results
       };
 
-      this.logger.log(`Download Summary:`);
-      this.logger.log(`  Total files: ${summary.totalFiles}`);
-      this.logger.log(`  ✅ Successful: ${summary.successful}`);
-      this.logger.log(`  ❌ Failed: ${summary.failed}`);
-      this.logger.log(`  ⏭️ Skipped: ${summary.skipped}`);
-      this.logger.log(`  📁 Location: ${summary.downloadPath}`);
+      this.logger.log({ logTag: 'downloadAllRanks', message: 'Download Summary:' });
+      this.logger.log({ logTag: 'downloadAllRanks', message: `  Total files: ${summary.totalFiles}` });
+      this.logger.log({ logTag: 'downloadAllRanks', message: `  ✅ Successful: ${summary.successful}` });
+      this.logger.log({ logTag: 'downloadAllRanks', message: `  ❌ Failed: ${summary.failed}` });
+      this.logger.log({ logTag: 'downloadAllRanks', message: `  ⏭️ Skipped: ${summary.skipped}` });
+      this.logger.log({ logTag: 'downloadAllRanks', message: `  📁 Location: ${summary.downloadPath}` });
 
       return summary;
 
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag,
-          message: 'Bulk download failed',
-          error: errorOrException,
-        }
-      );
+      this.logger.error({
+        logTag,
+        message: 'Bulk download failed',
+        errorOrException,
+      });
       throw errorOrException;
     }
   }
@@ -398,20 +390,20 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
         'eu_'
       );
 
-      this.logger.log(`Found ${listWowProgressGzipFiles.length} rank files`);
+      this.logger.log({ logTag: 'extractAllGuildRanks', message: `Found ${listWowProgressGzipFiles.length} rank files` });
 
       this.keyEntities = await getKeys(this.keysRepository, clearance, false, true);
 
       for (const fileName of listWowProgressGzipFiles) {
         const realmName = extractRealmName(fileName);
         if (!realmName) {
-          this.logger.log(`  ⏭️ Skipped: unable to extract realm ${realmName}`);
+          this.logger.log({ logTag: 'extractAllGuildRanks', message: `  ⏭️ Skipped: unable to extract realm ${realmName}` });
           continue;
         }
 
         const realm = await findRealm(this.realmsRepository, realmName);
         if (!realm) {
-          this.logger.log(`  ⏭️ Skipped: findRealm ${realmName} not found`);
+          this.logger.log({ logTag: 'extractAllGuildRanks', message: `  ⏭️ Skipped: findRealm ${realmName} not found` });
           continue;
         }
 
@@ -422,7 +414,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
 
         const isGuildRankingArray = isValidArray(jsonRankings);
         if (!isGuildRankingArray) {
-          this.logger.log(`  ⏭️ Skipped: realm ${realm.slug} not found`);
+          this.logger.log({ logTag: 'extractAllGuildRanks', message: `  ⏭️ Skipped: realm ${realm.slug} not found` });
           continue;
         }
 
@@ -433,17 +425,15 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
           );
 
         await this.queueGuilds.addBulk(guildRankings);
-        this.logger.log(`  ✅ Successful: add ${guildRankings.length} guild jobs to queue`);
+        this.logger.log({ logTag: 'extractAllGuildRanks', message: `  ✅ Successful: add ${guildRankings.length} guild jobs to queue` });
       }
 
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag,
-          message: errorOrException.message,
-          error: errorOrException,
-        }
-      );
+      this.logger.error({
+        logTag,
+        message: errorOrException.message,
+        errorOrException,
+      });
     }
   }
 
@@ -488,13 +478,12 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
       if (this.browser) {
         await this.browser.close();
       }
-      this.logger.log('Browser resources cleaned up');
+      this.logger.log({ logTag: 'onApplicationShutdown', message: 'Browser resources cleaned up' });
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({
+        logTag: 'onApplicationShutdown',
+        errorOrException,
+      });
     }
   }
 }

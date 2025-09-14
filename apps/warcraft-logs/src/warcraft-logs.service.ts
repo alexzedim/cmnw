@@ -69,7 +69,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
     try {
       const lock = Boolean(await this.redisService.exists(KEY_LOCK.WARCRAFT_LOGS));
       if (lock) {
-        this.logger.warn(`indexWarcraftLogs is already running`);
+        this.logger.warn({ logTag: 'indexWarcraftLogs', message: 'indexWarcraftLogs is already running' });
         return;
       }
 
@@ -84,12 +84,10 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
       }
 
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: WarcraftLogsService.name,
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({
+        logTag: 'indexWarcraftLogs',
+        errorOrException,
+      });
     } finally {
       await this.redisService.del(KEY_LOCK.WARCRAFT_LOGS);
     }
@@ -132,12 +130,10 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
 
       return Array.from(warcraftLogsMap.values());
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: 'getLogsFromPage',
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({
+        logTag: 'getLogsFromPage',
+        errorOrException,
+      });
     }
   }
 
@@ -163,17 +159,19 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         ];
 
         if (isLogsMoreThen) {
-          this.logger.log(
-            `BREAK | ${realmEntity.name} | Logs: ${logsAlreadyExists} > ${this.config.wclLogs}`,
-          );
+          this.logger.log({
+            logTag: 'indexCharacterRaidLogs',
+            message: `BREAK | ${realmEntity.name} | Logs: ${logsAlreadyExists} > ${this.config.wclLogs}`,
+          });
           break;
         }
 
         // --- If parsed page have no results --- //
         if (isPageEmpty) {
-          this.logger.log(
-            `ERROR | ${realmEntity.name} | Page: ${page} | Logs not found`,
-          );
+          this.logger.log({
+            logTag: 'indexCharacterRaidLogs',
+            message: `ERROR | ${realmEntity.name} | Page: ${page} | Logs not found`,
+          });
           break;
         }
 
@@ -184,9 +182,10 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
           // --- If exists counter --- //
           if (characterRaidLog) {
             logsAlreadyExists += 1;
-            this.logger.log(
-              `EXISTS | ID: ${logId} | R: ${realmEntity.name} | Log EX: ${logsAlreadyExists}`,
-            );
+            this.logger.log({
+              logTag: 'indexCharacterRaidLogs',
+              message: `EXISTS | ID: ${logId} | R: ${realmEntity.name} | Log EX: ${logsAlreadyExists}`,
+            });
             continue;
           }
 
@@ -196,21 +195,20 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
               isIndexed: false,
               createdAt,
             });
-            this.logger.log(
-              `CREATED | ID: ${logId} | R: ${realmEntity.name} | Log EX: ${logsAlreadyExists}`,
-            );
+            this.logger.log({
+              logTag: 'indexCharacterRaidLogs',
+              message: `CREATED | ID: ${logId} | R: ${realmEntity.name} | Log EX: ${logsAlreadyExists}`,
+            });
 
             if (logsAlreadyExists > 1) logsAlreadyExists -= 1;
           }
         }
       }
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: 'indexCharacterRaidLogs',
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({
+        logTag: 'indexCharacterRaidLogs',
+        errorOrException,
+      });
     }
   }
 
@@ -219,7 +217,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
     try {
       const isJobLocked = Boolean(await this.redisService.exists(GLOBAL_WCL_KEY_V2));
       if (isJobLocked) {
-        this.logger.warn(`indexLogs is already running`);
+        this.logger.warn({ logTag: 'indexLogs', message: 'indexLogs is already running' });
         return;
       }
 
@@ -234,7 +232,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
       });
 
       if (!characterRaidLog.length) {
-        this.logger.warn(`No logs to index`);
+        this.logger.warn({ logTag: 'indexLogs', message: 'No logs to index' });
         return;
       }
 
@@ -245,14 +243,12 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         ),
       );
 
-      this.logger.log(`indexLogs: character raid logs | ${characterRaidLog.length}`);
+      this.logger.log({ logTag: 'indexLogs', message: `character raid logs | ${characterRaidLog.length}` });
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: 'indexLogs',
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({
+        logTag: 'indexLogs',
+        errorOrException,
+      });
     } finally {
       await this.redisService.del(GLOBAL_WCL_KEY_V2);
     }
@@ -270,16 +266,14 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         { isIndexed: true },
       );
 
-      this.logger.log(`Log: ${characterRaidLogEntity.logId} | indexed: isIndexed: true`);
+      this.logger.log({ logTag: 'indexLogAndPushCharactersToQueue', message: `Log: ${characterRaidLogEntity.logId} | indexed: isIndexed: true` });
 
       await this.charactersToQueue(raidCharacters);
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: 'indexLogAndPushCharactersToQueue',
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({
+        logTag: 'indexLogAndPushCharactersToQueue',
+        errorOrException,
+      });
     }
   }
 
@@ -393,17 +387,16 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
       });
 
       await this.characterQueue.addBulk(charactersToJobs);
-      this.logger.log(
-        `addCharacterToQueue | ${charactersToJobs.length} characters to characterQueue`,
-      );
+      this.logger.log({
+        logTag: 'charactersToQueue',
+        message: `${charactersToJobs.length} characters added to characterQueue`,
+      });
       return true;
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: 'addCharacterToQueue',
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({
+        logTag: 'charactersToQueue',
+        errorOrException,
+      });
       return false;
     }
   }
