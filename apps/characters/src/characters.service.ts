@@ -14,7 +14,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { CharactersEntity, KeysEntity } from '@app/pg';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { RegionIdOrName } from 'blizzapi';
+import { RegionIdOrName } from '@alexzedim/blizzapi';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import { S3Service } from '@app/s3';
 import ms from 'ms';
