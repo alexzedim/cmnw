@@ -248,7 +248,7 @@ importers:
 packages:
 
   '@alexzedim/blizzapi@2.7.0':
-    resolution: {integrity: sha512-d6dxC1UhGo6LiEKRWJA5yMQxJWHXrKMb3p3HXjutX3k/H0c3T4eEp+ut5BTDMKGH+TQpfPfHI8GE3GCriTz2Ow==, tarball: https://npm.pkg.github.com/download/@alexzedim/blizzapi/2.7.0/4c38a348030a1a54448658a1ac5348038efc639d}
+    resolution: {integrity: sha512-QtYMzZgFVuuKuFWKJidpW1xC763Hnms2/zFsh6IVgGkg9E+x9SdGZInXUZiGoYMLObEQnXFFiBmWfpfbMyzPMg==, tarball: https://registry.npmjs.org/@alexzedim/blizzapi/-/blizzapi-2.7.0.tgz}
 
   '@angular-devkit/core@19.2.15':
     resolution: {integrity: sha512-pU2RZYX6vhd7uLSdLwPnuBcr0mXJSjp3EgOXKsrlQFQZevc+Qs+2JdXgIElnOT/aDqtRtriDmLlSbtdE8n3ZbA==}
