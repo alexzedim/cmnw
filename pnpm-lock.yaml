@@ -75,9 +75,6 @@ importers:
       axios:
         specifier: 1.9.0
         version: 1.9.0
-      blizzapi:
-        specifier: 2.6.5
-        version: 2.6.5
       bullmq:
         specifier: 5.53.0
         version: 5.53.0
@@ -2008,9 +2005,6 @@ packages:
 
   bl@4.1.0:
     resolution: {integrity: sha512-1W07cM9gS6DcLperZfFSj+bWLtaPGSOHWhPiGzXmvVJbRLdG82sH/Kn8EtW1VqWVA54AKf2h5k5BbnIbwF3h6w==}
-
-  blizzapi@2.6.5:
-    resolution: {integrity: sha512-to5QTPIZH0qrZLl0rZLfLPQSIJIi7mZ1HMuX0IcMLuy+v7BGepwyRawz9R076Nk1IJbGpDGSu09JmIURBGJUXQ==}
 
   body-parser@2.2.0:
     resolution: {integrity: sha512-02qvAaxv8tp7fBa/mw1ga98OGm+eCbqzJOKoRt70sLmfEEi+jyBYVTDGfCL/k06/4EMk/z01gCe7HoCH/f2LTg==}
@@ -7158,12 +7152,6 @@ snapshots:
       buffer: 5.7.1
       inherits: 2.0.4
       readable-stream: 3.6.2
-
-  blizzapi@2.6.5:
-    dependencies:
-      axios: 1.9.0
-    transitivePeerDependencies:
-      - debug
 
   body-parser@2.2.0:
     dependencies:

@@ -17,8 +17,6 @@ RUN rm -rf cmnw-secrets
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
-# Installing private github packages #
-RUN echo @alexzedim:registry=https://npm.pkg.github.com/ >> ~/.npmrc
 
 RUN corepack pnpm install
 

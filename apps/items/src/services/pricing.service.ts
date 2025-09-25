@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { S3Service } from '@app/s3';
 import { InjectQueue } from '@nestjs/bullmq';
-import { BlizzAPI } from 'blizzapi';
+import { BlizzAPI } from '@alexzedim/blizzapi';
 import { Queue } from 'bullmq';
 import csv from 'async-csv';
 import { Cron, CronExpression } from '@nestjs/schedule';

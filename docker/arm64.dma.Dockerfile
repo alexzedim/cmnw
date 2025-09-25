@@ -12,8 +12,6 @@ WORKDIR /usr/src/app
 
 COPY ../package.json ./
 
-# Installing private github packages #
-RUN echo @alexzedim:registry=https://npm.pkg.github.com/ >> ~/.npmrc
 
 RUN corepack pnpm install
 

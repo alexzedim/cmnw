@@ -35,8 +35,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
-          registry-url: 'https://npm.pkg.github.com' # Specify the GitHub Packages registry URL
-          scope: '@alexzedim' # Your npm scope
 
       - name: Enable corepack
         run: corepack enable
@@ -75,7 +73,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
-            NODE_AUTH_TOKEN=${{ secrets.GITHUB_TOKEN }}
 
       - name: Image digest
         run: |

@@ -15,12 +15,6 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 # Enable corepack before using it
 RUN corepack enable
 
-# Accept NODE_AUTH_TOKEN as build argument
-ARG NODE_AUTH_TOKEN
-
-# Configure npm registry for scoped packages with authentication
-RUN echo "@alexzedim:registry=https://npm.pkg.github.com/" >> ~/.npmrc && \
-    echo "//npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}" >> ~/.npmrc
 
 # Install dependencies
 RUN corepack pnpm install
