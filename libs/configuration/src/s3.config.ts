@@ -9,28 +9,16 @@ export const s3Config: S3Config = {
   endpoint: process.env.S3_HOST,
   forcePathStyle: true,
   moduleOptions: {
-    defaultBucket: 'cmnw-default',
+    defaultBucket: 'cmnw',
     buckets: [
       {
+        bucketName: 'cmnw',
+        enableVersioning: true,
+        enableEncryption: true,
+        encryptionAlgorithm: 'AES256',
+      },
+      {
         bucketName: 'cmnw-wow-progress',
-        enableVersioning: true,
-        enableEncryption: true,
-        encryptionAlgorithm: 'AES256',
-      },
-      {
-        bucketName: 'cmnw-characters',
-        enableVersioning: true,
-        enableEncryption: true,
-        encryptionAlgorithm: 'AES256',
-      },
-      {
-        bucketName: 'cmnw-items',
-        enableVersioning: true,
-        enableEncryption: true,
-        encryptionAlgorithm: 'AES256',
-      },
-      {
-        bucketName: 'cmnw-core',
         enableVersioning: true,
         enableEncryption: true,
         encryptionAlgorithm: 'AES256',
