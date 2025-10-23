@@ -10,7 +10,6 @@ import {
   HeadObjectCommand,
   ListObjectsV2Command,
   ListObjectsV2CommandInput,
-  PutBucketEncryptionCommand,
   PutBucketVersioningCommand,
   PutObjectCommand,
 } from '@aws-sdk/client-s3';
@@ -131,26 +130,8 @@ export class S3Service implements OnModuleInit {
             Status: 'Enabled',
           },
         }));
+        this.logger.log(`Configured versioning for bucket '${bucketName}'`);
       }
-
-      // Enable server-side encryption if requested
-      if (config?.enableEncryption !== false) {
-        const algorithm = config?.encryptionAlgorithm || 'AES256';
-        await this.s3.send(new PutBucketEncryptionCommand({
-          Bucket: bucketName,
-          ServerSideEncryptionConfiguration: {
-            Rules: [
-              {
-                ApplyServerSideEncryptionByDefault: {
-                  SSEAlgorithm: algorithm,
-                },
-              },
-            ],
-          },
-        }));
-      }
-
-      this.logger.log(`Configured settings for bucket '${bucketName}'`);
     } catch (error) {
       this.logger.warn(`Failed to configure bucket settings for '${bucketName}': ${error.message}`);
       // Don't throw here - bucket creation succeeded
@@ -248,6 +229,9 @@ export class S3Service implements OnModuleInit {
         overwrite = true,
         bucketName = this.defaultBucket,
       } = options || {};
+
+      // Ensure bucket exists before writing
+      await this.ensureBucketExists(bucketName);
 
       // Check if file exists and overwrite is false
       if (!overwrite) {

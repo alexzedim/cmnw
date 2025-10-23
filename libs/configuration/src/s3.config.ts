@@ -14,14 +14,12 @@ export const s3Config: S3Config = {
       {
         bucketName: 'cmnw',
         enableVersioning: true,
-        enableEncryption: true,
-        encryptionAlgorithm: 'AES256',
+        enableEncryption: false,
       },
       {
         bucketName: 'cmnw-wow-progress',
         enableVersioning: true,
-        enableEncryption: true,
-        encryptionAlgorithm: 'AES256',
+        enableEncryption: false,
       },
     ],
   },
