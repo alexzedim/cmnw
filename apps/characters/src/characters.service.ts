@@ -129,13 +129,13 @@ export class CharactersService implements OnApplicationBootstrap {
       this.logger.log({ logTag, isIndexCharactersFromFile, message: `Index from file: ${isIndexCharactersFromFile}` });
       if (!isIndexCharactersFromFile) return;
 
-      // Load characters from S3 cmnw-default bucket
+      // Load characters from S3 cmnw bucket
       let charactersJson: string;
       try {
-        charactersJson = await this.s3Service.readFile('characters.json', 'cmnw-default');
-        this.logger.log({ logTag, bucket: 'cmnw-default', filename: 'characters.json', message: 'Characters loaded from S3' });
+        charactersJson = await this.s3Service.readFile('characters.json', 'cmnw');
+        this.logger.log({ logTag, bucket: 'cmnw', filename: 'characters.json', message: 'Characters loaded from S3' });
       } catch (error) {
-        this.logger.error({ logTag, bucket: 'cmnw-default', filename: 'characters.json', errorOrException: error, message: 'File not found in S3 bucket' });
+        this.logger.error({ logTag, bucket: 'cmnw', filename: 'characters.json', errorOrException: error, message: 'File not found in S3 bucket' });
         throw new Error('Characters file not found in S3: characters.json');
       }
       
