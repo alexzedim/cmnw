@@ -52,14 +52,14 @@ export class PricingService implements OnApplicationBootstrap {
   ) { }
 
   /**
-   * Helper method to read CSV files from S3 cmnw-default bucket
+   * Helper method to read CSV files from S3 cmnw bucket
    */
   private async readCsvFile(fileName: string): Promise<string> {
     const logTag = 'readCsvFile';
     try {
-      return await this.s3Service.readFile(fileName, 'cmnw-default');
+      return await this.s3Service.readFile(fileName, 'cmnw');
     } catch (errorOrException) {
-      this.logger.error({ logTag, fileName, bucket: 'cmnw-default', errorOrException, message: `CSV file not found in S3 bucket: ${fileName}` });
+      this.logger.error({ logTag, fileName, bucket: 'cmnw', errorOrException, message: `CSV file not found in S3 bucket: ${fileName}` });
       throw new Error(`CSV file not found in S3: ${fileName}`);
     }
   }
