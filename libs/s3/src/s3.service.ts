@@ -34,7 +34,7 @@ export class S3Service implements OnModuleInit {
     @Inject('S3_MODULE_OPTIONS')
     private readonly _moduleOptions: S3ModuleOptions,
   ) {
-    this.defaultBucket = this._moduleOptions.defaultBucket || 'cmnw-default';
+    this.defaultBucket = this._moduleOptions.defaultBucket || 'cmnw';
     this.buckets = new Map();
     if (this._moduleOptions.buckets) {
       this._moduleOptions.buckets.forEach(_bucket => {
@@ -164,7 +164,7 @@ export class S3Service implements OnModuleInit {
 
   /**
    * Get bucket name for a specific context (app/service)
-   * @param context - Context identifier (e.g., 'wow-progress', 'characters', 'items', 'core')
+   * @param context - Context identifier (e.g., 'wow-progress')
    * @returns bucket name for the context or default bucket
    */
   getBucketName(context?: string): string {
@@ -172,15 +172,12 @@ export class S3Service implements OnModuleInit {
       return this.defaultBucket;
     }
 
-    // Map context to bucket name
-    const contextToBucket = new Map<string, string>([
-      ['wow-progress', 'cmnw-wow-progress'],
-      ['characters', 'cmnw-characters'],
-      ['items', 'cmnw-items'],
-      ['core', 'cmnw-core'],
-    ]);
+    // Only wow-progress has a separate bucket
+    if (context === 'wow-progress') {
+      return 'cmnw-wow-progress';
+    }
 
-    return contextToBucket.get(context) || this.defaultBucket;
+    return this.defaultBucket;
   }
 
   // Get S3 client
