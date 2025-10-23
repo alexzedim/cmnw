@@ -40,10 +40,10 @@ export class KeysService implements OnApplicationBootstrap {
     try {
       let keysJson: string;
       try {
-        keysJson = await this.s3Service.readFile('keys.json', 'cmnw-default');
-        this.logger.log({ logTag, message: 'Keys loaded from S3 (cmnw-default)' });
+        keysJson = await this.s3Service.readFile('keys.json', 'cmnw');
+        this.logger.log({ logTag, message: 'Keys loaded from S3 (cmnw)' });
       } catch (error) {
-        this.logger.error({ logTag, errorOrException: error, message: 'File not found in S3 bucket cmnw-default' });
+        this.logger.error({ logTag, errorOrException: error, message: 'File not found in S3 bucket cmnw' });
         throw new Error(`Keys configuration file not found in S3`);
       }
 
