@@ -3,8 +3,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { dmaConfig } from '@app/configuration';
-import fs from 'fs-extra';
-import path from 'path';
+import { S3Service } from '@app/s3';
 import csv from 'async-csv';
 import { lastValueFrom, mergeMap, range } from 'rxjs';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -32,6 +31,7 @@ export class ItemsService implements OnApplicationBootstrap {
     private readonly itemsRepository: Repository<ItemsEntity>,
     @InjectQueue(itemsQueue.name)
     private readonly queue: Queue<ItemJobQueue, number>,
+    private readonly s3Service: S3Service,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -105,44 +105,55 @@ export class ItemsService implements OnApplicationBootstrap {
       this.logger.log({ logTag, isItemsBuild, message: `Build items enabled: ${isItemsBuild}` });
       if (!isItemsBuild) return;
 
-      const filesPath = path.join(__dirname, '..', '..', '..', 'files');
-      await fs.ensureDir(filesPath);
+      // Check if itemsparse.csv exists in S3
+      const fileName = 'itemsparse.csv';
+      const fileExists = await this.s3Service.fileExists(fileName, 'cmnw');
+      
+      if (!fileExists) {
+        this.logger.warn({ logTag, fileName, bucket: 'cmnw', message: `File not found in S3 bucket` });
+        return;
+      }
 
-      const files = await fs.readdir(filesPath);
-      // TODO taxonomy
-      // const isTaxonomyExists = files.includes('taxonomy.csv');
-      const isItemsParseExists = files.includes('itemsparse.csv');
-
-      if (isItemsParseExists)
-        await this.extendItemsWithExpansionTicker(filesPath, `itemsparse.csv`);
+      await this.extendItemsWithExpansionTicker(fileName);
 
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });
     }
   }
 
-  async extendItemsWithExpansionTicker(filesPath: string, file: string) {
-    const filePath = path.join(filesPath, file);
-    const csvString = await fs.readFile(filePath, 'utf-8');
+  async extendItemsWithExpansionTicker(fileName: string) {
+    const logTag = this.extendItemsWithExpansionTicker.name;
+    try {
+      // Read CSV file from S3
+      const csvString = await this.s3Service.readFile(fileName, 'cmnw');
+      this.logger.log({ logTag, fileName, bucket: 'cmnw', message: 'CSV file loaded from S3' });
 
-    const rows = await csv.parse(csvString, {
-      columns: true,
-      skip_empty_lines: true,
-      cast: (value: number | string) => toStringOrNumber(value),
-    });
+      const rows = await csv.parse(csvString, {
+        columns: true,
+        skip_empty_lines: true,
+        cast: (value: number | string) => toStringOrNumber(value),
+      });
 
-    for (const row of rows as Array<IItemsParse>) {
-      const { ID: itemId, Stackable: stackable, ExpansionID: expansionId } = row;
-      const itemEntity: Partial<ItemsEntity> = {
-        stackable,
-      };
+      this.logger.log({ logTag, rowCount: rows.length, message: `Processing ${rows.length} rows from CSV` });
 
-      const hasExpansion = EXPANSION_TICKER_ID.has(expansionId);
-      if (hasExpansion) {
-        itemEntity.expansion = EXPANSION_TICKER_ID.get(expansionId);
+      for (const row of rows as Array<IItemsParse>) {
+        const { ID: itemId, Stackable: stackable, ExpansionID: expansionId } = row;
+        const itemEntity: Partial<ItemsEntity> = {
+          stackable,
+        };
+
+        const hasExpansion = EXPANSION_TICKER_ID.has(expansionId);
+        if (hasExpansion) {
+          itemEntity.expansion = EXPANSION_TICKER_ID.get(expansionId);
+        }
+
+        await this.itemsRepository.update({ id: itemId }, itemEntity);
       }
 
-      await this.itemsRepository.update({ id: itemId }, itemEntity);
+      this.logger.log({ logTag, rowCount: rows.length, message: `Successfully processed ${rows.length} items` });
+    } catch (errorOrException) {
+      this.logger.error({ logTag, fileName, errorOrException });
+      throw errorOrException;
     }
   }
 }
