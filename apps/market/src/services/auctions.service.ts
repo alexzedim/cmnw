@@ -70,7 +70,7 @@ export class AuctionsService implements OnApplicationBootstrap {
       await lastValueFrom(
         from(realmsEntity).pipe(
           mergeMap(async (realmEntity) => {
-            const jobId = `AUCTION:${realmEntity.connectedRealmId}`;
+            const jobId = `AUCTION_${realmEntity.connectedRealmId}`;
 
             await this.queue.add(`${realmEntity.connectedRealmId}`, {
               connectedRealmId: realmEntity.connectedRealmId,
@@ -114,7 +114,7 @@ export class AuctionsService implements OnApplicationBootstrap {
         connectedRealmId: REALM_ENTITY_ANY.id,
       });
 
-      const jobId = `COMMODITY:${realmEntity.commoditiesTimestamp}`;
+      const jobId = `COMMODITY_${realmEntity.commoditiesTimestamp}`;
 
       const commodityJob = await this.queue.getJob(jobId);
 

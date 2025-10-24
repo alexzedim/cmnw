@@ -76,7 +76,7 @@ export class ValuationsService implements OnApplicationBootstrap {
           .lean()
           .cursor()
           .eachAsync(async (item) => {
-            const _id = `${item._id}@${connected_realm_id}:${timestamp}`;
+            const _id = `${item._id}@${connected_realm_id}_${timestamp}`;
             await this.queue.add(
               _id, {
                 _id: item._id,
