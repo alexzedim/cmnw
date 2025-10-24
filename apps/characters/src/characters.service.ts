@@ -191,8 +191,6 @@ export class CharactersService implements OnApplicationBootstrap {
       this.logger.log({ logTag, charactersCount, insertedCount: characterIteration, message: `Processed ${charactersCount} characters, inserted ${characterIteration}` });
       
       // Mark file as imported with checksum
-      const fileChecksum = createHash('md5').update(charactersJson).digest('hex');
-      const redisKey = `CHARACTERS_FILE_IMPORTED:${fileChecksum}`;
       await this.redisService.set(redisKey, Date.now(), 'EX', 60 * 60 * 24 * 30); // 30 days TTL
       this.logger.log({ logTag, fileChecksum, message: 'Characters file marked as imported' });
     } catch (errorOrException) {
