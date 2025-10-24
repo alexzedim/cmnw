@@ -143,20 +143,20 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
           'delayed',
         );
 
-        this.waitingGauge.set({ queue: name, worker_id: this.workerId }, counts.waiting);
-        this.activeGauge.set({ queue: name, worker_id: this.workerId }, counts.active);
-        this.completedGauge.set({ queue: name, worker_id: this.workerId }, counts.completed);
-        this.failedGauge.set({ queue: name, worker_id: this.workerId }, counts.failed);
-        this.delayedGauge.set({ queue: name, worker_id: this.workerId }, counts.delayed);
+        this.waitingGauge.labels(name, this.workerId).set(counts.waiting);
+        this.activeGauge.labels(name, this.workerId).set(counts.active);
+        this.completedGauge.labels(name, this.workerId).set(counts.completed);
+        this.failedGauge.labels(name, this.workerId).set(counts.failed);
+        this.delayedGauge.labels(name, this.workerId).set(counts.delayed);
 
         // Calculate processing rate
         const completedJobs = await queue.getCompleted(0, 99);
         const processingRate = await this.calculateProcessingRate(completedJobs);
-        this.processingRateGauge.set({ queue: name, worker_id: this.workerId }, processingRate);
+        this.processingRateGauge.labels(name, this.workerId).set(processingRate);
 
         // Calculate average processing time
         const avgTime = await this.calculateAverageProcessingTime(completedJobs);
-        this.avgProcessingTimeGauge.set({ queue: name, worker_id: this.workerId }, avgTime);
+        this.avgProcessingTimeGauge.labels(name, this.workerId).set(avgTime);
 
         // Note: bullmq_jobs_total counter should be incremented by workers on job completion
         // NOT here in the metrics collection loop, as that would cause incorrect totals
