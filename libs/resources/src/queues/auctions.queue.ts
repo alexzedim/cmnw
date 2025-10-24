@@ -9,7 +9,7 @@ const options: JobsOptions = {
 export const auctionsQueue: IQueue = {
   name: 'OSINT_Auctions',
   workerOptions: {
-    // concurrency: 5,
+    concurrency: parseInt(process.env.AUCTIONS_WORKER_CONCURRENCY || '1', 10),
     lockDuration: 600_000,
   },
   defaultJobOptions: options,

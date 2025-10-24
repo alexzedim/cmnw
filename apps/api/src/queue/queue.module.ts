@@ -16,11 +16,10 @@ import {
 import { profileQueue } from '@app/resources/queues/profile.queue';
 import { QueueMonitorController } from './queue-monitor.controller';
 import { QueueMonitorService } from './queue-monitor.service';
+import { WorkersController } from './workers.controller';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
-import {
-  QueueMetricsService,
-  queueMetricsProviders,
-} from './queue-metrics.service';
+import { QueueMetricsService } from './queue-metrics.service';
+import { queueMetricsProviders } from './queue-metrics.provider';
 
 @Module({
   imports: [
@@ -73,7 +72,7 @@ import {
       { name: profileQueue.name, adapter: BullMQAdapter },
     ),
   ],
-  controllers: [QueueMonitorController],
+  controllers: [QueueMonitorController, WorkersController],
   providers: [QueueMonitorService, QueueMetricsService, ...queueMetricsProviders],
 })
 export class QueueModule {}

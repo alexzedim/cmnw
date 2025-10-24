@@ -6,7 +6,9 @@ services:
     command: [ 'node', '--max-old-space-size=4096', 'dist/apps/dma/main.js' ]
     deploy:
       mode: replicated
-      replicas: 2
+      replicas: ${DMA_REPLICAS:-2}
+    environment:
+      - AUCTIONS_WORKER_CONCURRENCY=${AUCTIONS_WORKER_CONCURRENCY:-1}
     env_file:
       - stack.env
 
@@ -21,5 +23,7 @@ services:
     image: ghcr.io/alexzedim/dma:latest
     restart: always
     command: [ 'node', 'dist/apps/items/main.js' ]
+    environment:
+      - ITEMS_WORKER_CONCURRENCY=${ITEMS_WORKER_CONCURRENCY:-3}
     env_file:
       - stack.env

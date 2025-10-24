@@ -9,7 +9,7 @@ const options: JobsOptions = {
 export const itemsQueue: IQueue = {
   name: 'DMA_Items',
   workerOptions: {
-    // concurrency: 3
+    concurrency: parseInt(process.env.ITEMS_WORKER_CONCURRENCY || '3', 10),
   },
   defaultJobOptions: options,
 };
