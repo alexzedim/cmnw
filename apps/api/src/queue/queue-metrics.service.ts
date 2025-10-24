@@ -78,6 +78,8 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit() {
+    this.logger.log(`QueueMetricsService initialized with worker_id: ${this.workerId}`);
+    
     // Initial metrics collection
     await this.updateMetrics();
 
