@@ -16,7 +16,7 @@ services:
     restart: always
     command: [ 'node', 'dist/apps/api/main.js' ]
     ports:
-      - '3000:8000'
+      - '3000:8080'
     env_file:
       - stack.env
     networks:
