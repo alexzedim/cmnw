@@ -25,7 +25,8 @@ RUN npm install -g @nestjs/cli
 # Copy source code
 COPY . .
 
-RUN nest build core
+RUN nest build core \
+  && nest build api
 
 CMD ["node"]
 
