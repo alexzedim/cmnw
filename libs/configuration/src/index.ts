@@ -10,4 +10,5 @@ export { cmnwConfig } from './cmnw.config';
 export { lokiConfig } from './loki.config';
 export { dmaConfig } from './dma.config';
 export { s3Config } from './s3.config';
+export { workerConfig } from './worker.config';
 export * from './interfaces';

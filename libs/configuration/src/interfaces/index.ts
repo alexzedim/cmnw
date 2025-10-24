@@ -9,4 +9,5 @@ export { IDmaConfig } from './dma.interface';
 export { IOsintConfig } from './osint.interface';
 export { IValuations } from './valuations.interface';
 export { IPostgres, IPostgresConfig } from './postgres.interface';
+export { IWorkerConfig } from './worker.interface';
 
