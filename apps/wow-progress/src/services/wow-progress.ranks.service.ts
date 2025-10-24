@@ -25,13 +25,13 @@ import {
   isValidArray,
   isWowProgressJson,
   extractRealmName,
-  findRealm,
   WowProgressJson,
   toGuid, getKeys,
   GLOBAL_OSINT_KEY,
   OSINT_SOURCE,
   IGuildJob,
 } from '@app/resources';
+import { findRealm } from '@app/resources/dao/realms.dao';
 
 
 @Injectable()

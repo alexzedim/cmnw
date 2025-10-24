@@ -43,6 +43,7 @@ import {
   toGuid,
   toSlug,
 } from '@app/resources';
+import { findRealm } from '@app/resources/dao/realms.dao';
 
 import {
   CharactersEntity,

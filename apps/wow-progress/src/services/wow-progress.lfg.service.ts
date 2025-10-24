@@ -13,7 +13,6 @@ import { Queue } from 'bullmq';
 import {
   CharacterJobQueue,
   charactersQueue,
-  findRealm,
   getKeys, getRandomElement,
   GLOBAL_OSINT_KEY,
   ICharacterQueueWP,
@@ -23,6 +22,7 @@ import {
   ProfileJobQueue,
   profileQueue, toSlug,
 } from '@app/resources';
+import { findRealm } from '@app/resources/dao/realms.dao';
 
 @Injectable()
 export class WowProgressLfgService {

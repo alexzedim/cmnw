@@ -15,7 +15,6 @@ import {
   apiConstParams,
   BROWSER_HEADERS,
   delay,
-  findRealm,
   getKeys,
   GLOBAL_KEY,
   OSINT_TIMEOUT_TOLERANCE,
@@ -23,6 +22,7 @@ import {
   RealmJobQueue,
   realmsQueue,
 } from '@app/resources';
+import { findRealm } from '@app/resources/dao/realms.dao';
 
 @Injectable()
 export class RealmsService implements OnApplicationBootstrap {

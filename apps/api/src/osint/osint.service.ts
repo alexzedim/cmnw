@@ -31,7 +31,6 @@ import {
   CharacterJobQueue,
   CharactersLfgDto,
   charactersQueue,
-  findRealm,
   getKeys,
   GLOBAL_OSINT_KEY,
   GuildIdDto,
@@ -42,6 +41,7 @@ import {
   RealmDto,
   toGuid,
 } from '@app/resources';
+import { findRealm } from '@app/resources/dao/realms.dao';
 
 @Injectable()
 export class OsintService {
