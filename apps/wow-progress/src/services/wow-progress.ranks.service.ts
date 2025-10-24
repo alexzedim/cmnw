@@ -8,6 +8,9 @@ import stealth from 'puppeteer-extra-plugin-stealth'
 import { Browser, Page } from 'playwright';
 import { S3Service } from '@app/s3';
 import ms from 'ms';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+import { createHash } from 'crypto';
 import {
   Injectable,
   Logger,
@@ -48,6 +51,8 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
   private page: Page;
 
   constructor(
+    @InjectRedis()
+    private readonly redisService: Redis,
     private s3Service: S3Service,
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
@@ -417,6 +422,17 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
           continue;
         }
 
+        // Calculate file checksum and check if already imported
+        const fileContent = JSON.stringify(jsonRankings);
+        const fileChecksum = createHash('md5').update(fileContent).digest('hex');
+        const redisKey = `WP_RANKS_FILE_IMPORTED:${fileChecksum}`;
+        
+        const isAlreadyImported = await this.redisService.exists(redisKey);
+        if (isAlreadyImported) {
+          this.logger.log({ logTag: 'extractAllGuildRanks', fileChecksum, fileName, message: `File already imported, skipping` });
+          continue;
+        }
+
         const guildRankings = (jsonRankings as Array<unknown>)
           .filter(guild => isWowProgressJson(guild))
           .map((wowProgressGuild) =>
@@ -425,6 +441,10 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
 
         await this.queueGuilds.addBulk(guildRankings);
         this.logger.log({ logTag: 'extractAllGuildRanks', message: `  ✅ Successful: add ${guildRankings.length} guild jobs to queue` });
+        
+        // Mark file as imported with checksum
+        await this.redisService.set(redisKey, Date.now(), 'EX', 60 * 60 * 24 * 30); // 30 days TTL
+        this.logger.log({ logTag: 'extractAllGuildRanks', fileChecksum, fileName, message: `File marked as imported` });
       }
 
     } catch (errorOrException) {
