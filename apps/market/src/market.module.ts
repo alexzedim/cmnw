@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { bullConfig, postgresConfig, redisConfig } from '@app/configuration';
 import { AuctionsService, ContractsService, GoldService } from './services';
 import { BullModule } from '@nestjs/bullmq';
-import { auctionsQueue } from '@app/resources';
+import { auctionsQueue, RealmsCacheService } from '@app/resources';
 import { ScheduleModule } from '@nestjs/schedule';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -42,6 +42,6 @@ import { HttpModule } from '@nestjs/axios';
     }),
   ],
   controllers: [],
-  providers: [AuctionsService, GoldService, ContractsService],
+  providers: [RealmsCacheService, AuctionsService, GoldService, ContractsService],
 })
 export class MarketModule {}
