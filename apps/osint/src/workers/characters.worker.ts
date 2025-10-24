@@ -1,6 +1,6 @@
 import { BlizzAPI } from '@alexzedim/blizzapi';
 import { Job } from 'bullmq';
-import { hash64 } from 'farmhash';
+import { hash32 } from 'farmhash';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
@@ -619,11 +619,11 @@ export class CharactersWorker extends WorkerHost {
       petsCollection.statusCode = STATUS_CODES.SUCCESS_PETS;
 
       if (hashB.length) {
-        petsCollection.hashB = BigInt(hash64(hashB.join('.'))).toString(16);
+        petsCollection.hashB = hash32(hashB.join('.')).toString(16).padStart(8, '0');
       }
 
       if (hashA.length) {
-        petsCollection.hashA = BigInt(hash64(hashA.join('.'))).toString(16);
+        petsCollection.hashA = hash32(hashA.join('.')).toString(16).padStart(8, '0');
       }
 
       return petsCollection;

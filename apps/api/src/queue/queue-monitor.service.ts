@@ -111,7 +111,7 @@ export class QueueMonitorService {
       activeJobs.slice(0, 10).map(async (job) => ({
         jobId: job.id!,
         name: job.name,
-        progress: await job.progress(),
+        progress: job.progress,
         timestamp: job.timestamp,
       })),
     );
@@ -170,7 +170,7 @@ export class QueueMonitorService {
         return {
           id: job.id!,
           name: job.name,
-          progress: (await job.progress()) as number,
+          progress: job.progress,
           state,
           timestamp: job.timestamp,
           attemptsMade: job.attemptsMade,

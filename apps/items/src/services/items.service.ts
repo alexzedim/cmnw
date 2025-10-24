@@ -86,7 +86,7 @@ export class ItemsService implements OnApplicationBootstrap {
                 accessToken: key.token,
               },
               {
-                jobId: `item:${itemId}`,
+                jobId: `item_${itemId}`,
               },
             );
 
