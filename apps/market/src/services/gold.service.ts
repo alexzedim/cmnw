@@ -20,6 +20,13 @@ import {
   round,
 } from '@app/resources';
 
+// Realm name normalization map for common scraping variations
+const REALM_NAME_NORMALIZATION = new Map<string, string>([
+  ['Aggra (Portugues)', 'Aggra (Português)'],
+  ['Pozzo dell\'Eternita', 'Pozzo dell\'Eternità'],
+  ['Marecage de Zangar', 'Marécage de Zangar'],
+]);
+
 @Injectable()
 export class GoldService implements OnApplicationBootstrap {
   private readonly logger = new Logger(GoldService.name, { timestamp: true });
@@ -116,9 +123,12 @@ export class GoldService implements OnApplicationBootstrap {
   ): Promise<MarketEntity | null> {
     const logTag = this.createMarketEntity.name;
     try {
-      const realmEntity = realmsEntity.has(order.realm)
-        ? realmsEntity.get(order.realm)
-        : await findRealm(this.realmsRepository, order.realm);
+      // Normalize realm name to handle accent variations from scraping
+      const normalizedRealmName = REALM_NAME_NORMALIZATION.get(order.realm) || order.realm;
+      
+      const realmEntity = realmsEntity.has(normalizedRealmName)
+        ? realmsEntity.get(normalizedRealmName)
+        : await findRealm(this.realmsRepository, normalizedRealmName);
 
       const connectedRealmId =
         !realmEntity && order.realm === 'Любой'
@@ -132,11 +142,12 @@ export class GoldService implements OnApplicationBootstrap {
       );
 
       if (!isValid) {
-        this.logger.warn({ logTag, realm: order.realm, price: order.price, quantity: order.quantity, message: `Invalid order data for realm: ${order.realm}` });
+        this.logger.warn({ logTag, realm: order.realm, normalizedRealm: normalizedRealmName, price: order.price, quantity: order.quantity, message: `Invalid order data for realm: ${order.realm}` });
         return null;
       }
 
-      realmsEntity.set(order.realm, realmEntity);
+      // Cache using normalized name for consistent lookups
+      realmsEntity.set(normalizedRealmName, realmEntity);
       connectedRealmIds.add(realmEntity.connectedRealmId);
 
       const [_url, orderId] = order.orderId.split('=') || null;
