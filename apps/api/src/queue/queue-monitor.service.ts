@@ -88,7 +88,7 @@ export class QueueMonitorService {
   }
 
   async getQueueStats(queueName: string, queue: Queue): Promise<IQueueStats> {
-    const counts = await queue.getJobCounts(
+    const rawCounts = await queue.getJobCounts(
       'waiting',
       'active',
       'completed',
@@ -96,6 +96,15 @@ export class QueueMonitorService {
       'delayed',
       'paused',
     );
+
+    const counts: IJobCounts = {
+      waiting: rawCounts.waiting || 0,
+      active: rawCounts.active || 0,
+      completed: rawCounts.completed || 0,
+      failed: rawCounts.failed || 0,
+      delayed: rawCounts.delayed || 0,
+      paused: rawCounts.paused || 0,
+    };
 
     const activeJobs = await queue.getActive();
     const activeJobsProgress = await Promise.all(
@@ -123,7 +132,7 @@ export class QueueMonitorService {
 
     return {
       queueName,
-      counts: counts as IJobCounts,
+      counts,
       activeJobs: activeJobsProgress,
       estimatedCompletion,
       processingRate,
