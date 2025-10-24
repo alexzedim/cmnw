@@ -7,10 +7,3 @@ services:
     command: [ 'node', 'dist/apps/core/main.js' ]
     env_file:
       - stack.env
-    networks:
-      - cmnw-network
-
-networks:
-  cmnw-network:
-    external: true
-    name: cmnw-db_cmnw-network
