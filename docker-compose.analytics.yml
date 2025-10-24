@@ -38,8 +38,10 @@ services:
       - '--web.console.templates=/etc/prometheus/consoles'
       - '--storage.tsdb.retention.time=200h'
       - '--web.enable-lifecycle'
+      - '--log.level=info'
     networks:
       - loki
+      - default
 
   postgres_exporter:
     container_name: postgres_exporter
@@ -54,6 +56,7 @@ services:
       PG_EXPORTER_DISABLE_SETTINGS_METRICS: false
     networks:
       - loki
+      - default
 
   grafana:
     container_name: grafana
@@ -94,6 +97,9 @@ services:
 networks:
   loki:
     driver: bridge
+  default:
+    name: cmnw_default
+    external: true
 
 volumes:
   grafana:
@@ -106,18 +112,40 @@ configs:
       global:
         scrape_interval: 15s
         evaluation_interval: 15s
+        external_labels:
+          cluster: 'cmnw-stack'
+          environment: 'production'
 
       rule_files:
         # - "first_rules.yml"
         # - "second_rules.yml"
 
       scrape_configs:
+        # Prometheus self-monitoring
         - job_name: 'prometheus'
           static_configs:
-            - targets: ['128.0.0.255:9090']
+            - targets: ['localhost:9090']
+          scrape_interval: 30s
 
+        # PostgreSQL metrics
         - job_name: 'postgres'
           static_configs:
-            - targets: ['128.0.0.255:9187']
+            - targets: ['postgres_exporter:9187']
           scrape_interval: 30s
           metrics_path: /metrics
+
+        # CMNW API metrics (updated port)
+        - job_name: 'cmnw-api'
+          static_configs:
+            - targets: ['128.0.0.255:8080']
+          scrape_interval: 15s
+          metrics_path: /metrics
+          scheme: http
+
+        # CMNW Core service
+        - job_name: 'cmnw-core'
+          static_configs:
+            - targets: ['core:3000']
+          scrape_interval: 15s
+          metrics_path: /metrics
+          scheme: http
