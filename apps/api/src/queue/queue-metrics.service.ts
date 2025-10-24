@@ -121,12 +121,37 @@ export class QueueMetricsService implements OnModuleInit {
     // Initial metrics collection
     await this.updateMetrics();
 
+    // Set up event listeners for job completions/failures
+    this.setupQueueEventListeners();
+
     // Update metrics every 15 seconds (aligned with Prometheus scrape interval)
     this.updateInterval = setInterval(() => {
       this.updateMetrics().catch((error) => {
         console.error('Failed to update queue metrics:', error);
       });
     }, 15000);
+  }
+
+  private setupQueueEventListeners() {
+    for (const { name, queue } of this.allQueues) {
+      // Listen for completed jobs
+      queue.on('completed', () => {
+        this.jobsTotalCounter.inc({
+          queue: name,
+          status: 'completed',
+          worker_id: this.workerId,
+        });
+      });
+
+      // Listen for failed jobs
+      queue.on('failed', () => {
+        this.jobsTotalCounter.inc({
+          queue: name,
+          status: 'failed',
+          worker_id: this.workerId,
+        });
+      });
+    }
   }
 
   async updateMetrics() {
@@ -155,12 +180,8 @@ export class QueueMetricsService implements OnModuleInit {
         const avgTime = await this.calculateAverageProcessingTime(completedJobs);
         this.avgProcessingTimeGauge.set({ queue: name, worker_id: this.workerId }, avgTime);
 
-        // Update total counters (these are cumulative)
-        this.jobsTotalCounter.inc(
-          { queue: name, status: 'completed', worker_id: this.workerId },
-          counts.completed,
-        );
-        this.jobsTotalCounter.inc({ queue: name, status: 'failed', worker_id: this.workerId }, counts.failed);
+        // Note: bullmq_jobs_total counter should be incremented by workers on job completion
+        // NOT here in the metrics collection loop, as that would cause incorrect totals
       } catch (error) {
         console.error(`Failed to update metrics for queue ${name}:`, error);
       }
