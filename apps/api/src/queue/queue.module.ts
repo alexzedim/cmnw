@@ -13,6 +13,9 @@ import {
   realmsQueue,
   valuationsQueue,
 } from '@app/resources';
+import { profileQueue } from '@app/resources/queues/profile.queue';
+import { QueueMonitorController } from './queue-monitor.controller';
+import { QueueMonitorService } from './queue-monitor.service';
 
 @Module({
   imports: [
@@ -44,6 +47,9 @@ import {
     BullModule.registerQueue({
       name: valuationsQueue.name,
     }),
+    BullModule.registerQueue({
+      name: profileQueue.name,
+    }),
     BullBoardModule.forRoot({ route: '/queues', adapter: ExpressAdapter }),
     BullBoardModule.forFeature(
       { name: auctionsQueue.name, adapter: BullMQAdapter },
@@ -53,9 +59,10 @@ import {
       { name: itemsQueue.name, adapter: BullMQAdapter },
       { name: pricingQueue.name, adapter: BullMQAdapter },
       { name: valuationsQueue.name, adapter: BullMQAdapter },
+      { name: profileQueue.name, adapter: BullMQAdapter },
     ),
   ],
-  controllers: [],
-  providers: [],
+  controllers: [QueueMonitorController],
+  providers: [QueueMonitorService],
 })
 export class QueueModule {}
