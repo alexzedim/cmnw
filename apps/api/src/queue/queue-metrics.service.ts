@@ -17,53 +17,55 @@ import {
   valuationsQueue,
 } from '@app/resources';
 import { profileQueue } from '@app/resources/queues/profile.queue';
+import { workerConfig } from '@app/configuration';
 
 export const queueMetricsProviders = [
   makeGaugeProvider({
     name: 'bullmq_queue_waiting_jobs',
     help: 'Number of jobs waiting in queue',
-    labelNames: ['queue'],
+    labelNames: ['queue', 'worker_id'],
   }),
   makeGaugeProvider({
     name: 'bullmq_queue_active_jobs',
     help: 'Number of jobs currently being processed',
-    labelNames: ['queue'],
+    labelNames: ['queue', 'worker_id'],
   }),
   makeGaugeProvider({
     name: 'bullmq_queue_completed_jobs',
     help: 'Number of completed jobs',
-    labelNames: ['queue'],
+    labelNames: ['queue', 'worker_id'],
   }),
   makeGaugeProvider({
     name: 'bullmq_queue_failed_jobs',
     help: 'Number of failed jobs',
-    labelNames: ['queue'],
+    labelNames: ['queue', 'worker_id'],
   }),
   makeGaugeProvider({
     name: 'bullmq_queue_delayed_jobs',
     help: 'Number of delayed jobs',
-    labelNames: ['queue'],
+    labelNames: ['queue', 'worker_id'],
   }),
   makeGaugeProvider({
     name: 'bullmq_queue_processing_rate',
     help: 'Queue processing rate (jobs per minute)',
-    labelNames: ['queue'],
+    labelNames: ['queue', 'worker_id'],
   }),
   makeGaugeProvider({
     name: 'bullmq_queue_avg_processing_time_ms',
     help: 'Average job processing time in milliseconds',
-    labelNames: ['queue'],
+    labelNames: ['queue', 'worker_id'],
   }),
   makeCounterProvider({
     name: 'bullmq_jobs_total',
     help: 'Total number of jobs processed',
-    labelNames: ['queue', 'status'],
+    labelNames: ['queue', 'status', 'worker_id'],
   }),
 ];
 
 @Injectable()
 export class QueueMetricsService implements OnModuleInit {
   private updateInterval: NodeJS.Timeout;
+  private readonly workerId: string;
 
   constructor(
     @InjectQueue(auctionsQueue.name)
@@ -98,7 +100,9 @@ export class QueueMetricsService implements OnModuleInit {
     private readonly avgProcessingTimeGauge: Gauge<string>,
     @InjectMetric('bullmq_jobs_total')
     private readonly jobsTotalCounter: Counter<string>,
-  ) {}
+  ) {
+    this.workerId = workerConfig.workerId;
+  }
 
   private get allQueues(): Array<{ name: string; queue: Queue }> {
     return [
@@ -136,27 +140,27 @@ export class QueueMetricsService implements OnModuleInit {
           'delayed',
         );
 
-        this.waitingGauge.set({ queue: name }, counts.waiting);
-        this.activeGauge.set({ queue: name }, counts.active);
-        this.completedGauge.set({ queue: name }, counts.completed);
-        this.failedGauge.set({ queue: name }, counts.failed);
-        this.delayedGauge.set({ queue: name }, counts.delayed);
+        this.waitingGauge.set({ queue: name, worker_id: this.workerId }, counts.waiting);
+        this.activeGauge.set({ queue: name, worker_id: this.workerId }, counts.active);
+        this.completedGauge.set({ queue: name, worker_id: this.workerId }, counts.completed);
+        this.failedGauge.set({ queue: name, worker_id: this.workerId }, counts.failed);
+        this.delayedGauge.set({ queue: name, worker_id: this.workerId }, counts.delayed);
 
         // Calculate processing rate
         const completedJobs = await queue.getCompleted(0, 99);
         const processingRate = await this.calculateProcessingRate(completedJobs);
-        this.processingRateGauge.set({ queue: name }, processingRate);
+        this.processingRateGauge.set({ queue: name, worker_id: this.workerId }, processingRate);
 
         // Calculate average processing time
         const avgTime = await this.calculateAverageProcessingTime(completedJobs);
-        this.avgProcessingTimeGauge.set({ queue: name }, avgTime);
+        this.avgProcessingTimeGauge.set({ queue: name, worker_id: this.workerId }, avgTime);
 
         // Update total counters (these are cumulative)
         this.jobsTotalCounter.inc(
-          { queue: name, status: 'completed' },
+          { queue: name, status: 'completed', worker_id: this.workerId },
           counts.completed,
         );
-        this.jobsTotalCounter.inc({ queue: name, status: 'failed' }, counts.failed);
+        this.jobsTotalCounter.inc({ queue: name, status: 'failed', worker_id: this.workerId }, counts.failed);
       } catch (error) {
         console.error(`Failed to update metrics for queue ${name}:`, error);
       }

@@ -36,14 +36,16 @@ curl -X POST http://localhost:3000/api/queue-monitor/resume/OSINT_Characters
 
 The API exposes Prometheus-compatible metrics at `/metrics`:
 
-- `bullmq_queue_waiting_jobs{queue="OSINT_Characters"}` - Waiting jobs count
-- `bullmq_queue_active_jobs{queue="OSINT_Characters"}` - Active jobs count
-- `bullmq_queue_completed_jobs{queue="OSINT_Characters"}` - Completed jobs count
-- `bullmq_queue_failed_jobs{queue="OSINT_Characters"}` - Failed jobs count
-- `bullmq_queue_delayed_jobs{queue="OSINT_Characters"}` - Delayed jobs count
-- `bullmq_queue_processing_rate{queue="OSINT_Characters"}` - Jobs per minute
-- `bullmq_queue_avg_processing_time_ms{queue="OSINT_Characters"}` - Average processing time
-- `bullmq_jobs_total{queue="OSINT_Characters",status="completed"}` - Total jobs counter
+- `bullmq_queue_waiting_jobs{queue="OSINT_Characters",worker_id="container-abc123"}` - Waiting jobs count
+- `bullmq_queue_active_jobs{queue="OSINT_Characters",worker_id="container-abc123"}` - Active jobs count
+- `bullmq_queue_completed_jobs{queue="OSINT_Characters",worker_id="container-abc123"}` - Completed jobs count
+- `bullmq_queue_failed_jobs{queue="OSINT_Characters",worker_id="container-abc123"}` - Failed jobs count
+- `bullmq_queue_delayed_jobs{queue="OSINT_Characters",worker_id="container-abc123"}` - Delayed jobs count
+- `bullmq_queue_processing_rate{queue="OSINT_Characters",worker_id="container-abc123"}` - Jobs per minute
+- `bullmq_queue_avg_processing_time_ms{queue="OSINT_Characters",worker_id="container-abc123"}` - Average processing time
+- `bullmq_jobs_total{queue="OSINT_Characters",status="completed",worker_id="container-abc123"}` - Total jobs counter
+
+**Note:** The `worker_id` label uniquely identifies each worker container, allowing you to track individual worker performance and count active workers.
 
 #### Setup Prometheus Scraping
 
@@ -105,7 +107,21 @@ export CMNW_API_URL=https://api.cmnw.ru
 # Grafana Configuration (already in your .env)
 GRAFANA_URL=https://grafana.cmnw.ru
 GRAFANA_SERVICE_ACCOUNT_TOKEN=<your-token>
+
+# Worker Identification (optional - auto-detected)
+# Priority: WORKER_ID > HOSTNAME > os.hostname() > process.pid
+WORKER_ID=my-custom-worker-1  # Optional: Override auto-detection
 ```
+
+#### Worker ID Detection
+
+The worker ID is automatically determined in this order:
+1. `WORKER_ID` environment variable (if set)
+2. `HOSTNAME` environment variable (Docker container ID)
+3. `os.hostname()` (system hostname)
+4. `worker-<process.pid>` (fallback)
+
+In Docker environments, `HOSTNAME` is automatically set to the container ID, providing unique identification for each worker container.
 
 ### Prometheus Configuration
 
@@ -146,8 +162,14 @@ sum(bullmq_queue_waiting_jobs)
 # Total active workers
 sum(bullmq_queue_active_jobs)
 
+# Count of active worker containers
+count(count by (worker_id) (bullmq_queue_waiting_jobs))
+
 # Average processing time across all queues
 avg(bullmq_queue_avg_processing_time_ms)
+
+# Jobs per worker
+sum by (worker_id) (bullmq_queue_active_jobs)
 ```
 
 ## 🎯 Recommended Monitoring Strategy
