@@ -61,8 +61,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
 
   async onApplicationBootstrap(): Promise<void> {
     this.logger.log({ logTag: 'onApplicationBootstrap', message: 'Initializing WoW Progress Service...' });
-    // await this.extractAllGuildRanks();
-    // return;
+
     try {
       await this.initializeBrowser();
       // Optional: Start downloading on bootstrap
