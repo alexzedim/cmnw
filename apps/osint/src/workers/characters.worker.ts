@@ -25,7 +25,6 @@ import {
   charactersQueue,
   CharacterStatus,
   CharacterSummary, STATUS_CODES,
-  findRealm,
   getRandomProxy,
   IMounts,
   incErrorCount,
