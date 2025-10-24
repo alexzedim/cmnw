@@ -1,6 +1,6 @@
-import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger, OnModuleDestroy } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue, Job } from 'bullmq';
+import { Queue, Job, QueueEvents } from 'bullmq';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Gauge, Counter } from 'prom-client';
 import {
@@ -17,10 +17,11 @@ import { profileQueue } from '@app/resources/queues/profile.queue';
 import { workerConfig } from '@app/configuration';
 
 @Injectable()
-export class QueueMetricsService implements OnModuleInit {
+export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(QueueMetricsService.name);
   private updateInterval: NodeJS.Timeout;
   private readonly workerId: string;
+  private queueEvents: Map<string, QueueEvents> = new Map();
 
   constructor(
     @InjectQueue(auctionsQueue.name)
@@ -93,20 +94,33 @@ export class QueueMetricsService implements OnModuleInit {
 
   private setupQueueEventListeners() {
     for (const { name, queue } of this.allQueues) {
+      const queueEvents = new QueueEvents(name, {
+        connection: queue.opts.connection,
+      });
+
+      this.queueEvents.set(name, queueEvents);
+
       // Listen for completed jobs
-      queue.on('completed', async (job) => {
+      queueEvents.on('completed', async ({ jobId }) => {
         this.jobsTotalCounter.inc({
           queue: name,
           status: 'completed',
           worker_id: this.workerId,
         });
 
-        // Track job metadata if available
-        await this.trackJobMetadata(name, job);
+        // Fetch job to track metadata
+        try {
+          const job = await queue.getJob(jobId);
+          if (job) {
+            await this.trackJobMetadata(name, job);
+          }
+        } catch (error) {
+          this.logger.error(`Failed to fetch job ${jobId} metadata:`, error);
+        }
       });
 
       // Listen for failed jobs
-      queue.on('failed', () => {
+      queueEvents.on('failed', () => {
         this.jobsTotalCounter.inc({
           queue: name,
           status: 'failed',
@@ -229,9 +243,14 @@ export class QueueMetricsService implements OnModuleInit {
     }
   }
 
-  onModuleDestroy() {
+  async onModuleDestroy() {
     if (this.updateInterval) {
       clearInterval(this.updateInterval);
+    }
+
+    // Close all queue event listeners
+    for (const queueEvents of this.queueEvents.values()) {
+      await queueEvents.close();
     }
   }
 }
