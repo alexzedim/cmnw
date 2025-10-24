@@ -16,9 +16,9 @@ import {
   isGold,
   MARKET_TYPE,
   REALM_ENTITY_ANY,
-  RealmsCacheService,
   round,
 } from '@app/resources';
+import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
 
 // Realm name normalization map for common scraping variations
 const REALM_NAME_NORMALIZATION = new Map<string, string>([
