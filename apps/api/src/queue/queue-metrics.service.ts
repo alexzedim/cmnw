@@ -166,6 +166,7 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
 
   private async calculateProcessingRate(completedJobs: any[]): Promise<number> {
     const recentJobs = completedJobs.filter((job) => {
+      if (!job || typeof job !== 'object') return false;
       const isJobFinished = job.finishedOn !== undefined;
       if (!isJobFinished) return false;
 
@@ -183,7 +184,7 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
     completedJobs: any[],
   ): Promise<number> {
     const jobsWithTimes = completedJobs.filter(
-      (job) => job.processedOn && job.finishedOn,
+      (job) => job && typeof job === 'object' && job.processedOn && job.finishedOn,
     );
 
     const isNoJobsWithTimes = jobsWithTimes.length === 0;
