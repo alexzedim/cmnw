@@ -11,12 +11,12 @@ import * as cheerio from 'cheerio';
 import {
   DMA_SOURCE_GOLD,
   FACTION,
-  findRealm,
   GOLD_ITEM_ENTITY,
   IGold,
   isGold,
   MARKET_TYPE,
   REALM_ENTITY_ANY,
+  RealmsCacheService,
   round,
 } from '@app/resources';
 
@@ -37,6 +37,7 @@ export class GoldService implements OnApplicationBootstrap {
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
+    private readonly realmsCacheService: RealmsCacheService,
   ) {}
 
   async onApplicationBootstrap() {
@@ -128,7 +129,7 @@ export class GoldService implements OnApplicationBootstrap {
       
       const realmEntity = realmsEntity.has(normalizedRealmName)
         ? realmsEntity.get(normalizedRealmName)
-        : await findRealm(this.realmsRepository, normalizedRealmName);
+        : await this.realmsCacheService.findRealm(normalizedRealmName);
 
       const connectedRealmId =
         !realmEntity && order.realm === 'Любой'
