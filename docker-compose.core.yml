@@ -7,3 +7,13 @@ services:
     command: [ 'node', 'dist/apps/core/main.js' ]
     env_file:
       - stack.env
+
+  api:
+    container_name: cmnw-api
+    image: ghcr.io/alexzedim/cmnw:latest
+    restart: always
+    command: [ 'node', 'dist/apps/api/main.js' ]
+    ports:
+      - '3000:3000'
+    env_file:
+      - stack.env
