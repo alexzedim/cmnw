@@ -5,7 +5,11 @@ services:
     restart: always
     command: [ 'node', 'dist/apps/osint/main.js' ]
     deploy:
-      replicas: 5
+      replicas: ${OSINT_REPLICAS:-5}
+    environment:
+      - CHARACTERS_WORKER_CONCURRENCY=${CHARACTERS_WORKER_CONCURRENCY:-1}
+      - GUILDS_WORKER_CONCURRENCY=${GUILDS_WORKER_CONCURRENCY:-1}
+      - PROFILE_WORKER_CONCURRENCY=${PROFILE_WORKER_CONCURRENCY:-1}
     env_file:
       - stack.env
 

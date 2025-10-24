@@ -1,11 +1,7 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
-import {
-  InjectMetric,
-  makeGaugeProvider,
-  makeCounterProvider,
-} from '@willsoto/nestjs-prometheus';
+import { Queue, Job } from 'bullmq';
+import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Gauge, Counter } from 'prom-client';
 import {
   auctionsQueue,
@@ -15,55 +11,14 @@ import {
   pricingQueue,
   realmsQueue,
   valuationsQueue,
+  getStatusLabel,
 } from '@app/resources';
 import { profileQueue } from '@app/resources/queues/profile.queue';
 import { workerConfig } from '@app/configuration';
 
-export const queueMetricsProviders = [
-  makeGaugeProvider({
-    name: 'bullmq_queue_waiting_jobs',
-    help: 'Number of jobs waiting in queue',
-    labelNames: ['queue', 'worker_id'],
-  }),
-  makeGaugeProvider({
-    name: 'bullmq_queue_active_jobs',
-    help: 'Number of jobs currently being processed',
-    labelNames: ['queue', 'worker_id'],
-  }),
-  makeGaugeProvider({
-    name: 'bullmq_queue_completed_jobs',
-    help: 'Number of completed jobs',
-    labelNames: ['queue', 'worker_id'],
-  }),
-  makeGaugeProvider({
-    name: 'bullmq_queue_failed_jobs',
-    help: 'Number of failed jobs',
-    labelNames: ['queue', 'worker_id'],
-  }),
-  makeGaugeProvider({
-    name: 'bullmq_queue_delayed_jobs',
-    help: 'Number of delayed jobs',
-    labelNames: ['queue', 'worker_id'],
-  }),
-  makeGaugeProvider({
-    name: 'bullmq_queue_processing_rate',
-    help: 'Queue processing rate (jobs per minute)',
-    labelNames: ['queue', 'worker_id'],
-  }),
-  makeGaugeProvider({
-    name: 'bullmq_queue_avg_processing_time_ms',
-    help: 'Average job processing time in milliseconds',
-    labelNames: ['queue', 'worker_id'],
-  }),
-  makeCounterProvider({
-    name: 'bullmq_jobs_total',
-    help: 'Total number of jobs processed',
-    labelNames: ['queue', 'status', 'worker_id'],
-  }),
-];
-
 @Injectable()
 export class QueueMetricsService implements OnModuleInit {
+  private readonly logger = new Logger(QueueMetricsService.name);
   private updateInterval: NodeJS.Timeout;
   private readonly workerId: string;
 
@@ -100,6 +55,10 @@ export class QueueMetricsService implements OnModuleInit {
     private readonly avgProcessingTimeGauge: Gauge<string>,
     @InjectMetric('bullmq_jobs_total')
     private readonly jobsTotalCounter: Counter<string>,
+    @InjectMetric('bullmq_jobs_by_status_code')
+    private readonly jobsByStatusCodeCounter: Counter<string>,
+    @InjectMetric('bullmq_jobs_by_source')
+    private readonly jobsBySourceCounter: Counter<string>,
   ) {
     this.workerId = workerConfig.workerId;
   }
@@ -135,12 +94,15 @@ export class QueueMetricsService implements OnModuleInit {
   private setupQueueEventListeners() {
     for (const { name, queue } of this.allQueues) {
       // Listen for completed jobs
-      queue.on('completed', () => {
+      queue.on('completed', async (job) => {
         this.jobsTotalCounter.inc({
           queue: name,
           status: 'completed',
           worker_id: this.workerId,
         });
+
+        // Track job metadata if available
+        await this.trackJobMetadata(name, job);
       });
 
       // Listen for failed jobs
@@ -218,6 +180,53 @@ export class QueueMetricsService implements OnModuleInit {
     }, 0);
 
     return totalTime / jobsWithTimes.length;
+  }
+
+  /**
+   * Track job metadata (createdBy, updatedBy, statusCode) from job return value
+   * The worker returns statusCode as the job result
+   */
+  private async trackJobMetadata(queueName: string, job: Job): Promise<void> {
+    try {
+      const statusCode = job.returnvalue;
+      const jobData = job.data as any;
+
+      // Track status code if available
+      if (typeof statusCode === 'number') {
+        const statusLabel = getStatusLabel(statusCode);
+        this.jobsByStatusCodeCounter.inc({
+          queue: queueName,
+          status_code: statusCode.toString(),
+          status_label: statusLabel,
+          worker_id: this.workerId,
+        });
+      }
+
+      // Track createdBy source
+      if (jobData?.createdBy) {
+        this.jobsBySourceCounter.inc({
+          queue: queueName,
+          source: jobData.createdBy,
+          source_type: 'createdBy',
+          worker_id: this.workerId,
+        });
+      }
+
+      // Track updatedBy source
+      if (jobData?.updatedBy) {
+        this.jobsBySourceCounter.inc({
+          queue: queueName,
+          source: jobData.updatedBy,
+          source_type: 'updatedBy',
+          worker_id: this.workerId,
+        });
+      }
+    } catch (error) {
+      this.logger.error(
+        `Failed to track job metadata for queue ${queueName}:`,
+        error,
+      );
+    }
   }
 
   onModuleDestroy() {
