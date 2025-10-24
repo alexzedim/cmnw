@@ -134,12 +134,23 @@ The Bull Board provides:
 
 ### Monitor Character Indexing Progress
 
+**Via API:**
 ```bash
 # Get overview of all queues
 curl http://localhost:3000/api/queue-monitor/stats
 
 # Get detailed progress for character indexing
 curl http://localhost:3000/api/queue-monitor/stats/OSINT_Characters
+```
+
+**Via Bull Board:**
+```
+http://localhost:3000/queues
+```
+
+**Via Grafana:**
+```
+https://grafana.cmnw.ru/d/cmnw-queue-monitoring/cmnw-queue-monitoring
 ```
 
 ### Pause Queue During Maintenance

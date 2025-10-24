@@ -9,44 +9,7 @@ This guide covers all available options for monitoring your CMNW queue system.
 - **Features**: Visual dashboard, job details, retry failed jobs, manual job management
 - **Setup**: Already integrated, no additional configuration needed
 
-### 2. **CLI Tool (Terminal Dashboard)**
-- **Location**: `tools/queue-monitor-cli.js`
-- **Features**: Real-time terminal dashboard with progress bars, color-coded status, ETA calculations
-
-#### Usage:
-
-```bash
-# Monitor all queues
-node tools/queue-monitor-cli.js
-
-# Monitor specific queue
-node tools/queue-monitor-cli.js OSINT_Characters
-
-# Set custom API URL
-CMNW_API_URL=https://api.cmnw.ru node tools/queue-monitor-cli.js
-```
-
-**Example Output:**
-```
-╔════════════════════════════════════════════════════════════════════════════╗
-║                    CMNW Queue Monitoring Dashboard                         ║
-╚════════════════════════════════════════════════════════════════════════════╝
-
-Summary:
-  Total Waiting:      10,000
-  Total Active:          75
-  Total Completed:  100,000
-  Total Failed:          12
-
-Queue Details:
-
-▸ OSINT_Characters      
-  Progress: ████████████████░░░░░░░░░░░░░░ 55%
-  Waiting:  10,000  Active:  75  Failed:   2  Completed:  100,000
-  Rate: 75.5 jobs/min  ETA: 2h 15m  Avg Time: 1250ms
-```
-
-### 3. **REST API Endpoints**
+### 2. **REST API Endpoints**
 
 #### Get All Queues Stats
 ```bash
@@ -67,7 +30,7 @@ curl -X POST http://localhost:3000/api/queue-monitor/pause/OSINT_Characters
 curl -X POST http://localhost:3000/api/queue-monitor/resume/OSINT_Characters
 ```
 
-### 4. **Prometheus Metrics**
+### 3. **Prometheus Metrics**
 
 #### Exposed Metrics
 
@@ -84,20 +47,9 @@ The API exposes Prometheus-compatible metrics at `/metrics`:
 
 #### Setup Prometheus Scraping
 
-1. **Add to your `prometheus.yml`** (or create separate config):
+1. **Configuration is located in the core project**:
 
-```yaml
-scrape_configs:
-  - job_name: 'cmnw-api'
-    static_configs:
-      - targets: ['your-cmnw-api-host:3000']
-    scrape_interval: 15s
-    metrics_path: /metrics
-```
-
-2. **Update docker-compose analytics config**:
-
-In `D:\Projects\alexzedim\core\docker-compose.analytics.yml`, add to the scrape_configs section:
+File: `../core/prometheus/scrape-configs/cmnw.yml`
 
 ```yaml
 - job_name: 'cmnw-api'
@@ -105,7 +57,12 @@ In `D:\Projects\alexzedim\core\docker-compose.analytics.yml`, add to the scrape_
     - targets: ['128.0.0.255:3000']  # Update with your host
   scrape_interval: 15s
   metrics_path: /metrics
+  scheme: http
 ```
+
+2. **Update docker-compose analytics config**:
+
+In `../core/docker-compose.analytics.yml`, ensure the scrape config includes the cmnw.yml file.
 
 3. **Reload Prometheus**:
 
@@ -113,15 +70,17 @@ In `D:\Projects\alexzedim\core\docker-compose.analytics.yml`, add to the scrape_
 curl -X POST http://localhost:9090/-/reload
 ```
 
-### 5. **Grafana Dashboard**
+### 4. **Grafana Dashboard**
 
-#### Import Dashboard
+#### Access Dashboard
 
-1. Open Grafana at `https://grafana.cmnw.ru` (or your Grafana URL)
-2. Go to **Dashboards** → **Import**
-3. Upload `grafana/dashboards/queue-monitoring.json`
-4. Select your Prometheus datasource
-5. Click **Import**
+The dashboard has been created via MCP Grafana integration:
+
+- **URL**: `https://grafana.cmnw.ru/d/cmnw-queue-monitoring/cmnw-queue-monitoring`
+- **Folder**: CMNW Monitoring
+- **UID**: `cmnw-queue-monitoring`
+
+The dashboard was created programmatically using the Grafana MCP server and is ready to use.
 
 #### Dashboard Features
 
@@ -155,11 +114,6 @@ The metrics service updates every 15 seconds, aligned with Prometheus scrape int
 ## 📈 Usage Scenarios
 
 ### Monitor Character Indexing Progress
-
-**CLI:**
-```bash
-node tools/queue-monitor-cli.js OSINT_Characters
-```
 
 **API:**
 ```bash
@@ -198,11 +152,10 @@ avg(bullmq_queue_avg_processing_time_ms)
 
 ## 🎯 Recommended Monitoring Strategy
 
-1. **Real-time**: Use CLI tool during active operations
-2. **Operational**: Bull Board for manual intervention
-3. **Historical**: Grafana dashboards for trends and analysis
-4. **Alerting**: Prometheus rules for automated notifications
-5. **Integration**: REST API for custom tooling
+1. **Real-time**: Bull Board for quick checks and manual intervention
+2. **Historical**: Grafana dashboards for trends and analysis
+3. **Alerting**: Prometheus rules for automated notifications
+4. **Integration**: REST API for custom tooling and automation
 
 ## 🚨 Alerting Rules
 
@@ -266,16 +219,16 @@ groups:
 
 3. Check Prometheus logs for scrape errors
 
-### CLI tool connection errors
+### API connection errors
 
 1. Verify API is running:
    ```bash
    curl http://localhost:3000/api/queue-monitor/stats
    ```
 
-2. Set correct API URL:
+2. Check if metrics endpoint is accessible:
    ```bash
-   export CMNW_API_URL=http://your-api-host:3000
+   curl http://localhost:3000/metrics
    ```
 
 ### Grafana dashboard empty
@@ -299,13 +252,6 @@ groups:
 
 ## 🎨 Customization
 
-### Adjust CLI Refresh Rate
-
-Edit `tools/queue-monitor-cli.js`:
-```javascript
-const REFRESH_INTERVAL = 3000; // Change to desired ms
-```
-
 ### Add Custom Metrics
 
 In `apps/api/src/queue/queue-metrics.service.ts`, add new metrics:
@@ -318,11 +264,12 @@ makeGaugeProvider({
 }),
 ```
 
-### Create Custom Grafana Panels
+### Modify Grafana Dashboard
 
-1. Use existing dashboard as template
-2. Add new panel with PromQL query
-3. Export and save to `grafana/dashboards/`
+1. Open the dashboard in Grafana
+2. Edit panels or add new ones with PromQL queries
+3. Dashboard is managed via Grafana MCP server
+4. Changes are persisted automatically
 
 ## 📚 Additional Resources
 
