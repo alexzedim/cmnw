@@ -16,9 +16,20 @@ import {
 import { profileQueue } from '@app/resources/queues/profile.queue';
 import { QueueMonitorController } from './queue-monitor.controller';
 import { QueueMonitorService } from './queue-monitor.service';
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+import {
+  QueueMetricsService,
+  queueMetricsProviders,
+} from './queue-metrics.service';
 
 @Module({
   imports: [
+    PrometheusModule.register({
+      path: '/metrics',
+      defaultMetrics: {
+        enabled: true,
+      },
+    }),
     BullModule.forRoot({
       connection: {
         host: bullConfig.host,
@@ -63,6 +74,6 @@ import { QueueMonitorService } from './queue-monitor.service';
     ),
   ],
   controllers: [QueueMonitorController],
-  providers: [QueueMonitorService],
+  providers: [QueueMonitorService, QueueMetricsService, ...queueMetricsProviders],
 })
 export class QueueModule {}
