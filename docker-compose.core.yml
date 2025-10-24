@@ -12,11 +12,11 @@ services:
 
   api:
     container_name: cmnw-api
-    image: ghcr.io/alexzedim/cmnw:latest
+    image: ghcr.io/alexzedim/core:latest
     restart: always
     command: [ 'node', 'dist/apps/api/main.js' ]
     ports:
-      - '8080:3000'
+      - '3000:8000'
     env_file:
       - stack.env
     networks:
