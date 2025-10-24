@@ -264,9 +264,10 @@ export class LoggerService extends ConsoleLogger {
    * Format message for Loki - ensures proper JSON serialization
    * @param input - Original input
    * @param parsedInfo - Parsed standardized information
+   * @param level - Log level to determine which fields to include
    * @returns Properly formatted message for Loki
    */
-  private formatForLoki(input: LogInput, parsedInfo: StandardizedErrorInfo): string {
+  private formatForLoki(input: LogInput, parsedInfo: StandardizedErrorInfo, level: LogLevel): string {
     // For simple strings without additional context, send as-is to Loki
     if (typeof input === 'string' && !parsedInfo.logTag && parsedInfo.errorType === 'string') {
       return input;
@@ -274,12 +275,27 @@ export class LoggerService extends ConsoleLogger {
     
     // For everything else, send the structured data
     try {
+      // For non-error levels (log, debug, info, verbose, warn), exclude error-specific fields
+      const isErrorLevel = level === 'error';
+      
+      if (!isErrorLevel) {
+        // Create a clean copy without error-specific fields for non-error logs
+        const { originalError, errorType, stack, cause, originalInput, ...cleanInfo } = parsedInfo;
+        
+        // Only include stack trace if it's explicitly part of the message context
+        // and not just from error parsing
+        return JSON.stringify(cleanInfo, null, 0);
+      }
+      
+      // For error level, include all fields
       return JSON.stringify(parsedInfo, null, 0); // Compact JSON for Loki
     } catch (error) {
       // Fallback if JSON.stringify fails (circular references, etc.)
       return JSON.stringify({
-        ...parsedInfo,
-        originalError: '[Serialization Error]',
+        logTag: parsedInfo.logTag,
+        message: parsedInfo.message,
+        level: parsedInfo.level,
+        timestamp: parsedInfo.timestamp,
         serializationError: error instanceof Error ? error.message : String(error)
       });
     }
@@ -306,7 +322,7 @@ export class LoggerService extends ConsoleLogger {
   ): void {
     const parsedInfo = this.parseLogInput(input, logTag, level === 'log' ? 'info' : level, additionalInfo);
     const consoleMessage = this.formatForConsole(parsedInfo);
-    const lokiMessage = this.formatForLoki(input, parsedInfo);
+    const lokiMessage = this.formatForLoki(input, parsedInfo, level);
     
     // Send to Loki if enabled
     if (this.logsToLoki) {
