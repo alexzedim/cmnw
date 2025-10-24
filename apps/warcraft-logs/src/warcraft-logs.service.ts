@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 
 import {
+  BROWSER_HEADERS,
   GLOBAL_WCL_KEY_V2,
   charactersQueue,
   OSINT_SOURCE,
@@ -101,6 +102,10 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
 
       const response = await this.httpService.axiosRef.get<string>(
         `${warcraftLogsURI}?${params}page=${page}`,
+        {
+          headers: BROWSER_HEADERS,
+          timeout: 10000,
+        },
       );
 
       const wclHTML = cheerio.load(response.data);

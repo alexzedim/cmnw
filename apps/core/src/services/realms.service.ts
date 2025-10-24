@@ -13,6 +13,7 @@ import { LoggerService } from '@app/logger';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
+  BROWSER_HEADERS,
   delay,
   findRealm,
   getKeys,
@@ -112,8 +113,15 @@ export class RealmsService implements OnApplicationBootstrap {
       range(from, count).pipe(
         mergeMap(async (realmId) => {
           try {
+            // Add delay to respect rate limits
+            await delay(2);
+            
             const response = await this.httpService.axiosRef.get<string>(
               `https://www.warcraftlogs.com/server/id/${realmId}`,
+              {
+                headers: BROWSER_HEADERS,
+                timeout: 10000,
+              },
             );
             const warcraftLogsPage = cheerio.load(response.data);
             const warcraftLogsRealmElement = warcraftLogsPage.html('.server-name');
@@ -136,14 +144,18 @@ export class RealmsService implements OnApplicationBootstrap {
               message: `getRealmsWarcraftLogsID: ${realmId}:${realmName} | ${realmEntity.id} updated!`
             });
           } catch (errorOrException) {
-            this.logger.error({
-              logTag,
-              errorOrException,
-              realmId,
-              url: `https://www.warcraftlogs.com/server/id/${realmId}`
-            });
+            // Skip logging for 403/404 errors to reduce noise
+            const isExpectedError = errorOrException?.status === 403 || errorOrException?.status === 404;
+            if (!isExpectedError) {
+              this.logger.error({
+                logTag,
+                errorOrException,
+                realmId,
+                url: `https://www.warcraftlogs.com/server/id/${realmId}`
+              });
+            }
           }
-        }, 2),
+        }, 1),
       ),
     );
   }
