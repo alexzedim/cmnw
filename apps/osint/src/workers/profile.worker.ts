@@ -22,7 +22,6 @@ import {
   isRaiderIoProfile,
   CHARACTER_PROFILE_RIO_MAPPING,
   RaiderIoCharacterMappingKey,
-  findRealm,
   capitalize,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
