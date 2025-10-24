@@ -19,6 +19,9 @@ import { from, lastValueFrom, mergeMap } from 'rxjs';
 import { S3Service } from '@app/s3';
 import ms from 'ms';
 import { osintConfig } from '@app/configuration';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+import { createHash } from 'crypto';
 
 @Injectable()
 export class CharactersService implements OnApplicationBootstrap {
@@ -29,6 +32,8 @@ export class CharactersService implements OnApplicationBootstrap {
   });
 
   constructor(
+    @InjectRedis()
+    private readonly redisService: Redis,
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(CharactersEntity)
@@ -139,6 +144,16 @@ export class CharactersService implements OnApplicationBootstrap {
         throw new Error('Characters file not found in S3: characters.json');
       }
       
+      // Calculate file checksum and check if already imported
+      const fileChecksum = createHash('md5').update(charactersJson).digest('hex');
+      const redisKey = `CHARACTERS_FILE_IMPORTED:${fileChecksum}`;
+      
+      const isAlreadyImported = await this.redisService.exists(redisKey);
+      if (isAlreadyImported) {
+        this.logger.log({ logTag, fileChecksum, message: 'Characters file already imported, skipping' });
+        return;
+      }
+      
       const characters: Array<Pick<CharactersEntity, 'guid'>> = JSON.parse(charactersJson);
 
       this.keyEntities = await getKeys(this.keysRepository, GLOBAL_OSINT_KEY, false);
@@ -174,6 +189,12 @@ export class CharactersService implements OnApplicationBootstrap {
       }
 
       this.logger.log({ logTag, charactersCount, insertedCount: characterIteration, message: `Processed ${charactersCount} characters, inserted ${characterIteration}` });
+      
+      // Mark file as imported with checksum
+      const fileChecksum = createHash('md5').update(charactersJson).digest('hex');
+      const redisKey = `CHARACTERS_FILE_IMPORTED:${fileChecksum}`;
+      await this.redisService.set(redisKey, Date.now(), 'EX', 60 * 60 * 24 * 30); // 30 days TTL
+      this.logger.log({ logTag, fileChecksum, message: 'Characters file marked as imported' });
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });
     }
