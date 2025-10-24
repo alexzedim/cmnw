@@ -17,7 +17,6 @@ import { BlizzAPI } from '@alexzedim/blizzapi';
 import {
   API_HEADERS_ENUM,
   FACTION,
-  findRealm,
   ICharacterRaiderIo,
   IChartOrder,
   IGold,
@@ -29,6 +28,7 @@ import {
   toSlug,
   VALUATION_TYPE,
 } from '@app/resources';
+import { findRealm } from '@app/resources/dao/realms.dao';
 import { mergeMap } from 'rxjs/operators';
 import * as cheerio from 'cheerio';
 import fs from 'fs-extra';

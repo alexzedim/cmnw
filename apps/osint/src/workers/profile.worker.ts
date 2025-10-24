@@ -25,6 +25,7 @@ import {
   findRealm,
   capitalize,
 } from '@app/resources';
+import { findRealm } from '@app/resources/dao/realms.dao';
 
 @Processor(profileQueue.name, profileQueue.workerOptions)
 @Injectable()
