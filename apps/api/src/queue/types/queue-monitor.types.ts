@@ -10,7 +10,7 @@ export interface IJobCounts {
 export interface IJobProgress {
   jobId: string;
   name: string;
-  progress: number;
+  progress: number | string | object | boolean;
   data?: any;
   timestamp?: number;
 }
@@ -43,7 +43,7 @@ export interface IQueueDetailedProgress {
   jobs: Array<{
     id: string;
     name: string;
-    progress: number;
+    progress: number | string | object | boolean;
     state: string;
     timestamp: number;
     attemptsMade: number;
