@@ -1,6 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, Job } from 'bullmq';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
 import {
   auctionsQueue,
   charactersQueue,
@@ -25,6 +27,7 @@ export class QueueMonitorService {
   });
 
   constructor(
+    @InjectRedis() private readonly redis: Redis,
     @InjectQueue(auctionsQueue.name)
     private readonly auctionsQueue: Queue,
     @InjectQueue(charactersQueue.name)
@@ -263,5 +266,26 @@ export class QueueMonitorService {
       throw new Error(`Queue ${queueName} not found`);
     }
     await queue.resume();
+  }
+
+  async getWorkerStats(workerName: string): Promise<any> {
+    const key = `worker:${workerName}:last-stats`;
+    const stats = await this.redis.get(key);
+    
+    if (!stats) {
+      return {
+        workerName,
+        message: 'No stats available yet',
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    return JSON.parse(stats);
+  }
+
+  async getAllWorkerStats(): Promise<any[]> {
+    const workerNames = ['characters', 'guilds', 'profile'];
+    const statsPromises = workerNames.map(name => this.getWorkerStats(name));
+    return Promise.all(statsPromises);
   }
 }

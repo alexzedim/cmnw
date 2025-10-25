@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import chalk from 'chalk';
 import { Browser, BrowserContext, chromium, devices } from 'playwright';
 import { Job, Queue } from 'bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -33,6 +34,16 @@ export class ProfileWorker extends WorkerHost {
     timestamp: true,
   });
 
+  private stats = {
+    total: 0,
+    success: 0,
+    errors: 0,
+    rioUpdated: 0,
+    wclUpdated: 0,
+    wpUpdated: 0,
+    startTime: Date.now(),
+  };
+
   browser: Browser;
   browserContext: BrowserContext;
 
@@ -57,6 +68,9 @@ export class ProfileWorker extends WorkerHost {
   }
 
   public async process(job: Job<ProfileJobQueue, number>) {
+    const startTime = Date.now();
+    this.stats.total++;
+    
     try {
       const { data: args } = job;
 
@@ -78,8 +92,8 @@ export class ProfileWorker extends WorkerHost {
        */
       if (args.updateRIO) {
         const raiderIo = await this.getRaiderIoProfile(args.name, args.realm);
-
         Object.assign(profileEntity, raiderIo);
+        this.stats.rioUpdated++;
         await job.updateProgress(60);
       }
 
@@ -88,29 +102,82 @@ export class ProfileWorker extends WorkerHost {
           args.name,
           args.realm,
         );
-
         Object.assign(profileEntity, warcraftLogs);
+        this.stats.wclUpdated++;
         await job.updateProgress(70);
       }
 
       if (args.updateWP) {
         const wowProgress = await this.getWowProgressProfile(args.name, args.realm);
-
         Object.assign(profileEntity, wowProgress);
+        this.stats.wpUpdated++;
         await job.updateProgress(80);
       }
 
       await this.charactersProfileRepository.save(profileEntity);
+      
+      this.stats.success++;
+      const duration = Date.now() - startTime;
+      this.logger.log(
+        `${chalk.green('✓')} [${chalk.bold(this.stats.total)}] ${args.guid} ${chalk.dim(`(${duration}ms)`)} ` +
+        `${args.updateRIO ? chalk.blue('RIO') : ''}${args.updateWCL ? chalk.magenta(' WCL') : ''}${args.updateWP ? chalk.cyan(' WP') : ''}`
+      );
+
+      // Progress report every 25 profiles
+      if (this.stats.total % 25 === 0) {
+        this.logProgress();
+      }
     } catch (errorOrException) {
+      this.stats.errors++;
+      const duration = Date.now() - startTime;
+      
       await job.log(errorOrException);
-      this.logger.error({
-        logTag: 'ProfileWorker',
-        guid: job.data.guid,
-        error: JSON.stringify(errorOrException),
-      });
+      this.logger.error(
+        `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${job.data.guid} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`
+      );
 
       return 500;
     }
+  }
+
+  private logProgress(): void {
+    const uptime = Date.now() - this.stats.startTime;
+    const rate = (this.stats.total / (uptime / 1000)).toFixed(2);
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
+
+    this.logger.log(
+      `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
+      `${chalk.magenta('📊 PROFILES PROGRESS REPORT')}\n` +
+      `${chalk.dim('  Total:')} ${chalk.bold(this.stats.total)} profiles processed\n` +
+      `${chalk.green('  ✓ Success:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
+      `${chalk.blue('  RIO Updated:')} ${chalk.blue.bold(this.stats.rioUpdated)}\n` +
+      `${chalk.magenta('  WCL Updated:')} ${chalk.magenta.bold(this.stats.wclUpdated)}\n` +
+      `${chalk.cyan('  WP Updated:')} ${chalk.cyan.bold(this.stats.wpUpdated)}\n` +
+      `${chalk.red('  ✗ Errors:')} ${chalk.red.bold(this.stats.errors)}\n` +
+      `${chalk.dim('  Rate:')} ${chalk.bold(rate)} profiles/sec\n` +
+      `${chalk.magenta.bold('━'.repeat(60))}`
+    );
+  }
+
+  public logFinalSummary(): void {
+    const uptime = Date.now() - this.stats.startTime;
+    const avgRate = (this.stats.total / (uptime / 1000)).toFixed(2);
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
+
+    this.logger.log(
+      `\n${chalk.cyan.bold('═'.repeat(60))}\n` +
+      `${chalk.cyan.bold('  🎯 PROFILES FINAL SUMMARY')}\n` +
+      `${chalk.cyan.bold('═'.repeat(60))}\n` +
+      `${chalk.dim('  Total Profiles:')} ${chalk.bold.white(this.stats.total)}\n` +
+      `${chalk.green('  ✓ Successful:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
+      `${chalk.blue('  RIO Updated:')} ${chalk.blue.bold(this.stats.rioUpdated)}\n` +
+      `${chalk.magenta('  WCL Updated:')} ${chalk.magenta.bold(this.stats.wclUpdated)}\n` +
+      `${chalk.cyan('  WP Updated:')} ${chalk.cyan.bold(this.stats.wpUpdated)}\n` +
+      `${chalk.red('  ✗ Failed:')} ${chalk.red.bold(this.stats.errors)}\n` +
+      `${chalk.dim('  Total Time:')} ${chalk.bold((uptime / 1000).toFixed(1))}s\n` +
+      `${chalk.dim('  Avg Rate:')} ${chalk.bold(avgRate)} profiles/sec\n` +
+      `${chalk.cyan.bold('═'.repeat(60))}`
+    );
   }
 
   private async getWarcraftLogsProfile(
@@ -151,11 +218,9 @@ export class ProfileWorker extends WorkerHost {
 
       return warcraftLogsProfile;
     } catch (errorOrException) {
-      this.logger.error({
-        logTag,
-        guid: `${name}@${realmSlug}`,
-        error: errorOrException,
-      });
+      this.logger.error(
+        `${chalk.red('getWarcraftLogsProfile')} ${name}@${realmSlug} - ${errorOrException.message}`
+      );
 
       return warcraftLogsProfile;
     } finally {
@@ -217,11 +282,9 @@ export class ProfileWorker extends WorkerHost {
 
       return wowProgressProfile;
     } catch (errorOrException) {
-      this.logger.error({
-        logTag,
-        guid: `${name}@${realmSlug}`,
-        error: JSON.stringify(errorOrException),
-      });
+      this.logger.error(
+        `${chalk.red('getWowProgressProfile')} ${name}@${realmSlug} - ${errorOrException.message}`
+      );
 
       return wowProgressProfile;
     }
@@ -269,11 +332,9 @@ export class ProfileWorker extends WorkerHost {
 
       return rioProfileCharacter;
     } catch (errorOrException) {
-      this.logger.error({
-        logTag,
-        guid: `${name}@${realmSlug}`,
-        error: JSON.stringify(errorOrException),
-      });
+      this.logger.error(
+        `${chalk.red('getRaiderIoProfile')} ${name}@${realmSlug} - ${errorOrException.message}`
+      );
 
       return rioProfileCharacter;
     }

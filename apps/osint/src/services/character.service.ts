@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+import chalk from 'chalk';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BlizzAPI } from '@alexzedim/blizzapi';
@@ -76,16 +77,17 @@ export class CharacterService {
 
       const isStatusNotFound = characterStatus.statusCode === 404;
       if (isStatusNotFound) {
-        this.logger.warn(
-          `character: ${nameSlug}@${realmSlug} | status: ${characterStatus.statusCode}`,
+        this.logger.debug(
+          `${chalk.blue('404')} Not found: ${nameSlug}@${realmSlug}`
+        );
+      } else if (characterStatus.statusCode === 429) {
+        this.logger.debug(
+          `${chalk.yellow('429')} Rate limited: ${nameSlug}@${realmSlug}`
         );
       } else {
-        this.logger.error({
-          logTag: 'getStatus',
-          guid: `${nameSlug}@${realmSlug}`,
-          statusCode: characterStatus.statusCode,
-          error: JSON.stringify(errorOrException),
-        });
+        this.logger.error(
+          `${chalk.red('getStatus')} ${nameSlug}@${realmSlug} | ${characterStatus.statusCode} - ${errorOrException.message}`
+        );
       }
 
       return characterStatus;
@@ -143,12 +145,15 @@ export class CharacterService {
         );
       }
 
-      this.logger.error({
-        logTag: 'getSummary',
-        guid: `${nameSlug}@${realmSlug}`,
-        statusCode: summary.statusCode,
-        error: JSON.stringify(errorOrException),
-      });
+      if (summary.statusCode === 429) {
+        this.logger.debug(
+          `${chalk.yellow('429')} Rate limited (getSummary): ${nameSlug}@${realmSlug}`
+        );
+      } else {
+        this.logger.error(
+          `${chalk.red('getSummary')} ${nameSlug}@${realmSlug} | ${summary.statusCode} - ${errorOrException.message}`
+        );
+      }
 
       return summary;
     }
@@ -183,12 +188,15 @@ export class CharacterService {
     } catch (errorOrException) {
       const statusCode = get(errorOrException, 'status', STATUS_CODES.ERROR_MEDIA);
 
-      this.logger.error({
-        logTag: 'getMedia',
-        guid: `${nameSlug}@${realmSlug}`,
-        statusCode,
-        error: JSON.stringify(errorOrException),
-      });
+      if (statusCode === 429) {
+        this.logger.debug(
+          `${chalk.yellow('429')} Rate limited (getMedia): ${nameSlug}@${realmSlug}`
+        );
+      } else {
+        this.logger.error(
+          `${chalk.red('getMedia')} ${nameSlug}@${realmSlug} | ${statusCode} - ${errorOrException.message}`
+        );
+      }
 
       return media;
     }
@@ -212,12 +220,15 @@ export class CharacterService {
     } catch (errorOrException) {
       const statusCode = get(errorOrException, 'status', STATUS_CODES.ERROR_MOUNTS);
 
-      this.logger.error({
-        logTag: 'getMountsCollection',
-        guid: `${nameSlug}@${realmSlug}`,
-        statusCode,
-        error: JSON.stringify(errorOrException),
-      });
+      if (statusCode === 429) {
+        this.logger.debug(
+          `${chalk.yellow('429')} Rate limited (getMountsCollection): ${nameSlug}@${realmSlug}`
+        );
+      } else {
+        this.logger.error(
+          `${chalk.red('getMountsCollection')} ${nameSlug}@${realmSlug} | ${statusCode} - ${errorOrException.message}`
+        );
+      }
 
       return null;
     }
@@ -241,12 +252,15 @@ export class CharacterService {
     } catch (errorOrException) {
       const statusCode = get(errorOrException, 'status', STATUS_CODES.ERROR_PETS);
 
-      this.logger.error({
-        logTag: 'getPetsCollection',
-        guid: `${nameSlug}@${realmSlug}`,
-        statusCode,
-        error: JSON.stringify(errorOrException),
-      });
+      if (statusCode === 429) {
+        this.logger.debug(
+          `${chalk.yellow('429')} Rate limited (getPetsCollection): ${nameSlug}@${realmSlug}`
+        );
+      } else {
+        this.logger.error(
+          `${chalk.red('getPetsCollection')} ${nameSlug}@${realmSlug} | ${statusCode} - ${errorOrException.message}`
+        );
+      }
 
       return null;
     }
