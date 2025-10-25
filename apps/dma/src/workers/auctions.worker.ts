@@ -106,30 +106,35 @@ export class AuctionsWorker extends WorkerHost {
 
       let iterator = 0;
 
-      await lastValueFrom(
-        from(auctions).pipe(
-          bufferCount(5_000),
-          concatMap(async (ordersBatch) => {
-            try {
-              const ordersBulkAuctions = this.transformOrders(
-                ordersBatch,
-                timestamp,
-                connectedRealmId,
-                isCommodity,
-              );
+      // Handle empty auctions array to prevent EmptyError
+      if (auctions.length === 0) {
+        this.logger.debug(`realm ${connectedRealmId} | No auctions available`);
+      } else {
+        await lastValueFrom(
+          from(auctions).pipe(
+            bufferCount(5_000),
+            concatMap(async (ordersBatch) => {
+              try {
+                const ordersBulkAuctions = this.transformOrders(
+                  ordersBatch,
+                  timestamp,
+                  connectedRealmId,
+                  isCommodity,
+                );
 
-              await this.marketRepository.save(ordersBulkAuctions);
-              iterator += ordersBulkAuctions.length;
-              this.logger.log(`${connectedRealmId} | ${iterator} | ${timestamp}`);
-            } catch (errorOrException) {
-              this.logger.error({
-                logTag: 'ordersBatch',
-                error: JSON.stringify(errorOrException)
-              });
-            }
-          }),
-        ),
-      );
+                await this.marketRepository.save(ordersBulkAuctions);
+                iterator += ordersBulkAuctions.length;
+                this.logger.log(`${connectedRealmId} | ${iterator} | ${timestamp}`);
+              } catch (errorOrException) {
+                this.logger.error({
+                  logTag: 'ordersBatch',
+                  error: JSON.stringify(errorOrException)
+                });
+              }
+            }),
+          ),
+        );
+      }
 
       if (isCommodity) {
         await this.redisService.set(`COMMODITY:TS:${timestamp}`, timestamp);

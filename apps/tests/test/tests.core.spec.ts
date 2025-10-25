@@ -21,18 +21,9 @@ describe('CORE', () => {
     testsService = app.get<TestsCore>(TestsCore);
   });
 
-  describe('RANDOM PROXY', () => {
-    it('get random proxy', async () => {
-      const proxy1 = await testsService.getRandomProxy();
-      const proxy2 = await testsService.getRandomProxy();
-      const proxy3 = await testsService.getRandomProxy();
-      console.log(proxy1, proxy2, proxy3);
-    });
-  });
-
-  describe('RANDOM PROXY REQUEST', () => {
-    it('get guild request with random proxy', async () => {
-      const result = await testsService.requestWithRandomProxy('рак-гейминг', 'soulflayer');
+  describe('API REQUEST', () => {
+    it('get character logs', async () => {
+      const result = await testsService.logs('Aanzz', 'Aanzz');
       console.log(result);
     });
   });

@@ -1,5 +1,4 @@
 import { CMNW_ENTITY_ENUM } from '@app/pg';
-import { OSINT_SOURCE } from '@app/resources/constants/osint.constants';
 import {
   Column,
   CreateDateColumn,
@@ -86,7 +85,7 @@ export class GuildsEntity {
   statusCode?: number;
 
   @Column({
-    default: OSINT_SOURCE.GUILD_GET,
+    default: 'OSINT-GUILD-GET',
     nullable: true,
     type: 'varchar',
     name: 'created_by',
@@ -94,7 +93,7 @@ export class GuildsEntity {
   createdBy?: string;
 
   @Column({
-    default: OSINT_SOURCE.GUILD_INDEX,
+    default: 'OSINT-GUILD-INDEX',
     nullable: true,
     type: 'varchar',
     name: 'updated_by',

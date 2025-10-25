@@ -1,6 +1,5 @@
 import { Column, CreateDateColumn, Entity, PrimaryColumn } from 'typeorm';
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
-import { CONTRACT_TYPE } from '@app/resources/constants/dma.constants';
 
 @Entity({ name: CMNW_ENTITY_ENUM.CONTRACTS })
 export class ContractEntity {
@@ -89,11 +88,11 @@ export class ContractEntity {
   openInterest: number;
 
   @Column({
-    default: CONTRACT_TYPE.T,
+    default: 'timestamp',
     nullable: false,
     type: 'varchar',
   })
-  type: CONTRACT_TYPE;
+  type: string;
 
   @Column({
     array: true,

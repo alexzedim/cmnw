@@ -1,4 +1,3 @@
-import { Valuations } from '@app/mongo';
 import { ApiProperty } from '@nestjs/swagger';
 import { SWAGGER_VALUATIONS, SWAGGER_VALUATIONS_EVALUATIONS } from '@app/resources';
 
@@ -7,5 +6,5 @@ export class ItemValuationsDto {
   readonly is_evaluating: number;
 
   @ApiProperty(SWAGGER_VALUATIONS)
-  readonly valuations: Array<Valuations>[];
+  readonly valuations: any[];
 }

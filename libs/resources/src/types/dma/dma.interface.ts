@@ -1,5 +1,4 @@
 import { Model } from 'mongoose';
-import { Market } from '@app/mongo';
 import { ItemsEntity } from '@app/pg';
 import {
   INameWithType,
@@ -278,7 +277,7 @@ export interface IVARealm {
 
 export interface IVAAuctions {
   readonly _id: number;
-  readonly data: Market;
+  readonly data: any;
 }
 
 export interface IGold {
@@ -381,7 +380,7 @@ export interface IBuildYAxis {
 }
 
 export interface IGetCommdtyOrders {
-  readonly model: Model<Market>;
+  readonly model: Model<any>;
   readonly itemId?: number;
   readonly connectedRealmId?: number;
   readonly timestamp?: number;

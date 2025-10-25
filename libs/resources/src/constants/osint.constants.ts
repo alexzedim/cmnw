@@ -543,3 +543,26 @@ export enum API_HEADERS_ENUM {
   DYNAMIC = 'dynamic-eu',
   STATIC = 'static-eu',
 }
+
+export const GUILD_WORKER_CONSTANTS = {
+  ROSTER_CONCURRENCY: 20,
+  NOT_EU_REGION_STATUS_CODE: 305,
+  ERROR_STATUS_CODE: 500,
+  SUCCESS_STATUS_CODE: 200,
+  TOO_MANY_REQUESTS_STATUS_CODE: 429,
+  
+  PROGRESS: {
+    INITIAL: 5,
+    AFTER_AUTH: 10,
+    AFTER_SUMMARY: 25,
+    AFTER_ROSTER: 50,
+    AFTER_DIFF: 90,
+    COMPLETE: 100,
+  },
+  
+  QUEUE_PRIORITY: {
+    GUILD_MASTER: 2,
+  },
+} as const;
+
+export const GUILD_SUMMARY_KEYS = ['id', 'name', 'achievement_points'] as const;

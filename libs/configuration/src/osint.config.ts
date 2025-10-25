@@ -7,4 +7,5 @@ export const osintConfig: IOsintConfig = {
   wclFromPage: Number(process.env.OSINT_WCL_FROM_PAGE),
   wclToPage: Number(process.env.OSINT_WCL_TO_PAGE),
   wclLogs: Number(process.env.OSINT_WCL_LOGS),
+  wclCurrentRaidTier: Number(process.env.OSINT_WCL_CURRENT_RAID_TIER),
 }

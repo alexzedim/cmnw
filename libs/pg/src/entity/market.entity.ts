@@ -1,6 +1,5 @@
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
 import { IActionsModifier, IPetList } from '@app/resources';
-import { MARKET_TYPE } from '@app/resources/constants/dma.constants';
 import {
   Column,
   CreateDateColumn,
@@ -121,11 +120,11 @@ export class MarketEntity {
   isOnline: boolean;
 
   @Column({
-    default: MARKET_TYPE.A,
+    default: 'AUCTION',
     nullable: true,
     type: 'varchar',
   })
-  type?: MARKET_TYPE;
+  type?: string;
 
   @Column({
     nullable: true,
