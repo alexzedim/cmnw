@@ -5,7 +5,7 @@ import {
   IQueueDetailedProgress,
 } from './types/queue-monitor.types';
 
-@Controller('api/queue-monitor')
+@Controller('queue-monitor')
 export class QueueMonitorController {
   constructor(private readonly queueMonitorService: QueueMonitorService) {}
 
