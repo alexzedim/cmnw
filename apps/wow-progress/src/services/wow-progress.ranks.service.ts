@@ -388,12 +388,13 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
         }
       }
 
+      const bucketName = this.s3Service.getDefaultBucketName();
       const summary: DownloadSummary = {
         totalFiles: linksCount,
         successful,
         failed,
         skipped,
-        downloadPath: 'cmnw-default',
+        downloadPath: bucketName,
         results
       };
 
@@ -427,8 +428,9 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
   ) {
     const startTime = Date.now();
     try {
+      const bucketName = this.s3Service.getDefaultBucketName();
       const listWowProgressGzipFiles = await this.s3Service.findGzFiles(
-        'cmnw-default',
+        bucketName,
         'eu_'
       );
 
@@ -459,7 +461,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
 
         const jsonRankings = await this.s3Service.readAndDecompressGzFile(
           fileName,
-          'cmnw-default'
+          bucketName
         );
 
         const isGuildRankingArray = isValidArray(jsonRankings);
