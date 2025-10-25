@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BlizzAPI } from '@alexzedim/blizzapi';
+import chalk from 'chalk';
 import { Job } from 'bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ItemsEntity } from '@app/pg';
@@ -29,6 +30,16 @@ import {
 export class ItemsWorker extends WorkerHost {
   private readonly logger = new Logger(ItemsWorker.name, { timestamp: true });
 
+  private stats = {
+    total: 0,
+    success: 0,
+    notFound: 0,
+    errors: 0,
+    updated: 0,
+    created: 0,
+    startTime: Date.now(),
+  };
+
   private BNet: BlizzAPI;
 
   constructor(
@@ -39,6 +50,9 @@ export class ItemsWorker extends WorkerHost {
   }
 
   public async process(job: Job<ItemJobQueue, number>): Promise<number> {
+    const startTime = Date.now();
+    this.stats.total++;
+
     try {
       const { data: args } = job;
       // --- Check exits, if not, create --- //
@@ -75,6 +89,11 @@ export class ItemsWorker extends WorkerHost {
 
       const isItemValid = isItem(getItemSummary);
       if (!isItemValid) {
+        this.stats.notFound++;
+        const duration = Date.now() - startTime;
+        this.logger.warn(
+          `${chalk.blue('ℹ')} ${chalk.blue('404')} [${chalk.bold(this.stats.total)}] item ${args.itemId} ${chalk.dim(`(${duration}ms)`)}`
+        );
         return 404;
       }
 
@@ -127,17 +146,76 @@ export class ItemsWorker extends WorkerHost {
       }
 
       await this.itemsRepository.save(itemEntity);
-      this.logger.log(`${itemEntity.id} | ${itemEntity.name}`);
+
+      const duration = Date.now() - startTime;
+      this.stats.success++;
+      
+      if (isNew) {
+        this.stats.created++;
+      } else {
+        this.stats.updated++;
+      }
+
+      this.logger.log(
+        `${chalk.green('✓')} ${chalk.green('200')} [${chalk.bold(this.stats.total)}] ${isNew ? chalk.cyan('created') : chalk.yellow('updated')} item ${itemEntity.id} ${chalk.dim('|')} ${itemEntity.name} ${chalk.dim(`(${duration}ms)`)}`
+      );
+
+      // Progress report every 50 items
+      if (this.stats.total % 50 === 0) {
+        this.logProgress();
+      }
 
       return 200;
     } catch (errorOrException) {
+      this.stats.errors++;
+      const duration = Date.now() - startTime;
+      const itemId = job.data?.itemId || 'unknown';
+
       await job.log(errorOrException);
-      this.logger.error({
-        logTag: 'ItemsWorker',
-        itemId: job.data.itemId,
-        error: errorOrException
-      });
+      this.logger.error(
+        `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] item ${itemId} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`
+      );
       return 500;
     }
+  }
+
+  private logProgress(): void {
+    const uptime = Date.now() - this.stats.startTime;
+    const rate = (this.stats.total / (uptime / 1000)).toFixed(2);
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
+
+    this.logger.log(
+      `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
+      `${chalk.magenta('📊 ITEMS PROGRESS REPORT')}\n` +
+      `${chalk.dim('  Total:')} ${chalk.bold(this.stats.total)} items processed\n` +
+      `${chalk.green('  ✓ Success:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
+      `${chalk.cyan('    → Created:')} ${chalk.cyan.bold(this.stats.created)}\n` +
+      `${chalk.yellow('    → Updated:')} ${chalk.yellow.bold(this.stats.updated)}\n` +
+      `${chalk.blue('  ℹ Not Found:')} ${chalk.blue.bold(this.stats.notFound)}\n` +
+      `${chalk.red('  ✗ Errors:')} ${chalk.red.bold(this.stats.errors)}\n` +
+      `${chalk.dim('  Rate:')} ${chalk.bold(rate)} items/sec\n` +
+      `${chalk.magenta.bold('━'.repeat(60))}`
+    );
+  }
+
+  public logFinalSummary(): void {
+    const uptime = Date.now() - this.stats.startTime;
+    const avgRate = (this.stats.total / (uptime / 1000)).toFixed(2);
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
+
+    this.logger.log(
+      `\n${chalk.cyan.bold('═'.repeat(60))}\n` +
+      `${chalk.cyan.bold('  🎯 ITEMS FINAL SUMMARY')}\n` +
+      `${chalk.cyan.bold('═'.repeat(60))}\n` +
+      `${chalk.dim('  Total Items:')} ${chalk.bold.white(this.stats.total)}\n` +
+      `${chalk.green('  ✓ Successful:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
+      `${chalk.cyan('    → Created:')} ${chalk.cyan.bold(this.stats.created)}\n` +
+      `${chalk.yellow('    → Updated:')} ${chalk.yellow.bold(this.stats.updated)}\n` +
+      `${chalk.blue('  ℹ Not Found:')} ${chalk.blue.bold(this.stats.notFound)}\n` +
+      `${chalk.red('  ✗ Failed:')} ${chalk.red.bold(this.stats.errors)}\n` +
+      `${chalk.dim('  Total Time:')} ${chalk.bold((uptime / 1000).toFixed(1))}s\n` +
+      `${chalk.dim('  Avg Rate:')} ${chalk.bold(avgRate)} items/sec\n` +
+      `${chalk.cyan.bold('═'.repeat(60))}`
+    );
   }
 }
