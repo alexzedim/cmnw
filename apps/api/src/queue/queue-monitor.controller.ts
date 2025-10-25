@@ -30,4 +30,14 @@ export class QueueMonitorController {
   async resumeQueue(@Param('queueName') queueName: string): Promise<void> {
     return this.queueMonitorService.resumeQueue(queueName);
   }
+
+  @Get('worker-stats')
+  async getAllWorkerStats(): Promise<any[]> {
+    return this.queueMonitorService.getAllWorkerStats();
+  }
+
+  @Get('worker-stats/:workerName')
+  async getWorkerStats(@Param('workerName') workerName: string): Promise<any> {
+    return this.queueMonitorService.getWorkerStats(workerName);
+  }
 }

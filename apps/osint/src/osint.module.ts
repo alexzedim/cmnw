@@ -4,6 +4,7 @@ import { bullConfig, postgresConfig, redisConfig } from '@app/configuration';
 import { charactersQueue, guildsQueue, profileQueue } from '@app/resources';
 import { HttpModule } from '@nestjs/axios';
 import { CharactersWorker, GuildsWorker, ProfileWorker } from './workers';
+import { WorkerStatsListener } from './listeners';
 import {
   CharacterService,
   CharacterLifecycleService,
@@ -86,6 +87,7 @@ import {
     CharactersWorker,
     GuildsWorker,
     ProfileWorker,
+    WorkerStatsListener,
     GuildService,
     GuildSummaryService,
     GuildRosterService,

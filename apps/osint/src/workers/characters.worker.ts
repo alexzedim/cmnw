@@ -4,6 +4,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Injectable, Logger } from '@nestjs/common';
+import chalk from 'chalk';
 import { coreConfig } from '@app/configuration';
 import {
   CHARACTER_SUMMARY_FIELD_MAPPING,
@@ -30,6 +31,16 @@ export class CharactersWorker extends WorkerHost {
     timestamp: true,
   });
 
+  private stats = {
+    total: 0,
+    success: 0,
+    rateLimit: 0,
+    errors: 0,
+    skipped: 0,
+    notFound: 0,
+    startTime: Date.now(),
+  };
+
   private BNet: BlizzAPI;
 
   constructor(
@@ -45,6 +56,9 @@ export class CharactersWorker extends WorkerHost {
   }
 
   public async process(job: Job<CharacterJobQueue, number>): Promise<number> {
+    const startTime = Date.now();
+    this.stats.total++;
+    
     try {
       const { data: args } = job;
 
@@ -53,9 +67,10 @@ export class CharactersWorker extends WorkerHost {
 
       const shouldSkipUpdate = isNotReadyToUpdate || isCreateOnlyUnique;
       if (shouldSkipUpdate) {
+        this.stats.skipped++;
         await job.updateProgress(100);
         this.logger.warn(
-          `Skipping update: ${characterEntity.guid} | createOnlyUnique: ${isCreateOnlyUnique} | notReady: ${isNotReadyToUpdate}`,
+          `${chalk.yellow('⊘')} Skipped [${chalk.bold(this.stats.total)}] ${characterEntity.guid} ${chalk.dim('(createOnly or notReady)')}`
         );
         return characterEntity.statusCode;
       }
@@ -101,17 +116,92 @@ export class CharactersWorker extends WorkerHost {
       await this.charactersRepository.save(characterEntity);
       await job.updateProgress(100);
 
-      this.logger.log(`${characterEntity.statusCode} >> character: ${characterEntity.guid}`);
+      const duration = Date.now() - startTime;
+      this.logCharacterResult(characterEntity, duration);
+
+      // Progress report every 50 characters
+      if (this.stats.total % 50 === 0) {
+        this.logProgress();
+      }
 
       return characterEntity.statusCode;
     } catch (errorOrException) {
+      this.stats.errors++;
+      const duration = Date.now() - startTime;
+      const guid = job.data?.name && job.data?.realm ? `${job.data.name}@${job.data.realm}` : 'unknown';
+      
       await job.log(errorOrException);
-      this.logger.error({
-        logTag: 'CharactersWorker|process',
-        error: errorOrException,
-      });
+      this.logger.error(
+        `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`
+      );
       return 500;
     }
+  }
+
+  private logCharacterResult(character: CharactersEntity, duration: number): void {
+    const statusCode = character.statusCode;
+    const guid = character.guid;
+
+    if (statusCode === 200 || statusCode === 204) {
+      this.stats.success++;
+      this.logger.log(
+        `${chalk.green('✓')} ${chalk.green(statusCode)} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`
+      );
+    } else if (statusCode === 404) {
+      this.stats.notFound++;
+      this.logger.warn(
+        `${chalk.blue('ℹ')} ${chalk.blue('404')} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`
+      );
+    } else if (statusCode === 429) {
+      this.stats.rateLimit++;
+      this.logger.warn(
+        `${chalk.yellow('⚠')} ${chalk.yellow('429')} Rate limited [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`
+      );
+    } else {
+      this.logger.log(
+        `${chalk.cyan('ℹ')} ${statusCode} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`
+      );
+    }
+  }
+
+  private logProgress(): void {
+    const uptime = Date.now() - this.stats.startTime;
+    const rate = (this.stats.total / (uptime / 1000)).toFixed(2);
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
+
+    this.logger.log(
+      `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
+      `${chalk.magenta('📊 PROGRESS REPORT')}\n` +
+      `${chalk.dim('  Total:')} ${chalk.bold(this.stats.total)} characters processed\n` +
+      `${chalk.green('  ✓ Success:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
+      `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
+      `${chalk.blue('  ℹ Not Found:')} ${chalk.blue.bold(this.stats.notFound)}\n` +
+      `${chalk.yellow('  ⊘ Skipped:')} ${chalk.yellow.bold(this.stats.skipped)}\n` +
+      `${chalk.red('  ✗ Errors:')} ${chalk.red.bold(this.stats.errors)}\n` +
+      `${chalk.dim('  Rate:')} ${chalk.bold(rate)} chars/sec\n` +
+      `${chalk.magenta.bold('━'.repeat(60))}`
+    );
+  }
+
+  public logFinalSummary(): void {
+    const uptime = Date.now() - this.stats.startTime;
+    const avgRate = (this.stats.total / (uptime / 1000)).toFixed(2);
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
+
+    this.logger.log(
+      `\n${chalk.cyan.bold('═'.repeat(60))}\n` +
+      `${chalk.cyan.bold('  🎯 FINAL SUMMARY')}\n` +
+      `${chalk.cyan.bold('═'.repeat(60))}\n` +
+      `${chalk.dim('  Total Characters:')} ${chalk.bold.white(this.stats.total)}\n` +
+      `${chalk.green('  ✓ Successful:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
+      `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
+      `${chalk.blue('  ℹ Not Found:')} ${chalk.blue.bold(this.stats.notFound)}\n` +
+      `${chalk.yellow('  ⊘ Skipped:')} ${chalk.yellow.bold(this.stats.skipped)}\n` +
+      `${chalk.red('  ✗ Failed:')} ${chalk.red.bold(this.stats.errors)}\n` +
+      `${chalk.dim('  Total Time:')} ${chalk.bold((uptime / 1000).toFixed(1))}s\n` +
+      `${chalk.dim('  Avg Rate:')} ${chalk.bold(avgRate)} chars/sec\n` +
+      `${chalk.cyan.bold('═'.repeat(60))}`
+    );
   }
 
   private inheritSafeValuesFromArgs(
