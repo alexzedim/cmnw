@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
+import chalk from 'chalk';
 import { difference, union } from 'lodash';
 import { In, Repository } from 'typeorm';
 import { CharactersProfileEntity, KeysEntity, RealmsEntity } from '@app/pg';
@@ -28,6 +29,16 @@ import { findRealm } from '@app/resources/dao/realms.dao';
 export class WowProgressLfgService {
   private readonly logger = new Logger(WowProgressLfgService.name);
 
+  private stats = {
+    charactersRemoved: 0,
+    charactersFound: 0,
+    charactersNew: 0,
+    charactersQueued: 0,
+    realmNotFound: 0,
+    errors: 0,
+    startTime: Date.now(),
+  };
+
   constructor(
     private httpService: HttpService,
     @InjectRepository(KeysEntity)
@@ -44,9 +55,9 @@ export class WowProgressLfgService {
 
   @Cron(CronExpression.EVERY_5_MINUTES)
   async indexWowProgressLfg(clearance: string = GLOBAL_OSINT_KEY): Promise<void> {
-    const logTag = 'indexWowProgressLfg';
+    const startTime = Date.now();
     try {
-      this.logger.log({ logTag, message: '————————————————————————————————————' });
+      this.logger.log(chalk.cyan('\n🔍 Starting WoW Progress LFG indexing...'));
       /**
        * Revoke character status from old NOW => to PREV
        */
@@ -59,12 +70,10 @@ export class WowProgressLfgService {
         },
       );
 
-      this.logger.log({
-        logTag,
-        affectedCount: charactersLfgRemoveOld.affected,
-        lfgStatus: LFG_STATUS.OLD,
-        message: `${charactersLfgRemoveOld.affected} characters removed from LFG-${LFG_STATUS.OLD}`
-      });
+      this.stats.charactersRemoved += charactersLfgRemoveOld.affected || 0;
+      this.logger.log(
+        `${chalk.yellow('⊘')} Removed ${chalk.bold(charactersLfgRemoveOld.affected || 0)} old LFG entries`
+      );
 
       const [nowUpdatedResult, newUpdatedResult] = await Promise.all([
         this.charactersProfileRepository.update(
@@ -85,12 +94,9 @@ export class WowProgressLfgService {
         ),
       ]);
 
-      this.logger.debug({
-        logTag,
-        nowAffected: nowUpdatedResult.affected,
-        newAffected: newUpdatedResult.affected,
-        message: `characters status revoked from NOW ${nowUpdatedResult.affected} | NEW ${newUpdatedResult.affected}`
-      });
+      this.logger.debug(
+        chalk.dim(`Revoked status: NOW ${nowUpdatedResult.affected} | NEW ${newUpdatedResult.affected}`)
+      );
 
       const keysEntity = await getKeys(this.keysRepository, clearance);
       const [firstPageUrl, secondPageUrl] = OSINT_LFG_WOW_PROGRESS;
@@ -100,14 +106,11 @@ export class WowProgressLfgService {
         await this.getWowProgressLfg(secondPageUrl),
       ]);
 
-      const isCharacterPageValid = Boolean(firstPage.size && secondPage.size);
-      if (!isCharacterPageValid) {
-        this.logger.debug({
-          logTag,
-          firstPageSize: firstPage.size,
-          secondPageSize: secondPage.size,
-          message: `LFG page ${firstPage.size} & ${secondPage.size} | return`
-        });
+      const isCondition = Boolean(firstPage.size && secondPage.size);
+      if (!isCondition) {
+        this.logger.warn(
+          chalk.yellow(`⚠ Invalid pages - first: ${firstPage.size}, second: ${secondPage.size}`)
+        );
         return;
       }
 
@@ -120,21 +123,16 @@ export class WowProgressLfgService {
        * @description If LFG.OLD not found then write NOW to PREV
        * @description Overwrite LFG status NOW
        */
-      this.logger.log({
-        logTag,
-        charactersCount: charactersLfgNow.length,
-        lfgStatus: LFG_STATUS.NOW,
-        message: `${charactersLfgNow.length} characters found in LFG-${LFG_STATUS.NOW}`
-      });
+      this.stats.charactersFound += charactersLfgNow.length;
+      this.logger.log(
+        `${chalk.green('✓')} Found ${chalk.bold(charactersLfgNow.length)} characters in LFG-${LFG_STATUS.NOW}`
+      );
       const characterProfileLfgOld = await this.charactersProfileRepository.findBy({
         lfgStatus: LFG_STATUS.OLD,
       });
-      this.logger.log({
-        logTag,
-        charactersCount: characterProfileLfgOld.length,
-        lfgStatus: LFG_STATUS.OLD,
-        message: `${characterProfileLfgOld.length} characters found for LFG-${LFG_STATUS.OLD}`
-      });
+      this.logger.log(
+        `${chalk.blue('ℹ')} Found ${chalk.bold(characterProfileLfgOld.length)} characters in LFG-${LFG_STATUS.OLD}`
+      );
 
       const charactersLfgOld = characterProfileLfgOld.map(
         (character) => character.guid,
@@ -153,14 +151,15 @@ export class WowProgressLfgService {
         },
       );
 
-      this.logger.log({
-        logTag,
-        charactersCount: isLfgNewExists,
-        lfgStatus: LFG_STATUS.NOW,
-        message: `${isLfgNewExists} characters added to queue with LFG-${LFG_STATUS.NOW}`
-      });
+      this.stats.charactersNew += isLfgNewExists;
+      this.logger.log(
+        `${chalk.cyan('→')} Processing ${chalk.bold(isLfgNewExists)} new LFG characters`
+      );
 
-      if (!isLfgNewExists) return;
+      if (!isLfgNewExists) {
+        this.logger.log(chalk.blue('ℹ No new characters to process'));
+        return;
+      }
 
       const realmsEntity = new Map<string, RealmsEntity>([]);
 
@@ -181,13 +180,17 @@ export class WowProgressLfgService {
           ),
         ),
       );
-      this.logger.log({ logTag, message: '————————————————————————————————————' });
+      const duration = Date.now() - startTime;
+      this.logger.log(
+        chalk.green(`\n✓ LFG indexing completed in ${chalk.bold(Math.round(duration / 1000))}s`)
+      );
+      this.logProgress();
     } catch (errorOrException) {
-      this.logger.error({
-        logTag,
-        errorOrException,
-        message: 'Error in indexWowProgressLfg'
-      });
+      this.stats.errors++;
+      this.logger.error(
+        chalk.red('✗ Error in indexWowProgressLfg:'),
+        errorOrException.message
+      );
     }
   }
 
@@ -198,8 +201,6 @@ export class WowProgressLfgService {
     keysEntity: KeysEntity[],
     lookingForGuild: LFG_STATUS
   ): Promise<void> {
-    const logTag = 'pushCharacterAndProfileToQueue';
-
     try {
       const characterQueue = charactersLfg.get(characterGuid);
       const isRealmInStore = realmsEntity.has(characterQueue.realm);
@@ -209,11 +210,10 @@ export class WowProgressLfgService {
         : await findRealm(this.realmsRepository, characterQueue.realm);
 
       if (!realmEntity) {
-        this.logger.warn({
-          logTag,
-          realm: characterQueue.realm,
-          message: `Realm: ${characterQueue.realm} not found`
-        });
+        this.stats.realmNotFound++;
+        this.logger.warn(
+          `${chalk.yellow('⚠')} Realm not found: ${chalk.dim(characterQueue.realm)}`
+        );
         return;
       }
 
@@ -255,23 +255,40 @@ export class WowProgressLfgService {
         ),
       ]);
 
-      this.logger.log({
-        logTag,
-        guid: characterQueue.guid,
-        message: `Added to character queue: ${characterQueue.guid}`
-      });
+      this.stats.charactersQueued++;
+      this.logger.log(
+        `${chalk.cyan('→')} Queued ${chalk.dim(characterQueue.guid)}`
+      );
     } catch (errorOrException) {
-      this.logger.error({
-        logTag,
-        errorOrException,
-        message: 'Error in pushCharacterAndProfileToQueue'
-      });
+      this.stats.errors++;
+      this.logger.error(
+        chalk.red('✗ Error queuing character:'),
+        errorOrException.message
+      );
     }
+  }
+
+  private logProgress(): void {
+    const uptime = Date.now() - this.stats.startTime;
+    const hours = Math.floor(uptime / (1000 * 60 * 60));
+    const minutes = Math.floor((uptime % (1000 * 60 * 60)) / (1000 * 60));
+
+    this.logger.log(
+      `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
+      `${chalk.magenta('📊 WOW PROGRESS LFG SERVICE')}\n` +
+      `${chalk.green('  ✓ Characters Found:')} ${chalk.green.bold(this.stats.charactersFound)}\n` +
+      `${chalk.cyan('  → Characters New:')} ${chalk.cyan.bold(this.stats.charactersNew)}\n` +
+      `${chalk.cyan('  → Characters Queued:')} ${chalk.cyan.bold(this.stats.charactersQueued)}\n` +
+      `${chalk.yellow('  ⊘ Characters Removed:')} ${chalk.yellow.bold(this.stats.charactersRemoved)}\n` +
+      `${chalk.yellow('  ⚠ Realms Not Found:')} ${chalk.yellow.bold(this.stats.realmNotFound)}\n` +
+      `${chalk.red('  ✗ Errors:')} ${chalk.red.bold(this.stats.errors)}\n` +
+      `${chalk.dim('  Uptime:')} ${chalk.bold(`${hours}h ${minutes}m`)}\n` +
+      `${chalk.magenta.bold('━'.repeat(60))}`
+    );
   }
 
   private async getWowProgressLfg(url: string) {
     const wpCharactersQueue = new Map<string, ICharacterQueueWP>([]);
-    const logTag = 'getWowProgressLfg';
     try {
       const response = await this.httpService.axiosRef.get(url);
 
@@ -311,12 +328,12 @@ export class WowProgressLfgService {
 
       return wpCharactersQueue;
     } catch (errorOrException) {
-      this.logger.error({
-        logTag,
-        errorOrException,
-        url,
-        message: 'Error in getWowProgressLfg'
-      });
+      this.stats.errors++;
+      this.logger.error(
+        chalk.red('✗ Error fetching WP LFG:'),
+        errorOrException.message,
+        chalk.dim(url)
+      );
       return wpCharactersQueue;
     }
   }
