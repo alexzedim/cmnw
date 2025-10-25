@@ -1,5 +1,4 @@
 import { ApiProperty, ApiPropertyOptions, getSchemaPath } from '@nestjs/swagger';
-import { Valuations } from '@app/mongo';
 import { MarketEntity } from '@app/pg';
 import { MARKET_TYPE } from '@app/resources/constants';
 
@@ -142,7 +141,7 @@ export const SWAGGER_VALUATIONS_EVALUATIONS: ApiPropertyOptions = {
 export const SWAGGER_VALUATIONS: ApiPropertyOptions = {
   name: 'valuations',
   description: 'Show every evaluation for requested item',
-  type: () => Valuations,
+  type: Object,
   isArray: true,
 };
 

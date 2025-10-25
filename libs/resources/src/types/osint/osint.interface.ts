@@ -291,6 +291,39 @@ export interface IProfessions {
   professions: Partial<IProfession>[];
 }
 
+export interface IBlizzardProfessionTier {
+  tier: {
+    id: number;
+    name: string;
+  };
+  skill_points: number;
+  max_skill_points: number;
+}
+
+export interface IBlizzardPrimaryProfession {
+  profession: {
+    id: number;
+    name: string;
+  };
+  specialization?: {
+    name: string;
+  };
+  tiers?: IBlizzardProfessionTier[];
+}
+
+export interface IBlizzardSecondaryProfession {
+  profession: {
+    id: number;
+    name: string;
+  };
+  tiers?: IBlizzardProfessionTier[];
+}
+
+export interface IBlizzardProfessionsResponse {
+  primaries?: IBlizzardPrimaryProfession[];
+  secondaries?: IBlizzardSecondaryProfession[];
+}
+
 export interface IRaidProgressRIO {
   id: string;
   progress: string;
@@ -429,6 +462,12 @@ export interface ICharacterStatus {
   is_valid: boolean;
   last_modified: Date;
   status_code: number;
+}
+
+export interface IBlizzardStatusResponse {
+  id: number;
+  is_valid: boolean;
+  last_modified: number;
 }
 
 export interface IWowProgress {

@@ -5,4 +5,5 @@ export interface IOsintConfig {
   readonly wclFromPage: number;
   readonly wclToPage: number;
   readonly wclLogs: number;
+  readonly wclCurrentRaidTier: number;
 }

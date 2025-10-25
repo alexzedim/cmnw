@@ -6,11 +6,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-
-export enum AuthProvider {
-  DISCORD = 'discord',
-  BATTLENET = 'battlenet',
-}
+import { AuthProvider } from '@app/pg/enum';
 
 @Index('ix__users__discord_id', ['discordId'], { where: 'discord_id IS NOT NULL' })
 @Index('ix__users__battlenet_id', ['battlenetId'], { where: 'battlenet_id IS NOT NULL' })

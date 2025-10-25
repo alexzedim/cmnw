@@ -1,5 +1,4 @@
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
-import { OSINT_SOURCE } from '@app/resources/constants/osint.constants';
 import {
   Column,
   CreateDateColumn,
@@ -73,7 +72,7 @@ export class CharactersGuildsMembersEntity {
   rank: number;
 
   @Column({
-    default: OSINT_SOURCE.CHARACTER_GET,
+    default: 'OSINT-CHARACTER-GET',
     nullable: true,
     type: 'varchar',
     name: 'created_by',
@@ -81,7 +80,7 @@ export class CharactersGuildsMembersEntity {
   createdBy: string;
 
   @Column({
-    default: OSINT_SOURCE.CHARACTER_INDEX,
+    default: 'OSINT-CHARACTER-INDEX',
     nullable: true,
     type: 'varchar',
     name: 'updated_by',

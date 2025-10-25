@@ -4,6 +4,18 @@ import { bullConfig, postgresConfig, redisConfig } from '@app/configuration';
 import { charactersQueue, guildsQueue, profileQueue } from '@app/resources';
 import { HttpModule } from '@nestjs/axios';
 import { CharactersWorker, GuildsWorker, ProfileWorker } from './workers';
+import {
+  CharacterService,
+  CharacterLifecycleService,
+  CharacterCollectionService,
+  CharacterEntityIndexingService,
+  GuildService,
+  GuildSummaryService,
+  GuildRosterService,
+  GuildMemberService,
+  GuildLogService,
+  GuildMasterService,
+} from './services';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import {
@@ -70,6 +82,20 @@ import {
     }),
   ],
   controllers: [],
-  providers: [CharactersWorker, GuildsWorker, ProfileWorker],
+  providers: [
+    CharactersWorker,
+    GuildsWorker,
+    ProfileWorker,
+    GuildService,
+    GuildSummaryService,
+    GuildRosterService,
+    GuildMemberService,
+    GuildLogService,
+    GuildMasterService,
+    CharacterService,
+    CharacterLifecycleService,
+    CharacterCollectionService,
+    CharacterEntityIndexingService,
+  ],
 })
 export class OsintModule {}

@@ -1,7 +1,6 @@
 import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { CMNW_ENTITY_ENUM } from '@app/pg';
 import { ItemNames, ItemPricing } from '@app/resources';
-import { DMA_SOURCE } from '@app/resources/constants/dma.constants';
 
 // @todo index
 @Entity({ name: CMNW_ENTITY_ENUM.PRICING })
@@ -130,20 +129,20 @@ export class PricingEntity {
   singlePremium: number;
 
   @Column({
-    default: DMA_SOURCE.API,
+    default: 'DMA-API',
     nullable: true,
     type: 'varchar',
     name: 'created_by',
   })
-  createdBy?: DMA_SOURCE;
+  createdBy?: string;
 
   @Column({
-    default: DMA_SOURCE.API,
+    default: 'DMA-API',
     nullable: true,
     type: 'varchar',
     name: 'updated_by',
   })
-  updatedBy: DMA_SOURCE;
+  updatedBy: string;
 
   @CreateDateColumn({
     type: 'timestamp with time zone',

@@ -5,6 +5,7 @@ import { AuthService } from '../auth.service';
 import { AuthResponseDto, BattleNetProfile } from '@app/resources';
 import { HttpService } from '@nestjs/axios';
 import { lastValueFrom } from 'rxjs';
+import { cmnwConfig } from '@app/configuration';
 
 /**
  * Review full list of available scopes here: https://develop.battle.net/documentation/guides/using-oauth
@@ -21,9 +22,9 @@ export class BattleNetStrategy extends PassportStrategy(Strategy, 'battlenet') {
     super({
       authorizationURL: `https://eu.battle.net/oauth/authorize`,
       tokenURL: 'https://eu.battle.net/oauth/token',
-      clientID: process.env.BATTLENET_CLIENT_ID,
-      clientSecret: process.env.BATTLENET_CLIENT_SECRET,
-      callbackURL: process.env.BATTLENET_CALLBACK_URL,
+      clientID: cmnwConfig.clientId,
+      clientSecret: cmnwConfig.clientSecret,
+      callbackURL: cmnwConfig.callbackUrl,
       scope: 'wow.profile',
     });
   }

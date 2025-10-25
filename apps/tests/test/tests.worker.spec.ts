@@ -6,7 +6,7 @@ import {
   CharactersGuildsMembersEntity,
   CharactersGuildsLogsEntity,
 } from '@app/pg';
-import { guildOriginal, guildUpdated } from '../mocks/worker.mock';
+import { guildOriginal, guildUpdated } from '../mocks';
 import { ACTION_LOG, OSINT_GM_RANK } from '@app/resources';
 
 describe('WORKER', () => {
@@ -89,7 +89,7 @@ describe('WORKER', () => {
 
       // Mock roster data
       const rosterUpdateAt = new Date('2024-02-01T14:30:00Z');
-      
+
       // Execute
       const result = await testsService.processIntersectionMember(
         guildUpdated.guildEntity,
@@ -132,7 +132,7 @@ describe('WORKER', () => {
 
       // Mock roster data
       const rosterUpdateAt = new Date('2024-02-01T14:30:00Z');
-      
+
       // Execute
       const result = await testsService.processIntersectionMember(
         guildUpdated.guildEntity,
@@ -169,7 +169,7 @@ describe('WORKER', () => {
 
       // Mock roster data
       const rosterUpdateAt = new Date('2024-02-01T14:30:00Z');
-      
+
       // Execute
       const result = await testsService.processIntersectionMember(
         guildUpdated.guildEntity,
@@ -201,7 +201,7 @@ describe('WORKER', () => {
 
       // Mock roster data
       const rosterUpdateAt = new Date('2024-02-01T14:30:00Z');
-      
+
       // Execute
       const result = await testsService.processJoinMember(
         guildUpdated.guildEntity,
@@ -239,7 +239,7 @@ describe('WORKER', () => {
 
       // Mock roster data
       const rosterUpdateAt = new Date('2024-02-01T14:30:00Z');
-      
+
       // Execute
       const result = await testsService.processJoinMember(
         guildUpdated.guildEntity,
@@ -272,7 +272,7 @@ describe('WORKER', () => {
 
       // Mock roster data
       const rosterUpdateAt = new Date('2024-02-01T14:30:00Z');
-      
+
       // Execute
       const result = await testsService.processJoinMember(
         guildUpdated.guildEntity,
@@ -303,7 +303,7 @@ describe('WORKER', () => {
 
       // Mock roster data
       const rosterUpdateAt = new Date('2024-02-01T14:30:00Z');
-      
+
       // Execute
       const result = await testsService.processLeaveMember(
         guildUpdated.guildEntity,
@@ -336,7 +336,7 @@ describe('WORKER', () => {
 
       // Mock roster data
       const rosterUpdateAt = new Date('2024-02-01T14:30:00Z');
-      
+
       // Execute
       const result = await testsService.processLeaveMember(
         guildUpdated.guildEntity,
@@ -368,7 +368,7 @@ describe('WORKER', () => {
 
       // Mock roster data
       const rosterUpdateAt = new Date('2024-02-01T14:30:00Z');
-      
+
       // Execute
       const result = await testsService.processLeaveMember(
         guildUpdated.guildEntity,

@@ -1,7 +1,17 @@
 import { DateTime } from 'luxon';
-import * as changeCase from 'change-case';
 
-export const toGuid = (name: string, realm: string) => changeCase.kebabCase(`${name}@${realm}`);
+/**
+ * @description Convert string to kebab-case format
+ * @param s {string}
+ * @return {string}
+ */
+const kebabCase = (s: string): string =>
+  s
+    .replace(/([a-z])([A-Z])/g, '$1-$2')
+    .replace(/[\s_]+/g, '-')
+    .toLowerCase();
+
+export const toGuid = (name: string, realm: string) => kebabCase(`${name}@${realm}`);
 /**
  * @description Returns capitalized string
  * @param s {string}
@@ -29,7 +39,7 @@ export const toGold = (n: number, digits = 2) =>
  * @return {string}
  */
 export const toSlug = (s: string): string =>
-  changeCase.kebabCase(s);
+  kebabCase(s);
 
 /**
  * @description Return force lowercase with underscore format string
