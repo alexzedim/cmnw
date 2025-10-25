@@ -3,7 +3,7 @@ import {
   Logger,
   OnApplicationBootstrap,
 } from '@nestjs/common';
-
+import chalk from 'chalk';
 import {
   BROWSER_HEADERS,
   GLOBAL_WCL_KEY_V2,
@@ -46,6 +46,15 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
     timestamp: true,
   });
 
+  private stats = {
+    logsIndexed: 0,
+    logsSkipped: 0,
+    logsCreated: 0,
+    charactersQueued: 0,
+    errors: 0,
+    startTime: Date.now(),
+  };
+
   constructor(
     private httpService: HttpService,
     @InjectRedis()
@@ -67,10 +76,11 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
 
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async indexWarcraftLogs(): Promise<void> {
+    const startTime = Date.now();
     try {
       const lock = Boolean(await this.redisService.exists(KEY_LOCK.WARCRAFT_LOGS));
       if (lock) {
-        this.logger.warn({ logTag: 'indexWarcraftLogs', message: 'indexWarcraftLogs is already running' });
+        this.logger.warn(chalk.yellow('⚠ indexWarcraftLogs is already running'));
         return;
       }
 
@@ -80,15 +90,23 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         warcraftLogsId: Not(IsNull()),
       });
 
+      this.logger.log(chalk.cyan(`🔍 Starting WCL indexing for ${chalk.bold(realmsEntities.length)} realms`));
+
       for (const realmEntity of realmsEntities) {
         await this.indexCharacterRaidLogs(realmEntity);
       }
 
+      const duration = Date.now() - startTime;
+      this.logger.log(
+        chalk.green(`✓ WCL indexing completed in ${chalk.bold(Math.round(duration / 1000))}s`)
+      );
+
     } catch (errorOrException) {
-      this.logger.error({
-        logTag: 'indexWarcraftLogs',
-        errorOrException,
-      });
+      this.stats.errors++;
+      this.logger.error(
+        chalk.red('✗ Error in indexWarcraftLogs:'),
+        errorOrException.message
+      );
     } finally {
       await this.redisService.del(KEY_LOCK.WARCRAFT_LOGS);
     }
@@ -158,25 +176,21 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
          * If indexing logs on the page have ended and page fault
          * tolerance is more than config, then break for loop
          */
-        const [isPageEmpty, isLogsMoreThen] = [
-          !wclLogsFromPage.length,
-          logsAlreadyExists > this.config.wclLogs,
-        ];
+        const isCondition1 = !wclLogsFromPage.length;
+        const isCondition2 = logsAlreadyExists > this.config.wclLogs;
 
-        if (isLogsMoreThen) {
-          this.logger.log({
-            logTag: 'indexCharacterRaidLogs',
-            message: `BREAK | ${realmEntity.name} | Logs: ${logsAlreadyExists} > ${this.config.wclLogs}`,
-          });
+        if (isCondition2) {
+          this.logger.log(
+            chalk.blue(`ℹ Break | ${realmEntity.name} ${chalk.dim(`| logs: ${logsAlreadyExists} > ${this.config.wclLogs}`)}`)
+          );
           break;
         }
 
         // --- If parsed page have no results --- //
-        if (isPageEmpty) {
-          this.logger.log({
-            logTag: 'indexCharacterRaidLogs',
-            message: `ERROR | ${realmEntity.name} | Page: ${page} | Logs not found`,
-          });
+        if (isCondition1) {
+          this.logger.warn(
+            chalk.yellow(`⚠ Empty page | ${realmEntity.name} ${chalk.dim(`| page: ${page}`)}`)
+          );
           break;
         }
 
@@ -187,10 +201,10 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
           // --- If exists counter --- //
           if (characterRaidLog) {
             logsAlreadyExists += 1;
-            this.logger.log({
-              logTag: 'indexCharacterRaidLogs',
-              message: `EXISTS | ID: ${logId} | R: ${realmEntity.name} | Log EX: ${logsAlreadyExists}`,
-            });
+            this.stats.logsSkipped++;
+            this.logger.log(
+              `${chalk.yellow('⊘')} Skipped ${chalk.dim(logId)} ${chalk.dim('|')} ${realmEntity.name} ${chalk.dim(`| exists: ${logsAlreadyExists}`)}`
+            );
             continue;
           }
 
@@ -200,10 +214,10 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
               isIndexed: false,
               createdAt,
             });
-            this.logger.log({
-              logTag: 'indexCharacterRaidLogs',
-              message: `CREATED | ID: ${logId} | R: ${realmEntity.name} | Log EX: ${logsAlreadyExists}`,
-            });
+            this.stats.logsCreated++;
+            this.logger.log(
+              `${chalk.green('✓')} Created ${chalk.cyan(logId)} ${chalk.dim('|')} ${realmEntity.name} ${chalk.dim(`| exists: ${logsAlreadyExists}`)}`
+            );
 
             if (logsAlreadyExists > 1) logsAlreadyExists -= 1;
           }
@@ -219,10 +233,11 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
 
   @Cron(CronExpression.EVERY_HOUR)
   async indexLogs(): Promise<void> {
+    const startTime = Date.now();
     try {
       const isJobLocked = Boolean(await this.redisService.exists(GLOBAL_WCL_KEY_V2));
       if (isJobLocked) {
-        this.logger.warn({ logTag: 'indexLogs', message: 'indexLogs is already running' });
+        this.logger.warn(chalk.yellow('⚠ indexLogs is already running'));
         return;
       }
 
@@ -237,9 +252,13 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
       });
 
       if (!characterRaidLog.length) {
-        this.logger.warn({ logTag: 'indexLogs', message: 'No logs to index' });
+        this.logger.log(chalk.blue('ℹ No logs to index'));
         return;
       }
+
+      this.logger.log(
+        chalk.cyan(`🔄 Processing ${chalk.bold(characterRaidLog.length)} raid logs`)
+      );
 
       await lastValueFrom(
         from(characterRaidLog).pipe(
@@ -248,12 +267,19 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         ),
       );
 
-      this.logger.log({ logTag: 'indexLogs', message: `character raid logs | ${characterRaidLog.length}` });
+      const duration = Date.now() - startTime;
+      this.logger.log(
+        chalk.green(`✓ Indexed ${chalk.bold(characterRaidLog.length)} logs in ${chalk.bold(Math.round(duration / 1000))}s`)
+      );
+
+      // Log progress summary every hour
+      this.logProgress();
     } catch (errorOrException) {
-      this.logger.error({
-        logTag: 'indexLogs',
-        errorOrException,
-      });
+      this.stats.errors++;
+      this.logger.error(
+        chalk.red('✗ Error in indexLogs:'),
+        errorOrException.message
+      );
     } finally {
       await this.redisService.del(GLOBAL_WCL_KEY_V2);
     }
@@ -271,14 +297,17 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         { isIndexed: true },
       );
 
-      this.logger.log({ logTag: 'indexLogAndPushCharactersToQueue', message: `Log: ${characterRaidLogEntity.logId} | indexed: isIndexed: true` });
+      this.stats.logsIndexed++;
+      this.logger.log(
+        `${chalk.green('✓')} Indexed ${chalk.dim(characterRaidLogEntity.logId)} ${chalk.dim('|')} ${chalk.bold(raidCharacters.length)} characters`
+      );
 
       await this.charactersToQueue(raidCharacters);
     } catch (errorOrException) {
-      this.logger.error({
-        logTag: 'indexLogAndPushCharactersToQueue',
-        errorOrException,
-      });
+      this.stats.errors++;
+      this.logger.error(
+        `${chalk.red('✗')} Failed ${chalk.dim(characterRaidLogEntity.logId)} - ${errorOrException.message}`
+      );
     }
   }
 
@@ -392,17 +421,36 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
       });
 
       await this.characterQueue.addBulk(charactersToJobs);
-      this.logger.log({
-        logTag: 'charactersToQueue',
-        message: `${charactersToJobs.length} characters added to characterQueue`,
-      });
+      this.stats.charactersQueued += charactersToJobs.length;
+      this.logger.log(
+        `${chalk.cyan('→')} Queued ${chalk.bold(charactersToJobs.length)} characters to characterQueue`
+      );
       return true;
     } catch (errorOrException) {
-      this.logger.error({
-        logTag: 'charactersToQueue',
-        errorOrException,
-      });
+      this.stats.errors++;
+      this.logger.error(
+        chalk.red('✗ Error in charactersToQueue:'),
+        errorOrException.message
+      );
       return false;
     }
+  }
+
+  private logProgress(): void {
+    const uptime = Date.now() - this.stats.startTime;
+    const hours = Math.floor(uptime / (1000 * 60 * 60));
+    const minutes = Math.floor((uptime % (1000 * 60 * 60)) / (1000 * 60));
+
+    this.logger.log(
+      `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
+      `${chalk.magenta('📊 WCL SERVICE PROGRESS')}\n` +
+      `${chalk.cyan('  ✓ Logs Indexed:')} ${chalk.cyan.bold(this.stats.logsIndexed)}\n` +
+      `${chalk.green('  ✓ Logs Created:')} ${chalk.green.bold(this.stats.logsCreated)}\n` +
+      `${chalk.yellow('  ⊘ Logs Skipped:')} ${chalk.yellow.bold(this.stats.logsSkipped)}\n` +
+      `${chalk.cyan('  → Characters Queued:')} ${chalk.cyan.bold(this.stats.charactersQueued)}\n` +
+      `${chalk.red('  ✗ Errors:')} ${chalk.red.bold(this.stats.errors)}\n` +
+      `${chalk.dim('  Uptime:')} ${chalk.bold(`${hours}h ${minutes}m`)}\n` +
+      `${chalk.magenta.bold('━'.repeat(60))}`
+    );
   }
 }
