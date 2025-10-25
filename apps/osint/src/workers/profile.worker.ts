@@ -185,10 +185,11 @@ export class ProfileWorker extends WorkerHost {
     realmSlug: string,
     raidDifficulty: 'heroic' | 'mythic' = 'mythic',
   ): Promise<WarcraftLogsProfile> {
-    const logTag = this.getWarcraftLogsProfile.name;
     const warcraftLogsProfile = this.charactersProfileRepository.create();
+    const guid = `${name}@${realmSlug}`;
+    
     try {
-      const isBrowserLaunched = Boolean(this.browser);
+      const isBrowserLaunched = Boolean(this.browser && this.browserContext);
       if (!isBrowserLaunched) {
         this.browser = await chromium.launch();
         this.browserContext = await this.browser.newContext(devices['iPhone 15 Pro Max landscape']);
@@ -212,6 +213,13 @@ export class ProfileWorker extends WorkerHost {
       const isLogsNumberValid = !isNaN(Number(value.trim()));
       if (isLogsNumberValid) {
         warcraftLogsProfile[difficulty.fieldName] = parseFloat(value);
+        this.logger.log(
+          `${chalk.magenta('✓ WCL')} ${guid} - ${difficulty.fieldName}: ${chalk.bold(value)}`
+        );
+      } else {
+        this.logger.warn(
+          `${chalk.yellow('⚠ WCL')} ${guid} - No valid logs data found`
+        );
       }
 
       warcraftLogsProfile.updatedByWarcraftLogs = new Date();
@@ -219,7 +227,7 @@ export class ProfileWorker extends WorkerHost {
       return warcraftLogsProfile;
     } catch (errorOrException) {
       this.logger.error(
-        `${chalk.red('getWarcraftLogsProfile')} ${name}@${realmSlug} - ${errorOrException.message}`
+        `${chalk.red('✗ WCL')} ${guid} - ${errorOrException.message}`
       );
 
       return warcraftLogsProfile;
@@ -232,14 +240,20 @@ export class ProfileWorker extends WorkerHost {
     name: string,
     realmSlug: string,
   ): Promise<WowProgressProfile> {
-    const logTag = this.getWowProgressProfile.name;
     const wowProgressProfile = this.charactersProfileRepository.create();
+    const guid = `${name}@${realmSlug}`;
+    
     try {
       const { data } = await this.httpService.axiosRef.get<string>(
         encodeURI(`${OSINT_SOURCE_WOW_PROGRESS}/${realmSlug}/${name}`),
       );
 
-      if (!data) return wowProgressProfile;
+      if (!data) {
+        this.logger.warn(
+          `${chalk.yellow('⚠ WP')} ${guid} - No data received`
+        );
+        return wowProgressProfile;
+      }
 
       const wowProgressProfilePage = cheerio.load(data);
       const wpHTML = wowProgressProfilePage.html('.language');
@@ -279,11 +293,22 @@ export class ProfileWorker extends WorkerHost {
       );
 
       wowProgressProfile.updatedByWowProgress = new Date();
+      
+      const hasData = wowProgressProfile.battleTag || wowProgressProfile.playRole || wowProgressProfile.languages?.length > 0;
+      if (hasData) {
+        this.logger.log(
+          `${chalk.cyan('✓ WP')} ${guid} - Profile updated`
+        );
+      } else {
+        this.logger.warn(
+          `${chalk.yellow('⚠ WP')} ${guid} - No profile data found`
+        );
+      }
 
       return wowProgressProfile;
     } catch (errorOrException) {
       this.logger.error(
-        `${chalk.red('getWowProgressProfile')} ${name}@${realmSlug} - ${errorOrException.message}`
+        `${chalk.red('✗ WP')} ${guid} - ${errorOrException.message}`
       );
 
       return wowProgressProfile;
@@ -291,8 +316,9 @@ export class ProfileWorker extends WorkerHost {
   }
 
   private async getRaiderIoProfile(name: string, realmSlug: string) {
-    const logTag = this.getRaiderIoProfile.name;
     const rioProfileCharacter = this.charactersProfileRepository.create();
+    const guid = `${name}@${realmSlug}`;
+    
     try {
       const { data: raiderIoProfile } =
         await this.httpService.axiosRef.get<ICharacterRaiderIo>(
@@ -302,7 +328,12 @@ export class ProfileWorker extends WorkerHost {
         );
 
       const isRaiderIoProfileValid = isRaiderIoProfile(raiderIoProfile);
-      if (!isRaiderIoProfileValid) return rioProfileCharacter;
+      if (!isRaiderIoProfileValid) {
+        this.logger.warn(
+          `${chalk.yellow('⚠ RIO')} ${guid} - Invalid profile data`
+        );
+        return rioProfileCharacter;
+      }
 
       Object.entries(raiderIoProfile).forEach(([key, value]) => {
         const isKeyInProfile = CHARACTER_PROFILE_RIO_MAPPING.has(
@@ -330,10 +361,14 @@ export class ProfileWorker extends WorkerHost {
       rioProfileCharacter.raiderIoScore = season.scores.all;
       rioProfileCharacter.updatedByRaiderIo = new Date();
 
+      this.logger.log(
+        `${chalk.blue('✓ RIO')} ${guid} - Score: ${chalk.bold(season.scores.all)}`
+      );
+
       return rioProfileCharacter;
     } catch (errorOrException) {
       this.logger.error(
-        `${chalk.red('getRaiderIoProfile')} ${name}@${realmSlug} - ${errorOrException.message}`
+        `${chalk.red('✗ RIO')} ${guid} - ${errorOrException.message}`
       );
 
       return rioProfileCharacter;
