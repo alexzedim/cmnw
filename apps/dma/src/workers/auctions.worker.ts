@@ -1,6 +1,7 @@
 import Redis from 'ioredis';
 import { Injectable, Logger } from '@nestjs/common';
 import { BlizzAPI } from '@alexzedim/blizzapi';
+import chalk from 'chalk';
 import { Job } from 'bullmq';
 import { bufferCount, concatMap } from 'rxjs/operators';
 import { from, lastValueFrom } from 'rxjs';
@@ -36,6 +37,16 @@ export class AuctionsWorker extends WorkerHost {
     timestamp: true,
   });
 
+  private stats = {
+    total: 0,
+    success: 0,
+    rateLimit: 0,
+    errors: 0,
+    notModified: 0,
+    noData: 0,
+    startTime: Date.now(),
+  };
+
   private BNet: BlizzAPI;
 
   constructor(
@@ -52,6 +63,9 @@ export class AuctionsWorker extends WorkerHost {
   }
 
   public async process(job: Job<AuctionJobQueue, number>): Promise<number> {
+    const startTime = Date.now();
+    this.stats.total++;
+
     try {
       const { data: args } = job;
       await job.updateProgress(5);
@@ -91,8 +105,13 @@ export class AuctionsWorker extends WorkerHost {
 
       const isAuctionsValid = isAuctions(marketResponse);
       if (!isAuctionsValid) {
-        this.logger.debug(`realm ${job.data.connectedRealmId} | No new data available`);
-        return 504;
+        this.stats.notModified++;
+        const duration = Date.now() - startTime;
+        const realmId = job.data.connectedRealmId;
+        this.logger.warn(
+          `${chalk.blue('ℹ')} ${chalk.blue('304')} [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms) Not modified`)}`
+        );
+        return 304;
       }
 
       await job.updateProgress(15);
@@ -108,7 +127,11 @@ export class AuctionsWorker extends WorkerHost {
 
       // Handle empty auctions array to prevent EmptyError
       if (auctions.length === 0) {
-        this.logger.debug(`realm ${connectedRealmId} | No auctions available`);
+        this.stats.noData++;
+        const duration = Date.now() - startTime;
+        this.logger.warn(
+          `${chalk.yellow('⊘')} Empty [${chalk.bold(this.stats.total)}] realm ${connectedRealmId} ${chalk.dim(`(${duration}ms) No auctions`)}`
+        );
       } else {
         await lastValueFrom(
           from(auctions).pipe(
@@ -124,7 +147,9 @@ export class AuctionsWorker extends WorkerHost {
 
                 await this.marketRepository.save(ordersBulkAuctions);
                 iterator += ordersBulkAuctions.length;
-                this.logger.log(`${connectedRealmId} | ${iterator} | ${timestamp}`);
+                this.logger.log(
+                  `${chalk.cyan('→')} realm ${connectedRealmId} ${chalk.dim('|')} ${chalk.bold(iterator)} orders ${chalk.dim('|')} ${timestamp}`
+                );
               } catch (errorOrException) {
                 this.logger.error({
                   logTag: 'ordersBatch',
@@ -153,21 +178,44 @@ export class AuctionsWorker extends WorkerHost {
 
       await job.updateProgress(100);
 
+      const duration = Date.now() - startTime;
+      this.stats.success++;
+      this.logger.log(
+        `${chalk.green('✓')} ${chalk.green('200')} [${chalk.bold(this.stats.total)}] realm ${connectedRealmId} ${chalk.dim(`(${duration}ms)`)} ${chalk.dim(`${iterator} orders`)}`
+      );
+
+      // Progress report every 10 realms
+      if (this.stats.total % 10 === 0) {
+        this.logProgress();
+      }
+
       return 200;
     } catch (errorOrException) {
+      const duration = Date.now() - startTime;
+      const realmId = job.data.connectedRealmId || 'unknown';
       const responseError = isResponseError(errorOrException);
 
       if (responseError) {
         const statusCode = errorOrException.response.status;
-        this.logger.warn(`realm ${job.data.connectedRealmId} | No new data available - ${errorOrException.response.statusText}`);
+        
+        if (statusCode === 429) {
+          this.stats.rateLimit++;
+          this.logger.warn(
+            `${chalk.yellow('⚠')} ${chalk.yellow('429')} Rate limited [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)}`
+          );
+        } else {
+          this.logger.warn(
+            `${chalk.blue('ℹ')} ${statusCode} [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.response.statusText}`
+          );
+        }
+        
         return Promise.resolve(statusCode);
       } else {
+        this.stats.errors++;
         await job.log(errorOrException);
-        this.logger.error({
-          connectedRealmId: job.data.connectedRealmId,
-          logTag: 'AuctionsWorker',
-          error: errorOrException
-        });
+        this.logger.error(
+          `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`
+        );
       }
 
       return 500;
@@ -234,5 +282,45 @@ export class AuctionsWorker extends WorkerHost {
         return marketEntity;
       })
       .filter((entity): entity is MarketEntity => entity !== null); // Filter out null values and provide type guard
+  }
+
+  private logProgress(): void {
+    const uptime = Date.now() - this.stats.startTime;
+    const rate = (this.stats.total / (uptime / 1000)).toFixed(2);
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
+
+    this.logger.log(
+      `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
+      `${chalk.magenta('📊 AUCTIONS PROGRESS REPORT')}\n` +
+      `${chalk.dim('  Total:')} ${chalk.bold(this.stats.total)} realms processed\n` +
+      `${chalk.green('  ✓ Success:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
+      `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
+      `${chalk.blue('  ℹ Not Modified:')} ${chalk.blue.bold(this.stats.notModified)}\n` +
+      `${chalk.yellow('  ⊘ No Data:')} ${chalk.yellow.bold(this.stats.noData)}\n` +
+      `${chalk.red('  ✗ Errors:')} ${chalk.red.bold(this.stats.errors)}\n` +
+      `${chalk.dim('  Rate:')} ${chalk.bold(rate)} realms/sec\n` +
+      `${chalk.magenta.bold('━'.repeat(60))}`
+    );
+  }
+
+  public logFinalSummary(): void {
+    const uptime = Date.now() - this.stats.startTime;
+    const avgRate = (this.stats.total / (uptime / 1000)).toFixed(2);
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
+
+    this.logger.log(
+      `\n${chalk.cyan.bold('═'.repeat(60))}\n` +
+      `${chalk.cyan.bold('  🎯 AUCTIONS FINAL SUMMARY')}\n` +
+      `${chalk.cyan.bold('═'.repeat(60))}\n` +
+      `${chalk.dim('  Total Realms:')} ${chalk.bold.white(this.stats.total)}\n` +
+      `${chalk.green('  ✓ Successful:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
+      `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
+      `${chalk.blue('  ℹ Not Modified:')} ${chalk.blue.bold(this.stats.notModified)}\n` +
+      `${chalk.yellow('  ⊘ No Data:')} ${chalk.yellow.bold(this.stats.noData)}\n` +
+      `${chalk.red('  ✗ Failed:')} ${chalk.red.bold(this.stats.errors)}\n` +
+      `${chalk.dim('  Total Time:')} ${chalk.bold((uptime / 1000).toFixed(1))}s\n` +
+      `${chalk.dim('  Avg Rate:')} ${chalk.bold(avgRate)} realms/sec\n` +
+      `${chalk.cyan.bold('═'.repeat(60))}`
+    );
   }
 }
