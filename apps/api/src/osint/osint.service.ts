@@ -85,7 +85,7 @@ export class OsintService {
 
     const guid = toGuid(nameSlug, realmEntity.slug);
 
-    const [guild, guildMembers] = await Promise.all([
+    const [guild, guildMemberships] = await Promise.all([
       this.guildsRepository.findOneBy({ guid }),
       this.charactersGuildMembersRepository.find({
         where: { guildGuid: guid },
@@ -111,11 +111,32 @@ export class OsintService {
         );
       }
 
-      this.logger.log({ logTag, guildGuid: guid, memberCount: guildMembers.length, message: `Successfully fetched guild: ${guid} with ${guildMembers.length} members` });
+      // Fetch full character data for guild members
+      const characterGuids = guildMemberships.map(m => m.characterGuid);
+      const characters = characterGuids.length > 0 
+        ? await this.charactersRepository.find({
+            where: { guid: In(characterGuids) },
+          })
+        : [];
+
+      // Create a map of character data
+      const characterMap = new Map(characters.map(c => [c.guid, c]));
+
+      // Merge guild membership with character data
+      const members = guildMemberships.map(membership => {
+        const character = characterMap.get(membership.characterGuid);
+        return {
+          ...character,
+          guildRank: membership.rank,
+          guildGuid: membership.guildGuid,
+        };
+      });
+
+      this.logger.log({ logTag, guildGuid: guid, memberCount: members.length, message: `Successfully fetched guild: ${guid} with ${members.length} members` });
       return {
         guild,
-        members: guildMembers,
-        memberCount: guildMembers.length
+        members,
+        memberCount: members.length
       };
     } catch (errorOrException) {
       if (errorOrException instanceof BadRequestException || errorOrException instanceof NotFoundException) {
