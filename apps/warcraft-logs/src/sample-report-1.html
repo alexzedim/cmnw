@@ -1,0 +1,1817 @@
+<!doctype html>
+    <html lang="en">
+    <head>
+        <script>
+            // Redirect away from old hash routing
+            var hash = window.location.hash;
+            if (hash.includes('=')) {
+                var replacement = window.location.href.includes('?') ? '&' : '?';
+                window.location.href = window.location.href.split('#').join(replacement);
+            }
+        </script>
+
+        
+        <meta charset="utf-8">
+        <meta name="csrf-token" content="GtN0oTT1TqGbii2z3aDQl9vkZe2VHxbZfUa18Ffi">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+                    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        
+        
+                            <title>Summary - All Encounters - Report: Manaforge Omega | Warcraft Logs</title>
+            <meta property='og:title' content='Summary - All Encounters - Report: Manaforge Omega'/>
+                            <meta property='og:type' content='website'/>
+                                        <meta property='og:site_name' content='Warcraft Logs'/>
+                                        <meta name='description' content=''/>
+                <meta property='og:description' content=''/>
+                                                    <meta property='og:image' content=''/>
+                <meta name='twitter:image' content=''/>
+                                                        <script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"Warcraft Logs","url":"https://www.warcraftlogs.com","image":"https://assets.rpglogs.com/img/warcraft/favicon.png?v=4","potentialAction":{"@type":"SearchAction","target":"https://www.warcraftlogs.com/search?term={search_term_string}","query-input":"required name=search_term_string"},"sameAs":["https://twitter.com/WarcraftLogs"],"publisher":{"@type":"Organization","name":"Archon","url":"https://www.archon.gg"}}</script>
+                    
+                                                <link rel="alternate" hreflang="de"
+                      href="https://de.warcraftlogs.com/reports/JxbGh3cWF71YHzTD"/>
+                            <link rel="alternate" hreflang="en"
+                      href="https://www.warcraftlogs.com/reports/JxbGh3cWF71YHzTD"/>
+                            <link rel="alternate" hreflang="es"
+                      href="https://es.warcraftlogs.com/reports/JxbGh3cWF71YHzTD"/>
+                            <link rel="alternate" hreflang="fr"
+                      href="https://fr.warcraftlogs.com/reports/JxbGh3cWF71YHzTD"/>
+                            <link rel="alternate" hreflang="it"
+                      href="https://it.warcraftlogs.com/reports/JxbGh3cWF71YHzTD"/>
+                            <link rel="alternate" hreflang="pt-BR"
+                      href="https://br.warcraftlogs.com/reports/JxbGh3cWF71YHzTD"/>
+                            <link rel="alternate" hreflang="ru"
+                      href="https://ru.warcraftlogs.com/reports/JxbGh3cWF71YHzTD"/>
+                            <link rel="alternate" hreflang="ko"
+                      href="https://ko.warcraftlogs.com/reports/JxbGh3cWF71YHzTD"/>
+                            <link rel="alternate" hreflang="zh-TW"
+                      href="https://tw.warcraftlogs.com/reports/JxbGh3cWF71YHzTD"/>
+                            <link rel="alternate" hreflang="zh-CN"
+                      href="https://cn.warcraftlogs.com/reports/JxbGh3cWF71YHzTD"/>
+                        <link rel="alternate" hreflang="x-default"
+                  href="https://www.warcraftlogs.com/reports/JxbGh3cWF71YHzTD"/>
+        
+        <link type="text/css" href="https://assets.rpglogs.com/css/global.db9b68833a9806c1.css" rel="stylesheet"/>
+                <link type="text/css" href="https://assets.rpglogs.com/css/app.3aa1cd738fe2255b.css" rel="stylesheet"/>
+        <link type="text/css"
+              href="https://assets.rpglogs.com/libs/material-design-iconic-font@2.2.0/css/material-design-iconic-font.min.css"
+              rel="stylesheet"/>
+        <link type="text/css" href="https://assets.rpglogs.com/libs/jquery-ui.css" rel="stylesheet"/>
+
+        <link href="https://assets.rpglogs.com/libs/malihu-custom-scrollbar-plugin@3.1.6/jquery.mCustomScrollbar.min.css"
+              rel="stylesheet" type="text/css"/>
+        <link rel="icon" type="image/png"
+              href="https://assets.rpglogs.com/img/warcraft/favicon.png"/>
+
+            <meta name="robots" content="noindex">
+    <link type="text/css" href="https://assets.rpglogs.com/css/report.8b8a4dd8d19c6c7c.css" rel="stylesheet"/>
+    <link type="text/css" href="https://assets.rpglogs.com/libs/colorpicker/css/colorpicker.css" rel="stylesheet"/>
+    <style>
+        
+
+
+#filter-death-selection-container {
+            overflow-x: hidden !important;
+            overflow-y: hidden !important;
+        }
+
+        #filter-death-selection-container .actor-menu-table a {
+            padding-top: 1px;
+            padding-bottom: 1px;
+        }
+
+        .wipecall-dropdown {
+            margin-right: 10px;
+            font-size: 11px;
+            box-sizing: border-box;
+            border: none;
+            background: transparent;
+        }
+
+        .wipecall-dropdown a {
+            font-size: 11px !important;
+        }
+
+        .report-bar-inset, #summary {
+            max-width: 1500px;
+        }
+
+        #graph-box {
+            box-sizing: border-box;
+            flex-direction: column;
+            display: flex;
+            flex: 1
+        }
+
+        #graph-wrapper {
+            display: flex;
+            flex-direction: row;
+            flex: 1;
+            align-items: stretch;
+        }
+
+        #graphs {
+            flex: 1;
+            position: relative;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #graph-maximizer, #graph-minimizer {
+            cursor: pointer;
+        }
+
+        #graph-minimizer {
+            margin: 0 3px;
+        }
+
+        #graph {
+            position: relative;
+        }
+
+        body:not(.replay) #graph-box {
+            height: 272px !important;
+            flex-direction: row
+        }
+
+        body:not(.replay) #graph-container {
+            height: 272px !important;
+            box-sizing: border-box;
+            flex: 1;
+            width: 0;
+        }
+
+        body:not(.replay) #replay-options-strip {
+            display: none
+        }
+
+        body:not(.replay) #graph {
+            height: 238px !important;
+        }
+
+        body:not(.replay) #graph-wrapper.maximized #graph-box {
+            height: 334px !important;
+        }
+
+        body:not(.replay) #graph-wrapper.maximized #graph-container {
+            height: 334px !important;
+        }
+
+        body:not(.replay) #graph-wrapper.maximized #graph {
+            height: 300px !important;
+        }
+
+        body:not(.replay) #graph-wrapper.minimized #graph-box {
+            height: auto !important;
+        }
+
+        body:not(.replay) #graph-wrapper.minimized #graph-container {
+            height: auto !important;
+        }
+
+        body:not(.replay) #graph-wrapper.minimized #graph {
+            display: none !important;
+        }
+
+        body:not(.replay) #graph-wrapper.minimized #graph-container .filter-bar {
+            border-bottom: none;
+        }
+
+        .combatant-info-event-icon {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #555555;
+            margin: 2px 2px 4px 2px;
+            vertical-align: middle;
+        }
+
+        #summary {
+            display: flex;
+            flex-direction: row
+        }
+
+        #summary-content {
+            flex: 1;
+            width: 0
+        }
+
+        #right-ad-box {
+            position: relative;
+            min-width: 160px;
+            max-width: 160px;
+            margin: 10px 10px 0 0;
+        }
+
+        #graph-title-strip {
+            font-size: 13px;
+            height: 20px;
+            padding: 5px;
+            position: relative;
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center
+        }
+
+        body.replay #right-ad-box, body.replay #graph-title-strip {
+            display: none !important
+        }
+
+        
+        @media (max-width: 1250px) {
+            #right-ad-box {
+                display: none
+            }
+        }
+
+        @media (max-width: 500px) {
+            #graph-box {
+                display: none !important;
+            }
+
+            #summary {
+                padding: 0;
+            }
+        }
+
+        @media (max-width: 400px) {
+            #login-menu {
+                display: none
+            }
+        }
+
+        #qc-cmp2-persistent-link {
+            display: none
+        }
+
+        #archon-hat-container {
+            display: inline-flex;
+            position: relative;
+            width: 24px;
+        }
+
+        #archon-hat-container > img {
+            position: absolute;
+            bottom: -6px;
+        }
+    </style>
+
+        <style>
+          @font-face {
+            font-family: 'ralewayregular';
+            src: url('https://assets.rpglogs.com/fonts/Raleway-Regular-webfont.eot');
+            src: url('https://assets.rpglogs.com/fonts/Raleway-Regular-webfont.eot?#iefix') format('embedded-opentype'),
+            url('https://assets.rpglogs.com/fonts/Raleway-Regular-webfont.woff') format('woff'),
+            url('https://assets.rpglogs.com/fonts/Raleway-Regular-webfont.ttf') format('truetype'),
+            url('https://assets.rpglogs.com/fonts/Raleway-Regular-webfont.svg#ralewayregular') format('svg');
+            font-weight: normal;
+            font-style: normal;
+            font-display: swap;
+          }
+
+          /* Tighten up scrollers in reports pages */
+          .mCSB_inside > .mCSB_container {
+            margin-right: 20px !important
+          }
+
+          .mCSB_inside > .mCSB_container.mCS_no_scrollbar_y.mCS_y_hidden {
+            margin-right: 0 !important
+          }
+
+          .search-white {
+            color: white;
+            font-size: 22px;
+          }
+
+          .searchbutton-mini-image {
+            padding-left: 7px;
+            padding-top: 3px;
+          }
+
+          .compact-search-container {
+            height: 36px;
+            display: flex;
+            align-items: center;
+          }
+
+          .search-compact {
+            font-size: 28px;
+            margin-top: -3px;
+          }
+
+          .zmdi-hc-spin {
+            animation: zmdi-spin 2.5s infinite linear;
+          }
+
+          .edge-hide {
+            opacity: 0.01;
+          }
+
+          #qc-cmp2-persistent-link {
+            left: 0;
+            right: auto;
+            font-size: 10px;
+            background-color: #300040
+          }
+
+          .logo-container {
+            width: auto !important;
+          }
+        </style>
+        <!-- Global site tag (gtag.js) - Google Analytics -->
+<script>
+    window.googleAnalyticsViewModel = {"id":"UA-45206045-1","siteTitle":"Warcraft Logs","isLoggedIn":false,"isSubscribed":false,"subscriptionStatus":0,"sendPageViewOnContentLoaded":false,"isAdBlocking":false};
+</script>
+<script src="https://assets.rpglogs.com/js/global/googleAnalytics.ad8fa776381e2af4.js"></script>
+
+                    <script type="text/javascript">
+                (function(c,l,a,r,i,t,y){
+                    c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+                    t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+                    y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+                })(window, document, "clarity", "script", "tcbto0b1zt");
+            </script>
+        
+        <!-- ads-script-tag -->
+
+    <script src="https://btloader.com/tag?o=5150306120761344&upapi=true" async></script>
+
+<script>
+    window.isAdBlockingCookieName = 'support-metrics-v1';
+    </script>
+
+        <script src="https://assets.rpglogs.com/libs/jquery@3.2.0/jquery.min.js"></script>
+        <script src="https://assets.rpglogs.com/libs/jqueryui@1.12.1/jquery-ui.min.js"></script>
+        <script src="https://assets.rpglogs.com/libs/lazyload@2.0.0-beta.2/lazyload.min.js"></script>
+
+        <script>
+          jQuery.browser = {};
+          (function () {
+            jQuery.browser.msie = false;
+            jQuery.browser.version = 0;
+            if (navigator.userAgent.match(/MSIE ([0-9]+)\./)) {
+              jQuery.browser.msie = true;
+              jQuery.browser.version = RegExp.$1;
+            }
+          })();
+
+          function edgeRevert() {
+            $(".edge-hide").css('transform', '');
+            $(".edge-hide").removeClass('edge-hide');
+          }
+
+          function edgeZoom() {
+            $(".edge-hide").css('transform', 'scale(2)');
+            setTimeout(edgeRevert, 50);
+          }
+
+          function edgeSpriteFix(container) {
+            if (navigator.userAgent.indexOf("Edge") == -1)
+              return
+            var selector = (container ? container + ' ' : '') + ".sprite"
+            $(selector).addClass('edge-hide')
+            setTimeout(edgeZoom, 10)
+          }
+        </script>
+
+                    <script src="https://assets.rpglogs.com/js/lang/js-localization.d7f7ef8a2c8848e7.js"></script>
+        <script src="https://assets.rpglogs.com/js/lang/lang-en.86165110a2c7dbfd.js"></script>
+                <script>Lang.setLocale('en');</script>
+
+        <script src="https://assets.rpglogs.com/js/manifest.4b6d9d10b081a14a.js"></script>
+        <script src="https://assets.rpglogs.com/js/vendor.0e44b52463d50417.js"></script>
+        <!-- page-view-models -->
+<script>
+    window._pageViewModels = [["Game",{"game":{"id":0,"area":1,"season":0,"locales":["de","en","es","fr","it","br","ru","ko","tw","cn"],"fullName":"World of Warcraft","lowercaseName":"warcraft","siteTitle":"Warcraft Logs","siteLogoImageUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/favicon.png?v=4","headerLogoUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/header-logo.png?v=4","baseUrl":"https:\/\/www.warcraftlogs.com","archonBaseUrl":"https:\/\/www.archon.gg","archonGameSlug":"wow","actorsSprite":"https:\/\/assets.rpglogs.com\/img\/warcraft\/icons\/actors.jpg?v=33","actorsSecondarySprite":"https:\/\/assets.rpglogs.com\/img\/warcraft\/icons\/secondary\/actors.jpg?v=1","actorsLargeIconsPath":"https:\/\/assets.rpglogs.com\/img\/warcraft\/icons\/large","articlesBaseUrl":"https:\/\/www.archon.gg\/wow\/articles","assetServerBaseUrl":"https:\/\/assets.rpglogs.com","abilityExternalSitePath":"https:\/\/www.wowhead.com\/spell=","buffExternalSitePath":"https:\/\/www.wowhead.com\/spell=","itemExternalSitePath":"https:\/\/www.wowhead.com\/item=","itemSetExternalSitePath":"https:\/\/www.wowhead.com\/item-set=","npcExternalSitePath":"https:\/\/www.wowhead.com\/npc=","weaponTraitExternalSitePath":"","talentExternalSitePath":"","effectExternalSitePath":"","tooltipLibraryPath":"\/\/wow.zamimg.com\/widgets\/power.js","abilityTooltipEndpoint":"https:\/\/www.warcraftlogs.com\/ability\/{id}\/tooltip","encounterIconExtension":"jpg","headerTextPartOneTopColor":"rgb(45,170,200)","headerTextPartOneBottomColor":"rgb(0,140,195)","headerTextPartTwoTopColor":"rgb(230,230,230)","headerTextPartTwoBottomColor":"rgb(190,190,190)"}}],["User",{"value":null}],["AdBlockMetrics",{"cookieName":"support-metrics-v1"}],["PlaywireAds",{"shouldShowAds":true,"publisherId":"1024476","siteId":"73247","googleAnalyticsTag":"G-7CLEJL8GDT","userProfile":null,"forcePath":null}],["AdPlacements",{"adPlacements":{"sideRailWide":{"id":"sideRailWide","adProvider":"playwire","adPlacementLocation":"sideRailWide","adPlacementPlaywireViewModel":{"id":"sideRailWide","adPlacementLocation":"sideRailWide","adPlacementPlaywireType":"sky_atf","adPlacementPlaywirePathType":null,"minimumRefreshThresholdSeconds":6},"adPlacementGoogleViewModel":null,"adPlacementNitroViewModel":null,"adPlacementFallbackViewModel":{"adPlacementFallbackType":"vertical","siteTitle":"Warcraft Logs","headerImageUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/header-logo.png","backgroundImageUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/featured-article-fallback.jpg","href":"https:\/\/www.warcraftlogs.com\/subscribe?utm_content=ad-fallback-sideRailWide"}},"stickyFooter":{"id":"stickyFooter","adProvider":"playwire","adPlacementLocation":"stickyFooter","adPlacementPlaywireViewModel":{"id":"stickyFooter","adPlacementLocation":"stickyFooter","adPlacementPlaywireType":"leaderboard_btf","adPlacementPlaywirePathType":null,"minimumRefreshThresholdSeconds":6},"adPlacementGoogleViewModel":null,"adPlacementNitroViewModel":null,"adPlacementFallbackViewModel":{"adPlacementFallbackType":"horizontal","siteTitle":"Warcraft Logs","headerImageUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/header-logo.png","backgroundImageUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/featured-article-fallback.jpg","href":"https:\/\/www.warcraftlogs.com\/subscribe?utm_content=ad-fallback-stickyFooter"}},"cornerVideo":{"id":"cornerVideo","adProvider":"playwire","adPlacementLocation":"cornerVideo","adPlacementPlaywireViewModel":{"id":"cornerVideo","adPlacementLocation":"cornerVideo","adPlacementPlaywireType":"corner_ad_video","adPlacementPlaywirePathType":null,"minimumRefreshThresholdSeconds":6},"adPlacementGoogleViewModel":null,"adPlacementNitroViewModel":null,"adPlacementFallbackViewModel":null}}}]];
+</script>
+        <script src="https://assets.rpglogs.com/js/app.049386bde1c00c06.js"></script>
+
+        <script src="https://assets.rpglogs.com/libs/moment.js@2.24.0/moment-with-locales.min.js"></script>
+        <script src="https://assets.rpglogs.com/libs/moment-duration-format@2.2.2/moment-duration-format.min.js"></script>
+
+        <script type="text/javascript"
+                src="https://assets.rpglogs.com/libs/malihu-custom-scrollbar-plugin-with-iframe-fix@3.1.6-rpg1/jquery.mCustomScrollbar.min.js"></script>
+
+        <script src="https://assets.rpglogs.com/js/global.e2d50f007647660c.js"></script>
+        <script src="https://assets.rpglogs.com/js/global/queryRouting.4cb59256897d0e33.js"></script>
+
+        <script>
+          window.locale = "en";
+          moment.locale(window.locale);
+        </script>
+
+            <script defer type="text/javascript" src="//wow.zamimg.com/widgets/power.js"></script><script>var wowhead_tooltips = { "iconizelinks": false }</script>
+
+    
+    <script src="https://assets.rpglogs.com/libs/jquery-mousewheel@3.1.13/jquery.mousewheel.min.js"></script>
+    <script src="https://assets.rpglogs.com/libs/datatables@1.10.18/datatables.min.js"></script>
+    <script src="https://assets.rpglogs.com/libs/highstock@1.3.7/highstock.js"></script>
+    <script src="https://assets.rpglogs.com/libs/highcharts@3.0.7/highcharts-more.js"></script>
+
+    <script>
+        var game_id = 0;
+        var siteTitle = "Warcraft Logs";
+        var currentLang = "en";
+        var rankingsLabel = "Rankings";
+        var report_id = 'JxbGh3cWF71YHzTD';
+        var zone_id = '44';
+        var expired_state = 0;
+        var subscribed = true;
+        var report_name = "Throttledown - Personal Logs";
+        var comparison_reports_string = '';
+        var comparisonReports = []
+        var comparisonCounts = []
+        comparisonCounts[report_name] = 1
+        var comparisonName
+        
+        var guildForReportFollowingDeletion = "/user/calendar/2076720";
+        var start_time = 1761098143268;
+        var end_time = 1761436690488;
+        var graph_options = parseInt(33)
+        var defaultFilterGraph = graph_options & 32
+        var pin_options = parseInt(0)
+        var wipe_options = parseInt(0)
+
+        var usingMultiReportAnalysis = !!"";
+        var mraFilters = ""
+
+        var assetServer = "https://assets.rpglogs.com"
+
+        var isReportAnonymous = false;
+
+        const minimumUnmitigatedDamageLogVersion = 12;
+        const minimumMitigationInHealingDoneLogVersion = 16;
+
+        var icon_path = "https://assets.rpglogs.com/img/warcraft/";
+
+        var abilityPath = 'https://www.wowhead.com/spell=';
+        var buffPath = 'https://www.wowhead.com/spell=';
+        var itemPath = 'https://www.wowhead.com/item=';
+        var npcPath = 'https://www.wowhead.com/npc=';
+
+        var abilityCutoff = 10;
+        var buffCutoff = 0;
+
+        
+        function abilityExternalLink(id) {
+            if (id < abilityCutoff)
+                return '#';
+            if (buffCutoff && id >= buffCutoff)
+                return buffPath + (id - buffCutoff);
+            return abilityPath + id;
+        }
+
+        function abilityExternalLinkForEntry(ability) {
+            let linkID = ability.secondaryGameID ? ability.secondaryGameID : ability.guid
+            return abilityExternalLink(linkID)
+        }
+
+        function buffExternalLink(id) {
+            if (id < abilityCutoff)
+                return '#';
+            if (buffCutoff)
+                return `${buffPath}${id - buffCutoff}`;
+            return `${buffPath}${id}`; // id can be a string for some games with no buff cutoff.
+        }
+
+        function buffExternalLinkForEntry(ability) {
+            let linkID = ability.secondaryGameID ? ability.secondaryGameID : ability.guid
+            return buffExternalLink(linkID)
+        }
+
+        function itemExternalLink(id) {
+            return itemPath + id;
+        }
+
+        function npcExternalLink(id) {
+            return npcPath + id;
+        }
+
+        function computeDBSiteSlug(name) {
+          return name
+            .replace(/ \/ |\/| - |[:'(),?%]|\s+/g, (match) => {
+              if (match === " / ") return " ";   // collapse " / " to space
+              if (match === "/") return "-";     // convert lone slashes to dash
+              if (match === " - ") return "-";   // space-dash-space to dash
+              if (/\s+/.test(match)) return "-"; // spaces -> dash
+              return "";                         // remove punctuation
+            })
+            .toLowerCase();
+        }
+
+        function npcExternalLinkForEntry(actor) {
+            let linkID = actor.secondaryGameID ? actor.secondaryGameID : actor.guid
+            return npcExternalLink(linkID) + (game_id === 7 ? '/' + computeDBSiteSlug(actor.name) : '');
+        }
+
+                    var localizedAffixes = { affix_1: { name: "Overflowing", "icon": "inv_misc_volatilewater.jpg" }, affix_2: { name: "Skittish", "icon": "spell_magic_lesserinvisibilty.jpg" }, affix_3: { name: "Volcanic", "icon": "spell_shaman_lavasurge.jpg" }, affix_4: { name: "Necrotic", "icon": "spell_deathknight_necroticplague.jpg" }, affix_5: { name: "Teeming", "icon": "spell_nature_massteleport.jpg" }, affix_6: { name: "Raging", "icon": "ability_warrior_focusedrage.jpg" }, affix_7: { name: "Bolstering", "icon": "ability_warrior_battleshout.jpg" }, affix_8: { name: "Sanguine", "icon": "spell_shadow_bloodboil.jpg" }, affix_9: { name: "Tyrannical", "icon": "achievement_boss_archaedas.jpg" }, affix_10: { name: "Fortified", "icon": "ability_toughness.jpg" }, affix_11: { name: "Bursting", "icon": "ability_ironmaidens_whirlofblood.jpg" }, affix_12: { name: "Grievous", "icon": "ability_backstab.jpg" }, affix_13: { name: "Explosive", "icon": "spell_fire_felflamering_red.jpg" }, affix_14: { name: "Quaking", "icon": "spell_nature_earthquake.jpg" }, affix_15: { name: "Relentless", "icon": "inv_chest_plate04.jpg" }, affix_16: { name: "Infested", "icon": "achievement_nazmir_boss_ghuun.jpg" }, affix_117: { name: "Reaping", "icon": "ability_racial_embraceoftheloa_bwonsomdi.jpg" }, affix_119: { name: "Beguiling", "icon": "spell_shadow_mindshear.jpg" }, affix_120: { name: "Awakened", "icon": "trade_archaeology_nerubian_obelisk.jpg" }, affix_121: { name: "Prideful", "icon": "spell_animarevendreth_buff.jpg" }, affix_122: { name: "Inspiring", "icon": "spell_holy_prayerofspirit.jpg" }, affix_123: { name: "Spiteful", "icon": "spell_holy_prayerofshadowprotection.jpg" }, affix_124: { name: "Storming", "icon": "spell_nature_cyclone.jpg" }, affix_128: { name: "Tormented", "icon": "spell_animamaw_orb.jpg" }, affix_129: { name: "Infernal", "icon": "inv_infernalbrimstone.jpg" }, affix_130: { name: "Encrypted", "icon": "spell_progenitor_orb.jpg" }, affix_131: { name: "Shrouded", "icon": "spell_shadow_nethercloak.jpg" }, affix_132: { name: "Thundering", "icon": "shaman_pvp_leaderclan.jpg" }, affix_133: { name: "Focused", "icon": "ability_mage_timewarp.jpg" }, affix_134: { name: "Entangling", "icon": "inv_misc_root_01.jpg" }, affix_135: { name: "Afflicted", "icon": "spell_misc_emotionsad.jpg" }, affix_136: { name: "Incorporeal", "icon": "achievement_boss_anomalus.jpg" }, affix_137: { name: "Shielding", "icon": "paladin_holy.jpg" }, affix_144: { name: "Thorned", "icon": "ability_demonhunter_demonspikes2.jpg" }, affix_145: { name: "Reckless", "icon": "ability_warrior_sunder.jpg" }, affix_146: { name: "Attuned", "icon": "spell_arcane_arcanepotency_nightborne.jpg" }, affix_147: { name: "Xal'atath's Guile", "icon": "ability_racial_chillofnight.jpg" }, affix_148: { name: "Xal'atath's Bargain: Ascendant", "icon": "inv_nullstone_cosmicvoid.jpg" }, affix_152: { name: "Challenger's Peril", "icon": "achievement_challengemode_everbloom_hourglass.jpg" }, affix_153: { name: "Xal'atath's Bargain: Frenzied", "icon": "spell_shadow_unholyfrenzy.jpg" }, affix_158: { name: "Xal'atath's Bargain: Voidbound", "icon": "inv_cosmicvoid_buff.jpg" }, affix_159: { name: "Xal'atath's Bargain: Oblivion", "icon": "spell_priest_void-blast.jpg" }, affix_160: { name: "Xal'atath's Bargain: Devour", "icon": "inv_ability_voidweaverpriest_entropicrift.jpg" }, affix_162: { name: "Xal'atath's Bargain: Pulsar", "icon": "inv_cosmicvoid_nova.jpg" }, affix_165: { name: "", "icon": "" }, affix_166: { name: "Eternus's Trial: Sands of Time", "icon": "item_enchantedpearl.jpg" }, affix_167: { name: "Eternus's Trial: Dusk of the Infinite", "icon": "achievement_boss_infinitecorruptor.jpg" }, affix_168: { name: "Eternus's Trial: Timeways Manifested", "icon": "spell_sandelemental.jpg" }, affix_169: { name: "Eternus's Trial: Twilight Reflections", "icon": "trade_archaeology_highbornesoulmirror.jpg" }, affix_170: { name: "Tyrannically Fortified", "icon": "inv_helm_laughingskull_01.jpg" }, }; function nameForAffix(affix) { return localizedAffixes["affix_" + affix] ? localizedAffixes["affix_" + affix].name : "Unknown"; }; function iconForAffix(affix) { return localizedAffixes["affix_" + affix] ? localizedAffixes["affix_" + affix].icon :  "inv_axe_02.jpg" }; 
+        
+        var extensionForActorIcons = ".jpg";
+        const archived = false;
+        var talentTreeBlueprintCache = {};
+    </script>
+
+    <script src="https://assets.rpglogs.com/js/global/reportDependencies.ba846bb31e739eed.js"></script>
+    <script src="https://assets.rpglogs.com/js/report.021d945d5e0ff3cd.js"></script>
+
+    <style>
+            </style>
+
+        
+        <script>
+          window.onload = function () {
+            edgeSpriteFix()
+          };
+        </script>
+
+        <script>
+          
+        </script>
+
+    </head>
+
+
+            <body class="responsive
+compact-search
+ warcraft
+">
+        
+                
+                            <div id="header-container"></div>
+                <script>
+                                          attachToDom(
+                    '#header-container',
+                    'Header',
+                    {
+                      initialData: {"siteSelect":{"options":[{"value":"https:\/\/www.warcraftlogs.com","label":"The War Within","url":"https:\/\/www.warcraftlogs.com","iconUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/game-logo_32.webp","selectedLabel":null,"longLabel":"WoW: The War Within","area":1,"season":0},{"value":"https:\/\/classic.warcraftlogs.com","label":"Mists of Pandaria","url":"https:\/\/classic.warcraftlogs.com","iconUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/game-logo-classic_32.webp?v=3","selectedLabel":null,"longLabel":"WoW Classic: Mists of Pandaria","area":2,"season":0},{"value":"https:\/\/fresh.warcraftlogs.com","label":"Classic Fresh","url":"https:\/\/fresh.warcraftlogs.com","iconUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/game-logo_32.webp","selectedLabel":null,"longLabel":"WoW Classic Fresh: Fresh","area":2,"season":5},{"value":"https:\/\/sod.warcraftlogs.com","label":"Season of Discovery","url":"https:\/\/sod.warcraftlogs.com","iconUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/game-logo-vanilla_32.webp","selectedLabel":null,"longLabel":"WoW Classic: Season of Discovery","area":3,"season":3},{"value":"https:\/\/vanilla.warcraftlogs.com","label":"Vanilla","url":"https:\/\/vanilla.warcraftlogs.com","iconUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/game-logo-vanilla_32.webp","selectedLabel":null,"longLabel":"WoW Classic: Vanilla","area":3,"season":0}]},"topBar":{"pollsCount":0,"streamsCount":77,"headerLinks":[{"title":"Statistics","url":"\/zone\/statistics\/44"},{"title":"Latest News","url":"https:\/\/www.archon.gg\/wow\/articles"},{"title":"Download Client","url":"\/client\/download"},{"title":"Recruitment","url":"\/recruitment"}],"availableLanguages":[{"title":"Deutsch","linkUrl":"de.warcraftlogs.com","languageTag":"de"},{"title":"English","linkUrl":"www.warcraftlogs.com","languageTag":"en"},{"title":"Espa\u00f1ol","linkUrl":"es.warcraftlogs.com","languageTag":"es"},{"title":"Fran\u00e7ais","linkUrl":"fr.warcraftlogs.com","languageTag":"fr"},{"title":"Italiano","linkUrl":"it.warcraftlogs.com","languageTag":"it"},{"title":"Portugu\u00eas (Brasil)","linkUrl":"br.warcraftlogs.com","languageTag":"br"},{"title":"\u0420\u0443\u0441\u0441\u043a\u0438\u0439","linkUrl":"ru.warcraftlogs.com","languageTag":"ru"},{"title":"\ud55c\uad6d\uc5b4","linkUrl":"ko.warcraftlogs.com","languageTag":"ko"},{"title":"\u7e41\u9ad4\u4e2d\u6587","linkUrl":"tw.warcraftlogs.com","languageTag":"tw"},{"title":"\u7b80\u4f53\u4e2d\u6587","linkUrl":"cn.warcraftlogs.com","languageTag":"cn"}],"backgroundArtworkUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/header-artwork.jpg?v=9","currentActiveRaceLink":null,"currentActiveRaceBackgroundImageUrl":null,"currentActiveRaceArtworkImageUrl":null},"gameContents":{"contents":[{"title":"Raids","id":"raid-content","expansions":[],"hasBadge":false,"buttonIconUrl":null},{"title":"Dungeons","id":"dungeons-content","expansions":[],"hasBadge":false,"buttonIconUrl":null},{"title":"Raid Guides","id":"raid-strategies","expansions":[],"hasBadge":false,"buttonIconUrl":null},{"title":"Archon","id":"archon","expansions":[{"title":"Archon","id":"","panel":{"sections":[{"header":null,"children":[{"title":"Data-Driven Meta Builds","iconUrl":"builds","type":"archon","bossLinks":[],"character":null,"report":null,"linkUrl":"https:\/\/www.archon.gg\/wow\/builds\/classes-and-specs","desktopOnlyLinkUrl":null,"subTitle":"Discover the most popular builds for each spec.","backgroundImageUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/builds\/crosslink-gear-header.png","linkLabel":"Open Archon","iconFallbackUrl":null},{"title":"Tier Lists - Mythic+ & Raid","iconUrl":"tier-lists","type":"archon","bossLinks":[],"character":null,"report":null,"linkUrl":"https:\/\/www.archon.gg\/wow\/tier-list\/dps-rankings\/mythic-plus\/10\/all-dungeons\/this-week","desktopOnlyLinkUrl":null,"subTitle":"Understand the current meta with our tier list.","backgroundImageUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/builds\/crosslink-tier-list.png","linkLabel":"Open Archon","iconFallbackUrl":null}],"isExpanded":true}]}}],"hasBadge":false,"buttonIconUrl":"https:\/\/assets.rpglogs.com\/img\/archon\/logo.svg"}]},"characters":null,"guilds":null,"labels":{"siteSelectLabel":"Game","expansionSelectLabel":"Expansions","contentTypeSelectLabel":"Content Type","guildsLabel":"Guild","charactersLabel":"Characters","signupLabel":"Sign Up","loginLabel":"Log In","streamsCountLabel":"77 Players Streaming","pollsCountLabel":"0 Poll Available!","updateCharactersLabel":"Update Characters","logoutLabel":"Log Out","createAGuildLabel":"Create a Guild or Team","joinAGuildLabel":"Join a Guild or Team","searchBarPlaceholder":"Enter a player, guild, or realm","showMore":"Show More","showLess":"Show Less","noGuildDescription":"Join a guild and get quick access to your guild's reports, rankings, recruitment, calendar and more!","noGuildTitle":"You're not in a guild yet","noCharactersTitle":"You have not claimed any characters yet","noCharactersDescription":"Learn how to claim characters","orSeparator":"or","accessibilityExpand":"Expand Dropdown","accessibilityCollapse":"Collapse Dropdown","badgeLabel":"New","followTheRaceLabel":"Follow the Race!","menuLabel":"Menu","searchLabel":"Search"}}
+                    },
+                    null,
+                    null,
+                    false
+                  );
+                </script>
+            
+            <div id="content-and-footer">
+                
+                
+                <div id="content"
+                     class="not-subscribed uncapped">
+                    <div class="report-content-and-sidebar">
+    <div class="report-content">
+    <script>
+        function isClickOnMenu(event, classToLookFor, optionalClass) {
+            const targetEvent = (event !== undefined && event !== null) ? event.target : null;
+            if (targetEvent !== undefined && targetEvent !== null) {
+                const parent = targetEvent.closest('.' + classToLookFor);
+                const isClickInsideMenu = targetEvent.classList.contains(classToLookFor) ||
+                    (parent !== null && parent !== undefined);
+                if (!optionalClass) {
+                    return isClickInsideMenu;
+                } else {
+                    const parentOptional = targetEvent.closest('.' + optionalClass);
+                    const isClickInsideOptional = targetEvent.classList.contains(optionalClass) ||
+                        (parentOptional !== null && parentOptional !== undefined);
+                    return isClickInsideMenu || isClickInsideOptional;
+                }
+            } else {
+                return true;
+            }
+            return false;
+        }
+
+        function openMenu(parentElementClassName, fadedPanelId, clickMenuTestFunction) {
+            const parentElement = document.getElementsByClassName(parentElementClassName);
+            if (parentElement !== undefined && parentElement !== null && parentElement.length > 0) {
+                parentElement[0].classList.add("visible");
+            }
+            document.removeEventListener('click', onReportDocumentClick);
+            document.getElementById(fadedPanelId).classList.add('open');
+            document.addEventListener('click', function (event) {
+                onReportDocumentClick(event, clickMenuTestFunction, parentElementClassName, fadedPanelId);
+            });
+        }
+
+        function closeMenu(parentElementClassName, fadedPanelId) {
+            const parentElement = document.getElementsByClassName(parentElementClassName);
+            if (parentElement !== undefined && parentElement !== null && parentElement.length > 0) {
+                parentElement[0].classList.remove("visible");
+            }
+            document.removeEventListener('click', onReportDocumentClick);
+            document.getElementById(fadedPanelId).classList.remove('open');
+        }
+
+        function onReportDocumentClick(event, clickMenuTestFunction, parentElementClassName, fadedPanelId) {
+            if (!clickMenuTestFunction(event)) {
+                const guildOuterWrpList = document.getElementsByClassName(parentElementClassName);
+                if (guildOuterWrpList !== undefined && guildOuterWrpList !== null && guildOuterWrpList.length > 0) {
+                    closeMenu(parentElementClassName, fadedPanelId, this);
+                }
+            }
+        }
+    </script>
+
+    <div id="report-info-bar">
+        <div class="report-bar-inset report-bar-inset-infos">
+            <div class="report-bar-top-left-section">
+                <a id="report-title-link" href="/reports/JxbGh3cWF71YHzTD">
+                    <div class="report-name-details">
+                        <div class="report-name-text">
+                                                        Manaforge Omega
+                        </div>
+                        <div class="report-title-details-text">
+                            <span>
+                                Created by <span
+                                    class="gold bold">Throttledown</span> on <span
+                                    id="report-start-date" class="bold"></span>
+                                                            </span>
+                            <script>
+                                const reportStartDate = new Date(1761098143268);
+                                document.getElementById('report-start-date').innerHTML = reportStartDate.toDateString()
+                                                            </script>
+                        </div>
+                    </div>
+                </a>
+                <script>
+                    function onClickGuildElement(event) {
+                        const guildOuterWrpList = document.getElementsByClassName('guild-reports-menu-outerWrp');
+                        if (guildOuterWrpList !== undefined && guildOuterWrpList !== null && guildOuterWrpList.length > 0) {
+                            if (guildOuterWrpList[0].classList.contains("visible")) {
+                                if (isClickOnMenu(event, 'report-info-button')) {
+                                    closeMenu('guild-reports-menu-outerWrp', 'report-view-contents');
+                                    return false;
+                                }
+                            } else {
+                                openMenu('guild-reports-menu-outerWrp', 'report-view-contents', isClickOnGuildMenu);
+                            }
+                        }
+                    }
+
+                    function isClickOnGuildMenu(event) {
+                        return isClickOnMenu(event, 'report-info-title-wrp', 'report-info-button');
+                    }
+                </script>
+
+                
+                            </div>
+
+            <div class="report-bar-top-right-section">
+
+                                    <div class="report-settings" id="report-settings-clickZone">
+                        <ul class="report-settings-dropdown">
+                            
+                                                            <!-- MRA: Make this work -->
+                                <li class="report-settings-dropdown-item"><a
+                                        href="/reports/view-anonymous/JxbGh3cWF71YHzTD"
+                                        class="report-settings-dropdown-item-link"><span
+                                            class="zmdi zmdi-developer-board"></span>View in Anonymous Mode
+                                    </a></li>
+                                                            
+                                                                                </ul>
+
+                        <div class="report-settings-btn">
+                            <div class="zmdi zmdi-settings"></div>
+                            <div class="report-settings-label">
+                                <div class="report-settings-text">Settings</div>
+                                <span class="sub-arrow">+</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <script>
+                        function onClickSettingsButton(event) {
+                            const guildOuterWrpList = document.getElementsByClassName('report-settings-dropdown');
+                            if (guildOuterWrpList !== undefined && guildOuterWrpList !== null && guildOuterWrpList.length > 0) {
+                                if (guildOuterWrpList[0].classList.contains("visible")) {
+                                    if (isClickOnMenu(event, 'report-settings-btn')) {
+                                        closeMenu('report-settings-dropdown', 'report-view-contents');
+                                        return false;
+                                    }
+                                } else {
+                                    openMenu('report-settings-dropdown', 'report-view-contents', isClickOnSettingsMenu);
+                                }
+                            }
+                        }
+
+                        function isClickOnSettingsMenu(event) {
+                            return isClickOnMenu(event, 'report-settings', 'report-settings-btn');
+                        }
+
+                        document.getElementById('report-settings-clickZone').addEventListener('click', function (event) {
+                            onClickSettingsButton(event)
+                        })
+                    </script>
+                
+                                                    <div id="report-guild-box" class="report-guild-box">
+                            
+                                                    <div class="report-info-title-wrp" id="report-info-clickZone">
+                                <div class="guild-reports-menu-outerWrp">
+                                    <div id="guild-reports-menu-inner"></div>
+                                </div>
+                                <script>
+                                    attachToDom(
+                                        '#guild-reports-menu-inner',
+                                        'HeaderMenuSectionsPanel',
+                                        {
+                                            model: {"sections":[{"header":{"id":"2076720","title":"Personal Logs","artworkBackgroundUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/faction-0.png","links":[{"title":"All Reports","url":"\/user\/reports-list\/2076720","icon":"format-list-bulleted"},{"title":"Personal Calendar","url":"\/user\/calendar\/2076720","icon":"calendar"}],"contentTypeName":"reports","titleClassName":null,"titleLinkUrl":null},"children":[{"title":"Manaforge Omega","iconUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/zones\/zone-44.png","type":"report","bossLinks":null,"character":null,"report":{"creator":"Throttledown","visibility":"Public","creationDate":"1761437198"},"linkUrl":"\/reports\/WP9GhMyDrZ1pxnfj","desktopOnlyLinkUrl":null,"subTitle":null,"backgroundImageUrl":null,"linkLabel":null,"iconFallbackUrl":null},{"title":"Manaforge Omega","iconUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/zones\/zone-44.png","type":"report","bossLinks":null,"character":null,"report":{"creator":"Throttledown","visibility":"Public","creationDate":"1761436731"},"linkUrl":"\/reports\/JxbGh3cWF71YHzTD","desktopOnlyLinkUrl":null,"subTitle":null,"backgroundImageUrl":null,"linkLabel":null,"iconFallbackUrl":null},{"title":"Manaforge Omega","iconUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/zones\/zone-44.png","type":"report","bossLinks":null,"character":null,"report":{"creator":"Throttledown","visibility":"Public","creationDate":"1761099148"},"linkUrl":"\/reports\/YKGqTH9gaMnQ3BWy","desktopOnlyLinkUrl":null,"subTitle":null,"backgroundImageUrl":null,"linkLabel":null,"iconFallbackUrl":null},{"title":"Mythic+ Season 3","iconUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/zones\/zone-45.png","type":"report","bossLinks":null,"character":null,"report":{"creator":"Throttledown","visibility":"Public","creationDate":"1760830741"},"linkUrl":"\/reports\/83DBCamcTxHwq7p1","desktopOnlyLinkUrl":null,"subTitle":null,"backgroundImageUrl":null,"linkLabel":null,"iconFallbackUrl":null},{"title":"Mythic+ Season 3","iconUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/zones\/zone-45.png","type":"report","bossLinks":null,"character":null,"report":{"creator":"Throttledown","visibility":"Public","creationDate":"1760500344"},"linkUrl":"\/reports\/BKhA4crzNYjxqD7v","desktopOnlyLinkUrl":null,"subTitle":null,"backgroundImageUrl":null,"linkLabel":null,"iconFallbackUrl":null},{"title":"Mythic+ Season 3","iconUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/zones\/zone-45.png","type":"report","bossLinks":null,"character":null,"report":{"creator":"Throttledown","visibility":"Public","creationDate":"1760487266"},"linkUrl":"\/reports\/f4x28YmKgV1QRGjh","desktopOnlyLinkUrl":null,"subTitle":null,"backgroundImageUrl":null,"linkLabel":null,"iconFallbackUrl":null},{"title":"Manaforge Omega","iconUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/zones\/zone-44.png","type":"report","bossLinks":null,"character":null,"report":{"creator":"Throttledown","visibility":"Public","creationDate":"1760328463"},"linkUrl":"\/reports\/p9P8FwcvjqtDKJ4C","desktopOnlyLinkUrl":null,"subTitle":null,"backgroundImageUrl":null,"linkLabel":null,"iconFallbackUrl":null},{"title":"Manaforge Omega","iconUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/zones\/zone-44.png","type":"report","bossLinks":null,"character":null,"report":{"creator":"Throttledown","visibility":"Public","creationDate":"1760227773"},"linkUrl":"\/reports\/btJKdmBjFhL4wzxy","desktopOnlyLinkUrl":null,"subTitle":null,"backgroundImageUrl":null,"linkLabel":null,"iconFallbackUrl":null},{"title":"Mythic+ Season 3","iconUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/zones\/zone-45.png","type":"report","bossLinks":null,"character":null,"report":{"creator":"Throttledown","visibility":"Public","creationDate":"1760140954"},"linkUrl":"\/reports\/jktvPnTXaY1wgBmV","desktopOnlyLinkUrl":null,"subTitle":null,"backgroundImageUrl":null,"linkLabel":null,"iconFallbackUrl":null},{"title":"Manaforge Omega","iconUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/zones\/zone-44.png","type":"report","bossLinks":null,"character":null,"report":{"creator":"Throttledown","visibility":"Public","creationDate":"1759804495"},"linkUrl":"\/reports\/BZw4YNFzbyjWtcHx","desktopOnlyLinkUrl":null,"subTitle":null,"backgroundImageUrl":null,"linkLabel":null,"iconFallbackUrl":null}],"isExpanded":true}]},
+                                            labels: {"siteSelectLabel":"Game","expansionSelectLabel":"Expansions","contentTypeSelectLabel":"Content Type","guildsLabel":"Guild","charactersLabel":"Characters","signupLabel":"Sign Up","loginLabel":"Log In","streamsCountLabel":"0 Players Streaming","pollsCountLabel":"0 Poll Available!","updateCharactersLabel":"Update Characters","logoutLabel":"Log Out","createAGuildLabel":"Create a Guild or Team","joinAGuildLabel":"Join a Guild or Team","searchBarPlaceholder":"Enter a player, guild, or realm","showMore":"Show More","showLess":"Show Less","noGuildDescription":"Join a guild and get quick access to your guild's reports, rankings, recruitment, calendar and more!","noGuildTitle":"You're not in a guild yet","noCharactersTitle":"You have not claimed any characters yet","noCharactersDescription":"Learn how to claim characters","orSeparator":"or","accessibilityExpand":"Expand Dropdown","accessibilityCollapse":"Collapse Dropdown","badgeLabel":"New","followTheRaceLabel":"Follow the Race!","menuLabel":"Menu","searchLabel":"Search"},
+                                        }
+                                    );
+                                </script>
+
+                                <div class="report-info-button">
+                                    <div class="report-guild-player-details">
+                                        <div class="report-guild-player-name">
+                                                                                            <img
+                                                    src="https://assets.rpglogs.com/img/warcraft/faction-0.png"
+                                                    class="guild-reports-image">
+                                                <div
+                                                    class="5 guild-reports-guildName">Throttledown</div>
+                                                                                    </div>
+                                                                                    <div
+                                                class="guild-reports-serverName">Personal Logs</div>
+                                                                            </div>
+                                    <span class="sub-arrow">+</span>
+                                </div>
+                            </div>
+
+                            <script>
+                                document.getElementById('report-info-clickZone').addEventListener('click', function (event) {
+                                    onClickGuildElement(event)
+                                });
+                            </script>
+                                            </div>
+                            </div>
+        </div>
+    </div>
+
+
+        
+            <div id="translate-bar" style="display:none">
+            <div class="report-bar-inset">This report was logged in another language. <input style='margin-left:30px'
+                                                                                      type=button
+                                                                                      class="translator-button"
+                                                                                      value="Translate"
+                                                                                      onclick="setTranslate(true)">
+            </div>
+        </div>
+        <div id="untranslate-bar" style="display:none">
+            <div class="report-bar-inset">This report has been translated from another language. <input style='margin-left:30px'
+                                                                                       class="translator-button"
+                                                                                       type=button value="Show Original"
+                                                                                       onclick="setTranslate(false)">
+            </div>
+        </div>
+    
+    <div id="report-top-bar">
+        <div class="report-bar-inset topBar">
+            <div class="filter-fight-and-sources-wrp">
+                <div id="filter-fight-and-phase">
+                    <div id="filter-fight-boss-wrapper" onclick="toggleFightSelectionUI(); return false"
+                         oncontextmenu="toggleFightSelectionUI()">
+                                                    <img id="filter-fight-boss-icon" onerror="this.src = defaultBossImage()">
+                                                <div id="filter-fight-boss-contents">
+                            <div id="filter-fight-boss-text"
+                                 style="font-size:16px;">Fetching Fights</div>
+                            <div id="filter-fight-details-text">None</div>
+                        </div>
+                    </div>
+
+                    <div id="replay-map-info"
+                         style="margin-left:45px; margin-top:-6px; line-height:17px; align-items:start; flex-direction:column;display:flex;">
+                        <div
+                            style="font-size:16px; padding:6px 0; line-height:17px; box-sizing:border-box; white-space:nowrap ">Map</div>
+                        <div id="map-details-container" style="line-height:17px; margin-top:1px; white-space:nowrap">
+                            <span class="estimate" id="replay-map-name">None</span></div>
+                    </div>
+
+                    <div id="graph-zoom-container">
+                        <ul id="filter-phase-dropdown" class="dropdown sm sm-black" style="font-size:16px;">
+                            <li>
+                                <a href="#" onclick="return dropdownClicked(this, event)">
+                                    <span id="filter-phase-text"
+                                          style="font-size:16px;">All Phases</span>
+                                </a>
+                                <ul id="filter-phase-container">
+                                    <li>
+                                        <a href="#">All Phases</a>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                        <div id="graph-zoom-details" style="margin-left:12px; clear:left;">
+                            <span id="graph-zoom-info" class="estimate"></span>
+                            <span id="graph-reset-zoom" style="display:none">
+                        [<a href="#" onclick="return resetZoom()">Reset Zoom</a>]
+                    </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+                            <div class="big-tab-container" id="top-level-view-tabs-container">
+                    <div class="big-tab-table" id="top-level-view-tabs">
+                        <a href="#" class="big-tab selected view-type-tab" id="filter-analyze-tab"
+                           onload="changeFilterView('analytical', this)"><span class="zmdi zmdi-eye"></span>
+                            <span class="big-tab-text"><br>Analyze</span></a>
+                        <a href="#" class="big-tab view-type-tab" id="compare-ui-toggle-tab"
+                           onload="toggleCompareUI(this)"><span
+                                class="zmdi zmdi-compare"></span> <span class="big-tab-text"><br>Compare</span></a>
+                                                    <a href="#" class="big-tab view-type-tab" id="filter-execution-tab"
+                               onload="changeFilterView('execution', this)"
+                               ><span
+                                    class="zmdi zmdi-puzzle-piece"></span> <span class="big-tab-text"><br>Mechanics</span></a>
+                                                                            <a href="#" class="big-tab view-type-tab" id="filter-rankings-tab"
+                               onload="changeFilterView('rankings', this)"
+                               ><span class="zmdi zmdi-sort"></span>
+                                <span class="big-tab-text"><br>Rankings</span></a>
+                                                                            <a href="#" class="big-tab view-type-tab" id="filter-replay-tab"
+                               onload="changeFilterView('replay', this)"
+                               ><span
+                                    class="zmdi zmdi-local-movies"></span> <span class="big-tab-text"><br>Replay</span></a>
+                                            </div>
+                </div>
+                    </div>
+
+    </div>
+
+    <div> <!-- Needed to work around a bug in Chrome. -->
+        <div id="report-fight-selection-area">
+            <div class="report-bar-inset" style="padding-top:10px">
+
+                <div id="report-overview-fights-contents">
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="report-view-contents">
+
+                    <div id="filter-type-menubar" style="visibility:hidden">
+                <div class="report-bar-inset">
+                    <div class="filter-fight-and-sources-wrp">
+
+                        <div id="filter-source-and-target-selection" style="display:none">
+                            <div style="position:relative; margin-right:24px"
+                                 id="filter-source-and-hostility-selection">
+
+                                <ul id="filter-source-selection-dropdown" class="dropdown sm sm-black">
+                                    <li>
+                                        <a href="#" onclick="return dropdownClicked(this, event)">
+                                            <span id="filter-source-text"
+                                                  style="font-size:16px;">All Sources</span>
+                                        </a>
+                                        <ul id="filter-source-selection-container"></ul>
+                                    </li>
+                                </ul>
+
+                                <div id="hostility-link-container">
+                                    <a class="hostility-link" id="hostility-friendlies" href="#"
+                                       onload="changeHostilityType(0, this)">Friendlies</a>
+                                    <a id="hostility-enemies" href="#" style="margin-left:5px;" class="hostility-link"
+                                       onload="changeHostilityType(1, this)">Enemies</a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="big-tab-container">
+                        <div class="big-tab-table" id="view-type-tabs">
+                            <a href="#" class="big-tab view-type-tab" id="filter-analytical-tab"
+                               onload="changeFilterView('analytical', this)"
+                               ><span class="zmdi zmdi-grid"></span><span
+                                    class="big-tab-text"><br>Tables</span></a>
+                            <a href="#" class="big-tab view-type-tab" id="filter-timeline-tab"
+                               onload="changeFilterView('timeline', this)"
+                               ><span
+                                    class="zmdi zmdi-time"></span><span class="big-tab-text"><br>Timelines</span></a>
+                            <a href="#" class="big-tab view-type-tab" id="filter-events-tab"
+                               onload="changeFilterView('events', this)"
+                               ><span
+                                    class="zmdi zmdi-view-list-alt"></span><span class="big-tab-text"><br>Events</span></a>
+                            <a href="#" class="big-tab view-type-tab" id="pins-ui-toggle-tab"
+                               onload="togglePinUI(this)"><span
+                                    class="zmdi zmdi-pin"></span><span class="big-tab-text"><br>Queries</span></a>
+                            <a href="#" class="big-tab view-type-tab" id="filter-components-tab"
+                               onload="changeFilterView('components', this)"
+                               ><span
+                                    class="zmdi zmdi-widgets"></span> <span
+                                    class="big-tab-text">
+                                    <br>
+                                    <div id="archon-hat-container">
+                                        <img src="https://assets.rpglogs.com/img/subscriber/alchemical-society_24.png" />
+                                    </div>Components</span></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="filter-type-tabs-wrapper">
+                <div class="report-bar-inset">
+                    <div id="filter-type-tabs">
+                        <a class="filter-type-tab" id="filter-summary-tab"
+                           onload="changeFilterType('summary', this)">Summary</a>
+                        <a class="filter-type-tab drop" id="filter-damage-done-tab"
+                           onload="changeFilterType('damage-done', this)">Damage Done</a>
+                        <a class="filter-type-tab drop" id="filter-damage-taken-tab"
+                           onload="changeFilterType('damage-taken', this)">Damage Taken</a>
+                        <a class="filter-type-tab drop" id="filter-healing-tab"
+                           onload="changeFilterType('healing', this)">Healing</a>
+                                                    <a class="filter-type-tab drop" id="filter-threat-tab"
+                               onload="changeFilterType('threat', this)">Threat</a>
+                                                <a class="filter-type-tab drop" id="filter-buffs-tab"
+                           onload="changeAuraType('buffs', this)">Buffs</a>
+                        <a class="filter-type-tab drop" id="filter-debuffs-tab"
+                           onload="changeAuraType('debuffs', this)">Debuffs</a>
+                        <a class="filter-type-tab" id="filter-deaths-tab"
+                           onload="changeFilterType('deaths', this)">Deaths</a>
+                                                    <a class="filter-type-tab" id="filter-interrupts-tab"
+                               onload="changeFilterType('interrupts', this)">Interrupts</a>
+                            <a class="filter-type-tab" id="filter-dispels-tab"
+                               onload="changeFilterType('dispels', this)">Dispels</a>
+                                                <a class="filter-type-tab" id="filter-resources-tab"
+                           onload="changeFilterType('resources', this)">Resources</a>
+                                                    <a class="filter-type-tab drop" id="filter-casts-tab"
+                               onload="changeFilterType('casts', this)">Casts</a>
+                        
+                        <div style="clear:both"></div>
+                    </div>
+
+                </div>
+                            </div>
+
+            <div id="summary">
+                <div class="dialog-content" id="summary-content">
+
+                                            <div id="filter-subtype-strip" style="display:none">
+
+                            <div style="float:left; position:relative; display:none"
+                                 id="filter-target-and-ability-selection" onmouseover="loadAbilitiesMenuIfNeeded()">
+
+                                <ul id="filter-death-selection-dropdown" style="display:none"
+                                    class="dropdown sm sm-black extra-filter-type-dropdown">
+                                    <li><a href="#" onclick="return dropdownClicked(this, event)"><span
+                                                id="filter-death-selection-text">All Deaths</span></a>
+                                        <ul id="filter-death-selection-container"></ul>
+                                </ul>
+
+                                <ul style="float:left;" id="filter-target-selection-dropdown"
+                                    class="dropdown sm sm-black extra-filter-type-dropdown">
+                                    <li><a href="#" onclick="return dropdownClicked(this, event)"><span
+                                                id="filter-target-text">All Targets</span></a>
+                                        <ul id="filter-target-selection-container"></ul>
+                                </ul>
+                                <ul style="float:left" id="filter-ability-selection-dropdown"
+                                    class="dropdown sm sm-black extra-filter-type-dropdown">
+                                    <li><a href="#" onclick="return dropdownClicked(this, event)"><span
+                                                id="filter-ability-text">All Abilities</span></a>
+                                        <ul id="filter-ability-selection-container"></ul>
+                                </ul>
+                            </div>
+
+                            <ul id="filter-resource-selection-dropdown" style="display:none"
+                                class="dropdown sm sm-black extra-filter-type-dropdown">
+                                <li><a href="#" onclick="return dropdownClicked(this, event)"><span
+                                            id="filter-resource-selection-text">Hit Points</span></a>
+                                    <ul id="filter-resource-selection-container"></ul>
+                            </ul>
+
+
+                            <ul id="filter-subtype-tabs" style="display:none; float:right"
+                                class="dropdown sm sm-black extra-filter-type-dropdown">
+                                <li><a href="#" onclick="return dropdownClicked(this, event)"><span
+                                            id="filter-subtype-selection-text"></span></a>
+                                    <ul id="filter-subtype-selection-container">
+                                        <li><a href="#" id="by_source" class="filter-subtype-option"
+                                               onload="changeSubFilterType('source', this)"></a>
+                                        <li><a href="#" id="by_target" class="filter-subtype-option"
+                                               onload="changeSubFilterType('target', this)"></a>
+                                        <li><a href="#" id="by_ability" class="filter-subtype-option"
+                                               onload="changeSubFilterType('ability', this)"></a>
+
+                                    </ul>
+                            </ul>
+
+                            <div id="filter-subtype-options">
+                                                                    <a href="#" id="filter-option-65536" class="filter-options-tab"
+                                        onload="toggleFilterOption(65536, this)"
+                                        data-damage="Augmented Damage"
+                                        data-healing="Augmented Healing"
+                                    >
+                                        Augmented Damage
+                                    </a>
+                                                                                                    <a href="#" id="filter-summons-tab" class="filter-options-tab" style="display:none"
+                                       onload="toggleSummonsFilter(this)"
+                                       >Summons</a>
+                                                                                                    <a href="#" id="filter-option-64" class="filter-options-tab"
+                                       onload="toggleFilterOption(64, this)"
+                                       >Melee</a>
+                                                                <a href="#" id="filter-option-512" class="filter-options-tab"
+                                   onload="toggleFilterOption(512, this)"
+                                   >Weighted Damage</a>
+                                <a href="#" id="filter-option-256" class="filter-options-tab"
+                                   onload="toggleFilterOption(256, this)"
+                                   >Include Overkill</a>
+                                <a href="#" id="filter-option-1024" class="filter-options-tab"
+                                   onload="toggleFilterOption(1024, this)"
+                                   >NPCs</a>
+                                                                    <a href="#" id="filter-option-4096" class="filter-options-tab"
+                                       onload="toggleFilterOption(4096, this)"
+                                       >Raw Damage</a>
+                                                                <a href="#" id="filter-option-128" class="filter-options-tab"
+                                   onload="toggleFilterOption(128, this)"
+                                   >EHRPS</a>
+                                <a href="#" id="filter-option-32768" class="filter-options-tab"
+                                   onload="toggleFilterOption(32768, this)"
+                                   >Healing</a>
+                                <a href="#" id="filter-option-32" class="filter-options-tab"
+                                   onload="toggleFilterOption(32, this)"
+                                   >Self Absorbs</a>
+                                <a href="#" id="filter-option-4" class="filter-options-tab"
+                                   onload="toggleFilterOption(4, this)"
+                                   >Absorbs</a>
+                                                                    <a href="#" id="filter-option-16384" class="filter-options-tab"
+                                       onload="toggleFilterOption(16384, this)"
+                                       >Mitigations</a>
+                                                                <a href="#" id="filter-option-8" class="filter-options-tab"
+                                   onload="toggleFilterOption(8, this)"
+                                   >Overheal</a>
+                                                                <a href="#" id="filter-option-2" class="filter-options-tab"
+                                   onload="toggleFilterOption(2, this)"
+                                   >Pets</a>
+                                                                <a href="#" id="filter-option-2048" class="filter-options-tab"
+                                   onload="toggleFilterOption(2048, this)"
+                                   >Absorbed Healing</a>
+                                <a href="#" id="filter-option-1" class="filter-options-tab"
+                                   onload="toggleFilterOption(1, this)"
+                                   >Friendly Fire</a>
+                                <a href="#" id="filter-option-16" class="filter-options-tab"
+                                   onload="toggleFilterOption(16, this)"
+                                   >Self-Applied</a>
+                            </div>
+
+                            <div style="clear:both"></div>
+                        </div>
+                    
+                    <div id="event-killer" style="display:none"></div>
+                    <div id="graph-loading" style='display:none;'><p>Loading Data...</p>
+                        <p><span class="zmdi zmdi-spinner zmdi-hc-spin" style="color:white; font-size:36px"></span></p></div>
+
+                    <div id="pins-ui" style="display:none;clear:left">
+                        <div id="pins-ui-tabs">
+                            <div id="pins-ui-tab-query" class="pins-ui-tab selected"
+                                 onclick="selectPinsUITab('query')">New Query</div>
+                            <div id="pins-ui-tab-expression" class="pins-ui-tab" style="margin-left:-1px"
+                                 onclick="selectPinsUITab('expression')">New Expression</div>
+                            <div id="pins-ui-tab-script" class="pins-ui-tab" style="margin-left:-1px"
+                                 onclick="selectPinsUITab('script')">New Script</div>
+                            <div id="pins-ui-tab-paste" class="pins-ui-tab" style="margin-left:-1px"
+                                 onclick="selectPinsUITab('paste')">From Paste</div>
+
+                            <span class="zmdi zmdi-close" id="pins-ui-close" onclick="dismissPinUI()"></span>
+
+                        </div>
+                        <div class="pins-ui-content" id="pins-ui-content-paste"
+                             style="display:none">Paste your saved pin string into the text box:
+
+                            <table style="margin:auto; width:100%;">
+                                <tr>
+                                    <td style="padding:1em"><textarea id="pins-ui-paste-box"
+                                                                      oninput="updatePinPreview()"
+                                                                      style="width:100%; box-sizing:border-box; -moz-box-sizing:border-box; display:block; height:200px"
+                                                                      autowrap></textarea>
+                            </table>
+                        </div>
+
+                        <div class="pins-ui-content" id="pins-ui-content-script"
+                             style="display:none">Enter your script below. It must include a <i>pinMatchesFightEvent</i> function that returns true or false. You can read more about how to write scripts here:  <a
+                                href="/scripting-api-docs/warcraft">Intro to Scripts</a>
+                            <table style="margin:auto; width:100%;">
+                                <tr>
+                                    <td style="padding:1em">
+
+
+                                        <div id="pins-ui-script-box"></div>
+                            </table>
+                            <script>
+                                var scriptPinEditor = null;
+                                var scriptPinEditorDefaultValue = `pinMatchesFightEvent = (event, fight) => {
+    return false;
+}
+
+initializePinForFight = (fight) => {
+}`;
+
+                                attachToDom('#pins-ui-script-box', 'ScriptPinEditor', {
+                                    onMount: (editor) => {
+                                        scriptPinEditor = editor;
+                                    }, defaultValue: scriptPinEditorDefaultValue
+                                });
+                            </script>
+                        </div>
+
+                        <div class="pins-ui-content" id="pins-ui-content-expression"
+                             style="display:none">Enter your expression below:
+                            <div id="pins-ui-help"><a
+                                    href="https://www.archon.gg/wow/articles/help/intro-to-expressions">Help! I don&#039;t understand how query and expression pins work!</a>
+                            </div>
+
+                            <table style="margin:auto; width:100%;">
+                                <tr>
+                                    <td style="padding:1em"><textarea id="pins-ui-expression-box"
+                                                                      style="width:100%; font-family: monospace !important; box-sizing:border-box; -moz-box-sizing:border-box; display:block; height:200px"
+                                                                      autowrap></textarea>
+                            </table>
+
+                            <p><span id="expression-loading" style='display:none;'><span class="zmdi zmdi-spinner zmdi-hc-spin" style="color:white; font-size:36px"></span> Validating...</span>
+                                Warcraft Logs can check the syntax of your expression
+                                to make sure that it is valid: <input type=button onclick="validateExpression()"
+                                                                      value="Validate Expression"></p>
+                        </div>
+
+                        <div class="pins-ui-content" id="pins-ui-content-query">
+                            <div id="pins-ui-help"><a
+                                    href="https://www.archon.gg/wow/articles/help/intro-to-expressions">Help! I don&#039;t understand how query and expression pins work!</a>
+                            </div>
+
+                            <p>Select all the event types that apply. If nothing is checked, any type will be
+                                allowed. </p>
+
+                            <table cellspacing=10 style="margin:auto">
+                                <tr>
+                                    <td><input id="damage-pin-type" type=checkbox
+                                               onclick="updatePinUIType(this, 'damage')"> <label for="damage-pin-type">Damage</label>
+                                    <td><input id="healing-pin-type" type=checkbox
+                                               onclick="updatePinUIType(this, 'healing')"> <label
+                                            for="healing-pin-type">Healing</label>
+                                    <td><input id="auras-pin-type" type=checkbox
+                                               onclick="updatePinUIType(this, 'auras')"> <label for="auras-pin-type">Buffs
+                                            or Debuffs</label>
+                                    <td><input id="dispels-pin-type" type=checkbox
+                                               onclick="updatePinUIType(this, 'dispels')"> <label
+                                            for="dispels-pin-type">Dispels/ Steals</label>
+                                    <td><input id="deaths-pin-type" type=checkbox
+                                               onclick="updatePinUIType(this, 'deaths')"> <label for="deaths-pin-type">Deaths
+                                            or Resurrects</label>
+                                </tr>
+                                <tr>
+                                    <td><input id="casts-pin-type" type=checkbox
+                                               onclick="updatePinUIType(this, 'casts')"> <label for="casts-pin-type">Casts</label>
+                                    <td><input id="interrupts-pin-type" type=checkbox
+                                               onclick="updatePinUIType(this, 'interrupts')"> <label
+                                            for="interrupts-pin-type">Interrupts</label>
+                                    <td><input id="resources-pin-type" type=checkbox
+                                               onclick="updatePinUIType(this, 'resources')"> <label
+                                            for="resources-pin-type">Resources</label>
+                                    <td><input id="summons-pin-type" type=checkbox
+                                               onclick="updatePinUIType(this, 'summons')"> <label
+                                            for="summons-pin-type">Summons or Creations</label>
+                                    <td><input id="other-pin-type" type=checkbox
+                                               onclick="updatePinUIType(this, 'other')"> <label for="other-pin-type">Other</label>
+                            </table>
+                            <table id="pins-ui-hostility" style="margin:0 auto; display:none" cellspacing=10>
+                                <tr>
+                                    <td>Source/Target Hostility:
+                                    <td><select id="pins-ui-hostility-select"
+                                                onchange="updatePinsUIHostility(this.selectedIndex)"></select>
+                            </table>
+
+                            <table id="pins-ui-damage" style="margin:0 auto; display:none" cellspacing=10>
+                                <tr>
+                                    <td>Damage Options:
+                                    <td><input type=checkbox id="pins-ui-damage-misses" checked
+                                               onclick="updatePinPreview()"><label for="pins-ui-damage-miss">
+                                            Misses</label>
+                                    <td><input type=checkbox id="pins-ui-damage-hits" checked
+                                               onclick="updatePinPreview()"><label for="pins-ui-damage-hits">
+                                            Direct</label>
+                                    <td><input type=checkbox id="pins-ui-damage-ticks" checked
+                                               onclick="updatePinPreview()"><label for="pins-ui-damage-ticks">
+                                            Periodic</label>
+                                </tr>
+
+                                <tr>
+                                    <td>
+                                    <td><input type=checkbox id="pins-ui-damage-physical" checked
+                                               onclick="updatePinPreview()"><label for="pins-ui-damage-physical">
+                                            Physical</label>
+                                    <td><input type=checkbox id="pins-ui-damage-magical" checked
+                                               onclick="updatePinPreview()"><label for="pins-ui-damage-magical">
+                                            Magical</label>
+
+                                <tr>
+                                    <td>
+                                    <td colspan=3><label for="pins-ui-damage-crits"> Crit: </label> <select
+                                            id="pins-ui-damage-crits">
+                                            <option value="0">Any
+                                            <option value="1">Require
+                                            <option value="2">Disallow
+                                        </select>
+                                        <label
+                                            for="pins-ui-damage-blocked">                                                 Blocks
+                                                                                        : </label> <select id="pins-ui-damage-blocked">
+                                            <option value="0">Any
+                                            <option value="1">Require
+                                            <option value="2">Disallow
+                                        </select>
+
+                                                                                    <label
+                                                for="pins-ui-damage-multistrike"> Multistrike
+                                                : </label> <select id="pins-ui-damage-multistrike">
+                                                <option value="0">Any
+                                                <option value="1">Require
+                                                <option value="2">Disallow
+                                            </select>
+                                                                    </tr>
+                            </table>
+
+                            <table id="pins-ui-healing" style="margin:0 auto; display:none" cellspacing=10>
+                                <tr>
+                                    <td>Healing Options:
+                                    <td><input type=checkbox id="pins-ui-healing-hits" checked
+                                               onclick="updatePinPreview()"><label for="pins-ui-healing-hits">
+                                            Direct</label>
+                                    <td><input type=checkbox id="pins-ui-healing-ticks" checked
+                                               onclick="updatePinPreview()"><label for="pins-ui-healing-ticks">
+                                            Periodic</label>
+                                    <td><input type=checkbox id="pins-ui-healing-absorbs" checked
+                                               onclick="updatePinPreview()"><label for="pins-ui-healing-absorbs">
+                                            Absorbs</label>
+                                </tr>
+                                <tr>
+                                    <td>
+                                    <td colspan=3><label for="pins-ui-healing-crits"> Crit: </label> <select
+                                            id="pins-ui-healing-crits">
+                                            <option value="0">Any
+                                            <option value="1">Require
+                                            <option value="2">Disallow
+                                        </select>
+                                                                                    <label
+                                                for="pins-ui-healing-multistrike"> Multistrike
+                                                : </label> <select id="pins-ui-healing-multistrike">
+                                                <option value="0">Any
+                                                <option value="1">Require
+                                                <option value="2">Disallow
+                                            </select>
+                                                                    </tr>
+                            </table>
+
+                            <table id="pins-ui-auras" style="margin:0 auto; display:none" cellspacing=10>
+                                <tr>
+                                    <td>Aura Options:
+                                    <td><input type=checkbox id="pins-ui-aura-buffs" checked
+                                               onclick="updatePinPreview()"><label for="pins-ui-aura-buffs">
+                                            Buffs</label>
+                                    <td><input type=checkbox id="pins-ui-aura-debuffs" checked
+                                               onclick="updatePinPreview()"><label for="pins-ui-aura-debuffs">
+                                            Debuffs</label>
+                                    <td><input type=checkbox id="pins-ui-aura-apply" checked
+                                               onclick="updatePinPreview()"><label for="pins-ui-aura-apply">
+                                            Apply</label>
+                                    <td><input type=checkbox id="pins-ui-aura-refresh" checked
+                                               onclick="updatePinPreview()"><label for="pins-ui-aura-refresh">
+                                            Refresh</label>
+                                    <td><input type=checkbox id="pins-ui-aura-remove" checked
+                                               onclick="updatePinPreview()"><label for="pins-ui-aura-remove">
+                                            Remove</label>
+                                    <td><input type=checkbox id="pins-ui-aura-apply-stack" checked
+                                               onclick="updatePinPreview()"><label for="pins-ui-aura-apply-stack"> Apply
+                                            Stack</label>
+                                    <td><input type=checkbox id="pins-ui-aura-remove-stack" checked
+                                               onclick="updatePinPreview()"><label for="pins-ui-aura-remove-stack">
+                                            Remove Stack</label>
+                                <tr>
+                                    <td>
+                                    <td colspan=5><input type=checkbox id="pins-ui-aura-check"
+                                                         onclick="updatePinPreview()"> Only Match if Aura is <select
+                                            id="pins-ui-aura-presence" onchange="updatePinPreview()">
+                                            <option>Present
+                                            <option>Absent
+                                        </select> on <select id="pins-ui-aura-actors" onchange="updatePinPreview()">
+                                            <option>Source
+                                            <option selected>Target
+                                        </select>
+                            </table>
+
+                            <table id="pins-ui-resources" style="margin:0 auto; display:none" cellspacing=10>
+                                <tr>
+                                    <td>Resources Options:
+                                    <td><input type=checkbox id="pins-ui-resource-gains" checked
+                                               onclick="updatePinPreview()"><label for="pins-ui-resource-gains">
+                                            Resource Gains</label>
+                                    <td><input type=checkbox id="pins-ui-resource-fields" checked
+                                               onclick="updatePinPreview()"><label for="pins-ui-resource-fields">
+                                            Resource Fields</label>
+                                <tr>
+                                    <td colspan=3 style="text-align:center">Match Resource Type: <select
+                                            id="pins-ui-resource-type" onchange="updatePinPreview()">
+                                            <option value="0">Any Resource Type</option>
+                                            <option version="1" oldname="" id="resource-option-1000" value="1000">Hit Points</option><option version="1" oldname="" id="resource-option-1001" value="1001">Attack Power</option><option version="1" oldname="" id="resource-option-1002" value="1002">Spell Power</option><option version="11" oldname="" id="resource-option-1003" value="1003">Armor</option><option version="1" oldname="" id="resource-option-1004" value="1004">Absorb</option><option version="1" oldname="" id="resource-option-100" value="100">Mana</option><option version="1" oldname="" id="resource-option-101" value="101">Rage</option><option version="1" oldname="" id="resource-option-102" value="102">Focus</option><option version="1" oldname="" id="resource-option-103" value="103">Energy</option><option version="1" oldname="" id="resource-option-104" value="104">Combo Points</option><option version="1" oldname="" id="resource-option-105" value="105">Runes</option><option version="1" oldname="" id="resource-option-106" value="106">Runic Power</option><option version="1" oldname="" id="resource-option-107" value="107">Soul Shards</option><option version="7" oldname="" id="resource-option-108" value="108">Astral Power</option><option version="1" oldname="" id="resource-option-109" value="109">Holy Power</option><option version="1" oldname="" id="resource-option-111" value="111">Maelstrom</option><option version="1" oldname="" id="resource-option-112" value="112">Chi</option><option version="7" oldname="" id="resource-option-113" value="113">Insanity</option><option version="1" oldname="" id="resource-option-114" value="114">Burning Embers</option><option version="1" oldname="" id="resource-option-115" value="115">Demonic Fury</option><option version="7" oldname="" id="resource-option-116" value="116">Arcane Charges</option><option version="7" oldname="" id="resource-option-117" value="117">Fury</option><option version="7" oldname="" id="resource-option-118" value="118">Pain</option><option version="1" oldname="" id="resource-option-110" value="110">Alternate Power</option><option version="1" oldname="" id="resource-option-125" value="125">Vigor</option><option version="1" oldname="" id="resource-option-126" value="126">Eclipse Energy</option>
+                                        </select>
+                            </table>
+
+                            <p>Select specific actors or abilities. By default, all actors and abilities will be
+                                allowed. Pets are included implicitly for sources but not for targets.</p>
+
+                            <table style="margin:auto" cellspacing=10>
+                                <tr>
+                                    <td style="text-align:right">Actors:
+                                    <td><span class="pin-type" id="pins-ui-actors-list">All Actors</span>
+                                    <td style="padding:0"><input id="pins-ui-actors-autocomplete" type=text>
+                                        <div id="pins-ui-actors-autocomplete-results"
+                                             style="font-size:12px;text-align:left"></div>
+                                    <td style="padding:0">
+                                        <ul style="margin-left:-15px; margin-top:3px" id="pins-ui-actors-dropdown"
+                                            class="dropdown sm sm-black">
+                                            <li style="margin-top:-7px"><a href="#"
+                                                                           onclick="return dropdownClicked(this, event)">&nbsp;</a>
+                                                <ul id="pins-ui-actors-container"></ul>
+                                        </ul>
+
+                                <tr>
+                                    <td style="text-align:right">Sources:
+                                    <td><span class="pin-type" id="pins-ui-sources-list">All Sources</span>
+                                    <td style="padding:0"><input id="pins-ui-sources-autocomplete" type=text>
+                                        <div id="pins-ui-sources-autocomplete-results"
+                                             style="font-size:12px;text-align:left"></div>
+                                    <td style="padding:0">
+                                        <ul style="margin-left:-15px; margin-top:3px" id="pins-ui-sources-dropdown"
+                                            class="dropdown sm sm-black">
+                                            <li style="margin-top:-7px"><a href="#"
+                                                                           onclick="return dropdownClicked(this, event)">&nbsp;</a>
+                                                <ul id="pins-ui-sources-container"></ul>
+                                        </ul>
+
+                                    <td nowrap><input type=checkbox checked id="pins-ui-source-pets"> <label
+                                            for="pins-ui-source-pets">Include Source Pets</label>
+
+                                <tr>
+                                    <td style="text-align:right">Targets:
+                                    <td><span class="pin-type" id="pins-ui-targets-list">All Targets</span>
+                                    <td style="padding:0"><input id="pins-ui-targets-autocomplete" type=text>
+                                        <div id="pins-ui-targets-autocomplete-results"
+                                             style="font-size:12px;text-align:left"></div>
+                                    <td style="padding:0">
+                                        <ul style="margin-left:-15px; margin-top:3px" id="pins-ui-targets-dropdown"
+                                            class="dropdown sm sm-black">
+                                            <li style="margin-top:-7px"><a href="#"
+                                                                           onclick="return dropdownClicked(this, event)">&nbsp;</a>
+                                                <ul id="pins-ui-targets-container"></ul>
+                                        </ul>
+
+                                    <td nowrap><input type=checkbox checked id="pins-ui-target-pets"> <label
+                                            for="pins-ui-target-pets">Include Target Pets</label>
+
+                                <tr>
+                                    <td style="text-align:right">Abilities:
+                                    <td><span class="pin-type" id="pins-ui-abilities-list">All Abilities</span>
+                                    <td style="padding:0"><input id="pins-ui-abilities-autocomplete" type=text
+                                                                 oninput="loadPinsUIAbilitiesMenuIfNeeded()">
+                                        <div id="pins-ui-abilities-autocomplete-results"
+                                             style="font-size:12px;text-align:left"></div>
+                                    <td style="padding:0" onmouseover="loadPinsUIAbilitiesMenuIfNeeded()">
+                                        <ul style="margin-left:-15px; margin-top:3px" id="pins-ui-abilities-dropdown"
+                                            class="dropdown sm sm-black">
+                                            <li style="margin-top:-7px"><a href="#"
+                                                                           onclick="return dropdownClicked(this, event)">&nbsp;</a>
+                                                <ul id="pins-ui-abilities"></ul>
+                                        </ul>
+                        </div>
+                        </table>
+
+                        <table style="margin:auto" cellspacing=10>
+                            <tr>
+                                <td>Connect a new query to this one using <input type=button
+                                                                                 onclick="commitQueryPinUI('or')"
+                                                                                 value="OR"> <input type=button
+                                                                                                    onclick="commitQueryPinUI('and')"
+                                                                                                    value="AND">
+                        </table>
+                    </div>
+
+                    <div id="pins-ui-filter-section">
+                        <table cellspacing=10 style="margin:auto">
+                            <tr>
+                                <td>Pin Type:
+                                <td><select id="pins-ui-filter-type"
+                                            onchange="setPinsUITypeExplanation(); updatePinPreview()">
+                                        <option selected>Decorator
+                                        <option>Badge
+                                        <option>Filter
+                                        <option>Summary
+                                        <option>DPS Weight</option>
+                                    </select>
+                                <td id="pins-ui-filter-type-explanation" style="width:250px; height:50px">
+                        </table>
+
+                        <table id="pins-ui-summary" style="margin:0 auto; display:none" cellspacing=10>
+                            <tr>
+                                <td>Sum <select id="pins-ui-summary-field">
+                                        <option>By Matches
+                                        <option>By Amount
+                                    </select> and sort the results by <select id="pins-ui-summary-entry">
+                                        <option>Source
+                                        <option>Target
+                                        <option>Ability
+                                    </select>
+                        </table>
+
+                        <table id="pins-ui-weight" style="margin:0 auto; display:none" cellspacing=10>
+                            <tr>
+                                <td>Weight: <input size=4 id="pins-ui-weight-field" value="1.0">
+                        </table>
+                    </div>
+
+                    <div style="margin-top:1em">Pin Preview:</div>
+                    <div class="pin" id="pin-ui-preview"></div>
+
+                    <p style="text-align:right"><input type=button value="Close" onclick="dismissPinUI()"> <input
+                            type=button onclick="copyPinFromUI()" value="Copy Pin"> <input type=button
+                                                                                           id="pins-ui-create-or-change-pin"
+                                                                                           onclick="createOrChangePin()"
+                                                                                           value="Create Pin"></p>
+
+                </div>
+
+                <div id="compare-ui" style="display:none;clear:left">
+                    <p>You can do comparisons manually:
+
+                    <table cellspacing=10>
+                        <tr>
+                            <td>
+                                <ul id="compare-reports-menu" class="sm sm-black">
+                                    <li><a href="#" onclick="return false">Compare Reports</a>
+                                        <ul id="compare-reports-menu-contents"></ul>
+                                    </li>
+                                </ul>
+                    </table>
+                    </p>
+
+                    <p style="border-top:1px solid #555555"></p>
+
+                    Or you can compare two players in this report:
+                    <table cellspacing=10>
+                        <tr>
+                            <td>
+                                <ul id="compare-first-selection-dropdown" class="compare-selection-menu sm sm-black">
+                                    <li><a href="#" onclick="return dropdownClicked(this, event)"><span
+                                                id="compare-first-selection-text">Select First Player</span></a>
+                                        <ul id="compare-first-selection-container"></ul>
+                                </ul>
+                            <td>
+                                <ul id="compare-second-selection-dropdown" class=" compare-selection-menu sm sm-black">
+                                    <li><a href="#" onclick="return dropdownClicked(this, event)"><span
+                                                id="compare-second-selection-text">Select Second Player</span></a>
+                                        <ul id="compare-second-selection-container"></ul>
+                                </ul>
+                                <input id="compare-two-players-button" type=button value="Compare"
+                                       onclick="comparePlayersInSameReport()">
+                    </table>
+
+                    <p style="border-top:1px solid #555555"></p>
+                    <p>Or you can search for parses similar to yours using the options below:</p>
+                    <table cellspacing=10>
+                        <tr>
+                            <td nowrap>Select Player:
+                            <td>
+                                <ul id="compare-selection-dropdown" class="compare-selection-menu sm sm-black">
+                                    <li><a href="#" onclick="return dropdownClicked(this, event)"><span
+                                                id="compare-selection-text">Select a Player</span></a>
+                                        <ul id="compare-selection-container"></ul>
+                                </ul>
+                        <tr>
+                            <td nowrap>Fight Length:
+                            <td>Limit the search to fights whose duration is within <input type=text
+                                                                                           class="compare-number"
+                                                                                           value="10"
+                                                                                           id="compare-duration-delta">
+                                seconds of this fight. This value only applies to kills.
+                                                    <tr>
+                                <td nowrap>Raid Size:
+                                <td>Limit the raid size to a difference of no more than <input type=text
+                                                                                               class="compare-number"
+                                                                                               value="2"
+                                                                                               id="compare-size-delta">
+                                    players.
+                            <tr>
+                                <td nowrap>Item Level:
+                                <td>Limit search to parses within <input type=text class="compare-number" value="2"
+                                                                         id="compare-ilvl-delta"> item level(s) of the
+                                    selected player (or the fight's average item level if a fight is selected).
+                                                            <tr>
+                            <td nowrap>Time Range:
+                            <td>Limit search to parses that occurred within the last <input type=text
+                                                                                            class="compare-number"
+                                                                                            value="28"
+                                                                                            id="compare-date-delta">
+                                days.
+                        <tr>
+                            <td nowrap>Select Metric:
+                            <td>
+                                <ul id="compare-metric-dropdown" class="sm sm-black">
+                                    <li><a href="#" onclick="return dropdownClicked(this, event)"><span
+                                                id="compare-metric-text">Default</span></a>
+                                        <ul id="compare-metric-container">
+                                            <li><a href="#"
+                                                   onload="selectComparisonSearchMetric('default', this)"
+                                                   >Default</a>
+                                            <li><a href="#" onload="selectComparisonSearchMetric('dps', this)"
+                                                   >Damage</a>
+                                            <li><a href="#" onload="selectComparisonSearchMetric('hps', this)"
+                                                   >Healing</a>
+                                                                                            <li><a href="#"
+                                                       onload="selectComparisonSearchMetric('krsi', this)"
+                                                       >Survivability</a>
+                                                                                    </ul>
+                                </ul>
+
+                    </table>
+                    <p style="text-align:center"><input type=button value="Search"
+                                                        onclick="updateCompareSearchFromTextFields()"></p>
+
+                    <p id="comparison-search-results">
+
+                    </p>
+
+                </div>
+
+                <div id="pins"></div>
+
+                <div id="graph-and-table-container">
+
+                    <div id="graph-wrapper">
+
+                        <div id="graphs">
+
+                            <div id="graph-box" style="background-color:#001520">
+                                <div id="slideshow">
+                                    <table cellpadding=0 cellspacing=0>
+                                        <tr>
+                                            <td id="slideshow-caption">Slideshow Navigation
+                                            <td id="slideshow-body">
+                                                <span id="slideshow-current-event">No slide selected</span><br>
+                                                <span class="slideshow-button"
+                                                      onclick="previousReplaySlide()">&lt;</span><span
+                                                    class="slideshow-button"
+                                                    style="margin-left:-1px; background-color:black!important"><span
+                                                        id="slideshow-current-slide">0</span> / <span
+                                                        id="slideshow-total-slides">0</span>
+</span><span class="slideshow-button" style="margin-left:-1px" onclick="nextReplaySlide()">&gt;</span>
+
+                                            <td id="slideshow-description">Use the arrows to move through all of the
+                                                events that matched the queries that you specified.
+                                    </table>
+                                </div>
+
+                                <div id="position-graph" class="dialog-block ui-widget-content"
+                                     style="position:relative; height:100%; display:none; text-align:center; margin-bottom:1px; overflow:hidden">
+                                    <img id="position-graph-backdrop" style="position:absolute;" width="100%">
+                                    <div id="position-graph-contents"></div>
+                                    <div id="replay-legend"></div>
+                                </div>
+                                <div id="graph-container">
+
+
+                                    <div class="filter-bar miniature" id="graph-title-strip">
+
+                                        <div
+                                            style="display:flex;flex-direction:row; align-items:center; background-color:transparent;">
+                                            <ul id="filter-wipecall-dropdown" class="wipecall-dropdown sm sm-black">
+                                                <li><a href="#"
+                                                       style="color:white!important; background-color:inherit!important;"
+                                                       onclick="return dropdownClicked(this, event)"><span
+                                                            id="filter-wipecall-text">Ignore Events After Player Deaths</span></a>
+
+                                                    <ul id="filter-graph-dropdown-container">
+                                                        <li><a href="#" id="cutoff-item-0"
+                                                               onclick="return changeFilterCutoff(0)">Ignore Events After Player Deaths</a>
+                                                        <li><a href="#" id="cutoff-item-1"
+                                                               onclick="return changeFilterCutoff(-1)">Ignore Events After A Called Wipe</a>
+                                                    </ul>
+                                            </ul>
+
+                                            <form style="display:inline"
+                                                  action="javascript:void(0)"
+                                                  onsubmit="return changeWipeCutoff(document.getElementById('wipe_cutoff').value)">
+                                                <input id="wipe_cutoff" type=text maxlength=3
+                                                       style="width:20px; background-color:rgb(205, 222, 225) !important;"
+                                                       value=""></form>
+
+                                        </div>
+
+                                        <div style="display:flex; flex-direction:row;align-items:center">
+
+
+                                            <form id="quick-filter-container"
+                                                  action="javascript:void(0)"
+                                                  onsubmit="createQuickFilterPin(); return false"
+                                                  style="font-size:10px; ">Filter Expression: <input
+                                                    id="quick-filter-pin" type=text
+                                                    style="background-color:rgb(205, 222, 225) !important; width:200px; margin:0;">
+                                            </form>
+
+
+                                            <ul id="filter-graph-dropdown" class="graph-dropdown sm sm-black"
+                                                id="graph-toggle-tab" style="position:relative">
+                                                <li><a href="#"
+                                                       style="color:white!important; background-color:inherit!important; padding-top:5px; padding-bottom:5px; padding-right:10px;"
+                                                       onclick="return dropdownClicked(this, event)"><span
+                                                            id="filter-graph-text" class="zmdi zmdi-settings"
+                                                            style="font-size:18px!important"></span>&nbsp;</a>
+
+                                                    <ul id="filter-graph-dropdown-container">
+                                                                                                                    <li><a href="#" class="graph_option" id="toggle-heroism"
+                                                                   onclick="togglePlotBands(heroismPlotBands, 'heroism', 1); return false">Heroism</a>
+                                                                                                                <li><a href="#" class="graph_option" id="toggle-downtime"
+                                                               onclick="togglePlotBands(downtimePlotBands, 'downtime', 1); return false">Downtime</a>
+                                                        <li><a href="#" class="graph_option" id="toggle-players"
+                                                               onclick="togglePlotLines(playerDeathPlotLines, 'players', 2); return false">Player
+                                                                Deaths</a>
+                                                                                                                    <li><a href="#" class="graph_option" id="toggle-combatrez"
+                                                                   onclick="togglePlotLines(combatRezPlotLines, 'combatrez', 4); return false">Player
+                                                                    Resurrections</a>
+                                                                                                                <li><a href="#" class="graph_option" id="toggle-bosses"
+                                                               onclick="togglePlotLines(bossDeathPlotLines, 'bosses', 8); return false">Boss
+                                                                Deaths</a>
+                                                        <li><a href="#" class="graph_option" id="toggle-npcs"
+                                                               onclick="togglePlotLines(creatureDeathPlotLines, 'npcs', 16); return false">NPC
+                                                                Deaths</a>
+                                                        <li class="separator"></li>
+                                                        <li><a href="#"
+                                                               onclick="updateAllGraphItems(chart, true); return false">Show
+                                                                All Entries</a>
+                                                        <li><a href="#"
+                                                               onclick="updateAllGraphItems(chart, false); return false">Hide
+                                                                All Entries</a>
+                                                    </ul>
+                                            </ul>
+
+                                            <div style="margin-left:5px; margin-right:2px; font-size:18px;"><span
+                                                    id="graph-minimizer" onclick="toggleGraphMinimize()"
+                                                    class="zmdi zmdi-window-minimize"></span> <span id="graph-maximizer"
+                                                                                                    onclick="toggleGraphMaximize()"
+                                                                                                    class="zmdi zmdi-window-maximize"></span>
+                                            </div>
+
+                                        </div>
+                                    </div>
+
+                                    <div id="graph"></div>
+
+                                </div>
+
+                            </div>
+
+                            <div id="replay-options-strip">
+
+<span id="replay-buttons" style="display:none"><span id="play-button" class="graph-legend-button zmdi zmdi-play"
+                                                     style="font-size:24px"
+                                                     onclick="if (disallowPlayClick) playDisallowedAlert(); else toggleReplayState()"></span> <span
+        id="replay-time-counter" style="margin:0 20px"><span id="replay-current-time">00:00</span> / <span
+            id="replay-fight-duration">10:00</span></span>
+
+<span class="replay-filter-controls">Filters: <span style="margin-left:8px" class="replay-legend-button selected"
+                                                    onclick="updateGraphItemsByType(this, positionChart, 'Player')">Players</span><span
+        onclick="updateGraphItemsByType(this, positionChart, 'Pet')" class="replay-legend-button"
+        style="margin-left:-1px">Pets</span><span class="replay-legend-button selected" style="margin-left:-1px"
+                                                  onclick="updateGraphItemsByType(this, positionChart, 'Boss')">Bosses</span><span
+        class="replay-legend-button selected" style="margin-left:-1px;"
+        onclick="updateGraphItemsByType(this, positionChart, 'NPC')">NPCs</span></span>
+
+<span class="replay-speed-controls" style="margin-left:20px">Speed: <span class="replay-legend-button replay-speed"
+                                                                          style="margin-left:8px"
+                                                                          onclick="setReplaySpeed(0.5, this)">0.5x</span><span
+        class="replay-legend-button replay-speed selected" style="margin-left:-1px"
+        onclick="setReplaySpeed(1, this)">1x</span><span class="replay-legend-button replay-speed"
+                                                         style="margin-left:-1px;"
+                                                         onclick="setReplaySpeed(2, this)">2x</span></span>
+
+<span class="replay-feature-controls" style="margin-left:20px">Features: <span style="margin-left:8px"
+                                                                               class="replay-legend-button replay-effects selected"
+                                                                               onclick="toggleReplayRaidEffects(this)">Effects</span><span
+        class="replay-legend-button replay-markers selected" style="margin-left:-1px"
+        onclick="toggleReplayRaidMarkers(this)">Markers</span><span class="replay-legend-button replay-icons selected"
+                                                                    style="margin-left:-1px"
+                                                                    onclick="toggleReplayActorIcons(this)">Icons</span><span
+        class="replay-legend-button replay-meters selected" style="margin-left:-1px"
+        onclick="toggleReplayRaidMeters(this)">Meters</span><span class="replay-legend-button replay-video"
+                                                                  style="margin-left:-1px"
+                                                                  onclick="toggleReplayRaidVideo(this)">Video</span><span
+        class="replay-legend-button" style="margin-left:-1px" id="replay-queries-toggle"
+        onclick="togglePinUI(); return false" oncontextmenu="togglePinUI()">Queries</span>
+</span>
+
+
+<span class="replay-legend-button zmdi zmdi-fullscreen" id="fullscreen-toggle" style="font-size:24px"
+      onclick="toggleFullScreen()"></span>
+</span>
+                            </div>
+
+                            <div id="unit-frames-container" style="display:none"></div>
+
+                        </div>
+
+                    </div>
+
+                    <div style="clear:both"></div>
+
+                                            <div id="report-component-aas-call-to-action-container" style="display: none;margin-top:10px"></div>
+                        <script>
+                            attachToDom('#report-component-aas-call-to-action-container', 'AlchemicalSocietyCallToAction', {
+                                featureImageUrl: 'https://assets.rpglogs.com/img/subscriber/features/report-components-feature.png',
+                                featureDescriptionText: trans('features.report_components_description'),
+                            });
+                        </script>
+                    
+                    <div id="view-tabs-and-table-container" style="margin-top:10px">
+
+                        <div id="filter-buffs-container"></div>
+
+                        
+                        <div id="table-container">
+                        </div>
+
+                    </div>
+
+                </div>
+            </div>
+
+                            <div id="right-ad-box">
+                    <div class="side-rail-ads">
+                        <span id="ap-3d3ba7b1-container"></span>
+<script async>
+    attachToDom(
+        '#ap-3d3ba7b1-container',
+        'AdPlacement',
+        {"id":"ap-3d3ba7b1","adProvider":"playwire","adPlacementLocation":"sideRailWide","adPlacementPlaywireViewModel":{"id":"ap-3d3ba7b1","adPlacementLocation":"sideRailWide","adPlacementPlaywireType":"sky_atf","adPlacementPlaywirePathType":null,"minimumRefreshThresholdSeconds":6},"adPlacementGoogleViewModel":null,"adPlacementNitroViewModel":null,"adPlacementFallbackViewModel":{"adPlacementFallbackType":"vertical","siteTitle":"Warcraft Logs","headerImageUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/header-logo.png","backgroundImageUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/featured-article-fallback.jpg","href":"https:\/\/www.warcraftlogs.com\/subscribe?utm_content=ad-fallback-sideRailWide"}},
+        null,
+        null,
+        false
+    );
+</script>
+                    </div>
+                </div>
+            
+    </div>
+
+
+    </div>
+    </div>
+    <div className="report-sidebar">
+        </div>
+</div>
+    <script>
+        window.queryRouting.forceTriggerChange();
+        initializeGraphOptions()
+    </script>
+
+                </div>
+                                                                        <span id="ap-ea8a4fe5-container"></span>
+<script async>
+    attachToDom(
+        '#ap-ea8a4fe5-container',
+        'AdPlacement',
+        {"id":"ap-ea8a4fe5","adProvider":"playwire","adPlacementLocation":"stickyFooter","adPlacementPlaywireViewModel":{"id":"ap-ea8a4fe5","adPlacementLocation":"stickyFooter","adPlacementPlaywireType":"leaderboard_btf","adPlacementPlaywirePathType":null,"minimumRefreshThresholdSeconds":6},"adPlacementGoogleViewModel":null,"adPlacementNitroViewModel":null,"adPlacementFallbackViewModel":{"adPlacementFallbackType":"horizontal","siteTitle":"Warcraft Logs","headerImageUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/header-logo.png","backgroundImageUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/featured-article-fallback.jpg","href":"https:\/\/www.warcraftlogs.com\/subscribe?utm_content=ad-fallback-stickyFooter"}},
+        null,
+        null,
+        false
+    );
+</script>
+                                            
+                
+                    <div id="footer-spacer" class="unsubscribed"></div>
+
+                    <div id="footer">
+
+                            
+                                                                                <span id="ap-55f9cb93-container"></span>
+<script async>
+    attachToDom(
+        '#ap-55f9cb93-container',
+        'AdPlacement',
+        {"id":"ap-55f9cb93","adProvider":"playwire","adPlacementLocation":"cornerVideo","adPlacementPlaywireViewModel":{"id":"ap-55f9cb93","adPlacementLocation":"cornerVideo","adPlacementPlaywireType":"corner_ad_video","adPlacementPlaywirePathType":null,"minimumRefreshThresholdSeconds":6},"adPlacementGoogleViewModel":null,"adPlacementNitroViewModel":null,"adPlacementFallbackViewModel":null},
+        null,
+        null,
+        false
+    );
+</script>
+                        
+                        <div id="footer-container"></div>
+                        <script>
+                          attachToDom(
+                            '#footer-container',
+                            'Footer',
+                                  {"privacyPolicyUrl":"https:\/\/www.warcraftlogs.com\/help\/privacy","careersUrl":"https:\/\/www.warcraftlogs.com\/careers","backgroundImageUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/footer-bg.jpg?v=6","headerTitle":{"backgroundImageUrl":"","logoImageUrl":"https:\/\/assets.rpglogs.com\/img\/warcraft\/header-logo.png?v=4","logoIsRounded":false,"isSlim":false,"faction":null,"textPartOne":"Warcraft","textPartTwo":"Logs","textPartOneTopColor":"rgb(45,170,200)","textPartOneBottomColor":"rgb(0,140,195)","textPartTwoTopColor":"rgb(230,230,230)","textPartTwoBottomColor":"rgb(190,190,190)","partTwoOverflowCutUnder380px":"","isFooterSize":true,"href":"\/","logoVerticalOffsetInPx":0},"latestArticles":[{"id":224,"url":"https:\/\/www.archon.gg\/wow\/articles\/news\/now-supporting-fellowship-logging-builds-and-database","imageUrl":"https:\/\/assets.rpglogs.com\/cms\/Fellow_Announce_a1eaf9a02a.jpg","thumbnailUrl":"https:\/\/assets.rpglogs.com\/cms\/thumbnail_Fellow_Announce_a1eaf9a02a.jpg","title":"Now Supporting Fellowship: Logging, Builds, and Database","description":"Archon will be supporting Fellowship with sites for logs, databases, and builds.","categoryName":"News","categoryUrl":"https:\/\/www.archon.gg\/wow\/articles\/news","timestamp":1760629780000,"isPinned":false,"status":"New"},{"id":220,"url":"https:\/\/www.archon.gg\/wow\/articles\/news\/wipefest-fractillus-crystal-wall-support","imageUrl":"https:\/\/assets.rpglogs.com\/cms\/fractimage_60b509e815.jpg","thumbnailUrl":"https:\/\/assets.rpglogs.com\/cms\/thumbnail_fractimage_60b509e815.jpg","title":"Wipefest: Fractillus Crystal Wall Support","description":"We've added a neat new piece of analysis to Wipefest, which displays precise visuals of the Crystal Wall placements for Fractillus in Manaforge Omega.","categoryName":"News","categoryUrl":"https:\/\/www.archon.gg\/wow\/articles\/news","timestamp":1757703637000,"isPinned":false,"status":null},{"id":216,"url":"https:\/\/www.archon.gg\/wow\/articles\/news\/archon-rotations-openers-cooldowns-and-throughput","imageUrl":"https:\/\/assets.rpglogs.com\/cms\/rotationstab_b153748cf3.jpg","thumbnailUrl":"https:\/\/assets.rpglogs.com\/cms\/thumbnail_rotationstab_b153748cf3.jpg","title":"Archon Rotations: Openers, Cooldowns, and Throughput","description":"We're highlighting some of the data you can find in the Archon Rotations tab, which has detailed breakdowns of openers, cooldown use, and throughput.","categoryName":"News","categoryUrl":"https:\/\/www.archon.gg\/wow\/articles\/news","timestamp":1756405883000,"isPinned":false,"status":null},{"id":214,"url":"https:\/\/www.archon.gg\/wow\/articles\/news\/wipefest-manaforge-omega","imageUrl":"https:\/\/assets.rpglogs.com\/cms\/tile_ab763e3dda.jpg","thumbnailUrl":"https:\/\/assets.rpglogs.com\/cms\/thumbnail_tile_ab763e3dda.jpg","title":"Wipefest: Manaforge Omega","description":"Wipefest has full support for The War Within raids (Manaforge Omega) on Normal, Heroic, and Mythic difficulties.","categoryName":"News","categoryUrl":"https:\/\/www.archon.gg\/wow\/articles\/news","timestamp":1755590205000,"isPinned":false,"status":null},{"id":203,"url":"https:\/\/www.archon.gg\/wow\/articles\/news\/archon-tooltip-release-for-retail-and-cataclysm","imageUrl":"https:\/\/assets.rpglogs.com\/cms\/WCL_Article_Thumbnails_1_8f671fa659_a1f96aa141.jpg","thumbnailUrl":"https:\/\/assets.rpglogs.com\/cms\/thumbnail_WCL_Article_Thumbnails_1_8f671fa659_a1f96aa141.jpg","title":"Archon Tooltip Release for Retail and Cataclysm","description":"Introducing our new Archon Tooltip addon, which allows you to see player parses and ranks in-game.","categoryName":"News","categoryUrl":"https:\/\/www.archon.gg\/wow\/articles\/news","timestamp":1743190865000,"isPinned":true,"status":"Featured"},{"id":200,"url":"https:\/\/www.archon.gg\/wow\/articles\/news\/wipefest-liberation-of-undermine","imageUrl":"https:\/\/assets.rpglogs.com\/cms\/featured_4ccda77e7f.jpg","thumbnailUrl":"https:\/\/assets.rpglogs.com\/cms\/thumbnail_featured_4ccda77e7f.jpg","title":"Wipefest: Liberation of Undermine","description":"Wipefest has full support for The War Within raids (Liberation of Undermine) on Normal, Heroic, and Mythic difficulties.","categoryName":"News","categoryUrl":"https:\/\/www.archon.gg\/wow\/articles\/news","timestamp":1742318292000,"isPinned":false,"status":null}],"toolLinks":[{"url":"\/client\/download","title":"Download Client","iconType":"font","iconSrc":"download","openInNewTab":false},{"url":"https:\/\/wowanalyzer.com","title":"WoWAnalyzer","iconType":"image","iconSrc":"https:\/\/assets.rpglogs.com\/img\/warcraft\/wowa-logo-80px.png","openInNewTab":true},{"url":"https:\/\/www.wipefest.gg","title":"Wipefest","iconType":"image","iconSrc":"https:\/\/assets.rpglogs.com\/img\/warcraft\/wipefest-logo-80px.png","openInNewTab":true},{"url":"\/recruitment","title":"Recruitment","iconType":"font","iconSrc":"accounts","openInNewTab":false}],"raidLinks":[{"url":"\/zone\/statistics\/44","title":"Statistics","iconType":null,"iconSrc":null,"openInNewTab":false},{"url":"\/zone\/rankings\/44","title":"Rankings","iconType":null,"iconSrc":null,"openInNewTab":false},{"url":"\/zone\/rankings\/44?metric=progress","title":"Progress","iconType":null,"iconSrc":null,"openInNewTab":false},{"url":"\/zone\/reports?zone=44","title":"All Reports","iconType":null,"iconSrc":null,"openInNewTab":false}],"ourWebsiteLinks":[{"url":"https:\/\/www.archon.gg","title":"Archon","iconType":null,"iconSrc":null,"openInNewTab":false},{"url":"https:\/\/www.warcraftlogs.com","title":"WoW Retail","iconType":null,"iconSrc":null,"openInNewTab":false},{"url":"https:\/\/classic.warcraftlogs.com","title":"WoW Classic","iconType":null,"iconSrc":null,"openInNewTab":false},{"url":"https:\/\/sod.warcraftlogs.com","title":"WoW SoD","iconType":null,"iconSrc":null,"openInNewTab":false},{"url":"https:\/\/fresh.warcraftlogs.com","title":"WoW Classic Fresh","iconType":null,"iconSrc":null,"openInNewTab":false},{"url":"https:\/\/vanilla.warcraftlogs.com","title":"WoW Vanilla","iconType":null,"iconSrc":null,"openInNewTab":false},{"url":"https:\/\/www.fflogs.com","title":"Final Fantasy XIV","iconType":null,"iconSrc":null,"openInNewTab":false},{"url":"https:\/\/www.esologs.com","title":"Elder Scrolls Online","iconType":null,"iconSrc":null,"openInNewTab":false},{"url":"https:\/\/www.swtorlogs.com","title":"SWTOR","iconType":null,"iconSrc":null,"openInNewTab":false}],"resourceLinks":[{"url":"https:\/\/forums.combatlogforums.com","title":"Forums","iconType":null,"iconSrc":null,"openInNewTab":false},{"url":"https:\/\/www.patreon.com\/join\/warcraftlogs","title":"Subscribe","iconType":null,"iconSrc":null,"openInNewTab":false},{"url":"https:\/\/www.archon.gg\/wow\/articles\/help\/getting-started","title":"Help and Info","iconType":null,"iconSrc":null,"openInNewTab":false},{"url":"https:\/\/www.archon.gg\/wow\/articles\/help\/rpg-logs-branding-information","title":"Brand","iconType":null,"iconSrc":null,"openInNewTab":false}],"labels":{"contactUsText":"Contact Us","privacyPolicyText":"Privacy Policy","careersText":"Careers","latestArticleText":"Latest Article","resourcesListLabel":"Resources","websitesListLabel":"Our Websites","toolsListLabel":"Our Tools","latestRaidListLabel":"Latest Raid"},"copyrightText":"\u00a9 2013-2025 Warcraft Logs","twitterUrl":"WarcraftLogs","discordUrl":"https:\/\/discord.gg\/5ebPJSsy5y","patreonUrl":"https:\/\/www.patreon.com\/join\/warcraftlogs","pageWidth":"standard","extraSpaceUnderLogo":0},
+                              null,
+                              null,
+                              false
+                          );
+                        </script>
+                    </div>
+            </div>
+
+            
+            
+            
+            </body>
+    </html>
+

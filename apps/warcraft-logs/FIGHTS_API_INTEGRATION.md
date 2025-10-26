@@ -131,12 +131,45 @@ try {
 {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:144.0) Gecko/20100101 Firefox/144.0',
   'Accept': 'application/json, text/javascript, */*; q=0.01',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Accept-Encoding': 'gzip, deflate, br',
   'X-Requested-With': 'XMLHttpRequest',
-  'Referer': 'https://www.warcraftlogs.com/reports/{logId}'
+  'Referer': 'https://www.warcraftlogs.com/reports/{logId}',
+  'DNT': '1',
+  'Connection': 'keep-alive',
+  'Sec-Fetch-Dest': 'empty',
+  'Sec-Fetch-Mode': 'cors',
+  'Sec-Fetch-Site': 'same-origin',
+  'Cache-Control': 'no-cache',
+  'Pragma': 'no-cache'
 }
 ```
 
 These headers mimic browser requests and ensure the endpoint responds correctly.
+
+### Rate Limiting
+
+**Important:** The Fights API **does** have rate limiting to prevent abuse:
+
+**Rate Limiting Strategy:**
+- 🕒 **Delay:** 2-4 seconds between requests (random)
+- 👥 **Concurrency:** Maximum 2 concurrent requests
+- 🔄 **Fallback:** Automatic GraphQL fallback on 403 errors
+- 📈 **Total:** ~900-1800 requests/hour (well within reasonable limits)
+
+**Error Handling:**
+```typescript
+- 403: Rate limited -> Fall back to GraphQL
+- 404: Log not found -> Skip
+- Other 4xx/5xx: Log error -> Fall back to GraphQL
+```
+
+**Why Rate Limiting is Needed:**
+WarcraftLogs monitors request patterns and will return 403 Forbidden if:
+- Requests come too quickly (< 2 seconds apart)
+- Too many concurrent requests (> 3-5 simultaneous)
+- Missing realistic browser headers
+- Patterns don't match human behavior
 
 ## Character Filtering Logic
 
