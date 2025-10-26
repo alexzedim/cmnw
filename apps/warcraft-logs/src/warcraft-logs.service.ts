@@ -120,6 +120,10 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
 
   async getLogsFromPage(realmId = 1, page = 1) {
     try {
+      // Add delay to avoid rate limiting (1-3 seconds)
+      const delayMs = randomInt(1000, 3000);
+      await delay(delayMs);
+      
       const warcraftLogsURI = 'https://www.warcraftlogs.com/zone/reports';
       // --- add if necessary @todo zone=${this.config.raidTier}& --- //
       const params = `server=${realmId}&`;
@@ -149,11 +153,14 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
           .find('td.description-cell > a')
           .attr('href');
 
-        const isReports = hrefString.includes('reports');
+        const isReports = hrefString?.includes('reports');
         if (isReports && momentFormat) {
-          const [logId] = hrefString.match(/(.{16})\s*$/g);
-          const createdAt = DateTime.fromSeconds(Number(momentFormat)).toJSDate();
-          warcraftLogsMap.set(logId, { logId, createdAt });
+          const matchResult = hrefString.match(/(.{16})\s*$/g);
+          if (matchResult && matchResult[0]) {
+            const logId = matchResult[0];
+            const createdAt = DateTime.fromSeconds(Number(momentFormat)).toJSDate();
+            warcraftLogsMap.set(logId, { logId, createdAt });
+          }
         }
       });
 
@@ -163,6 +170,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         logTag: 'getLogsFromPage',
         errorOrException,
       });
+      return []; // Return empty array instead of undefined
     }
   }
 
@@ -171,13 +179,11 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
       let logsAlreadyExists = 0;
 
       for (let page = this.config.wclFromPage; page < this.config.wclToPage; page++) {
-        const random = randomInt(1, 5);
-        await delay(random);
-
+        // No need for delay here - getLogsFromPage already has 1-3s delay
         const wclLogsFromPage = await this.getLogsFromPage(
           realmEntity.warcraftLogsId,
           page,
-        );
+        ) ?? []; // Ensure it's always an array
         /**
          * If indexing logs on the page have ended and page fault
          * tolerance is more than config, then break for loop
@@ -338,6 +344,10 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
    */
   async getCharactersFromFightsAPI(logId: string): Promise<Array<RaidCharacter>> {
     try {
+      // Add base random delay (1-3 seconds) to avoid rate limiting
+      const delayMs = randomInt(1000, 3000);
+      await delay(delayMs);
+      
       // Use adaptive rate limiter - automatically adjusts based on 403 errors
       await this.fightsAPIRateLimiter.wait();
       
