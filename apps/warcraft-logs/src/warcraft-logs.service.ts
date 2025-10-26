@@ -287,10 +287,22 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
 
   async indexLogAndPushCharactersToQueue(characterRaidLogEntity: CharactersRaidLogsEntity, wclKey: KeysEntity) {
     try {
-      const raidCharacters = await this.getCharactersFromLogs(
-        wclKey.token,
-        characterRaidLogEntity.logId,
-      );
+      let raidCharacters: Array<RaidCharacter> = [];
+
+      // Primary: Try Fights API (no token required, no quota limits)
+      try {
+        raidCharacters = await this.getCharactersFromFightsAPI(characterRaidLogEntity.logId);
+      } catch (fightsApiError) {
+        this.logger.warn(
+          chalk.yellow(`⚠ Fights API failed for ${characterRaidLogEntity.logId}, falling back to GraphQL`)
+        );
+        
+        // Fallback: Try GraphQL API (requires token, has quota)
+        raidCharacters = await this.getCharactersFromLogs(
+          wclKey.token,
+          characterRaidLogEntity.logId,
+        );
+      }
 
       await this.charactersRaidLogsRepository.update(
         { logId: characterRaidLogEntity.logId },
@@ -308,6 +320,129 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
       this.logger.error(
         `${chalk.red('✗')} Failed ${chalk.dim(characterRaidLogEntity.logId)} - ${errorOrException.message}`
       );
+    }
+  }
+
+  /**
+   * Fetches character roster from Warcraft Logs internal API endpoint.
+   * This endpoint doesn't require GraphQL API token and provides full character data.
+   * @param logId - The 16-character report ID
+   * @returns Array of RaidCharacter objects with name, realm, and timestamp
+   */
+  async getCharactersFromFightsAPI(logId: string): Promise<Array<RaidCharacter>> {
+    try {
+      const apiUrl = `https://www.warcraftlogs.com/reports/fights-and-participants/${logId}/0`;
+      
+      const response = await this.httpService.axiosRef.get<{
+        lang: string;
+        fights: Array<{ id: number; start_time: number; end_time: number }>;
+        friendlies: Array<{
+          name: string;
+          id: number;
+          guid: number;
+          type: string;
+          server: string;
+          region?: string;
+          icon: string;
+          fights: string;
+        }>;
+      }>(apiUrl, {
+        headers: {
+          ...BROWSER_HEADERS,
+          'X-Requested-With': 'XMLHttpRequest',
+          'Referer': `https://www.warcraftlogs.com/reports/${logId}`,
+        },
+        timeout: 15000,
+      });
+
+      // Use first fight timestamp or current time
+      const timestamp = response.data.fights?.[0]?.start_time || Date.now();
+
+      // Filter friendlies to get only playable characters (exclude NPCs)
+      const players = (response.data.friendlies || [])
+        .filter(f => f.type !== 'NPC' && f.server)
+        .map(character => {
+          // Normalize character name and realm to match database standards
+          const normalizedName = character.name.trim();
+          const normalizedRealm = toSlug(character.server); // Already lowercase from toSlug
+          
+          return {
+            guid: toGuid(normalizedName, character.server), // Use toGuid for consistency
+            name: normalizedName, // Will be capitalized by lifecycle service
+            realm: normalizedRealm, // lowercase realm slug
+            timestamp: timestamp,
+          };
+        });
+
+      // Remove duplicates
+      const characters = new Map<string, RaidCharacter>();
+      for (const character of players) {
+        const isCondition = characters.has(character.guid);
+        if (isCondition) continue;
+        characters.set(character.guid, character);
+      }
+
+      this.logger.log(
+        `${chalk.green('✓')} Fights API ${chalk.dim(logId)} ${chalk.dim('|')} ${chalk.bold(characters.size)} characters`
+      );
+
+      return Array.from(characters.values());
+    } catch (errorOrException) {
+      this.logger.error({
+        logTag: 'getCharactersFromFightsAPI',
+        logId,
+        error: errorOrException.message,
+      });
+      return [];
+    }
+  }
+
+  /**
+   * Parses a Warcraft Logs report HTML page to extract basic character information.
+   * This is a fallback method when API quota is exceeded.
+   * Note: HTML pages load character data dynamically via JavaScript, so this method
+   * only extracts limited information like the report creator name.
+   * @param logId - The 16-character report ID
+   * @returns Array of character info with name and realm (may be incomplete)
+   * @deprecated Use getCharactersFromFightsAPI instead
+   */
+  async getCharactersFromReportHtml(logId: string): Promise<Array<{ name: string; realm?: string }>> {
+    try {
+      const reportUrl = `https://www.warcraftlogs.com/reports/${logId}`;
+      const response = await this.httpService.axiosRef.get<string>(reportUrl, {
+        headers: BROWSER_HEADERS,
+        timeout: 15000,
+      });
+
+      const $ = cheerio.load(response.data);
+      const characters = new Map<string, { name: string; realm?: string }>();
+
+      // Extract report creator name
+      const creatorName = $('.report-title-details-text .gold.bold').text().trim();
+      if (creatorName) {
+        characters.set(creatorName.toLowerCase(), { name: creatorName });
+      }
+
+      // Try to extract guild/team name if present
+      const guildName = $('.guild-reports-guildName').text().trim();
+      if (guildName && guildName !== 'Personal Logs' && guildName !== creatorName) {
+        characters.set(guildName.toLowerCase(), { name: guildName });
+      }
+
+      // Note: Full character roster with realms requires API access
+      // HTML pages load this data asynchronously via JavaScript
+      this.logger.warn(
+        chalk.yellow(`⚠ HTML parsing for ${logId} - limited data (creator only). Use API for full roster.`)
+      );
+
+      return Array.from(characters.values());
+    } catch (errorOrException) {
+      this.logger.error({
+        logTag: 'getCharactersFromReportHtml',
+        logId,
+        error: errorOrException.message,
+      });
+      return [];
     }
   }
 
