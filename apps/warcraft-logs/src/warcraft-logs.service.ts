@@ -17,7 +17,10 @@ import {
   RaidCharacter,
   toGuid,
   KEY_LOCK,
-  CharacterJobQueue, toSlug,
+  CharacterJobQueue,
+  toSlug,
+  AdaptiveRateLimiter,
+  FightsAPIResponse,
 } from '@app/resources';
 
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -54,6 +57,9 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
     errors: 0,
     startTime: Date.now(),
   };
+
+  // Adaptive rate limiter for Fights API (2-30 second delays)
+  private readonly fightsAPIRateLimiter = new AdaptiveRateLimiter(2000, 30000);
 
   constructor(
     private httpService: HttpService,
@@ -260,10 +266,11 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         chalk.cyan(`🔄 Processing ${chalk.bold(characterRaidLog.length)} raid logs`)
       );
 
+      // Reduced concurrency from 5 to 2 to avoid rate limiting on Fights API
       await lastValueFrom(
         from(characterRaidLog).pipe(
           mergeMap((characterRaidLogEntity) =>
-            this.indexLogAndPushCharactersToQueue(characterRaidLogEntity, wclKey), 5),
+            this.indexLogAndPushCharactersToQueue(characterRaidLogEntity, wclKey), 2),
         ),
       );
 
@@ -331,29 +338,72 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
    */
   async getCharactersFromFightsAPI(logId: string): Promise<Array<RaidCharacter>> {
     try {
+      // Use adaptive rate limiter - automatically adjusts based on 403 errors
+      await this.fightsAPIRateLimiter.wait();
+      
+      const rateLimiterStats = this.fightsAPIRateLimiter.getStats();
+      const isConditionThrottled = rateLimiterStats.isThrottled;
+      
+      if (isConditionThrottled) {
+        this.logger.warn(
+          chalk.yellow(`⚠ Rate limiter active: ${Math.round(rateLimiterStats.currentDelayMs / 1000)}s delay, ${rateLimiterStats.errorCount} errors`)
+        );
+      }
+      
       const apiUrl = `https://www.warcraftlogs.com/reports/fights-and-participants/${logId}/0`;
       
-      const response = await this.httpService.axiosRef.get<{
-        lang: string;
-        fights: Array<{ id: number; start_time: number; end_time: number }>;
-        friendlies: Array<{
-          name: string;
-          id: number;
-          guid: number;
-          type: string;
-          server: string;
-          region?: string;
-          icon: string;
-          fights: string;
-        }>;
-      }>(apiUrl, {
-        headers: {
-          ...BROWSER_HEADERS,
-          'X-Requested-With': 'XMLHttpRequest',
-          'Referer': `https://www.warcraftlogs.com/reports/${logId}`,
-        },
+      // More realistic browser headers to appear human
+      const realisticHeaders = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:144.0) Gecko/20100101 Firefox/144.0',
+        'Accept': 'application/json, text/javascript, */*; q=0.01',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Accept-Encoding': 'gzip, deflate, br',
+        'X-Requested-With': 'XMLHttpRequest',
+        'Referer': `https://www.warcraftlogs.com/reports/${logId}`,
+        'DNT': '1',
+        'Connection': 'keep-alive',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'Cache-Control': 'no-cache',
+        'Pragma': 'no-cache',
+      };
+      
+      const response = await this.httpService.axiosRef.get<FightsAPIResponse>(apiUrl, {
+        headers: realisticHeaders,
         timeout: 15000,
+        validateStatus: (status) => status >= 200 && status < 500, // Don't throw on 4xx
       });
+
+      // Handle rate limiting / blocking
+      const isConditionRateLimited = response.status === 403 || response.status === 429;
+      const isConditionNotFound = response.status === 404;
+      
+      if (isConditionRateLimited) {
+        // Notify rate limiter to increase delays
+        this.fightsAPIRateLimiter.onRateLimit();
+        
+        const stats = this.fightsAPIRateLimiter.getStats();
+        this.logger.warn(
+          chalk.yellow(`⚠ Rate limited (${response.status}) for ${logId} - delay increased to ${Math.round(stats.currentDelayMs / 1000)}s`)
+        );
+        throw new Error('Rate limited by Warcraft Logs');
+      }
+      
+      if (isConditionNotFound) {
+        this.logger.warn(
+          chalk.yellow(`⚠ Log not found (404) for ${logId}`)
+        );
+        return [];
+      }
+      
+      const isConditionBadResponse = response.status !== 200 || !response.data;
+      if (isConditionBadResponse) {
+        this.logger.warn(
+          chalk.yellow(`⚠ Bad response (${response.status}) for ${logId}`)
+        );
+        throw new Error(`Bad response status: ${response.status}`);
+      }
 
       // Use first fight timestamp or current time
       const timestamp = response.data.fights?.[0]?.start_time || Date.now();
@@ -382,6 +432,9 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         characters.set(character.guid, character);
       }
 
+      // Notify rate limiter of success
+      this.fightsAPIRateLimiter.onSuccess();
+      
       this.logger.log(
         `${chalk.green('✓')} Fights API ${chalk.dim(logId)} ${chalk.dim('|')} ${chalk.bold(characters.size)} characters`
       );
@@ -575,16 +628,20 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
     const uptime = Date.now() - this.stats.startTime;
     const hours = Math.floor(uptime / (1000 * 60 * 60));
     const minutes = Math.floor((uptime % (1000 * 60 * 60)) / (1000 * 60));
+    
+    const rateLimiterStats = this.fightsAPIRateLimiter.getStats();
+    const delaySeconds = Math.round(rateLimiterStats.currentDelayMs / 1000);
 
     this.logger.log(
       `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
       `${chalk.magenta('📊 WCL SERVICE PROGRESS')}\n` +
       `${chalk.cyan('  ✓ Logs Indexed:')} ${chalk.cyan.bold(this.stats.logsIndexed)}\n` +
       `${chalk.green('  ✓ Logs Created:')} ${chalk.green.bold(this.stats.logsCreated)}\n` +
-      `${chalk.yellow('  ⊘ Logs Skipped:')} ${chalk.yellow.bold(this.stats.logsSkipped)}\n` +
+      `${chalk.yellow('  ⊚ Logs Skipped:')} ${chalk.yellow.bold(this.stats.logsSkipped)}\n` +
       `${chalk.cyan('  → Characters Queued:')} ${chalk.cyan.bold(this.stats.charactersQueued)}\n` +
       `${chalk.red('  ✗ Errors:')} ${chalk.red.bold(this.stats.errors)}\n` +
       `${chalk.dim('  Uptime:')} ${chalk.bold(`${hours}h ${minutes}m`)}\n` +
+      `${chalk.blue('  🕒 Rate Limiter:')} ${rateLimiterStats.isThrottled ? chalk.yellow.bold(`${delaySeconds}s (throttled)`) : chalk.green.bold(`${delaySeconds}s`)}\n` +
       `${chalk.magenta.bold('━'.repeat(60))}`
     );
   }

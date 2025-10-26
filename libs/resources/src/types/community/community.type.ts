@@ -53,3 +53,27 @@ export type ApiConstParams = {
   isMultiLocale?: boolean;
   ifModifiedSince?: string;
 }
+
+export type FightsAPIFriendly = {
+  name: string;
+  id: number;
+  guid: number;
+  type: string;
+  server: string;
+  region?: string;
+  icon: string;
+  fights: string;
+};
+
+export type FightsAPIResponse = {
+  lang: string;
+  fights: Array<{ id: number; start_time: number; end_time: number }>;
+  friendlies: Array<FightsAPIFriendly>;
+  enemies: Array<unknown>;
+  friendlyPets: Array<unknown>;
+  enemyPets: Array<unknown>;
+  abilities: Record<string, unknown>;
+  logVersion: number;
+  gameVersion: number;
+  phases: Array<unknown>;
+};
