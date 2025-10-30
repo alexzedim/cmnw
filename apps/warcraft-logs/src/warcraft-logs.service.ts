@@ -462,7 +462,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
           const normalizedRealm = toSlug(character.server); // Already lowercase from toSlug
           
           return {
-            guid: toGuid(normalizedName, character.server), // Use toGuid for consistency
+            guid: toGuid(normalizedName, normalizedRealm), // Use normalizedRealm for consistency
             name: normalizedName, // Will be capitalized by lifecycle service
             realm: normalizedRealm, // lowercase realm slug
             timestamp: timestamp,
