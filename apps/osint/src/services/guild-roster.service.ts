@@ -147,7 +147,7 @@ export class GuildRosterService {
       {
         guid,
         name: member.character.name,
-        realm: guildEntity.realm,
+        realm: realmSlug,
         guild: guildEntity.name,
         guildGuid: toGuid(guildNameSlug, guildEntity.realm),
         guildId: guildEntity.id,
