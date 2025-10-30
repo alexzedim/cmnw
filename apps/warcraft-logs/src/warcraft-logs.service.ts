@@ -5,7 +5,7 @@ import {
 } from '@nestjs/common';
 import chalk from 'chalk';
 import {
-  BROWSER_HEADERS,
+  getRandomizedHeaders,
   GLOBAL_WCL_KEY_V2,
   charactersQueue,
   OSINT_SOURCE,
@@ -61,6 +61,10 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
   // Adaptive rate limiter for Fights API (2-30 second delays)
   private readonly fightsAPIRateLimiter = new AdaptiveRateLimiter(2000, 30000);
 
+  // Cached headers that rotate via cron task
+  private cachedBrowserHeaders: Record<string, string> = {};
+  private cachedXHRHeaders: Record<string, Record<string, string>> = {};
+
   constructor(
     private httpService: HttpService,
     @InjectRedis()
@@ -73,11 +77,56 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectQueue(charactersQueue.name)
     private readonly characterQueue: Queue<CharacterJobQueue, number>,
-  ) {}
+  ) {
+    // Initialize headers on service creation
+    this.refreshHeaders();
+  }
 
   async onApplicationBootstrap(): Promise<void> {
     await this.indexLogs();
     await this.indexWarcraftLogs();
+  }
+
+  /**
+   * Refresh cached headers with new randomized values
+   * Runs every 1-2 hours via cron to avoid detection
+   */
+  @Cron('0 */1 * * * *') // Every hour at minute 0
+  private refreshHeaders(): void {
+    // Random chance to skip (makes rotation less predictable: ~1-2 hour interval)
+    const shouldSkip = Math.random() < 0.5;
+    if (shouldSkip) {
+      this.logger.log(chalk.dim('⏭️ Header refresh skipped (randomized timing)'));
+      return;
+    }
+
+    this.cachedBrowserHeaders = getRandomizedHeaders({ type: 'browser' });
+    this.cachedXHRHeaders = {}; // XHR headers need referer, will be generated per-request
+    
+    this.logger.log(
+      chalk.dim('🔄 Headers refreshed (next check in 1h, ~50% chance to refresh)')
+    );
+  }
+
+  /**
+   * Get cached browser headers
+   */
+  private getBrowserHeaders(): Record<string, string> {
+    return this.cachedBrowserHeaders;
+  }
+
+  /**
+   * Get cached XHR headers with referer
+   */
+  private getXHRHeaders(referer: string): Record<string, string> {
+    // Generate XHR headers with current base headers + referer
+    // We cache the base but generate referer-specific headers on demand
+    const cacheKey = referer;
+    if (!this.cachedXHRHeaders[cacheKey]) {
+      this.cachedXHRHeaders[cacheKey] = getRandomizedHeaders({ type: 'xhr', referer });
+    }
+    
+    return this.cachedXHRHeaders[cacheKey];
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
@@ -131,7 +180,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
       const response = await this.httpService.axiosRef.get<string>(
         `${warcraftLogsURI}?${params}page=${page}`,
         {
-          headers: BROWSER_HEADERS,
+          headers: this.getBrowserHeaders(),
           timeout: 10000,
         },
       );
@@ -362,25 +411,11 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
       
       const apiUrl = `https://www.warcraftlogs.com/reports/fights-and-participants/${logId}/0`;
       
-      // More realistic browser headers to appear human
-      const realisticHeaders = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:144.0) Gecko/20100101 Firefox/144.0',
-        'Accept': 'application/json, text/javascript, */*; q=0.01',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'X-Requested-With': 'XMLHttpRequest',
-        'Referer': `https://www.warcraftlogs.com/reports/${logId}`,
-        'DNT': '1',
-        'Connection': 'keep-alive',
-        'Sec-Fetch-Dest': 'empty',
-        'Sec-Fetch-Mode': 'cors',
-        'Sec-Fetch-Site': 'same-origin',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-      };
+      // Use cached XHR headers with referer to appear human
+      const headers = this.getXHRHeaders(`https://www.warcraftlogs.com/reports/${logId}`);
       
       const response = await this.httpService.axiosRef.get<FightsAPIResponse>(apiUrl, {
-        headers: realisticHeaders,
+        headers,
         timeout: 15000,
         validateStatus: (status) => status >= 200 && status < 500, // Don't throw on 4xx
       });
@@ -473,7 +508,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
     try {
       const reportUrl = `https://www.warcraftlogs.com/reports/${logId}`;
       const response = await this.httpService.axiosRef.get<string>(reportUrl, {
-        headers: BROWSER_HEADERS,
+        headers: this.getBrowserHeaders(),
         timeout: 15000,
       });
 
@@ -568,7 +603,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
     )
       .filter((character) => character.type === 'Player')
       .map((character) => ({
-        guid: toSlug(`${character.name}@${character.server}`),
+        guid: toGuid(character.name, character.server),
         name: character.name,
         realm: toSlug(character.server),
         timestamp: timestamp,

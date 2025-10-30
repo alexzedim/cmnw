@@ -90,7 +90,7 @@ export class GuildRosterService {
 
       const isGM = member.rank === OSINT_GM_RANK;
       const realmSlug = member.character.realm.slug ?? guildEntity.realm;
-      const guid = toSlug(`${member.character.name}@${realmSlug}`);
+      const guid = toGuid(member.character.name, realmSlug);
       const level = member.character.level || null;
       const characterClass = PLAYABLE_CLASS.has(member.character.playable_class.id)
         ? PLAYABLE_CLASS.get(member.character.playable_class.id)

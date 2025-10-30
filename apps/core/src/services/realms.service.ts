@@ -13,7 +13,7 @@ import { LoggerService } from '@app/logger';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
-  BROWSER_HEADERS,
+  getRandomizedHeaders,
   delay,
   getKeys,
   GLOBAL_KEY,
@@ -119,7 +119,7 @@ export class RealmsService implements OnApplicationBootstrap {
             const response = await this.httpService.axiosRef.get<string>(
               `https://www.warcraftlogs.com/server/id/${realmId}`,
               {
-                headers: BROWSER_HEADERS,
+                headers: getRandomizedHeaders({ type: 'browser' }),
                 timeout: 10000,
               },
             );

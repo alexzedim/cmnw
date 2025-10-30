@@ -21,7 +21,9 @@ import {
   OSINT_LFG_WOW_PROGRESS,
   OSINT_SOURCE,
   ProfileJobQueue,
-  profileQueue, toSlug,
+  profileQueue,
+  toGuid,
+  toSlug,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
 
@@ -312,7 +314,7 @@ export class WowProgressLfgService {
           const isCharacterValid = Boolean(name && realm);
           if (!isCharacterValid) return;
 
-          const guid = toSlug(`${name}@${realm}`);
+          const guid = toGuid(name, realm);
 
           wpCharactersQueue.set(guid, {
             guid,

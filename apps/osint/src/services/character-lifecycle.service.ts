@@ -114,7 +114,7 @@ export class CharacterLifecycleService {
     if (hasGuild) characterNew.guild = character.guild;
     
     const hasGuildGuid = character.guildGuid;
-    if (hasGuildGuid) characterNew.guildGuid = toSlug(character.guildGuid);
+    if (hasGuildGuid) characterNew.guildGuid = character.guildGuid;
     
     const hasGuildId = character.guildId;
     if (hasGuildId) characterNew.guildId = character.guildId;
