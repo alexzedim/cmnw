@@ -10,8 +10,5 @@ export const isWowProgressJson = (obj: unknown): obj is WowProgressJson => {
 };
 
 export const isValidArray = (array: unknown): array is Array<unknown> => {
-  return (
-    Array.isArray(array) &&
-    Boolean(array.length)
-  )
-}
+  return Array.isArray(array) && Boolean(array.length);
+};

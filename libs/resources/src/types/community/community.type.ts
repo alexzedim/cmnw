@@ -52,7 +52,7 @@ export type ApiConstParams = {
   isProxyRandom?: boolean;
   isMultiLocale?: boolean;
   ifModifiedSince?: string;
-}
+};
 
 export type FightsAPIFriendly = {
   name: string;

@@ -548,7 +548,6 @@ export interface IExpansionList {
   SHDW: IExpansionSet;
 }
 
-
 export interface WowProgressLink {
   href: string;
   text: string;
@@ -564,7 +563,6 @@ export interface DownloadResult {
   s3Location?: string;
   error?: string;
 }
-
 
 export interface DownloadSummary {
   totalFiles: number;

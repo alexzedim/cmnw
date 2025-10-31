@@ -1,5 +1,10 @@
 import { mquery } from 'mongoose';
-import { AuctionItemExtra, IItem, IItemFieldMap, IPetList } from '@app/resources/types';
+import {
+  AuctionItemExtra,
+  IItem,
+  IItemFieldMap,
+  IPetList,
+} from '@app/resources/types';
 import { SkillLineEntity, SpellEffectEntity } from '@app/pg';
 
 export const DMA_TIMEOUT_TOLERANCE = 60 * 1_000;
@@ -171,15 +176,17 @@ export const SKILL_LINE_KEY_MAPPING = new Map<keyof SkillLineEntity, string>([
   ['skillLine', 'SkillLine'],
   ['spellId', 'Spell'],
   ['supersedesSpell', 'SupercedesSpell'],
-  ['skillUpSkillLineId', 'SkillupSkillLineID'],// Note: This will overwrite if both 'SupersedesSpell' and 'SkillUpSkillLineID' map to 'skillUpSkillLineId'
+  ['skillUpSkillLineId', 'SkillupSkillLineID'], // Note: This will overwrite if both 'SupersedesSpell' and 'SkillUpSkillLineID' map to 'skillUpSkillLineId'
   ['minSkillRank', 'MinSkillLineRank'],
   ['numSkillUps', 'NumSkillUps'],
   ['yellowCraft', 'TrivialSkillLineRankHigh'],
   ['greenCraft', 'TrivialSkillLineRankLow'],
-
 ]);
 
-export const SPELL_EFFECT_KEY_MAPPING = new Map<keyof SpellEffectEntity, string>([
+export const SPELL_EFFECT_KEY_MAPPING = new Map<
+  keyof SpellEffectEntity,
+  string
+>([
   ['spellId', 'SpellID'],
   ['effect', 'Effect'],
   ['itemId', 'EffectItemType'],

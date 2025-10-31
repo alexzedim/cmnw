@@ -19,9 +19,11 @@ import {
   getKeys,
   GLOBAL_DMA_KEY,
   isWowToken,
-  MARKET_TYPE, REALM_ENTITY_ANY,
+  MARKET_TYPE,
+  REALM_ENTITY_ANY,
   toGold,
-  TOLERANCE_ENUM, WOW_TOKEN_ITEM_ID,
+  TOLERANCE_ENUM,
+  WOW_TOKEN_ITEM_ID,
 } from '@app/resources';
 
 @Injectable()
@@ -48,11 +50,17 @@ export class AuctionsService implements OnApplicationBootstrap {
   }
 
   @Cron(CronExpression.EVERY_10_MINUTES)
-  private async indexAuctions(clearance: string = GLOBAL_DMA_KEY): Promise<void> {
+  private async indexAuctions(
+    clearance: string = GLOBAL_DMA_KEY,
+  ): Promise<void> {
     const logTag = this.indexAuctions.name;
     try {
       const { isIndexAuctions } = dmaConfig;
-      this.logger.debug({ logTag, isIndexAuctions, message: `Index auctions enabled: ${isIndexAuctions}` });
+      this.logger.debug({
+        logTag,
+        isIndexAuctions,
+        message: `Index auctions enabled: ${isIndexAuctions}`,
+      });
       if (!isIndexAuctions) return;
 
       await this.queue.drain(true);
@@ -72,25 +80,29 @@ export class AuctionsService implements OnApplicationBootstrap {
           mergeMap(async (realmEntity) => {
             const jobId = `AUCTION_${realmEntity.connectedRealmId}`;
 
-            await this.queue.add(`${realmEntity.connectedRealmId}`, {
+            await this.queue.add(
+              `${realmEntity.connectedRealmId}`,
+              {
+                connectedRealmId: realmEntity.connectedRealmId,
+                auctionsTimestamp: realmEntity.auctionsTimestamp,
+                region: 'eu',
+                clientId: keyEntity.client,
+                clientSecret: keyEntity.secret,
+                accessToken: keyEntity.token,
+                isAssetClassIndex: true,
+              },
+              {
+                jobId: jobId,
+                priority: 2,
+              },
+            );
+
+            this.logger.debug({
+              logTag,
               connectedRealmId: realmEntity.connectedRealmId,
               auctionsTimestamp: realmEntity.auctionsTimestamp,
-              region: 'eu',
-              clientId: keyEntity.client,
-              clientSecret: keyEntity.secret,
-              accessToken: keyEntity.token,
-              isAssetClassIndex: true,
-            }, {
-              jobId: jobId,
-              priority: 2,
-            });
-
-            this.logger.debug({ 
-              logTag, 
-              connectedRealmId: realmEntity.connectedRealmId, 
-              auctionsTimestamp: realmEntity.auctionsTimestamp,
               timestampType: typeof realmEntity.auctionsTimestamp,
-              message: `Processing realm auctions: ${realmEntity.connectedRealmId}` 
+              message: `Processing realm auctions: ${realmEntity.connectedRealmId}`,
             });
           }),
         ),
@@ -105,7 +117,11 @@ export class AuctionsService implements OnApplicationBootstrap {
     const logTag = this.indexCommodity.name;
     try {
       const { isIndexCommodity } = dmaConfig;
-      this.logger.debug({ logTag, isIndexCommodity, message: `Index commodity enabled: ${isIndexCommodity}` });
+      this.logger.debug({
+        logTag,
+        isIndexCommodity,
+        message: `Index commodity enabled: ${isIndexCommodity}`,
+      });
       if (!isIndexCommodity) return;
 
       const [keyEntity] = await getKeys(this.keysRepository, clearance, true);
@@ -121,25 +137,39 @@ export class AuctionsService implements OnApplicationBootstrap {
       if (commodityJob) {
         const isCommodityJobActive = await commodityJob.isActive();
         if (isCommodityJobActive) {
-          this.logger.debug({ logTag, connectedRealmId: realmEntity.connectedRealmId, jobId, message: 'Commodity job already active' });
+          this.logger.debug({
+            logTag,
+            connectedRealmId: realmEntity.connectedRealmId,
+            jobId,
+            message: 'Commodity job already active',
+          });
           return;
         }
       }
 
-      await this.queue.add('COMMODITY', {
-        region: 'eu',
-        clientId: keyEntity.client,
-        clientSecret: keyEntity.secret,
-        accessToken: keyEntity.token,
+      await this.queue.add(
+        'COMMODITY',
+        {
+          region: 'eu',
+          clientId: keyEntity.client,
+          clientSecret: keyEntity.secret,
+          accessToken: keyEntity.token,
+          connectedRealmId: realmEntity.connectedRealmId,
+          commoditiesTimestamp: realmEntity.commoditiesTimestamp,
+          isAssetClassIndex: true,
+        },
+        {
+          jobId: jobId,
+          priority: 1,
+        },
+      );
+
+      this.logger.debug({
+        logTag,
         connectedRealmId: realmEntity.connectedRealmId,
         commoditiesTimestamp: realmEntity.commoditiesTimestamp,
-        isAssetClassIndex: true,
-      }, {
-        jobId: jobId,
-        priority: 1,
+        message: 'Processing commodity data',
       });
-
-      this.logger.debug({ logTag, connectedRealmId: realmEntity.connectedRealmId, commoditiesTimestamp: realmEntity.commoditiesTimestamp, message: 'Processing commodity data' });
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });
     }
@@ -160,20 +190,24 @@ export class AuctionsService implements OnApplicationBootstrap {
 
       const response = await this.BNet.query<BlizzardApiWowToken>(
         '/data/wow/token/index',
-        apiConstParams(
-          API_HEADERS_ENUM.DYNAMIC,
-          TOLERANCE_ENUM.DMA,
-          false
-        ),
+        apiConstParams(API_HEADERS_ENUM.DYNAMIC, TOLERANCE_ENUM.DMA, false),
       );
 
       const isWowTokenValid = isWowToken(response);
       if (!isWowTokenValid) {
-        this.logger.warn({ logTag, response, message: 'Token response not valid' });
+        this.logger.warn({
+          logTag,
+          response,
+          message: 'Token response not valid',
+        });
         return;
       }
 
-      const { price, lastModified, last_updated_timestamp: timestamp } = response;
+      const {
+        price,
+        lastModified,
+        last_updated_timestamp: timestamp,
+      } = response;
 
       const isWowTokenExists = await this.marketRepository.exists({
         where: {
@@ -205,7 +239,7 @@ export class AuctionsService implements OnApplicationBootstrap {
     } catch (errorOrException) {
       this.logger.error({
         logTag,
-        error: errorOrException
+        error: errorOrException,
       });
     }
   }
@@ -219,7 +253,9 @@ export class AuctionsService implements OnApplicationBootstrap {
     try {
       // Calculate the cutoff timestamp (24 hours ago from now)
       const now = new Date();
-      const twentyFourHoursAgo = new Date(now.setHours(now.getHours() - 24)).getTime();
+      const twentyFourHoursAgo = new Date(
+        now.setHours(now.getHours() - 24),
+      ).getTime();
 
       // Perform the deletion
       const deleteResult = await this.marketRepository
@@ -240,13 +276,11 @@ export class AuctionsService implements OnApplicationBootstrap {
       await this.marketRepository.query('VACUUM (ANALYZE, VERBOSE) market;');
       this.logger.log('VACUUM ANALYZE completed for "market" table.');
     } catch (error) {
-      this.logger.error(
-        {
-          logTag,
-          message: `Error deleting expired market data: ${error.message}`,
-          stack: error.stack,
-        }
-      );
+      this.logger.error({
+        logTag,
+        message: `Error deleting expired market data: ${error.message}`,
+        stack: error.stack,
+      });
     }
   }
 }

@@ -1,6 +1,10 @@
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { BlizzAPI } from '@alexzedim/blizzapi';
-import { API_HEADERS_ENUM, apiConstParams, BlizzardApiResponse } from '@app/resources';
+import {
+  API_HEADERS_ENUM,
+  apiConstParams,
+  BlizzardApiResponse,
+} from '@app/resources';
 import { cmnwConfig } from '@app/configuration';
 
 @Injectable()
@@ -14,7 +18,7 @@ export class TestsOsint implements OnApplicationBootstrap {
     validateAccessTokenOnEachQuery: true,
   });
 
-  async onApplicationBootstrap() { }
+  async onApplicationBootstrap() {}
 
   async realm(realmSlug: string): Promise<BlizzardApiResponse> {
     return this.BNet.query(
@@ -30,14 +34,20 @@ export class TestsOsint implements OnApplicationBootstrap {
     );
   }
 
-  async summary(nameSlug: string, realmSlug: string): Promise<BlizzardApiResponse> {
+  async summary(
+    nameSlug: string,
+    realmSlug: string,
+  ): Promise<BlizzardApiResponse> {
     return this.BNet.query(
       `/profile/wow/character/${realmSlug}/${nameSlug}`,
       apiConstParams(API_HEADERS_ENUM.PROFILE),
     );
   }
 
-  async status(nameSlug: string, realmSlug: string): Promise<BlizzardApiResponse> {
+  async status(
+    nameSlug: string,
+    realmSlug: string,
+  ): Promise<BlizzardApiResponse> {
     return this.BNet.query(
       `/profile/wow/character/${realmSlug}/${nameSlug}/status`,
       apiConstParams(API_HEADERS_ENUM.PROFILE),
@@ -68,7 +78,10 @@ export class TestsOsint implements OnApplicationBootstrap {
     );
   }
 
-  async guild(nameSlug: string, realmSlug: string): Promise<BlizzardApiResponse> {
+  async guild(
+    nameSlug: string,
+    realmSlug: string,
+  ): Promise<BlizzardApiResponse> {
     return this.BNet.query(
       `/data/wow/guild/${realmSlug}/${nameSlug}`,
       apiConstParams(API_HEADERS_ENUM.PROFILE),

@@ -5,8 +5,14 @@ import { JobsOptions } from 'bullmq/dist/esm/types';
 
 export interface IQueue {
   readonly name: string;
-  readonly workerOptions: Pick<WorkerOptions, 'concurrency' | 'lockDuration' | 'limiter'>;
-  readonly defaultJobOptions: Pick<DefaultJobOptions, 'removeOnComplete' | 'removeOnFail'>;
+  readonly workerOptions: Pick<
+    WorkerOptions,
+    'concurrency' | 'lockDuration' | 'limiter'
+  >;
+  readonly defaultJobOptions: Pick<
+    DefaultJobOptions,
+    'removeOnComplete' | 'removeOnFail'
+  >;
 }
 
 export interface IQGuildOptions {

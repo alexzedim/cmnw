@@ -12,9 +12,7 @@ export const DECKS = {
         { _id: 173094, quantity: 1 },
         { _id: 173095, quantity: 1 },
       ],
-      derivatives: [
-        { _id: 173087, quantity: 1 },
-      ],
+      derivatives: [{ _id: 173087, quantity: 1 }],
     },
     {
       reagents: [
@@ -27,9 +25,7 @@ export const DECKS = {
         { _id: 173076, quantity: 1 },
         { _id: 173077, quantity: 1 },
       ],
-      derivatives: [
-        { _id: 173069, quantity: 1 },
-      ],
+      derivatives: [{ _id: 173069, quantity: 1 }],
     },
     {
       reagents: [
@@ -42,9 +38,7 @@ export const DECKS = {
         { _id: 173085, quantity: 1 },
         { _id: 173086, quantity: 1 },
       ],
-      derivatives: [
-        { _id: 173078, quantity: 1 },
-      ],
+      derivatives: [{ _id: 173078, quantity: 1 }],
     },
     {
       reagents: [
@@ -57,9 +51,7 @@ export const DECKS = {
         { _id: 173103, quantity: 1 },
         { _id: 173104, quantity: 1 },
       ],
-      derivatives: [
-        { _id: 173096, quantity: 1 },
-      ],
+      derivatives: [{ _id: 173096, quantity: 1 }],
     },
   ],
 };

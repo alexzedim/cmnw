@@ -41,7 +41,9 @@ export class WorkerStatsListener implements OnModuleInit {
 
       // Only log summary if there are no more jobs
       if (counts.waiting === 0 && counts.active === 0) {
-        this.logger.log(chalk.cyan('\n🏁 Characters queue drained - all jobs completed!'));
+        this.logger.log(
+          chalk.cyan('\n🏁 Characters queue drained - all jobs completed!'),
+        );
         this.charactersWorker.logFinalSummary();
 
         // Publish stats to Redis for API access
@@ -60,7 +62,9 @@ export class WorkerStatsListener implements OnModuleInit {
 
       // Only log summary if there are no more jobs
       if (counts.waiting === 0 && counts.active === 0) {
-        this.logger.log(chalk.cyan('\n🏁 Guilds queue drained - all jobs completed!'));
+        this.logger.log(
+          chalk.cyan('\n🏁 Guilds queue drained - all jobs completed!'),
+        );
         this.guildsWorker.logFinalSummary();
 
         // Publish stats to Redis for API access
@@ -77,21 +81,27 @@ export class WorkerStatsListener implements OnModuleInit {
         timestamp: new Date().toISOString(),
         ...stats,
         uptime: Date.now() - stats.startTime,
-        successRate: stats.total > 0 ? ((stats.success / stats.total) * 100).toFixed(1) : '0.0',
-        rate: stats.total > 0 ? (stats.total / ((Date.now() - stats.startTime) / 1000)).toFixed(2) : '0.00',
+        successRate:
+          stats.total > 0
+            ? ((stats.success / stats.total) * 100).toFixed(1)
+            : '0.0',
+        rate:
+          stats.total > 0
+            ? (stats.total / ((Date.now() - stats.startTime) / 1000)).toFixed(2)
+            : '0.00',
       };
 
       // Store in Redis with 24h expiration
       await this.redis.setex(
         `worker:${workerName}:last-stats`,
         86400, // 24 hours
-        JSON.stringify(statsData)
+        JSON.stringify(statsData),
       );
 
       // Publish to Redis pub/sub for real-time updates
       await this.redis.publish(
         'worker:stats:update',
-        JSON.stringify(statsData)
+        JSON.stringify(statsData),
       );
 
       this.logger.log(chalk.dim(`📊 Published ${workerName} stats to Redis`));
@@ -110,7 +120,9 @@ export class WorkerStatsListener implements OnModuleInit {
 
       // Only log summary if there are no more jobs
       if (counts.waiting === 0 && counts.active === 0) {
-        this.logger.log(chalk.cyan('\n🏁 Profile queue drained - all jobs completed!'));
+        this.logger.log(
+          chalk.cyan('\n🏁 Profile queue drained - all jobs completed!'),
+        );
         this.profileWorker.logFinalSummary();
 
         // Publish stats to Redis for API access

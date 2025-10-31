@@ -25,7 +25,7 @@ export class SkillLineEntity {
     default: null,
     nullable: true,
     type: 'int',
-    name: 'skill_line'
+    name: 'skill_line',
   })
   skillLine: number;
 
@@ -33,7 +33,7 @@ export class SkillLineEntity {
     default: null,
     nullable: true,
     type: 'int',
-    name: 'spell_id'
+    name: 'spell_id',
   })
   spellId: number;
 
@@ -41,7 +41,7 @@ export class SkillLineEntity {
     default: null,
     nullable: true,
     type: 'int',
-    name: 'supersedes_spell'
+    name: 'supersedes_spell',
   })
   supersedesSpell: number;
 
@@ -49,7 +49,7 @@ export class SkillLineEntity {
     default: null,
     nullable: true,
     type: 'int',
-    name: 'min_skill_rank'
+    name: 'min_skill_rank',
   })
   minSkillRank: number;
 
@@ -57,7 +57,7 @@ export class SkillLineEntity {
     default: null,
     nullable: true,
     type: 'int',
-    name: 'num_skill_ups'
+    name: 'num_skill_ups',
   })
   numSkillUps: number;
 
@@ -65,7 +65,7 @@ export class SkillLineEntity {
     default: null,
     nullable: true,
     type: 'int',
-    name: 'green_craft'
+    name: 'green_craft',
   })
   greenCraft: number;
 
@@ -73,7 +73,7 @@ export class SkillLineEntity {
     default: null,
     nullable: true,
     type: 'int',
-    name: 'yellow_craft'
+    name: 'yellow_craft',
   })
   yellowCraft: number;
 
@@ -81,7 +81,7 @@ export class SkillLineEntity {
     default: null,
     nullable: true,
     type: 'int',
-    name: 'skill_up_skill_line_id'
+    name: 'skill_up_skill_line_id',
   })
   skillUpSkillLineId: number;
 }

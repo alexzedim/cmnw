@@ -3,7 +3,10 @@ import { GuildSummaryService } from '../../osint/src/services/guild-summary.serv
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { KeysEntity } from '@app/pg';
 import { FACTION, STATUS_CODES } from '@app/resources';
-import { mockGuildSummaryResponse, mockGuildSummaryResponseWithFactionName } from '../mocks/guild-worker.mock';
+import {
+  mockGuildSummaryResponse,
+  mockGuildSummaryResponseWithFactionName,
+} from '../mocks/guild-worker.mock';
 
 describe('GuildSummaryService', () => {
   let service: GuildSummaryService;
@@ -40,7 +43,11 @@ describe('GuildSummaryService', () => {
     it('should return guild summary with faction type starting with A', async () => {
       mockBNet.query.mockResolvedValue(mockGuildSummaryResponse);
 
-      const result = await service.getSummary('testguild', 'test-realm', mockBNet);
+      const result = await service.getSummary(
+        'testguild',
+        'test-realm',
+        mockBNet,
+      );
 
       expect(result).toMatchObject({
         id: 12345,
@@ -60,7 +67,11 @@ describe('GuildSummaryService', () => {
     it('should return guild summary with faction name when provided', async () => {
       mockBNet.query.mockResolvedValue(mockGuildSummaryResponseWithFactionName);
 
-      const result = await service.getSummary('testguild', 'test-realm', mockBNet);
+      const result = await service.getSummary(
+        'testguild',
+        'test-realm',
+        mockBNet,
+      );
 
       expect(result.faction).toBe('Horde');
     });
@@ -68,7 +79,11 @@ describe('GuildSummaryService', () => {
     it('should handle empty response', async () => {
       mockBNet.query.mockResolvedValue(null);
 
-      const result = await service.getSummary('testguild', 'test-realm', mockBNet);
+      const result = await service.getSummary(
+        'testguild',
+        'test-realm',
+        mockBNet,
+      );
 
       expect(result).toEqual({});
     });
@@ -77,7 +92,11 @@ describe('GuildSummaryService', () => {
       const mockError = { status: 404 };
       mockBNet.query.mockRejectedValue(mockError);
 
-      const result = await service.getSummary('testguild', 'test-realm', mockBNet);
+      const result = await service.getSummary(
+        'testguild',
+        'test-realm',
+        mockBNet,
+      );
 
       expect(result.statusCode).toBe(404);
     });
@@ -100,7 +119,11 @@ describe('GuildSummaryService', () => {
       };
       mockBNet.query.mockResolvedValue(responseWithoutRealm);
 
-      const result = await service.getSummary('testguild', 'test-realm', mockBNet);
+      const result = await service.getSummary(
+        'testguild',
+        'test-realm',
+        mockBNet,
+      );
 
       expect(result.realmId).toBeUndefined();
       expect(result.realmName).toBeUndefined();
@@ -116,7 +139,11 @@ describe('GuildSummaryService', () => {
       };
       mockBNet.query.mockResolvedValue(hordeResponse);
 
-      const result = await service.getSummary('testguild', 'test-realm', mockBNet);
+      const result = await service.getSummary(
+        'testguild',
+        'test-realm',
+        mockBNet,
+      );
 
       expect(result.faction).toBe(FACTION.H);
     });
@@ -132,7 +159,11 @@ describe('GuildSummaryService', () => {
       };
       mockBNet.query.mockResolvedValue(response);
 
-      const result = await service.getSummary('testguild', 'test-realm', mockBNet);
+      const result = await service.getSummary(
+        'testguild',
+        'test-realm',
+        mockBNet,
+      );
 
       expect(result.id).toBe(12345);
       expect(result.name).toBe('TestGuild');

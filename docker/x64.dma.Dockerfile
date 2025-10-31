@@ -26,7 +26,6 @@ RUN npm install -g @nestjs/cli
 COPY . .
 
 RUN nest build market \
-  && nest build items \
   && nest build dma
 
 CMD ["node"]

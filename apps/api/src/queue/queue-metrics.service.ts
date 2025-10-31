@@ -1,4 +1,9 @@
-import { Injectable, OnModuleInit, Logger, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  Logger,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, Job, QueueEvents } from 'bullmq';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
@@ -78,8 +83,10 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit() {
-    this.logger.log(`QueueMetricsService initialized with worker_id: ${this.workerId}`);
-    
+    this.logger.log(
+      `QueueMetricsService initialized with worker_id: ${this.workerId}`,
+    );
+
     // Initial metrics collection
     await this.updateMetrics();
 
@@ -151,11 +158,15 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
 
         // Calculate processing rate
         const completedJobs = await queue.getCompleted(0, 99);
-        const processingRate = await this.calculateProcessingRate(completedJobs);
-        this.processingRateGauge.labels(name, this.workerId).set(processingRate);
+        const processingRate =
+          await this.calculateProcessingRate(completedJobs);
+        this.processingRateGauge
+          .labels(name, this.workerId)
+          .set(processingRate);
 
         // Calculate average processing time
-        const avgTime = await this.calculateAverageProcessingTime(completedJobs);
+        const avgTime =
+          await this.calculateAverageProcessingTime(completedJobs);
         this.avgProcessingTimeGauge.labels(name, this.workerId).set(avgTime);
 
         // Note: bullmq_jobs_total counter should be incremented by workers on job completion
@@ -186,7 +197,8 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
     completedJobs: any[],
   ): Promise<number> {
     const jobsWithTimes = completedJobs.filter(
-      (job) => job && typeof job === 'object' && job.processedOn && job.finishedOn,
+      (job) =>
+        job && typeof job === 'object' && job.processedOn && job.finishedOn,
     );
 
     const isNoJobsWithTimes = jobsWithTimes.length === 0;

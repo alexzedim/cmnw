@@ -23,21 +23,21 @@ export class SpellEffectEntity {
   @Column({
     nullable: true,
     type: 'int',
-    name: 'item_id'
+    name: 'item_id',
   })
   itemId: number;
 
   @Column({
     nullable: true,
     type: 'real',
-    name: 'item_quantity'
+    name: 'item_quantity',
   })
   itemQuantity: number;
 
   @Column({
     nullable: true,
     type: 'int',
-    name: 'spell_id'
+    name: 'spell_id',
   })
   spellId: number;
 }

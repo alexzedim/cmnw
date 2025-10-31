@@ -1,4 +1,13 @@
-import { Controller, Get, HttpCode, HttpStatus, Logger, Req, Res, UseGuards } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Logger,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiForbiddenResponse,
@@ -16,7 +25,9 @@ import { Response } from 'express';
 @ApiTags('auth')
 @Controller('auth')
 export class AuthController {
-  private readonly logger = new Logger(AuthController.name, { timestamp: true });
+  private readonly logger = new Logger(AuthController.name, {
+    timestamp: true,
+  });
 
   constructor() {}
 
@@ -30,12 +41,19 @@ export class AuthController {
   }
 
   @ApiOperation({ description: 'Discord OAuth callback' })
-  @ApiOkResponse({ type: AuthResponseDto, description: 'Discord authentication successful' })
+  @ApiOkResponse({
+    type: AuthResponseDto,
+    description: 'Discord authentication successful',
+  })
   @ApiUnauthorizedResponse({ description: 'Discord authentication failed' })
   @ApiForbiddenResponse({ description: 'Discord OAuth access denied' })
   @ApiBadRequestResponse({ description: 'Invalid Discord OAuth response' })
-  @ApiServiceUnavailableResponse({ description: 'Discord OAuth service unavailable' })
-  @ApiInternalServerErrorResponse({ description: 'Internal server error during Discord OAuth' })
+  @ApiServiceUnavailableResponse({
+    description: 'Discord OAuth service unavailable',
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Internal server error during Discord OAuth',
+  })
   @HttpCode(HttpStatus.OK)
   @Get('/discord/callback')
   @UseGuards(AuthGuard('discord'))
@@ -43,21 +61,23 @@ export class AuthController {
     try {
       this.logger.log('Discord OAuth callback received', 'discordCallback');
       const authResponse: AuthResponseDto = req.user;
-      
+
       // In a real application, you might:
       // 1. Generate a JWT token
       // 2. Set secure cookies
       // 3. Redirect to frontend with success status
-      
+
       // For now, return the auth response as JSON
       res.json(authResponse);
     } catch (error) {
       this.logger.error(
         'Error in Discord callback',
         error instanceof Error ? error.stack : String(error),
-        'discordCallback'
+        'discordCallback',
       );
-      res.status(500).json({ success: false, message: 'Authentication failed' });
+      res
+        .status(500)
+        .json({ success: false, message: 'Authentication failed' });
     }
   }
 
@@ -71,35 +91,46 @@ export class AuthController {
   }
 
   @ApiOperation({ description: 'Battle.net OAuth callback' })
-  @ApiOkResponse({ type: AuthResponseDto, description: 'Battle.net authentication successful' })
+  @ApiOkResponse({
+    type: AuthResponseDto,
+    description: 'Battle.net authentication successful',
+  })
   @ApiUnauthorizedResponse({ description: 'Battle.net authentication failed' })
   @ApiForbiddenResponse({ description: 'Battle.net OAuth access denied' })
   @ApiBadRequestResponse({ description: 'Invalid Battle.net OAuth response' })
-  @ApiServiceUnavailableResponse({ description: 'Battle.net OAuth service unavailable' })
-  @ApiInternalServerErrorResponse({ description: 'Internal server error during Battle.net OAuth' })
+  @ApiServiceUnavailableResponse({
+    description: 'Battle.net OAuth service unavailable',
+  })
+  @ApiInternalServerErrorResponse({
+    description: 'Internal server error during Battle.net OAuth',
+  })
   @HttpCode(HttpStatus.OK)
   @Get('/battlenet/callback')
   @UseGuards(AuthGuard('battlenet'))
   async battlenetCallback(@Req() req, @Res() res: Response): Promise<void> {
     try {
-      this.logger.log('Battle.net OAuth callback received', 'battlenetCallback');
+      this.logger.log(
+        'Battle.net OAuth callback received',
+        'battlenetCallback',
+      );
       const authResponse: AuthResponseDto = req.user;
-      
+
       // In a real application, you might:
       // 1. Generate a JWT token
       // 2. Set secure cookies
       // 3. Redirect to frontend with success status
-      
+
       // For now, return the auth response as JSON
       res.json(authResponse);
     } catch (error) {
       this.logger.error(
         'Error in Battle.net callback',
         error instanceof Error ? error.stack : String(error),
-        'battlenetCallback'
+        'battlenetCallback',
       );
-      res.status(500).json({ success: false, message: 'Authentication failed' });
+      res
+        .status(500)
+        .json({ success: false, message: 'Authentication failed' });
     }
   }
-
 }

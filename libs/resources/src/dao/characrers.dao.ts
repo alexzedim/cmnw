@@ -15,7 +15,8 @@ export const characterAsGuildMember = async (
     const isUpdateByGuild =
       guildEntity.lastModified &&
       characterEntity.lastModified &&
-      guildEntity.lastModified.getTime() > characterEntity.lastModified.getTime();
+      guildEntity.lastModified.getTime() >
+        characterEntity.lastModified.getTime();
 
     if (isUpdateByGuild) {
       characterEntity.realm = guildEntity.realm;

@@ -56,7 +56,14 @@ export class ItemsService implements OnApplicationBootstrap {
   ): Promise<void> {
     const logTag = this.indexItems.name;
     try {
-      this.logger.log({ logTag, isItemsIndex, isItemsForceUpdate, from, to, message: `Index items: enabled=${isItemsIndex}, forceUpdate=${isItemsForceUpdate}, range=${from}-${to}` });
+      this.logger.log({
+        logTag,
+        isItemsIndex,
+        isItemsForceUpdate,
+        from,
+        to,
+        message: `Index items: enabled=${isItemsIndex}, forceUpdate=${isItemsForceUpdate}, range=${from}-${to}`,
+      });
       if (!isItemsIndex) return;
 
       const count = Math.abs(from - to);
@@ -90,7 +97,11 @@ export class ItemsService implements OnApplicationBootstrap {
               },
             );
 
-            this.logger.log({ logTag, itemId, message: `Item ${itemId} placed in queue` });
+            this.logger.log({
+              logTag,
+              itemId,
+              message: `Item ${itemId} placed in queue`,
+            });
           }),
         ),
       );
@@ -102,20 +113,28 @@ export class ItemsService implements OnApplicationBootstrap {
   async buildItems(isItemsBuild = false): Promise<void> {
     const logTag = this.buildItems.name;
     try {
-      this.logger.log({ logTag, isItemsBuild, message: `Build items enabled: ${isItemsBuild}` });
+      this.logger.log({
+        logTag,
+        isItemsBuild,
+        message: `Build items enabled: ${isItemsBuild}`,
+      });
       if (!isItemsBuild) return;
 
       // Check if itemsparse.csv exists in S3
       const fileName = 'itemsparse.csv';
       const fileExists = await this.s3Service.fileExists(fileName, 'cmnw');
-      
+
       if (!fileExists) {
-        this.logger.warn({ logTag, fileName, bucket: 'cmnw', message: `File not found in S3 bucket` });
+        this.logger.warn({
+          logTag,
+          fileName,
+          bucket: 'cmnw',
+          message: `File not found in S3 bucket`,
+        });
         return;
       }
 
       await this.extendItemsWithExpansionTicker(fileName);
-
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });
     }
@@ -126,7 +145,12 @@ export class ItemsService implements OnApplicationBootstrap {
     try {
       // Read CSV file from S3
       const csvString = await this.s3Service.readFile(fileName, 'cmnw');
-      this.logger.log({ logTag, fileName, bucket: 'cmnw', message: 'CSV file loaded from S3' });
+      this.logger.log({
+        logTag,
+        fileName,
+        bucket: 'cmnw',
+        message: 'CSV file loaded from S3',
+      });
 
       const rows = await csv.parse(csvString, {
         columns: true,
@@ -134,10 +158,18 @@ export class ItemsService implements OnApplicationBootstrap {
         cast: (value: number | string) => toStringOrNumber(value),
       });
 
-      this.logger.log({ logTag, rowCount: rows.length, message: `Processing ${rows.length} rows from CSV` });
+      this.logger.log({
+        logTag,
+        rowCount: rows.length,
+        message: `Processing ${rows.length} rows from CSV`,
+      });
 
       for (const row of rows as Array<IItemsParse>) {
-        const { ID: itemId, Stackable: stackable, ExpansionID: expansionId } = row;
+        const {
+          ID: itemId,
+          Stackable: stackable,
+          ExpansionID: expansionId,
+        } = row;
         const itemEntity: Partial<ItemsEntity> = {
           stackable,
         };
@@ -150,7 +182,11 @@ export class ItemsService implements OnApplicationBootstrap {
         await this.itemsRepository.update({ id: itemId }, itemEntity);
       }
 
-      this.logger.log({ logTag, rowCount: rows.length, message: `Successfully processed ${rows.length} items` });
+      this.logger.log({
+        logTag,
+        rowCount: rows.length,
+        message: `Successfully processed ${rows.length} items`,
+      });
     } catch (errorOrException) {
       this.logger.error({ logTag, fileName, errorOrException });
       throw errorOrException;

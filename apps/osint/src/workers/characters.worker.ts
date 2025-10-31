@@ -14,10 +14,7 @@ import {
   toSlug,
 } from '@app/resources';
 
-import {
-  CharactersEntity,
-  KeysEntity,
-} from '@app/pg';
+import { CharactersEntity, KeysEntity } from '@app/pg';
 import {
   CharacterService,
   CharacterLifecycleService,
@@ -58,7 +55,7 @@ export class CharactersWorker extends WorkerHost {
   public async process(job: Job<CharacterJobQueue, number>): Promise<number> {
     const startTime = Date.now();
     this.stats.total++;
-    
+
     try {
       const { data: args } = job;
 
@@ -70,12 +67,13 @@ export class CharactersWorker extends WorkerHost {
         this.stats.skipped++;
         await job.updateProgress(100);
         this.logger.warn(
-          `${chalk.yellow('⊘')} Skipped [${chalk.bold(this.stats.total)}] ${characterEntity.guid} ${chalk.dim('(createOnly or notReady)')}`
+          `${chalk.yellow('⊘')} Skipped [${chalk.bold(this.stats.total)}] ${characterEntity.guid} ${chalk.dim('(createOnly or notReady)')}`,
         );
         return characterEntity.statusCode;
       }
 
-      const characterEntityOriginal = this.charactersRepository.create(characterEntity);
+      const characterEntityOriginal =
+        this.charactersRepository.create(characterEntity);
       const nameSlug = toSlug(characterEntity.name);
 
       await job.updateProgress(5);
@@ -128,38 +126,44 @@ export class CharactersWorker extends WorkerHost {
     } catch (errorOrException) {
       this.stats.errors++;
       const duration = Date.now() - startTime;
-      const guid = job.data?.name && job.data?.realm ? `${job.data.name}@${job.data.realm}` : 'unknown';
-      
+      const guid =
+        job.data?.name && job.data?.realm
+          ? `${job.data.name}@${job.data.realm}`
+          : 'unknown';
+
       await job.log(errorOrException);
       this.logger.error(
-        `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`
+        `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`,
       );
       return 500;
     }
   }
 
-  private logCharacterResult(character: CharactersEntity, duration: number): void {
+  private logCharacterResult(
+    character: CharactersEntity,
+    duration: number,
+  ): void {
     const statusCode = character.statusCode;
     const guid = character.guid;
 
     if (statusCode === 200 || statusCode === 204) {
       this.stats.success++;
       this.logger.log(
-        `${chalk.green('✓')} ${chalk.green(statusCode)} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`
+        `${chalk.green('✓')} ${chalk.green(statusCode)} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`,
       );
     } else if (statusCode === 404) {
       this.stats.notFound++;
       this.logger.warn(
-        `${chalk.blue('ℹ')} ${chalk.blue('404')} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`
+        `${chalk.blue('ℹ')} ${chalk.blue('404')} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`,
       );
     } else if (statusCode === 429) {
       this.stats.rateLimit++;
       this.logger.warn(
-        `${chalk.yellow('⚠')} ${chalk.yellow('429')} Rate limited [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`
+        `${chalk.yellow('⚠')} ${chalk.yellow('429')} Rate limited [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`,
       );
     } else {
       this.logger.log(
-        `${chalk.cyan('ℹ')} ${statusCode} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`
+        `${chalk.cyan('ℹ')} ${statusCode} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`,
       );
     }
   }
@@ -167,40 +171,44 @@ export class CharactersWorker extends WorkerHost {
   private logProgress(): void {
     const uptime = Date.now() - this.stats.startTime;
     const rate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
+      1,
+    );
 
     this.logger.log(
       `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
-      `${chalk.magenta('📊 PROGRESS REPORT')}\n` +
-      `${chalk.dim('  Total:')} ${chalk.bold(this.stats.total)} characters processed\n` +
-      `${chalk.green('  ✓ Success:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
-      `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
-      `${chalk.blue('  ℹ Not Found:')} ${chalk.blue.bold(this.stats.notFound)}\n` +
-      `${chalk.yellow('  ⊘ Skipped:')} ${chalk.yellow.bold(this.stats.skipped)}\n` +
-      `${chalk.red('  ✗ Errors:')} ${chalk.red.bold(this.stats.errors)}\n` +
-      `${chalk.dim('  Rate:')} ${chalk.bold(rate)} chars/sec\n` +
-      `${chalk.magenta.bold('━'.repeat(60))}`
+        `${chalk.magenta('📊 PROGRESS REPORT')}\n` +
+        `${chalk.dim('  Total:')} ${chalk.bold(this.stats.total)} characters processed\n` +
+        `${chalk.green('  ✓ Success:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
+        `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
+        `${chalk.blue('  ℹ Not Found:')} ${chalk.blue.bold(this.stats.notFound)}\n` +
+        `${chalk.yellow('  ⊘ Skipped:')} ${chalk.yellow.bold(this.stats.skipped)}\n` +
+        `${chalk.red('  ✗ Errors:')} ${chalk.red.bold(this.stats.errors)}\n` +
+        `${chalk.dim('  Rate:')} ${chalk.bold(rate)} chars/sec\n` +
+        `${chalk.magenta.bold('━'.repeat(60))}`,
     );
   }
 
   public logFinalSummary(): void {
     const uptime = Date.now() - this.stats.startTime;
     const avgRate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
+      1,
+    );
 
     this.logger.log(
       `\n${chalk.cyan.bold('═'.repeat(60))}\n` +
-      `${chalk.cyan.bold('  🎯 FINAL SUMMARY')}\n` +
-      `${chalk.cyan.bold('═'.repeat(60))}\n` +
-      `${chalk.dim('  Total Characters:')} ${chalk.bold.white(this.stats.total)}\n` +
-      `${chalk.green('  ✓ Successful:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
-      `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
-      `${chalk.blue('  ℹ Not Found:')} ${chalk.blue.bold(this.stats.notFound)}\n` +
-      `${chalk.yellow('  ⊘ Skipped:')} ${chalk.yellow.bold(this.stats.skipped)}\n` +
-      `${chalk.red('  ✗ Failed:')} ${chalk.red.bold(this.stats.errors)}\n` +
-      `${chalk.dim('  Total Time:')} ${chalk.bold((uptime / 1000).toFixed(1))}s\n` +
-      `${chalk.dim('  Avg Rate:')} ${chalk.bold(avgRate)} chars/sec\n` +
-      `${chalk.cyan.bold('═'.repeat(60))}`
+        `${chalk.cyan.bold('  🎯 FINAL SUMMARY')}\n` +
+        `${chalk.cyan.bold('═'.repeat(60))}\n` +
+        `${chalk.dim('  Total Characters:')} ${chalk.bold.white(this.stats.total)}\n` +
+        `${chalk.green('  ✓ Successful:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
+        `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
+        `${chalk.blue('  ℹ Not Found:')} ${chalk.blue.bold(this.stats.notFound)}\n` +
+        `${chalk.yellow('  ⊘ Skipped:')} ${chalk.yellow.bold(this.stats.skipped)}\n` +
+        `${chalk.red('  ✗ Failed:')} ${chalk.red.bold(this.stats.errors)}\n` +
+        `${chalk.dim('  Total Time:')} ${chalk.bold((uptime / 1000).toFixed(1))}s\n` +
+        `${chalk.dim('  Avg Rate:')} ${chalk.bold(avgRate)} chars/sec\n` +
+        `${chalk.cyan.bold('═'.repeat(60))}`,
     );
   }
 
@@ -216,7 +224,9 @@ export class CharactersWorker extends WorkerHost {
     }
   }
 
-  private async initializeApiClient(args: CharacterJobQueue): Promise<BlizzAPI> {
+  private async initializeApiClient(
+    args: CharacterJobQueue,
+  ): Promise<BlizzAPI> {
     return new BlizzAPI({
       region: args.region || 'eu',
       clientId: args.clientId,
@@ -235,10 +245,18 @@ export class CharactersWorker extends WorkerHost {
   ): Promise<void> {
     const [summary, petsCollection, mountsCollection, media] =
       await Promise.allSettled([
-        this.blizzardApiService.getSummary(nameSlug, characterEntity.realm, this.BNet),
+        this.blizzardApiService.getSummary(
+          nameSlug,
+          characterEntity.realm,
+          this.BNet,
+        ),
         this.fetchAndSyncPets(nameSlug, characterEntity.realm),
         this.fetchAndSyncMounts(nameSlug, characterEntity.realm),
-        this.blizzardApiService.getMedia(nameSlug, characterEntity.realm, this.BNet),
+        this.blizzardApiService.getMedia(
+          nameSlug,
+          characterEntity.realm,
+          this.BNet,
+        ),
       ]);
 
     const isSummaryFulfilled = summary.status === 'fulfilled';
@@ -265,7 +283,14 @@ export class CharactersWorker extends WorkerHost {
   private async fetchAndSyncPets(
     nameSlug: string,
     realmSlug: string,
-  ): Promise<Partial<{ petsNumber: number; statusCode: number; hashA: string; hashB: string }>> {
+  ): Promise<
+    Partial<{
+      petsNumber: number;
+      statusCode: number;
+      hashA: string;
+      hashB: string;
+    }>
+  > {
     const petsResponse = await this.blizzardApiService.getPetsCollection(
       nameSlug,
       realmSlug,

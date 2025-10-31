@@ -1,7 +1,11 @@
 import { Module } from '@nestjs/common';
 import { ValuationsService } from './valuations.service';
 import { MongooseModule } from '@nestjs/mongoose';
-import { bullConfig, mongoConfig, mongoOptionsConfig } from '@app/configuration';
+import {
+  bullConfig,
+  mongoConfig,
+  mongoOptionsConfig,
+} from '@app/configuration';
 import { BullModule } from '@nestjs/bullmq';
 import { valuationsQueue } from '@app/resources';
 import { ScheduleModule } from '@nestjs/schedule';
@@ -32,7 +36,7 @@ import {
     }),
     BullModule.registerQueue({
       name: valuationsQueue.name,
-      defaultJobOptions: valuationsQueue.defaultJobOptions
+      defaultJobOptions: valuationsQueue.defaultJobOptions,
     }),
   ],
   controllers: [],

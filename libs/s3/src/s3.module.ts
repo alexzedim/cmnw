@@ -41,7 +41,10 @@ export class S3Module {
    * Legacy method for backward compatibility - supports separate AWS config and module options
    * @deprecated Use forRoot with merged config instead
    */
-  static forRootLegacy(s3Config: any, options?: S3ModuleOptions): DynamicModule {
+  static forRootLegacy(
+    s3Config: any,
+    options?: S3ModuleOptions,
+  ): DynamicModule {
     return {
       module: S3Module,
       imports: [
@@ -62,7 +65,10 @@ export class S3Module {
   }
 
   static forRootAsync(configFactory: {
-    useFactory: (...args: any[]) => { s3Config: any; options?: S3ModuleOptions };
+    useFactory: (...args: any[]) => {
+      s3Config: any;
+      options?: S3ModuleOptions;
+    };
     inject?: any[];
     imports?: any[];
   }): DynamicModule {

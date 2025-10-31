@@ -112,12 +112,12 @@ export class LadderService implements OnApplicationBootstrap {
 
           // await this.queueCharacters.addBulk(characterJobs);
 
-          this.logger.log({ 
-            logTag, 
-            seasonId: season.id, 
-            bracket, 
-            playerCount: characterJobs.length, 
-            message: `Processed PvP ladder: Season ${season.id}, Bracket ${bracket}, Players: ${characterJobs.length}` 
+          this.logger.log({
+            logTag,
+            seasonId: season.id,
+            bracket,
+            playerCount: characterJobs.length,
+            message: `Processed PvP ladder: Season ${season.id}, Bracket ${bracket}, Players: ${characterJobs.length}`,
           });
         }
       }
@@ -220,7 +220,8 @@ export class LadderService implements OnApplicationBootstrap {
                   region: 'eu',
                   createdBy: OSINT_SOURCE.MYTHIC_PLUS,
                   updatedBy: OSINT_SOURCE.MYTHIC_PLUS,
-                  faction: member.faction.type === 'HORDE' ? FACTION.H : FACTION.A,
+                  faction:
+                    member.faction.type === 'HORDE' ? FACTION.H : FACTION.A,
                   createOnlyUnique: false,
                 },
                 opts: {
@@ -238,7 +239,7 @@ export class LadderService implements OnApplicationBootstrap {
                 period,
                 groupRanking: group.ranking,
                 characterCount: characterJobMembers.length,
-                message: `Processed M+ ladder: Realm ${connectedRealmId}, Dungeon ${dungeonId}, Week ${period}, Group ${group.ranking}, Characters: ${characterJobMembers.length}`
+                message: `Processed M+ ladder: Realm ${connectedRealmId}, Dungeon ${dungeonId}, Week ${period}, Group ${group.ranking}, Characters: ${characterJobMembers.length}`,
               });
             }
           }

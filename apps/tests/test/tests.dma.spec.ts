@@ -23,7 +23,9 @@ describe('DMA', () => {
       expect(response).toHaveProperty('auctions');
       expect(Array.isArray(response.auctions)).toBeTruthy();
 
-      const lastModified = DateTime.fromRFC2822(response.lastModified).toJSDate();
+      const lastModified = DateTime.fromRFC2822(
+        response.lastModified,
+      ).toJSDate();
       expect(lastModified).toEqual(expect.any(Date));
 
       const [item] = response.auctions;
@@ -38,7 +40,9 @@ describe('DMA', () => {
       expect(response).toHaveProperty('auctions');
       expect(Array.isArray(response.auctions)).toBeTruthy();
 
-      const lastModified = DateTime.fromRFC2822(response.lastModified).toJSDate();
+      const lastModified = DateTime.fromRFC2822(
+        response.lastModified,
+      ).toJSDate();
       expect(lastModified).toEqual(expect.any(Date));
 
       response.auctions.map((auction) =>
@@ -52,7 +56,9 @@ describe('DMA', () => {
       const response = await testsService.wowToken();
       expect(response).toMatchObject(wowTokenItem);
       expect(response).toHaveProperty('lastModified');
-      const lastModified = DateTime.fromRFC2822(response.lastModified).toJSDate();
+      const lastModified = DateTime.fromRFC2822(
+        response.lastModified,
+      ).toJSDate();
       expect(lastModified).toEqual(expect.any(Date));
     });
   });

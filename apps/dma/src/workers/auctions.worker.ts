@@ -21,7 +21,8 @@ import {
   IAuctionsOrder,
   ICommodityOrder,
   IPetList,
-  isAuctions, isResponseError,
+  isAuctions,
+  isResponseError,
   ITEM_KEY_GUARD,
   MARKET_TYPE,
   PETS_KEY_GUARD,
@@ -109,14 +110,16 @@ export class AuctionsWorker extends WorkerHost {
         const duration = Date.now() - startTime;
         const realmId = job.data.connectedRealmId;
         this.logger.warn(
-          `${chalk.blue('ℹ')} ${chalk.blue('304')} [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms) Not modified`)}`
+          `${chalk.blue('ℹ')} ${chalk.blue('304')} [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms) Not modified`)}`,
         );
         return 304;
       }
 
       await job.updateProgress(15);
 
-      const connectedRealmId = isCommodity ? REALM_ENTITY_ANY.id : args.connectedRealmId;
+      const connectedRealmId = isCommodity
+        ? REALM_ENTITY_ANY.id
+        : args.connectedRealmId;
       const timestamp = DateTime.fromRFC2822(
         marketResponse.lastModified,
       ).toMillis();
@@ -130,7 +133,7 @@ export class AuctionsWorker extends WorkerHost {
         this.stats.noData++;
         const duration = Date.now() - startTime;
         this.logger.warn(
-          `${chalk.yellow('⊘')} Empty [${chalk.bold(this.stats.total)}] realm ${connectedRealmId} ${chalk.dim(`(${duration}ms) No auctions`)}`
+          `${chalk.yellow('⊘')} Empty [${chalk.bold(this.stats.total)}] realm ${connectedRealmId} ${chalk.dim(`(${duration}ms) No auctions`)}`,
         );
       } else {
         await lastValueFrom(
@@ -148,12 +151,12 @@ export class AuctionsWorker extends WorkerHost {
                 await this.marketRepository.save(ordersBulkAuctions);
                 iterator += ordersBulkAuctions.length;
                 this.logger.log(
-                  `${chalk.cyan('→')} realm ${connectedRealmId} ${chalk.dim('|')} ${chalk.bold(iterator)} orders ${chalk.dim('|')} ${timestamp}`
+                  `${chalk.cyan('→')} realm ${connectedRealmId} ${chalk.dim('|')} ${chalk.bold(iterator)} orders ${chalk.dim('|')} ${timestamp}`,
                 );
               } catch (errorOrException) {
                 this.logger.error({
                   logTag: 'ordersBatch',
-                  error: JSON.stringify(errorOrException)
+                  error: JSON.stringify(errorOrException),
                 });
               }
             }),
@@ -181,7 +184,7 @@ export class AuctionsWorker extends WorkerHost {
       const duration = Date.now() - startTime;
       this.stats.success++;
       this.logger.log(
-        `${chalk.green('✓')} ${chalk.green('200')} [${chalk.bold(this.stats.total)}] realm ${connectedRealmId} ${chalk.dim(`(${duration}ms)`)} ${chalk.dim(`${iterator} orders`)}`
+        `${chalk.green('✓')} ${chalk.green('200')} [${chalk.bold(this.stats.total)}] realm ${connectedRealmId} ${chalk.dim(`(${duration}ms)`)} ${chalk.dim(`${iterator} orders`)}`,
       );
 
       // Progress report every 10 realms
@@ -197,24 +200,24 @@ export class AuctionsWorker extends WorkerHost {
 
       if (responseError) {
         const statusCode = errorOrException.response.status;
-        
+
         if (statusCode === 429) {
           this.stats.rateLimit++;
           this.logger.warn(
-            `${chalk.yellow('⚠')} ${chalk.yellow('429')} Rate limited [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)}`
+            `${chalk.yellow('⚠')} ${chalk.yellow('429')} Rate limited [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)}`,
           );
         } else {
           this.logger.warn(
-            `${chalk.blue('ℹ')} ${statusCode} [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.response.statusText}`
+            `${chalk.blue('ℹ')} ${statusCode} [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.response.statusText}`,
           );
         }
-        
+
         return Promise.resolve(statusCode);
       } else {
         this.stats.errors++;
         await job.log(errorOrException);
         this.logger.error(
-          `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`
+          `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`,
         );
       }
 
@@ -246,7 +249,8 @@ export class AuctionsWorker extends WorkerHost {
 
         const isPetOrder = marketEntity.itemId === 82800;
 
-        const bid = 'bid' in order ? toGold((order as IAuctionsOrder).bid) : null;
+        const bid =
+          'bid' in order ? toGold((order as IAuctionsOrder).bid) : null;
 
         const price = transformPrice(order);
         if (!price) {
@@ -268,7 +272,8 @@ export class AuctionsWorker extends WorkerHost {
           }
         }
 
-        const quantity = 'quantity' in order ? (order as ICommodityOrder).quantity : 1;
+        const quantity =
+          'quantity' in order ? (order as ICommodityOrder).quantity : 1;
 
         marketEntity.type = isCommodity ? MARKET_TYPE.C : MARKET_TYPE.A;
 
@@ -287,40 +292,44 @@ export class AuctionsWorker extends WorkerHost {
   private logProgress(): void {
     const uptime = Date.now() - this.stats.startTime;
     const rate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
+      1,
+    );
 
     this.logger.log(
       `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
-      `${chalk.magenta('📊 AUCTIONS PROGRESS REPORT')}\n` +
-      `${chalk.dim('  Total:')} ${chalk.bold(this.stats.total)} realms processed\n` +
-      `${chalk.green('  ✓ Success:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
-      `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
-      `${chalk.blue('  ℹ Not Modified:')} ${chalk.blue.bold(this.stats.notModified)}\n` +
-      `${chalk.yellow('  ⊘ No Data:')} ${chalk.yellow.bold(this.stats.noData)}\n` +
-      `${chalk.red('  ✗ Errors:')} ${chalk.red.bold(this.stats.errors)}\n` +
-      `${chalk.dim('  Rate:')} ${chalk.bold(rate)} realms/sec\n` +
-      `${chalk.magenta.bold('━'.repeat(60))}`
+        `${chalk.magenta('📊 AUCTIONS PROGRESS REPORT')}\n` +
+        `${chalk.dim('  Total:')} ${chalk.bold(this.stats.total)} realms processed\n` +
+        `${chalk.green('  ✓ Success:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
+        `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
+        `${chalk.blue('  ℹ Not Modified:')} ${chalk.blue.bold(this.stats.notModified)}\n` +
+        `${chalk.yellow('  ⊘ No Data:')} ${chalk.yellow.bold(this.stats.noData)}\n` +
+        `${chalk.red('  ✗ Errors:')} ${chalk.red.bold(this.stats.errors)}\n` +
+        `${chalk.dim('  Rate:')} ${chalk.bold(rate)} realms/sec\n` +
+        `${chalk.magenta.bold('━'.repeat(60))}`,
     );
   }
 
   public logFinalSummary(): void {
     const uptime = Date.now() - this.stats.startTime;
     const avgRate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
+      1,
+    );
 
     this.logger.log(
       `\n${chalk.cyan.bold('═'.repeat(60))}\n` +
-      `${chalk.cyan.bold('  🎯 AUCTIONS FINAL SUMMARY')}\n` +
-      `${chalk.cyan.bold('═'.repeat(60))}\n` +
-      `${chalk.dim('  Total Realms:')} ${chalk.bold.white(this.stats.total)}\n` +
-      `${chalk.green('  ✓ Successful:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
-      `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
-      `${chalk.blue('  ℹ Not Modified:')} ${chalk.blue.bold(this.stats.notModified)}\n` +
-      `${chalk.yellow('  ⊘ No Data:')} ${chalk.yellow.bold(this.stats.noData)}\n` +
-      `${chalk.red('  ✗ Failed:')} ${chalk.red.bold(this.stats.errors)}\n` +
-      `${chalk.dim('  Total Time:')} ${chalk.bold((uptime / 1000).toFixed(1))}s\n` +
-      `${chalk.dim('  Avg Rate:')} ${chalk.bold(avgRate)} realms/sec\n` +
-      `${chalk.cyan.bold('═'.repeat(60))}`
+        `${chalk.cyan.bold('  🎯 AUCTIONS FINAL SUMMARY')}\n` +
+        `${chalk.cyan.bold('═'.repeat(60))}\n` +
+        `${chalk.dim('  Total Realms:')} ${chalk.bold.white(this.stats.total)}\n` +
+        `${chalk.green('  ✓ Successful:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
+        `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
+        `${chalk.blue('  ℹ Not Modified:')} ${chalk.blue.bold(this.stats.notModified)}\n` +
+        `${chalk.yellow('  ⊘ No Data:')} ${chalk.yellow.bold(this.stats.noData)}\n` +
+        `${chalk.red('  ✗ Failed:')} ${chalk.red.bold(this.stats.errors)}\n` +
+        `${chalk.dim('  Total Time:')} ${chalk.bold((uptime / 1000).toFixed(1))}s\n` +
+        `${chalk.dim('  Avg Rate:')} ${chalk.bold(avgRate)} realms/sec\n` +
+        `${chalk.cyan.bold('═'.repeat(60))}`,
     );
   }
 }

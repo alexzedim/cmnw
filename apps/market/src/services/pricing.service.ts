@@ -9,7 +9,13 @@ import { get } from 'lodash';
 import { DISENCHANT, MILLING, PROSPECT } from '../lib';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import { InjectRepository } from '@nestjs/typeorm';
-import { KeysEntity, PricingEntity, SkillLineEntity, SpellEffectEntity, SpellReagentsEntity } from '@app/pg';
+import {
+  KeysEntity,
+  PricingEntity,
+  SkillLineEntity,
+  SpellEffectEntity,
+  SpellReagentsEntity,
+} from '@app/pg';
 import { Repository } from 'typeorm';
 import { dmaConfig } from '@app/configuration';
 import {
@@ -28,10 +34,9 @@ import {
 
 @Injectable()
 export class PricingService implements OnApplicationBootstrap {
-
-  private readonly logger = new Logger(
-    PricingService.name, { timestamp: true },
-  );
+  private readonly logger = new Logger(PricingService.name, {
+    timestamp: true,
+  });
 
   private BNet: BlizzAPI;
 
@@ -49,7 +54,7 @@ export class PricingService implements OnApplicationBootstrap {
     @InjectRepository(SpellEffectEntity)
     private readonly spellEffectRepository: Repository<SpellEffectEntity>,
     private readonly s3Service: S3Service,
-  ) { }
+  ) {}
 
   /**
    * Helper method to read CSV files from S3 cmnw bucket
@@ -59,7 +64,13 @@ export class PricingService implements OnApplicationBootstrap {
     try {
       return await this.s3Service.readFile(fileName, 'cmnw');
     } catch (errorOrException) {
-      this.logger.error({ logTag, fileName, bucket: 'cmnw', errorOrException, message: `CSV file not found in S3 bucket: ${fileName}` });
+      this.logger.error({
+        logTag,
+        fileName,
+        bucket: 'cmnw',
+        errorOrException,
+        message: `CSV file not found in S3 bucket: ${fileName}`,
+      });
       throw new Error(`CSV file not found in S3: ${fileName}`);
     }
   }
@@ -83,12 +94,23 @@ export class PricingService implements OnApplicationBootstrap {
     const logTag = this.libPricing.name;
     try {
       if (!isItemsPricingLab) {
-        this.logger.debug({ logTag, isItemsPricingLab, message: `Items pricing lab disabled: ${isItemsPricingLab}` });
+        this.logger.debug({
+          logTag,
+          isItemsPricingLab,
+          message: `Items pricing lab disabled: ${isItemsPricingLab}`,
+        });
         return;
       }
 
-      const deletePricing = await this.pricingRepository.delete({ createdBy: DMA_SOURCE.LAB });
-      this.logger.log({ logTag, source: DMA_SOURCE.LAB, deletedCount: deletePricing.affected, message: `Deleted ${deletePricing.affected} lab pricing entries` });
+      const deletePricing = await this.pricingRepository.delete({
+        createdBy: DMA_SOURCE.LAB,
+      });
+      this.logger.log({
+        logTag,
+        source: DMA_SOURCE.LAB,
+        deletedCount: deletePricing.affected,
+        message: `Deleted ${deletePricing.affected} lab pricing entries`,
+      });
 
       const reversePricingMethod = this.pricingRepository.create({
         media: 'MEDIA',
@@ -102,7 +124,8 @@ export class PricingService implements OnApplicationBootstrap {
 
       if (isProspect) {
         reversePricingMethod.ticker = PROSPECT.name;
-        reversePricingMethod.media = 'https://render-eu.worldofwarcraft.com/icons/56/inv_misc_gem_bloodgem_01.jpg';
+        reversePricingMethod.media =
+          'https://render-eu.worldofwarcraft.com/icons/56/inv_misc_gem_bloodgem_01.jpg';
         reversePricingMethod.spellId = 31252;
 
         await lastValueFrom(
@@ -110,7 +133,9 @@ export class PricingService implements OnApplicationBootstrap {
             mergeMap(async (method) => {
               reversePricingMethod.reagents = method.reagents;
               reversePricingMethod.derivatives = method.derivatives;
-              reversePricingMethod.recipeId = parseInt(`${reversePricingMethod.spellId}${method.reagents[0].id}`);
+              reversePricingMethod.recipeId = parseInt(
+                `${reversePricingMethod.spellId}${method.reagents[0].id}`,
+              );
 
               await this.pricingRepository.save(reversePricingMethod);
             }),
@@ -120,7 +145,8 @@ export class PricingService implements OnApplicationBootstrap {
 
       if (isMilling) {
         reversePricingMethod.ticker = MILLING.name;
-        reversePricingMethod.media = 'https://render-eu.worldofwarcraft.com/icons/56/ability_miling.jpg';
+        reversePricingMethod.media =
+          'https://render-eu.worldofwarcraft.com/icons/56/ability_miling.jpg';
         reversePricingMethod.spellId = 51005;
 
         await lastValueFrom(
@@ -128,7 +154,9 @@ export class PricingService implements OnApplicationBootstrap {
             mergeMap(async (method) => {
               reversePricingMethod.reagents = method.reagents;
               reversePricingMethod.derivatives = method.derivatives;
-              reversePricingMethod.recipeId = parseInt(`${reversePricingMethod.spellId}${method.reagents[0].id}`);
+              reversePricingMethod.recipeId = parseInt(
+                `${reversePricingMethod.spellId}${method.reagents[0].id}`,
+              );
 
               await this.pricingRepository.save(reversePricingMethod);
             }),
@@ -138,7 +166,8 @@ export class PricingService implements OnApplicationBootstrap {
 
       if (isDisenchant) {
         reversePricingMethod.ticker = DISENCHANT.name;
-        reversePricingMethod.media = 'https://render-eu.worldofwarcraft.com/icons/56/inv_enchant_disenchant.jpg';
+        reversePricingMethod.media =
+          'https://render-eu.worldofwarcraft.com/icons/56/inv_enchant_disenchant.jpg';
         reversePricingMethod.spellId = 13262;
 
         await lastValueFrom(
@@ -146,25 +175,33 @@ export class PricingService implements OnApplicationBootstrap {
             mergeMap(async (method) => {
               reversePricingMethod.reagents = method.reagents;
               reversePricingMethod.derivatives = method.derivatives;
-              reversePricingMethod.recipeId = parseInt(`${reversePricingMethod.spellId}${method.reagents[0].id}`);
+              reversePricingMethod.recipeId = parseInt(
+                `${reversePricingMethod.spellId}${method.reagents[0].id}`,
+              );
 
               await this.pricingRepository.save(reversePricingMethod);
             }),
           ),
         );
       }
-
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });
     }
   }
 
   @Cron(CronExpression.MONDAY_TO_FRIDAY_AT_10AM)
-  async indexPricing(clearance: string = GLOBAL_DMA_KEY, isItemsPricingInit: boolean = true): Promise<void> {
+  async indexPricing(
+    clearance: string = GLOBAL_DMA_KEY,
+    isItemsPricingInit: boolean = true,
+  ): Promise<void> {
     const logTag = this.indexPricing.name;
     try {
       if (!isItemsPricingInit) {
-        this.logger.log({ logTag, isItemsPricingInit, message: `Items pricing init disabled: ${isItemsPricingInit}` });
+        this.logger.log({
+          logTag,
+          isItemsPricingInit,
+          message: `Items pricing init disabled: ${isItemsPricingInit}`,
+        });
         return;
       }
 
@@ -177,16 +214,22 @@ export class PricingService implements OnApplicationBootstrap {
         accessToken: key.token,
       });
 
-      const { professions } = await this.BNet.query<any>('/data/wow/profession/index', {
-        timeout: 10000,
-        headers: { 'Battlenet-Namespace': 'static-eu' },
-      });
-
-      for (let profession of professions) {
-        const { skill_tiers } = await this.BNet.query<any>(`/data/wow/profession/${profession.id}`, {
+      const { professions } = await this.BNet.query<any>(
+        '/data/wow/profession/index',
+        {
           timeout: 10000,
           headers: { 'Battlenet-Namespace': 'static-eu' },
-        });
+        },
+      );
+
+      for (let profession of professions) {
+        const { skill_tiers } = await this.BNet.query<any>(
+          `/data/wow/profession/${profession.id}`,
+          {
+            timeout: 10000,
+            headers: { 'Battlenet-Namespace': 'static-eu' },
+          },
+        );
 
         if (!skill_tiers) continue;
 
@@ -197,10 +240,13 @@ export class PricingService implements OnApplicationBootstrap {
             tier.name.en_GB.includes(k) ? (expansion = v) : '';
           });
 
-          const { categories } = await this.BNet.query<any>(`/data/wow/profession/${profession.id}/skill-tier/${tier.id}`, {
-            timeout: 10000,
-            headers: { 'Battlenet-Namespace': 'static-eu' },
-          });
+          const { categories } = await this.BNet.query<any>(
+            `/data/wow/profession/${profession.id}/skill-tier/${tier.id}`,
+            {
+              timeout: 10000,
+              headers: { 'Battlenet-Namespace': 'static-eu' },
+            },
+          );
 
           if (!categories) continue;
 
@@ -219,20 +265,18 @@ export class PricingService implements OnApplicationBootstrap {
                   clientId: key.client,
                   clientSecret: key.secret,
                   accessToken: key.token,
-                }, { jobId: `R${recipe.id}` },
+                },
+                { jobId: `R${recipe.id}` },
               );
             }
           }
         }
       }
-
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: logTag,
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({
+        logTag: logTag,
+        error: JSON.stringify(errorOrException),
+      });
     }
   }
 
@@ -244,7 +288,9 @@ export class PricingService implements OnApplicationBootstrap {
     }
 
     try {
-      const skillLineAbilityCsv = await this.readCsvFile('skilllineability.csv');
+      const skillLineAbilityCsv = await this.readCsvFile(
+        'skilllineability.csv',
+      );
 
       const skillLineAbilityRows: any[] = await csv.parse(skillLineAbilityCsv, {
         columns: true,
@@ -266,7 +312,7 @@ export class PricingService implements OnApplicationBootstrap {
 
         const skillLineEntity = this.skillLineRepository.create({
           id: id,
-        })
+        });
         /**
          * SkillLine
          *
@@ -296,12 +342,10 @@ export class PricingService implements OnApplicationBootstrap {
 
       this.logger.log(`${logTag}: ${skillLineMethodsCount} saved`);
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: logTag,
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({
+        logTag: logTag,
+        error: JSON.stringify(errorOrException),
+      });
     }
   }
 
@@ -321,7 +365,7 @@ export class PricingService implements OnApplicationBootstrap {
         cast: (value: string | number) => toStringOrNumber(value),
       });
 
-      let spellEffectCount = 0
+      let spellEffectCount = 0;
 
       for (const row of spellEffectRows) {
         const isIdExists = 'ID' in row;
@@ -335,7 +379,7 @@ export class PricingService implements OnApplicationBootstrap {
 
         const skillLineEntity = this.spellEffectRepository.create({
           id: id,
-        })
+        });
         /**
          *  SpellEffectDB
          *
@@ -358,12 +402,10 @@ export class PricingService implements OnApplicationBootstrap {
 
       this.logger.log(`${logTag}:: ${spellEffectCount} saved`);
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: logTag,
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({
+        logTag: logTag,
+        error: JSON.stringify(errorOrException),
+      });
     }
   }
 
@@ -410,12 +452,11 @@ export class PricingService implements OnApplicationBootstrap {
           }
         });
 
-
         const spellReagentsEntity = this.spellReagentsRepository.create({
           id: id,
           spellId: get(row, 'SpellID', null),
           reagents: reagents,
-        })
+        });
 
         spellReagentsEntities.push(spellReagentsEntity);
       }
@@ -424,16 +465,16 @@ export class PricingService implements OnApplicationBootstrap {
 
       this.logger.log(`${logTag}: ${spellReagentsCount} created`);
 
-      await this.spellReagentsRepository.save(spellReagentsEntities, { chunk: 500 });
+      await this.spellReagentsRepository.save(spellReagentsEntities, {
+        chunk: 500,
+      });
 
       this.logger.log(`${logTag}: ${spellReagentsCount} saved`);
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: logTag,
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({
+        logTag: logTag,
+        error: JSON.stringify(errorOrException),
+      });
     }
   }
 }

@@ -1,5 +1,9 @@
 import { MarketEntity } from '@app/pg';
-import { IAuctionsItem, IAuctionsOrder, ICommodityOrder } from '@app/resources/types';
+import {
+  IAuctionsItem,
+  IAuctionsOrder,
+  ICommodityOrder,
+} from '@app/resources/types';
 
 export type AuctionItem = Partial<IAuctionsItem> & Pick<IAuctionsItem, 'id'>;
 

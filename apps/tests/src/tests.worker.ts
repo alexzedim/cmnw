@@ -6,11 +6,7 @@ import {
   CharactersGuildsMembersEntity,
   CharactersGuildsLogsEntity,
 } from '@app/pg';
-import {
-  ACTION_LOG,
-  OSINT_GM_RANK,
-  OSINT_SOURCE,
-} from '@app/resources';
+import { ACTION_LOG, OSINT_GM_RANK, OSINT_SOURCE } from '@app/resources';
 
 @Injectable()
 export class TestsWorker {
@@ -36,12 +32,14 @@ export class TestsWorker {
     try {
       const guildMemberOriginal = originalRoster.get(guildMemberId);
       const guildMemberUpdated = updatedRoster.get(guildMemberId);
-      const isRankChanged = guildMemberUpdated.rank !== guildMemberOriginal.rank;
+      const isRankChanged =
+        guildMemberUpdated.rank !== guildMemberOriginal.rank;
 
       if (!isRankChanged) return { action: 'no_change' };
 
       const isNotGuildMaster =
-        guildMemberOriginal.rank !== OSINT_GM_RANK || guildMemberUpdated.rank !== OSINT_GM_RANK;
+        guildMemberOriginal.rank !== OSINT_GM_RANK ||
+        guildMemberUpdated.rank !== OSINT_GM_RANK;
       const isDemote = guildMemberUpdated.rank > guildMemberOriginal.rank;
 
       const eventAction = isDemote ? ACTION_LOG.DEMOTE : ACTION_LOG.PROMOTE;

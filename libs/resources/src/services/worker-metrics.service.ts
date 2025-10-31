@@ -38,7 +38,11 @@ export class WorkerMetricsService {
   /**
    * Increment counter for any status
    */
-  increment(queue: string, status: 'completed' | 'failed', workerId: string): void {
+  increment(
+    queue: string,
+    status: 'completed' | 'failed',
+    workerId: string,
+  ): void {
     this.jobsTotalCounter.inc({
       queue,
       status,

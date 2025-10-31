@@ -7,7 +7,9 @@ import { CharactersGuildsLogsEntity, GuildsEntity } from '@app/pg';
 
 @Injectable()
 export class GuildLogService {
-  private readonly logger = new Logger(GuildLogService.name, { timestamp: true });
+  private readonly logger = new Logger(GuildLogService.name, {
+    timestamp: true,
+  });
 
   constructor(
     @InjectRepository(CharactersGuildsLogsEntity)
@@ -28,7 +30,9 @@ export class GuildLogService {
     });
 
     await this.logsRepository.save(logEntity);
-    this.logger.debug(`Guild ${updated.guid} name changed: ${original.name} → ${updated.name}`);
+    this.logger.debug(
+      `Guild ${updated.guid} name changed: ${original.name} → ${updated.name}`,
+    );
   }
 
   async logFactionChange(
@@ -45,11 +49,19 @@ export class GuildLogService {
     });
 
     await this.logsRepository.save(logEntity);
-    this.logger.debug(`Guild ${updated.guid} faction changed: ${original.faction} → ${updated.faction}`);
+    this.logger.debug(
+      `Guild ${updated.guid} faction changed: ${original.faction} → ${updated.faction}`,
+    );
   }
 
-  async updateGuildGuidForAllLogs(oldGuid: string, newGuid: string): Promise<void> {
-    await this.logsRepository.update({ guildGuid: oldGuid }, { guildGuid: newGuid });
+  async updateGuildGuidForAllLogs(
+    oldGuid: string,
+    newGuid: string,
+  ): Promise<void> {
+    await this.logsRepository.update(
+      { guildGuid: oldGuid },
+      { guildGuid: newGuid },
+    );
   }
 
   async detectAndLogChanges(

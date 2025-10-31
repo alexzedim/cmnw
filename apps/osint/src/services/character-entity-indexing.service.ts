@@ -42,7 +42,9 @@ export class CharacterEntityIndexingService {
 
       await Promise.allSettled(
         pets.map(async (pet) => {
-          const isPetExists = await this.petsRepository.existsBy({ id: pet.id });
+          const isPetExists = await this.petsRepository.existsBy({
+            id: pet.id,
+          });
 
           const isNewPet = !isPetExists;
           if (isNewPet) {

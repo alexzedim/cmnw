@@ -73,7 +73,10 @@ describe('OSINT', () => {
 
   describe('professions', () => {
     it('return character professions summary', async () => {
-      const response = await testsService.professions('лисаорк', 'howling-fjord');
+      const response = await testsService.professions(
+        'лисаорк',
+        'howling-fjord',
+      );
       expect(response).toMatchObject(professionObj);
     });
   });
@@ -87,7 +90,10 @@ describe('OSINT', () => {
 
   describe('guildRoster', () => {
     it('return guild roster', async () => {
-      const response = await testsService.guildRoster('рак-гейминг', 'soulflayer');
+      const response = await testsService.guildRoster(
+        'рак-гейминг',
+        'soulflayer',
+      );
       expect(response).toHaveProperty('members');
       expect(Array.isArray(response.members)).toBeTruthy();
       expect(response).toMatchObject(guildRosterObj);

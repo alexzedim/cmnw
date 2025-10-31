@@ -36,8 +36,7 @@ export class S3Service implements OnModuleInit {
     this.defaultBucket = this._moduleOptions.defaultBucket || 'cmnw';
     this.buckets = new Map();
     if (this._moduleOptions.buckets) {
-      this._moduleOptions.buckets.forEach(_bucket => {
-      });
+      this._moduleOptions.buckets.forEach((_bucket) => {});
     }
   }
 
@@ -68,12 +67,20 @@ export class S3Service implements OnModuleInit {
       this.logger.log(`Bucket '${bucketName}' already exists`);
       return true;
     } catch (error) {
-      if (error.name === 'NoSuchBucket' || error.$metadata?.httpStatusCode === 404) {
+      if (
+        error.name === 'NoSuchBucket' ||
+        error.$metadata?.httpStatusCode === 404
+      ) {
         this.logger.log(`Bucket '${bucketName}' does not exist. Creating...`);
         await this.createBucket(bucketName, config);
         return true;
-      } else if (error.name === 'Forbidden' || error.$metadata?.httpStatusCode === 403) {
-        this.logger.error(`Access denied to bucket '${bucketName}'. Check permissions.`);
+      } else if (
+        error.name === 'Forbidden' ||
+        error.$metadata?.httpStatusCode === 403
+      ) {
+        this.logger.error(
+          `Access denied to bucket '${bucketName}'. Check permissions.`,
+        );
         return false;
       } else {
         this.logger.error(`Error checking bucket '${bucketName}':`, error);
@@ -103,12 +110,13 @@ export class S3Service implements OnModuleInit {
 
       // Configure bucket settings
       await this.configureBucket(bucketName, config);
-
     } catch (error) {
       if (error instanceof BucketAlreadyOwnedByYou) {
         this.logger.log(`Bucket '${bucketName}' already owned by you`);
       } else if (error.name === 'BucketAlreadyExists') {
-        this.logger.warn(`Bucket '${bucketName}' already exists (owned by someone else)`);
+        this.logger.warn(
+          `Bucket '${bucketName}' already exists (owned by someone else)`,
+        );
         throw new Error(`Bucket name '${bucketName}' is already taken`);
       } else {
         this.logger.error(`Failed to create bucket '${bucketName}':`, error);
@@ -124,16 +132,20 @@ export class S3Service implements OnModuleInit {
     try {
       // Enable versioning if requested
       if (config?.enableVersioning !== false) {
-        await this.s3.send(new PutBucketVersioningCommand({
-          Bucket: bucketName,
-          VersioningConfiguration: {
-            Status: 'Enabled',
-          },
-        }));
+        await this.s3.send(
+          new PutBucketVersioningCommand({
+            Bucket: bucketName,
+            VersioningConfiguration: {
+              Status: 'Enabled',
+            },
+          }),
+        );
         this.logger.log(`Configured versioning for bucket '${bucketName}'`);
       }
     } catch (error) {
-      this.logger.warn(`Failed to configure bucket settings for '${bucketName}': ${error.message}`);
+      this.logger.warn(
+        `Failed to configure bucket settings for '${bucketName}': ${error.message}`,
+      );
       // Don't throw here - bucket creation succeeded
     }
   }
@@ -172,16 +184,24 @@ export class S3Service implements OnModuleInit {
     bucketName: string = this.defaultBucket,
   ): Promise<boolean> {
     try {
-      await this.s3.send(new HeadObjectCommand({
-        Bucket: bucketName,
-        Key: key,
-      }));
+      await this.s3.send(
+        new HeadObjectCommand({
+          Bucket: bucketName,
+          Key: key,
+        }),
+      );
       return true;
     } catch (error) {
-      if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
+      if (
+        error.name === 'NotFound' ||
+        error.$metadata?.httpStatusCode === 404
+      ) {
         return false;
       }
-      this.logger.error(`Error checking if file exists '${key}' in '${bucketName}':`, error);
+      this.logger.error(
+        `Error checking if file exists '${key}' in '${bucketName}':`,
+        error,
+      );
       throw error;
     }
   }
@@ -192,10 +212,12 @@ export class S3Service implements OnModuleInit {
     bucketName: string = this.defaultBucket,
   ): Promise<S3FileMetadata> {
     try {
-      const response = await this.s3.send(new HeadObjectCommand({
-        Bucket: bucketName,
-        Key: key,
-      }));
+      const response = await this.s3.send(
+        new HeadObjectCommand({
+          Bucket: bucketName,
+          Key: key,
+        }),
+      );
 
       return {
         exists: true,
@@ -206,12 +228,18 @@ export class S3Service implements OnModuleInit {
         metadata: response.Metadata,
       };
     } catch (error) {
-      if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
+      if (
+        error.name === 'NotFound' ||
+        error.$metadata?.httpStatusCode === 404
+      ) {
         return {
           exists: false,
         };
       }
-      this.logger.error(`Error getting file metadata '${key}' from '${bucketName}':`, error);
+      this.logger.error(
+        `Error getting file metadata '${key}' from '${bucketName}':`,
+        error,
+      );
       throw error;
     }
   }
@@ -237,7 +265,9 @@ export class S3Service implements OnModuleInit {
       if (!overwrite) {
         const exists = await this.fileExists(key, bucketName);
         if (exists) {
-          throw new Error(`File already exists: ${key}. Set overwrite: true to replace it.`);
+          throw new Error(
+            `File already exists: ${key}. Set overwrite: true to replace it.`,
+          );
         }
       }
 
@@ -261,7 +291,9 @@ export class S3Service implements OnModuleInit {
 
       const response = await this.s3.send(command);
 
-      this.logger.log(`Successfully uploaded file to S3: ${key} (${buffer.length} bytes) to bucket '${bucketName}'`);
+      this.logger.log(
+        `Successfully uploaded file to S3: ${key} (${buffer.length} bytes) to bucket '${bucketName}'`,
+      );
 
       return {
         success: true,
@@ -269,7 +301,6 @@ export class S3Service implements OnModuleInit {
         size: buffer.length,
         etag: response.ETag,
       };
-
     } catch (error) {
       this.logger.error(`Failed to write file '${key}' to S3:`, error);
       throw error;
@@ -305,7 +336,10 @@ export class S3Service implements OnModuleInit {
       const buffer = Buffer.concat(chunks);
       return buffer.toString(encoding);
     } catch (error) {
-      if (error.name === 'NoSuchKey' || error.$metadata?.httpStatusCode === 404) {
+      if (
+        error.name === 'NoSuchKey' ||
+        error.$metadata?.httpStatusCode === 404
+      ) {
         throw new Error(`File not found: ${key} in bucket '${bucketName}'`);
       }
       this.logger.error(`Failed to read file '${key}' from S3:`, error);
@@ -352,27 +386,27 @@ export class S3Service implements OnModuleInit {
     const extension = key.split('.').pop()?.toLowerCase();
 
     const contentTypes: Record<string, string> = {
-      'json': 'application/json',
-      'csv': 'text/csv',
-      'txt': 'text/plain',
-      'xml': 'application/xml',
-      'html': 'text/html',
-      'css': 'text/css',
-      'js': 'application/javascript',
-      'pdf': 'application/pdf',
-      'zip': 'application/zip',
-      'gz': 'application/gzip',
-      'tar': 'application/x-tar',
-      'jpg': 'image/jpeg',
-      'jpeg': 'image/jpeg',
-      'png': 'image/png',
-      'gif': 'image/gif',
-      'svg': 'image/svg+xml',
-      'ico': 'image/x-icon',
-      'mp4': 'video/mp4',
-      'avi': 'video/x-msvideo',
-      'mp3': 'audio/mpeg',
-      'wav': 'audio/wav',
+      json: 'application/json',
+      csv: 'text/csv',
+      txt: 'text/plain',
+      xml: 'application/xml',
+      html: 'text/html',
+      css: 'text/css',
+      js: 'application/javascript',
+      pdf: 'application/pdf',
+      zip: 'application/zip',
+      gz: 'application/gzip',
+      tar: 'application/x-tar',
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      gif: 'image/gif',
+      svg: 'image/svg+xml',
+      ico: 'image/x-icon',
+      mp4: 'video/mp4',
+      avi: 'video/x-msvideo',
+      mp3: 'audio/mpeg',
+      wav: 'audio/wav',
     };
 
     return contentTypes[extension || ''] || 'application/octet-stream';
@@ -403,25 +437,31 @@ export class S3Service implements OnModuleInit {
         requestCount++;
 
         if (response.Contents) {
-          const matchingFiles = response.Contents
-            .filter(obj => obj.Key && obj.Key.endsWith(`.${extension}`))
-            .map(obj => obj.Key!);
+          const matchingFiles = response.Contents.filter(
+            (obj) => obj.Key && obj.Key.endsWith(`.${extension}`),
+          ).map((obj) => obj.Key!);
 
           files.push(...matchingFiles);
 
           // Log progress for large buckets
           if (requestCount % 10 === 0) {
-            this.logger.log(`Processed ${requestCount} batches, found ${files.length} .${extension} files so far`);
+            this.logger.log(
+              `Processed ${requestCount} batches, found ${files.length} .${extension} files so far`,
+            );
           }
         }
 
         continuationToken = response.NextContinuationToken;
       } while (continuationToken);
 
-      this.logger.log(`Total requests: ${requestCount}, Total .${extension} files found: ${files.length}`);
+      this.logger.log(
+        `Total requests: ${requestCount}, Total .${extension} files found: ${files.length}`,
+      );
       return files;
     } catch (error) {
-      throw new Error(`Failed to list .${extension} files from S3: ${error.message}`);
+      throw new Error(
+        `Failed to list .${extension} files from S3: ${error.message}`,
+      );
     }
   }
 
@@ -467,7 +507,9 @@ export class S3Service implements OnModuleInit {
 
       return JSON.parse(decompressedBuffer.toString(encoding));
     } catch (error) {
-      throw new Error(`Failed to read and decompress .gz file from S3: ${error.message}`);
+      throw new Error(
+        `Failed to read and decompress .gz file from S3: ${error.message}`,
+      );
     }
   }
 }

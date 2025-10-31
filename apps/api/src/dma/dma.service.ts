@@ -41,15 +41,34 @@ export class DmaService {
   ) {}
 
   // TODO validation on DTO level
-  async getItem(input: ReqGetItemDto): Promise<ItemsEntity> {
+  async getItem(input: ReqGetItemDto): Promise<any> {
     const isNotNumber = isNaN(Number(input.id));
     if (isNotNumber) {
-      throw new BadRequestException('Please provide correct item ID in your query');
+      throw new BadRequestException(
+        'Please provide correct item ID in your query',
+      );
     }
 
     const id = parseInt(input.id);
-    // TODO return DTO?
-    return await this.itemsRepository.findOneBy({ id });
+
+    const item = await this.itemsRepository.findOneBy({ id });
+
+    if (!item) {
+      throw new BadRequestException(`Item with ID ${id} not found`);
+    }
+
+    // Check if item is a commodity (cross-realm)
+    const assetClass = item.assetClass || [];
+    const isCommdty = assetClass.includes('commdty');
+
+    // For commodities, return empty realm array since they're cross-realm
+    // For regular items, would need realm data (not implemented yet)
+    const realm = isCommdty ? [] : [];
+
+    return {
+      item,
+      realm,
+    };
   }
 
   async getItemValuations(_input: ItemRealmDto): Promise<any> {
@@ -62,13 +81,17 @@ export class DmaService {
    * @description We receive available timestamps for COMMODITY items
    */
   async getLatestTimestampCommodity(itemId: number) {
-    const commodityTimestampKeys = await this.redisService.keys('COMMODITY:TS:*');
-    const commodityTimestamp = await this.redisService.mget(commodityTimestampKeys);
+    const commodityTimestampKeys =
+      await this.redisService.keys('COMMODITY:TS:*');
+    const commodityTimestamp = await this.redisService.mget(
+      commodityTimestampKeys,
+    );
 
     // TODO in case of Redis not found!
 
     const timestamps = commodityTimestamp
-      .map((t) => Number(t)).sort((a, b) => a - b);
+      .map((t) => Number(t))
+      .sort((a, b) => a - b);
 
     const latestCommodityTimestamp = timestamps.slice(-1);
 
@@ -93,16 +116,19 @@ export class DmaService {
       isGold: false,
     });
 
-    const { dataset } = await this.buildChartDataset(yPriceAxis, timestamps, item.id);
-
-    const chart =  JSON.stringify({ yAxis: yPriceAxis, xAxis: timestamps, dataset });
-
-    await this.redisService.set(
-      key,
-      chart,
-      'EX',
-      3600,
+    const { dataset } = await this.buildChartDataset(
+      yPriceAxis,
+      timestamps,
+      item.id,
     );
+
+    const chart = JSON.stringify({
+      yAxis: yPriceAxis,
+      xAxis: timestamps,
+      dataset,
+    });
+
+    await this.redisService.set(key, chart, 'EX', 3600);
 
     return { yAxis: yPriceAxis, xAxis: timestamps, dataset };
   }
@@ -120,14 +146,18 @@ export class DmaService {
       .limit(50)
       .getRawMany();
 
-    const timestampValues = timestamps.map(t => t.timestamp);
+    const timestampValues = timestamps.map((t) => t.timestamp);
 
     const yPriceAxis = await this.priceAxisCommodity({
       itemId: goldItemId,
       isGold: true,
     });
 
-    const { dataset } = await this.buildChartDataset(yPriceAxis, timestampValues, goldItemId);
+    const { dataset } = await this.buildChartDataset(
+      yPriceAxis,
+      timestampValues,
+      goldItemId,
+    );
 
     return { yAxis: yPriceAxis, xAxis: timestampValues, dataset };
   }
@@ -204,9 +234,12 @@ export class DmaService {
 
         if (isPriceItxUp) priceItx = priceItx + 1;
 
-        priceLevelDataset[priceItx].orders = priceLevelDataset[priceItx].orders + 1;
-        priceLevelDataset[priceItx].oi = priceLevelDataset[priceItx].oi + (order.value ?? 0);
-        priceLevelDataset[priceItx].value = priceLevelDataset[priceItx].value + (order.quantity ?? 0);
+        priceLevelDataset[priceItx].orders =
+          priceLevelDataset[priceItx].orders + 1;
+        priceLevelDataset[priceItx].oi =
+          priceLevelDataset[priceItx].oi + (order.value ?? 0);
+        priceLevelDataset[priceItx].value =
+          priceLevelDataset[priceItx].value + (order.quantity ?? 0);
         priceLevelDataset[priceItx].price =
           priceLevelDataset[priceItx].value > 0
             ? priceLevelDataset[priceItx].oi / priceLevelDataset[priceItx].value
@@ -217,7 +250,13 @@ export class DmaService {
     } catch (errorOrException) {
       // Log error and return empty dataset for this timestamp
       const logTag = 'processTimestampData';
-      this.logger.error({ logTag, timestamp, itemId, errorOrException, message: `Error processing timestamp ${timestamp} for item ${itemId}` });
+      this.logger.error({
+        logTag,
+        timestamp,
+        itemId,
+        errorOrException,
+        message: `Error processing timestamp ${timestamp} for item ${itemId}`,
+      });
       return yPriceAxis.map((priceLevel, ytx) => ({
         lt: yPriceAxis[ytx + 1] ?? priceLevel,
         x: itx,
@@ -230,7 +269,11 @@ export class DmaService {
     }
   }
 
-  async buildChartDataset(yPriceAxis: number[], xTimestampAxis: number[], itemId: number) {
+  async buildChartDataset(
+    yPriceAxis: number[],
+    xTimestampAxis: number[],
+    itemId: number,
+  ) {
     if (!yPriceAxis.length) return { dataset: [] };
 
     try {
@@ -238,54 +281,68 @@ export class DmaService {
       const dataset = await lastValueFrom(
         from(xTimestampAxis).pipe(
           mergeMap(async (timestamp, itx) => {
-            return await this.processTimestampData(timestamp, itx, yPriceAxis, itemId);
+            return await this.processTimestampData(
+              timestamp,
+              itx,
+              yPriceAxis,
+              itemId,
+            );
           }),
           // Collect all arrays and flatten them
-          reduce((acc: IChartOrder[], curr: IChartOrder[]) => [...acc, ...curr], [] as IChartOrder[])
+          reduce(
+            (acc: IChartOrder[], curr: IChartOrder[]) => [...acc, ...curr],
+            [] as IChartOrder[],
+          ),
         ),
       );
 
       return { dataset };
     } catch (errorOrException) {
       const logTag = 'buildChartDataset';
-      this.logger.error({ logTag, itemId, errorOrException, message: `Error building chart dataset for item ${itemId}` });
+      this.logger.error({
+        logTag,
+        itemId,
+        errorOrException,
+        message: `Error building chart dataset for item ${itemId}`,
+      });
       // Return empty dataset on error
       return { dataset: [] };
     }
   }
 
-
   async getItemFeed(input: ItemRealmDto): Promise<ItemFeedDto> {
-    const item = await this.queryItem(input.itemRealm);
+    const item = await this.queryItem(input.id);
 
-    // Parse realm from itemRealm format: "itemId@realmSlug"
-    const [_itemIdStr, realmSlug] = input.itemRealm.split('@');
+    // Parse realm from id format: "itemId@realmSlug"
+    const [_itemIdStr, realmSlug] = input.id.split('@');
 
     if (!realmSlug) {
-      throw new BadRequestException('Realm information required for item feed. Use format: itemId@realmSlug');
+      throw new BadRequestException(
+        'Realm information required for item feed. Use format: itemId@realmSlug',
+      );
     }
 
     // Find recent market data for this item
     const feed = await this.marketRepository.find({
       where: { itemId: item.id },
       order: { createdAt: 'DESC' },
-      take: 50 // Limit to recent 50 entries
+      take: 50, // Limit to recent 50 entries
     });
 
     return { feed };
   }
 
   async getAssetQuotes(input: ItemRealmDto): Promise<ItemQuotesDto> {
-    const item = await this.queryItem(input.itemRealm);
+    const item = await this.queryItem(input.id);
 
     // Get aggregated market data for quotes
     const quotes = await this.marketRepository
       .createQueryBuilder('market')
       .select([
         'market.price as price',
-        'COUNT(*) as orders',
+        'COUNT(*) as size',
         'SUM(market.quantity) as quantity',
-        'SUM(market.value) as open_interest'
+        'SUM(market.value) as open_interest',
       ])
       .where('market.itemId = :itemId', { itemId: item.id })
       .groupBy('market.price')
@@ -297,17 +354,18 @@ export class DmaService {
   }
 
   async queryItem(input: string): Promise<ItemsEntity> {
-    // Parse itemRealm format: "itemId" or "itemId@realmSlug" or "itemName@realmSlug"
+    // Parse id format: "itemId" or "itemId@realmSlug" or "itemName@realmSlug"
     const [itemQuery] = input.split('@');
     const trimmedQuery = itemQuery.trim();
-    
+
     if (!trimmedQuery) {
       throw new BadRequestException('Item query cannot be empty');
     }
 
     // Check if input is a numeric ID
-    const isNumeric = !isNaN(Number(trimmedQuery)) && Number.isInteger(Number(trimmedQuery));
-    
+    const isNumeric =
+      !isNaN(Number(trimmedQuery)) && Number.isInteger(Number(trimmedQuery));
+
     if (isNumeric) {
       return await this.findItemById(parseInt(trimmedQuery));
     } else {
@@ -320,7 +378,7 @@ export class DmaService {
    */
   private async findItemById(id: number): Promise<ItemsEntity> {
     const item = await this.itemsRepository.findOneBy({ id });
-    
+
     if (!item) {
       throw new BadRequestException(`Item with ID ${id} not found`);
     }
@@ -334,15 +392,17 @@ export class DmaService {
    */
   private async findItemByName(searchQuery: string): Promise<ItemsEntity> {
     const normalizedQuery = searchQuery.toLowerCase().trim();
-    
+
     if (normalizedQuery.length < 2) {
-      throw new BadRequestException('Search query must be at least 2 characters long');
+      throw new BadRequestException(
+        'Search query must be at least 2 characters long',
+      );
     }
 
     try {
       // Create query builder for complex search
       const queryBuilder = this.itemsRepository.createQueryBuilder('item');
-      
+
       // Search in multiple fields with different strategies
       const item = await queryBuilder
         .where(
@@ -388,8 +448,8 @@ export class DmaService {
           {
             exactQuery: normalizedQuery,
             likeQuery: `%${normalizedQuery}%`,
-            searchQuery: searchQuery
-          }
+            searchQuery: searchQuery,
+          },
         )
         // Order by relevance: exact matches first, then partial matches
         .orderBy(
@@ -399,24 +459,26 @@ export class DmaService {
             WHEN LOWER(item.name) LIKE :likeQuery THEN 3
             ELSE 4
           END`,
-          'ASC'
+          'ASC',
         )
         .setParameters({
           exactQuery: normalizedQuery,
           startQuery: `${normalizedQuery}%`,
           likeQuery: `%${normalizedQuery}%`,
-          searchQuery: searchQuery
+          searchQuery: searchQuery,
         })
         .limit(1)
         .getOne();
 
       if (!item) {
-        throw new BadRequestException(`No item found matching "${searchQuery}". Try using item ID or a more specific name.`);
+        throw new BadRequestException(
+          `No item found matching "${searchQuery}". Try using item ID or a more specific name.`,
+        );
       }
 
       this.logger.log(
         `Found item via name search: "${searchQuery}" -> ID: ${item.id}, Name: ${item.name}`,
-        'findItemByName'
+        'findItemByName',
       );
 
       return item;
@@ -424,14 +486,16 @@ export class DmaService {
       if (error instanceof BadRequestException) {
         throw error;
       }
-      
+
       this.logger.error(
         `Error searching for item by name: "${searchQuery}"`,
         error instanceof Error ? error.stack : String(error),
-        'findItemByName'
+        'findItemByName',
       );
-      
-      throw new BadRequestException(`Error searching for item "${searchQuery}". Please try a different search term or use item ID.`);
+
+      throw new BadRequestException(
+        `Error searching for item "${searchQuery}". Please try a different search term or use item ID.`,
+      );
     }
   }
 
@@ -445,5 +509,93 @@ export class DmaService {
       order: { createdAt: 'DESC' },
       take: input.limit ? input.limit : 1,
     });
+  }
+
+  /**
+   * Search for items by ID OR name field OR any localized name in JSONB names field
+   * Returns a list of matching items for autocomplete
+   */
+  async searchItems(
+    query: string,
+    limit: number = 25,
+  ): Promise<Array<{ id: number; name: string; quality?: number }>> {
+    const normalizedQuery = query.toLowerCase().trim();
+
+    if (normalizedQuery.length < 1) {
+      throw new BadRequestException('Search query is required');
+    }
+
+    try {
+      const queryBuilder = this.itemsRepository.createQueryBuilder('item');
+
+      // Check if query is a numeric ID
+      const isNumericId = /^\d+$/.test(query);
+
+      const items = await queryBuilder
+        .select(['item.id', 'item.name', 'item.quality'])
+        .where(
+          `(
+            ${isNumericId ? 'item.id = :itemId' : 'FALSE'}
+            OR
+            LOWER(item.name) LIKE :likeQuery
+            OR
+            (
+              item.names IS NOT NULL AND (
+                LOWER(item.names->>'en_US') LIKE :likeQuery OR
+                LOWER(item.names->>'en_GB') LIKE :likeQuery OR
+                LOWER(item.names->>'de_DE') LIKE :likeQuery OR
+                LOWER(item.names->>'es_ES') LIKE :likeQuery OR
+                LOWER(item.names->>'es_MX') LIKE :likeQuery OR
+                LOWER(item.names->>'fr_FR') LIKE :likeQuery OR
+                LOWER(item.names->>'it_IT') LIKE :likeQuery OR
+                LOWER(item.names->>'pt_BR') LIKE :likeQuery OR
+                LOWER(item.names->>'ru_RU') LIKE :likeQuery OR
+                LOWER(item.names->>'ko_KR') LIKE :likeQuery OR
+                LOWER(item.names->>'zh_TW') LIKE :likeQuery OR
+                LOWER(item.names->>'zh_CN') LIKE :likeQuery
+              )
+            )
+          )`,
+          {
+            ...(isNumericId && { itemId: parseInt(query) }),
+            likeQuery: `%${normalizedQuery}%`,
+          },
+        )
+        .orderBy(
+          `CASE 
+            ${isNumericId ? 'WHEN item.id = :itemId THEN 0' : ''}
+            WHEN LOWER(item.name) = :exactQuery THEN 1
+            WHEN LOWER(item.name) LIKE :startQuery THEN 2
+            WHEN LOWER(item.name) LIKE :likeQuery THEN 3
+            ELSE 4
+          END`,
+          'ASC',
+        )
+        .addOrderBy('item.name', 'ASC')
+        .setParameters({
+          ...(isNumericId && { itemId: parseInt(query) }),
+          exactQuery: normalizedQuery,
+          startQuery: `${normalizedQuery}%`,
+          likeQuery: `%${normalizedQuery}%`,
+        })
+        .limit(limit)
+        .getMany();
+
+      return items.map((item) => ({
+        id: item.id,
+        name: item.name,
+        quality: item.quality,
+      }));
+    } catch (error) {
+      this.logger.error(
+        `Error searching for items: "${query}"`,
+        error instanceof Error ? error.stack : String(error),
+        'searchItems',
+      );
+
+      throw new BadRequestException(
+        `Error searching for items. Please try a different search term.`,
+      );
+    }
   }
 }

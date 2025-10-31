@@ -24,5 +24,10 @@ export const isStandardError = (error: unknown): error is Error => {
  * @returns true if the input is a plain object
  */
 export const isPlainObject = (input: unknown): input is Record<string, any> => {
-  return input !== null && typeof input === 'object' && !Array.isArray(input) && !(input instanceof Error);
+  return (
+    input !== null &&
+    typeof input === 'object' &&
+    !Array.isArray(input) &&
+    !(input instanceof Error)
+  );
 };

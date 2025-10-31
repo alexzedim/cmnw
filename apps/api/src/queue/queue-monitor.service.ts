@@ -122,9 +122,8 @@ export class QueueMonitorService {
     // Calculate processing rate (jobs per minute)
     const completedJobs = await queue.getCompleted(0, 99);
     const processingRate = await this.calculateProcessingRate(completedJobs);
-    const averageProcessingTime = await this.calculateAverageProcessingTime(
-      completedJobs,
-    );
+    const averageProcessingTime =
+      await this.calculateAverageProcessingTime(completedJobs);
 
     let estimatedCompletion: string | undefined;
     const isActiveProcessing = counts.active > 0 && processingRate > 0;
@@ -191,7 +190,9 @@ export class QueueMonitorService {
     const isRateCalculable = processingRate > 0 && counts.waiting > 0;
     if (isRateCalculable) {
       const minutesRemaining = counts.waiting / processingRate;
-      estimatedTimeRemaining = this.formatDuration(minutesRemaining * 60 * 1000);
+      estimatedTimeRemaining = this.formatDuration(
+        minutesRemaining * 60 * 1000,
+      );
     }
 
     return {
@@ -205,9 +206,7 @@ export class QueueMonitorService {
     };
   }
 
-  private async calculateProcessingRate(
-    completedJobs: Job[],
-  ): Promise<number> {
+  private async calculateProcessingRate(completedJobs: Job[]): Promise<number> {
     const recentJobs = completedJobs.filter((job) => {
       const isJobFinished = job.finishedOn !== undefined;
       if (!isJobFinished) return false;
@@ -220,7 +219,7 @@ export class QueueMonitorService {
     if (isNoRecentJobs) return 0;
 
     // Jobs per minute
-    return (recentJobs.length / 5) || 0;
+    return recentJobs.length / 5 || 0;
   }
 
   private async calculateAverageProcessingTime(
@@ -271,7 +270,7 @@ export class QueueMonitorService {
   async getWorkerStats(workerName: string): Promise<any> {
     const key = `worker:${workerName}:last-stats`;
     const stats = await this.redis.get(key);
-    
+
     if (!stats) {
       return {
         workerName,
@@ -285,7 +284,7 @@ export class QueueMonitorService {
 
   async getAllWorkerStats(): Promise<any[]> {
     const workerNames = ['characters', 'guilds', 'profile'];
-    const statsPromises = workerNames.map(name => this.getWorkerStats(name));
+    const statsPromises = workerNames.map((name) => this.getWorkerStats(name));
     return Promise.all(statsPromises);
   }
 }

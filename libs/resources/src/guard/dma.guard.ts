@@ -1,9 +1,9 @@
 export const isContractArraysEmpty = (
   timestamps: number[],
-  itemIds: number[]
+  itemIds: number[],
 ): boolean => {
   return timestamps.length === 0 || itemIds.length === 0;
-}
+};
 
 /**
  * Type guard to validate and convert a value to a valid number
@@ -13,31 +13,31 @@ export const isContractArraysEmpty = (
  */
 export const validateAndConvertToNumber = (
   value: unknown,
-  fieldName: string
+  fieldName: string,
 ): { isValid: boolean; value: number; error?: string } => {
   const converted = Number(value);
-  
+
   if (isNaN(converted)) {
     return {
       isValid: false,
       value: 0,
-      error: `Invalid ${fieldName} value: ${value}, cannot convert to number`
+      error: `Invalid ${fieldName} value: ${value}, cannot convert to number`,
     };
   }
-  
+
   if (converted < 0) {
     return {
       isValid: false,
       value: converted,
-      error: `Invalid ${fieldName} value: ${converted}, must be non-negative`
+      error: `Invalid ${fieldName} value: ${converted}, must be non-negative`,
     };
   }
-  
+
   return {
     isValid: true,
-    value: converted
+    value: converted,
   };
-}
+};
 
 /**
  * Type guard specifically for validating quantity values
@@ -45,10 +45,10 @@ export const validateAndConvertToNumber = (
  * @returns Object with validation result and converted value
  */
 export const validateQuantity = (
-  value: unknown
+  value: unknown,
 ): { isValid: boolean; value: number; error?: string } => {
   return validateAndConvertToNumber(value, 'quantity');
-}
+};
 
 /**
  * Type guard specifically for validating open interest values
@@ -56,10 +56,10 @@ export const validateQuantity = (
  * @returns Object with validation result and converted value
  */
 export const validateOpenInterest = (
-  value: unknown
+  value: unknown,
 ): { isValid: boolean; value: number; error?: string } => {
   return validateAndConvertToNumber(value, 'openInterest');
-}
+};
 
 /**
  * Type guard to validate contract data before entity creation
@@ -69,7 +69,7 @@ export const validateOpenInterest = (
  */
 export const validateContractData = (
   quantity: unknown,
-  openInterest: unknown
+  openInterest: unknown,
 ): {
   isValid: boolean;
   quantity: { isValid: boolean; value: number; error?: string };
@@ -77,10 +77,10 @@ export const validateContractData = (
 } => {
   const quantityResult = validateQuantity(quantity);
   const openInterestResult = validateOpenInterest(openInterest);
-  
+
   return {
     isValid: quantityResult.isValid && openInterestResult.isValid,
     quantity: quantityResult,
-    openInterest: openInterestResult
+    openInterest: openInterestResult,
   };
-}
+};

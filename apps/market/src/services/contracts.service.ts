@@ -1,7 +1,12 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ContractEntity, ItemsEntity, MarketEntity, RealmsEntity } from '@app/pg';
+import {
+  ContractEntity,
+  ItemsEntity,
+  MarketEntity,
+  RealmsEntity,
+} from '@app/pg';
 import { LessThan, MoreThan, Not, Repository } from 'typeorm';
 import { DateTime } from 'luxon';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
@@ -39,7 +44,6 @@ export class ContractsService implements OnApplicationBootstrap {
     await this.buildCommodityTimestampContracts();
   }
 
-
   private async setCommodityItemsAsContracts() {
     const logTag = this.setCommodityItemsAsContracts.name;
     try {
@@ -62,10 +66,12 @@ export class ContractsService implements OnApplicationBootstrap {
       });
 
       if (isItemsEmpty === 0) {
-        const items = commodityItemsIds.map((itemId) => this.itemsRepository.create({
-          id: itemId,
-          hasContracts: true,
-        }))
+        const items = commodityItemsIds.map((itemId) =>
+          this.itemsRepository.create({
+            id: itemId,
+            hasContracts: true,
+          }),
+        );
 
         const itemsWithContracts = await this.itemsRepository.save(items);
 
@@ -81,7 +87,12 @@ export class ContractsService implements OnApplicationBootstrap {
         updateResult = result.affected || 0;
       }
 
-      this.logger.log({ logTag, contractItems, updateResult, message: `Set commodity items as contracts: ${contractItems} items, ${updateResult} updated` });
+      this.logger.log({
+        logTag,
+        contractItems,
+        updateResult,
+        message: `Set commodity items as contracts: ${contractItems} items, ${updateResult} updated`,
+      });
 
       return updateResult;
     } catch (errorOrException) {
@@ -93,12 +104,17 @@ export class ContractsService implements OnApplicationBootstrap {
   private async buildCommodityTimestampContracts() {
     const logTag = this.buildCommodityTimestampContracts.name;
     try {
-      this.logger.log({ logTag, message: 'Building commodity timestamp contracts started' });
+      this.logger.log({
+        logTag,
+        message: 'Building commodity timestamp contracts started',
+      });
 
       const commodityItems = await this.itemsRepository
         .createQueryBuilder('items')
         .where('items.hasContracts = :hasContracts', { hasContracts: true })
-        .andWhere('items.id NOT IN (:...itemIds)', { itemIds: [GOLD_ITEM_ENTITY.id, WOW_TOKEN_ITEM_ID] })
+        .andWhere('items.id NOT IN (:...itemIds)', {
+          itemIds: [GOLD_ITEM_ENTITY.id, WOW_TOKEN_ITEM_ID],
+        })
         .select('items.id')
         .getMany();
 
@@ -107,7 +123,9 @@ export class ContractsService implements OnApplicationBootstrap {
 
       const timestamps = await this.marketRepository
         .createQueryBuilder('markets')
-        .where('markets.item_id NOT IN (:...itemIds)', { itemIds: [GOLD_ITEM_ENTITY.id, WOW_TOKEN_ITEM_ID] })
+        .where('markets.item_id NOT IN (:...itemIds)', {
+          itemIds: [GOLD_ITEM_ENTITY.id, WOW_TOKEN_ITEM_ID],
+        })
         .andWhere({
           connectedRealmId: REALM_ENTITY_ANY.connectedRealmId,
           timestamp: MoreThan(ytd),
@@ -119,30 +137,47 @@ export class ContractsService implements OnApplicationBootstrap {
       const commodityItemsIds = commodityItems.map((item) => item.id);
       const commodityTimestamps = timestamps.map((t) => t.timestamp);
 
-      this.logger.log({ logTag, itemCount: commodityItemsIds.length, timestampCount: commodityTimestamps.length, today: today.toISO(), ytd, message: `Processing ${commodityItemsIds.length} items with ${commodityTimestamps.length} timestamps` });
+      this.logger.log({
+        logTag,
+        itemCount: commodityItemsIds.length,
+        timestampCount: commodityTimestamps.length,
+        today: today.toISO(),
+        ytd,
+        message: `Processing ${commodityItemsIds.length} items with ${commodityTimestamps.length} timestamps`,
+      });
 
-      const isGuard = isContractArraysEmpty(commodityTimestamps, commodityItemsIds);
+      const isGuard = isContractArraysEmpty(
+        commodityTimestamps,
+        commodityItemsIds,
+      );
       if (isGuard) {
-        this.logger.warn({ logTag, message: 'No items or timestamps provided, skipping processing' });
+        this.logger.warn({
+          logTag,
+          message: 'No items or timestamps provided, skipping processing',
+        });
         return;
       }
 
       for (const commodityItemId of commodityItemsIds) {
         await lastValueFrom(
           from(commodityTimestamps).pipe(
-            mergeMap((timestamp) =>
-              this.getItemContractIntradayData(commodityItemId, timestamp, today),5),
+            mergeMap(
+              (timestamp) =>
+                this.getItemContractIntradayData(
+                  commodityItemId,
+                  timestamp,
+                  today,
+                ),
+              5,
+            ),
           ),
         );
       }
-
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: logTag,
-          error: errorOrException,
-        }
-      );
+      this.logger.error({
+        logTag: logTag,
+        error: errorOrException,
+      });
     }
   }
 
@@ -173,19 +208,23 @@ export class ContractsService implements OnApplicationBootstrap {
 
         await lastValueFrom(
           from(goldTimestamps).pipe(
-            mergeMap((timestamp) =>
-              this.getItemContractIntradayData(GOLD_ITEM_ENTITY.id, timestamp, today),5),
+            mergeMap(
+              (timestamp) =>
+                this.getItemContractIntradayData(
+                  GOLD_ITEM_ENTITY.id,
+                  timestamp,
+                  today,
+                ),
+              5,
+            ),
           ),
         );
       }
-
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: logTag,
-          error: errorOrException,
-        }
-      );
+      this.logger.error({
+        logTag: logTag,
+        error: errorOrException,
+      });
     }
   }
 
@@ -195,7 +234,7 @@ export class ContractsService implements OnApplicationBootstrap {
     today: DateTime,
     connectedRealmId?: number,
   ) {
-    const logTag = this.getItemContractIntradayData.name
+    const logTag = this.getItemContractIntradayData.name;
     const isGold = itemId === GOLD_ITEM_ENTITY.id;
     const contractId = `${itemId}-${today.day}.${today.month}@${timestamp}`;
 
@@ -212,15 +251,17 @@ export class ContractsService implements OnApplicationBootstrap {
         return;
       }
 
-      const itemPriceAndQuantityWhere = isGold ? {
-        connectedRealmId: connectedRealmId,
-        itemId: itemId,
-        timestamp: timestamp,
-        isOnline: true,
-      } : {
-        itemId: itemId,
-        timestamp: timestamp,
-      }
+      const itemPriceAndQuantityWhere = isGold
+        ? {
+            connectedRealmId: connectedRealmId,
+            itemId: itemId,
+            timestamp: timestamp,
+            isOnline: true,
+          }
+        : {
+            itemId: itemId,
+            timestamp: timestamp,
+          };
 
       const itemPriceAndQuantity = await this.marketRepository
         .createQueryBuilder('m')
@@ -231,31 +272,47 @@ export class ContractsService implements OnApplicationBootstrap {
         .getRawOne<IItemPriceAndQuantity>();
 
       const orders = Number(itemPriceAndQuantity.orders);
-      const ordersNotEnough = orders < 10
+      const ordersNotEnough = orders < 10;
 
       if (ordersNotEnough) {
-        this.logger.debug(`${logTag}: ${contractId} not enough orders for contract representation`);
+        this.logger.debug(
+          `${logTag}: ${contractId} not enough orders for contract representation`,
+        );
         return;
       }
 
       const [percentile50, percentile98] = await Promise.all([
         await getPercentileTypeByItemAndTimestamp(
-          this.marketRepository, 'DISC', 0.5, itemId, timestamp, isGold, connectedRealmId
+          this.marketRepository,
+          'DISC',
+          0.5,
+          itemId,
+          timestamp,
+          isGold,
+          connectedRealmId,
         ),
         await getPercentileTypeByItemAndTimestamp(
-          this.marketRepository, 'DISC', 0.98, itemId, timestamp, isGold, connectedRealmId
-        )
+          this.marketRepository,
+          'DISC',
+          0.98,
+          itemId,
+          timestamp,
+          isGold,
+          connectedRealmId,
+        ),
       ]);
 
-      const itemOpenInterestWhere =  isGold ? {
-        connectedRealmId: connectedRealmId,
-        itemId: itemId,
-        timestamp: timestamp,
-        isOnline: true,
-      } : {
-        itemId: itemId,
-        timestamp: timestamp,
-      }
+      const itemOpenInterestWhere = isGold
+        ? {
+            connectedRealmId: connectedRealmId,
+            itemId: itemId,
+            timestamp: timestamp,
+            isOnline: true,
+          }
+        : {
+            itemId: itemId,
+            timestamp: timestamp,
+          };
 
       itemOpenInterestWhere['price'] = LessThan(percentile98);
 
@@ -268,7 +325,7 @@ export class ContractsService implements OnApplicationBootstrap {
       // Validate and convert quantity and openInterest using type guards
       const validation = validateContractData(
         itemPriceAndQuantity.q,
-        itemOpenInterest.oi
+        itemOpenInterest.oi,
       );
 
       if (!validation.isValid) {
@@ -276,7 +333,7 @@ export class ContractsService implements OnApplicationBootstrap {
           this.logger.error({
             logTag,
             contractId,
-            error: validation.quantity.error
+            error: validation.quantity.error,
           });
         }
 
@@ -284,7 +341,7 @@ export class ContractsService implements OnApplicationBootstrap {
           this.logger.error({
             logTag,
             contractId,
-            error: validation.openInterest.error
+            error: validation.openInterest.error,
           });
         }
 
@@ -338,10 +395,10 @@ export class ContractsService implements OnApplicationBootstrap {
             contractData.priceTop,
             contractData.quantity,
             contractData.openInterest,
-            contractData.type
-          ]
+            contractData.type,
+          ],
         );
-        
+
         this.logger.log(`${logTag}: ${contractId} - upserted successfully`);
       } catch (dbError) {
         // Log the error but don't throw it unless it's something other than a constraint violation
@@ -349,19 +406,16 @@ export class ContractsService implements OnApplicationBootstrap {
         this.logger.error({
           logTag,
           contractId,
-          error: `Upsert failed: ${JSON.stringify(dbError)}`
+          error: `Upsert failed: ${JSON.stringify(dbError)}`,
         });
         throw dbError;
       }
-
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: logTag,
-          contractId,
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({
+        logTag: logTag,
+        contractId,
+        error: JSON.stringify(errorOrException),
+      });
     }
   }
 }

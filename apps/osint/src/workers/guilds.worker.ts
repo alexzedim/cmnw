@@ -72,7 +72,7 @@ export class GuildsWorker extends WorkerHost {
         this.stats.skipped++;
         await job.updateProgress(GUILD_WORKER_CONSTANTS.PROGRESS.COMPLETE);
         this.logger.warn(
-          `${chalk.yellow('⊘')} Skipped [${chalk.bold(this.stats.total)}] ${guildEntity.guid} ${chalk.dim('(not ready)')}`
+          `${chalk.yellow('⊘')} Skipped [${chalk.bold(this.stats.total)}] ${guildEntity.guid} ${chalk.dim('(not ready)')}`,
         );
         return guildEntity.statusCode;
       }
@@ -81,7 +81,7 @@ export class GuildsWorker extends WorkerHost {
         this.stats.skipped++;
         await job.updateProgress(GUILD_WORKER_CONSTANTS.PROGRESS.COMPLETE);
         this.logger.warn(
-          `${chalk.yellow('⊘')} Skipped [${chalk.bold(this.stats.total)}] ${guildEntity.guid} ${chalk.dim('(createOnly)')}`
+          `${chalk.yellow('⊘')} Skipped [${chalk.bold(this.stats.total)}] ${guildEntity.guid} ${chalk.dim('(createOnly)')}`,
         );
         return guildEntity.statusCode;
       }
@@ -95,7 +95,7 @@ export class GuildsWorker extends WorkerHost {
       if (isNotEuRegion) {
         this.stats.notEuRegion++;
         this.logger.warn(
-          `${chalk.cyan('ℹ')} Not EU region [${chalk.bold(this.stats.total)}] ${guildEntity.guid}`
+          `${chalk.cyan('ℹ')} Not EU region [${chalk.bold(this.stats.total)}] ${guildEntity.guid}`,
         );
         await job.updateProgress(GUILD_WORKER_CONSTANTS.PROGRESS.COMPLETE);
         return GUILD_WORKER_CONSTANTS.NOT_EU_REGION_STATUS_CODE;
@@ -129,7 +129,10 @@ export class GuildsWorker extends WorkerHost {
       await job.updateProgress(GUILD_WORKER_CONSTANTS.PROGRESS.AFTER_SUMMARY);
 
       // Step 6: Fetch and process guild roster
-      const roster = await this.guildRosterService.fetchRoster(guildEntity, this.BNet);
+      const roster = await this.guildRosterService.fetchRoster(
+        guildEntity,
+        this.BNet,
+      );
       roster.updatedAt = guildEntity.updatedAt;
       await this.guildMemberService.updateRoster(guildSnapshot, roster, isNew);
       await job.updateProgress(GUILD_WORKER_CONSTANTS.PROGRESS.AFTER_ROSTER);
@@ -141,12 +144,24 @@ export class GuildsWorker extends WorkerHost {
           guildSnapshot.realm,
         );
         if (guildById) {
-          await this.guildLogService.detectAndLogChanges(guildById, guildEntity);
-          await this.guildMasterService.detectAndLogGuildMasterChange(guildById, roster);
+          await this.guildLogService.detectAndLogChanges(
+            guildById,
+            guildEntity,
+          );
+          await this.guildMasterService.detectAndLogGuildMasterChange(
+            guildById,
+            roster,
+          );
         }
       } else {
-        await this.guildLogService.detectAndLogChanges(guildSnapshot, guildEntity);
-        await this.guildMasterService.detectAndLogGuildMasterChange(guildSnapshot, roster);
+        await this.guildLogService.detectAndLogChanges(
+          guildSnapshot,
+          guildEntity,
+        );
+        await this.guildMasterService.detectAndLogGuildMasterChange(
+          guildSnapshot,
+          roster,
+        );
       }
 
       await job.updateProgress(GUILD_WORKER_CONSTANTS.PROGRESS.AFTER_DIFF);
@@ -168,11 +183,14 @@ export class GuildsWorker extends WorkerHost {
     } catch (errorOrException) {
       this.stats.errors++;
       const duration = Date.now() - startTime;
-      const guid = job.data?.name && job.data?.realm ? `${job.data.name}@${job.data.realm}` : 'unknown';
+      const guid =
+        job.data?.name && job.data?.realm
+          ? `${job.data.name}@${job.data.realm}`
+          : 'unknown';
 
       await job.log(errorOrException);
       this.logger.error(
-        `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`
+        `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`,
       );
 
       return GUILD_WORKER_CONSTANTS.ERROR_STATUS_CODE;
@@ -186,21 +204,21 @@ export class GuildsWorker extends WorkerHost {
     if (statusCode === 200 || statusCode === 204) {
       this.stats.success++;
       this.logger.log(
-        `${chalk.green('✓')} ${chalk.green(statusCode)} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`
+        `${chalk.green('✓')} ${chalk.green(statusCode)} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`,
       );
     } else if (statusCode === 404) {
       this.stats.notFound++;
       this.logger.warn(
-        `${chalk.blue('ℹ')} ${chalk.blue('404')} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`
+        `${chalk.blue('ℹ')} ${chalk.blue('404')} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`,
       );
     } else if (statusCode === 429) {
       this.stats.rateLimit++;
       this.logger.warn(
-        `${chalk.yellow('⚠')} ${chalk.yellow('429')} Rate limited [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`
+        `${chalk.yellow('⚠')} ${chalk.yellow('429')} Rate limited [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`,
       );
     } else {
       this.logger.log(
-        `${chalk.cyan('ℹ')} ${statusCode} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`
+        `${chalk.cyan('ℹ')} ${statusCode} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`,
       );
     }
   }
@@ -208,42 +226,46 @@ export class GuildsWorker extends WorkerHost {
   private logProgress(): void {
     const uptime = Date.now() - this.stats.startTime;
     const rate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
+      1,
+    );
 
     this.logger.log(
       `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
-      `${chalk.magenta('📊 GUILDS PROGRESS REPORT')}\n` +
-      `${chalk.dim('  Total:')} ${chalk.bold(this.stats.total)} guilds processed\n` +
-      `${chalk.green('  ✓ Success:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
-      `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
-      `${chalk.blue('  ℹ Not Found:')} ${chalk.blue.bold(this.stats.notFound)}\n` +
-      `${chalk.cyan('  ℹ Not EU Region:')} ${chalk.cyan.bold(this.stats.notEuRegion)}\n` +
-      `${chalk.yellow('  ⊘ Skipped:')} ${chalk.yellow.bold(this.stats.skipped)}\n` +
-      `${chalk.red('  ✗ Errors:')} ${chalk.red.bold(this.stats.errors)}\n` +
-      `${chalk.dim('  Rate:')} ${chalk.bold(rate)} guilds/sec\n` +
-      `${chalk.magenta.bold('━'.repeat(60))}`
+        `${chalk.magenta('📊 GUILDS PROGRESS REPORT')}\n` +
+        `${chalk.dim('  Total:')} ${chalk.bold(this.stats.total)} guilds processed\n` +
+        `${chalk.green('  ✓ Success:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
+        `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
+        `${chalk.blue('  ℹ Not Found:')} ${chalk.blue.bold(this.stats.notFound)}\n` +
+        `${chalk.cyan('  ℹ Not EU Region:')} ${chalk.cyan.bold(this.stats.notEuRegion)}\n` +
+        `${chalk.yellow('  ⊘ Skipped:')} ${chalk.yellow.bold(this.stats.skipped)}\n` +
+        `${chalk.red('  ✗ Errors:')} ${chalk.red.bold(this.stats.errors)}\n` +
+        `${chalk.dim('  Rate:')} ${chalk.bold(rate)} guilds/sec\n` +
+        `${chalk.magenta.bold('━'.repeat(60))}`,
     );
   }
 
   public logFinalSummary(): void {
     const uptime = Date.now() - this.stats.startTime;
     const avgRate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
+      1,
+    );
 
     this.logger.log(
       `\n${chalk.cyan.bold('═'.repeat(60))}\n` +
-      `${chalk.cyan.bold('  🎯 GUILDS FINAL SUMMARY')}\n` +
-      `${chalk.cyan.bold('═'.repeat(60))}\n` +
-      `${chalk.dim('  Total Guilds:')} ${chalk.bold.white(this.stats.total)}\n` +
-      `${chalk.green('  ✓ Successful:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
-      `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
-      `${chalk.blue('  ℹ Not Found:')} ${chalk.blue.bold(this.stats.notFound)}\n` +
-      `${chalk.cyan('  ℹ Not EU Region:')} ${chalk.cyan.bold(this.stats.notEuRegion)}\n` +
-      `${chalk.yellow('  ⊘ Skipped:')} ${chalk.yellow.bold(this.stats.skipped)}\n` +
-      `${chalk.red('  ✗ Failed:')} ${chalk.red.bold(this.stats.errors)}\n` +
-      `${chalk.dim('  Total Time:')} ${chalk.bold((uptime / 1000).toFixed(1))}s\n` +
-      `${chalk.dim('  Avg Rate:')} ${chalk.bold(avgRate)} guilds/sec\n` +
-      `${chalk.cyan.bold('═'.repeat(60))}`
+        `${chalk.cyan.bold('  🎯 GUILDS FINAL SUMMARY')}\n` +
+        `${chalk.cyan.bold('═'.repeat(60))}\n` +
+        `${chalk.dim('  Total Guilds:')} ${chalk.bold.white(this.stats.total)}\n` +
+        `${chalk.green('  ✓ Successful:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
+        `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
+        `${chalk.blue('  ℹ Not Found:')} ${chalk.blue.bold(this.stats.notFound)}\n` +
+        `${chalk.cyan('  ℹ Not EU Region:')} ${chalk.cyan.bold(this.stats.notEuRegion)}\n` +
+        `${chalk.yellow('  ⊘ Skipped:')} ${chalk.yellow.bold(this.stats.skipped)}\n` +
+        `${chalk.red('  ✗ Failed:')} ${chalk.red.bold(this.stats.errors)}\n` +
+        `${chalk.dim('  Total Time:')} ${chalk.bold((uptime / 1000).toFixed(1))}s\n` +
+        `${chalk.dim('  Avg Rate:')} ${chalk.bold(avgRate)} guilds/sec\n` +
+        `${chalk.cyan.bold('═'.repeat(60))}`,
     );
   }
 }

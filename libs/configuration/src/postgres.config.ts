@@ -56,19 +56,20 @@ export const postgresConfig: TypeOrmModuleOptions = {
     SkillLineEntity,
     SpellEffectEntity,
     SpellReagentsEntity,
-    UsersEntity
+    UsersEntity,
   ],
   synchronize: true,
   namingStrategy: new SnakeNamingStrategy(),
-  ssl: process.env.POSTGRES_SSL === 'true'
-    ? {
-        ca: readFileSync(process.env.POSTGRES_SSL_CA, 'utf-8'),
-        key: process.env.PG_SSL_KEY
-          ? readFileSync(process.env.POSTGRES_SSL_KEY, 'utf-8')
-          : null,
-        cert: process.env.PG_SSL_CERT
-          ? readFileSync(process.env.POSTGRES_SSL_CERT, 'utf-8')
-          : null,
-      }
-    : null,
+  ssl:
+    process.env.POSTGRES_SSL === 'true'
+      ? {
+          ca: readFileSync(process.env.POSTGRES_SSL_CA, 'utf-8'),
+          key: process.env.PG_SSL_KEY
+            ? readFileSync(process.env.POSTGRES_SSL_KEY, 'utf-8')
+            : null,
+          cert: process.env.PG_SSL_CERT
+            ? readFileSync(process.env.POSTGRES_SSL_CERT, 'utf-8')
+            : null,
+        }
+      : null,
 };

@@ -43,7 +43,11 @@ export class KeysService implements OnApplicationBootstrap {
         keysJson = await this.s3Service.readFile('keys.json', 'cmnw');
         this.logger.log({ logTag, message: 'Keys loaded from S3 (cmnw)' });
       } catch (error) {
-        this.logger.error({ logTag, errorOrException: error, message: 'File not found in S3 bucket cmnw' });
+        this.logger.error({
+          logTag,
+          errorOrException: error,
+          message: 'File not found in S3 bucket cmnw',
+        });
         throw new Error(`Keys configuration file not found in S3`);
       }
 
@@ -97,24 +101,29 @@ export class KeysService implements OnApplicationBootstrap {
           keyEntity.resetAt = now.plus({ hour: 2 }).toJSDate();
         }
 
-        const { data } = await this.httpService.axiosRef.request<BlizzardApiKeys>({
-          url: 'https://eu.battle.net/oauth/token',
-          method: 'post',
-          headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-          },
-          params: {
-            grant_type: 'client_credentials',
-          },
-          auth: {
-            username: keyEntity.client,
-            password: keyEntity.secret,
-          },
-        });
+        const { data } =
+          await this.httpService.axiosRef.request<BlizzardApiKeys>({
+            url: 'https://eu.battle.net/oauth/token',
+            method: 'post',
+            headers: {
+              'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            params: {
+              grant_type: 'client_credentials',
+            },
+            auth: {
+              username: keyEntity.client,
+              password: keyEntity.secret,
+            },
+          });
 
         keyEntity.token = data.access_token;
         keyEntity.expiredIn = data.expires_in;
-        this.logger.log({ logTag, client: keyEntity.client, message: `Updated key: ${keyEntity.client}` });
+        this.logger.log({
+          logTag,
+          client: keyEntity.client,
+          message: `Updated key: ${keyEntity.client}`,
+        });
 
         await this.keysRepository.save(keyEntity);
       }
@@ -150,7 +159,12 @@ export class KeysService implements OnApplicationBootstrap {
         keyEntity.expiredIn = data.expires_in;
 
         await this.keysRepository.save(keyEntity);
-        this.logger.log({ logTag, client: keyEntity.client, keyType: 'wcl', message: `Updated WCL key: ${keyEntity.client}` });
+        this.logger.log({
+          logTag,
+          client: keyEntity.client,
+          keyType: 'wcl',
+          message: `Updated WCL key: ${keyEntity.client}`,
+        });
       }
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });

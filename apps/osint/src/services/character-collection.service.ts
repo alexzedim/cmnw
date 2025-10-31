@@ -57,13 +57,16 @@ export class CharacterCollectionService {
       const { mounts } = mountsResponse;
       const characterGuid = toGuid(nameSlug, realmSlug);
 
-      const charactersMountEntities = await this.charactersMountsRepository.findBy({
-        characterGuid,
-      });
+      const charactersMountEntities =
+        await this.charactersMountsRepository.findBy({
+          characterGuid,
+        });
 
       const updatedMountIds = new Set<number>();
       const originalMountIds = new Set(
-        charactersMountEntities.map((charactersMount) => charactersMount.mountId),
+        charactersMountEntities.map(
+          (charactersMount) => charactersMount.mountId,
+        ),
       );
 
       await lastValueFrom(
@@ -91,10 +94,11 @@ export class CharacterCollectionService {
 
             const isNewMountForCharacter = !isAddedToCollection;
             if (isNewMountForCharacter) {
-              const characterMountEntity = this.charactersMountsRepository.create({
-                mountId: mount.mount.id,
-                characterGuid,
-              });
+              const characterMountEntity =
+                this.charactersMountsRepository.create({
+                  mountId: mount.mount.id,
+                  characterGuid,
+                });
 
               characterMountsEntities.push(characterMountEntity);
             }
@@ -153,9 +157,11 @@ export class CharacterCollectionService {
       const { pets } = petsResponse;
       const characterGuid = toGuid(nameSlug, realmSlug);
 
-      const charactersPetsEntities = await this.charactersPetsRepository.findBy({
-        characterGuid,
-      });
+      const charactersPetsEntities = await this.charactersPetsRepository.findBy(
+        {
+          characterGuid,
+        },
+      );
 
       const updatedPetIds = new Set<number>();
       const originalPetIds = new Set(
@@ -179,7 +185,8 @@ export class CharacterCollectionService {
               const petQuality = 'quality' in pet ? pet.quality.name : null;
               const breedId = 'stats' in pet ? pet.stats.breed_id : null;
 
-              const shouldIndexPet = isIndex && creatureId && !petsEntities.has(creatureId);
+              const shouldIndexPet =
+                isIndex && creatureId && !petsEntities.has(creatureId);
 
               updatedPetIds.add(pet.id);
 
@@ -214,17 +221,19 @@ export class CharacterCollectionService {
 
               const isNewPetForCharacter = !isAddedToCollection;
               if (isNewPetForCharacter) {
-                const characterPetEntity = this.charactersPetsRepository.create({
-                  petId,
-                  characterPetId,
-                  creatureId,
-                  petQuality,
-                  breedId,
-                  characterGuid,
-                  petName,
-                  petLevel,
-                  isActive,
-                });
+                const characterPetEntity = this.charactersPetsRepository.create(
+                  {
+                    petId,
+                    characterPetId,
+                    creatureId,
+                    petQuality,
+                    breedId,
+                    characterGuid,
+                    petName,
+                    petLevel,
+                    isActive,
+                  },
+                );
 
                 characterPetsEntities.push(characterPetEntity);
               }

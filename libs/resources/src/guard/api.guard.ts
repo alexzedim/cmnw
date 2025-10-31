@@ -16,8 +16,8 @@ import {
   IRGuildRoster,
 } from '@app/resources/types';
 
-export const isEuRegion = (region: string | number | undefined): boolean => Boolean(region) && (region === 'eu' || region === 2)
-
+export const isEuRegion = (region: string | number | undefined): boolean =>
+  Boolean(region) && (region === 'eu' || region === 2);
 
 export const isBlizzardApiResponse = (
   response: unknown,
@@ -67,13 +67,17 @@ export const isCharacterMedia = (
   Array.isArray(response.assets) &&
   Boolean(response.assets.length);
 
-export const isWowToken = (response: unknown): response is BlizzardApiWowToken =>
+export const isWowToken = (
+  response: unknown,
+): response is BlizzardApiWowToken =>
   typeof response === 'object' &&
   'price' in response &&
   'lastModified' in response &&
   'last_updated_timestamp' in response;
 
-export const isAuctions = (response: unknown): response is BlizzardApiAuctions =>
+export const isAuctions = (
+  response: unknown,
+): response is BlizzardApiAuctions =>
   typeof response === 'object' &&
   'lastModified' in response &&
   'auctions' in response &&
@@ -122,10 +126,9 @@ export const isHallOfFame = (response: unknown): response is IHallOfFame =>
   'entries' in response &&
   Array.isArray(response.entries);
 
-
 export const isResponseError = (
   error: unknown,
 ): error is BlizzardApiErrorResponse =>
   typeof error === 'object' &&
   get(error, 'response.status') &&
-  get(error, 'response.statusText')
+  get(error, 'response.statusText');

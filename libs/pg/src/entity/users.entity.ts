@@ -8,8 +8,12 @@ import {
 } from 'typeorm';
 import { AuthProvider } from '@app/pg/enum';
 
-@Index('ix__users__discord_id', ['discordId'], { where: 'discord_id IS NOT NULL' })
-@Index('ix__users__battlenet_id', ['battlenetId'], { where: 'battlenet_id IS NOT NULL' })
+@Index('ix__users__discord_id', ['discordId'], {
+  where: 'discord_id IS NOT NULL',
+})
+@Index('ix__users__battlenet_id', ['battlenetId'], {
+  where: 'battlenet_id IS NOT NULL',
+})
 @Index('ix__users__email', ['email'], { where: 'email IS NOT NULL' })
 @Entity({ name: 'users' })
 export class UsersEntity {

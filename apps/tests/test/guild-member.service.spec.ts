@@ -7,7 +7,11 @@ import {
   CharactersGuildsLogsEntity,
 } from '@app/pg';
 import { ACTION_LOG, OSINT_GM_RANK, OSINT_SOURCE } from '@app/resources';
-import { mockGuildData, mockCharacterData, mockGuildMasterData } from '../mocks/guild-worker.mock';
+import {
+  mockGuildData,
+  mockCharacterData,
+  mockGuildMasterData,
+} from '../mocks/guild-worker.mock';
 
 describe('GuildMemberService', () => {
   let service: GuildMemberService;
@@ -131,7 +135,14 @@ describe('GuildMemberService', () => {
     it('should log PROMOTE event when member rank decreases (lower number = higher rank)', async () => {
       const guildMemberId = mockCharacterData.id;
       const originalRoster = new Map([
-        [guildMemberId, { ...mockCharacterData, rank: 5, characterGuid: mockCharacterData.guid }],
+        [
+          guildMemberId,
+          {
+            ...mockCharacterData,
+            rank: 5,
+            characterGuid: mockCharacterData.guid,
+          },
+        ],
       ]);
       const updatedRoster = new Map([
         [guildMemberId, { ...mockCharacterData, rank: 3 }],
@@ -158,7 +169,14 @@ describe('GuildMemberService', () => {
     it('should log DEMOTE event when member rank increases (higher number = lower rank)', async () => {
       const guildMemberId = mockCharacterData.id;
       const originalRoster = new Map([
-        [guildMemberId, { ...mockCharacterData, rank: 2, characterGuid: mockCharacterData.guid }],
+        [
+          guildMemberId,
+          {
+            ...mockCharacterData,
+            rank: 2,
+            characterGuid: mockCharacterData.guid,
+          },
+        ],
       ]);
       const updatedRoster = new Map([
         [guildMemberId, { ...mockCharacterData, rank: 4 }],
@@ -185,7 +203,14 @@ describe('GuildMemberService', () => {
     it('should NOT log rank change if either member is Guild Master', async () => {
       const guildMemberId = mockGuildMasterData.id;
       const originalRoster = new Map([
-        [guildMemberId, { ...mockGuildMasterData, rank: OSINT_GM_RANK, characterGuid: mockGuildMasterData.guid }],
+        [
+          guildMemberId,
+          {
+            ...mockGuildMasterData,
+            rank: OSINT_GM_RANK,
+            characterGuid: mockGuildMasterData.guid,
+          },
+        ],
       ]);
       const updatedRoster = new Map([
         [guildMemberId, { ...mockGuildMasterData, rank: 1 }],
@@ -207,7 +232,14 @@ describe('GuildMemberService', () => {
     it('should NOT log if rank has not changed', async () => {
       const guildMemberId = mockCharacterData.id;
       const originalRoster = new Map([
-        [guildMemberId, { ...mockCharacterData, rank: 3, characterGuid: mockCharacterData.guid }],
+        [
+          guildMemberId,
+          {
+            ...mockCharacterData,
+            rank: 3,
+            characterGuid: mockCharacterData.guid,
+          },
+        ],
       ]);
       const updatedRoster = new Map([
         [guildMemberId, { ...mockCharacterData, rank: 3 }],
@@ -230,7 +262,14 @@ describe('GuildMemberService', () => {
     it('should create LEAVE log for regular member', async () => {
       const guildMemberId = mockCharacterData.id;
       const originalRoster = new Map([
-        [guildMemberId, { ...mockCharacterData, rank: 2, characterGuid: mockCharacterData.guid }],
+        [
+          guildMemberId,
+          {
+            ...mockCharacterData,
+            rank: 2,
+            characterGuid: mockCharacterData.guid,
+          },
+        ],
       ]);
       const rosterUpdatedAt = new Date();
 
@@ -264,7 +303,14 @@ describe('GuildMemberService', () => {
     it('should NOT create LEAVE log for Guild Master', async () => {
       const guildMemberId = mockGuildMasterData.id;
       const originalRoster = new Map([
-        [guildMemberId, { ...mockGuildMasterData, rank: OSINT_GM_RANK, characterGuid: mockGuildMasterData.guid }],
+        [
+          guildMemberId,
+          {
+            ...mockGuildMasterData,
+            rank: OSINT_GM_RANK,
+            characterGuid: mockGuildMasterData.guid,
+          },
+        ],
       ]);
       const rosterUpdatedAt = new Date();
 
@@ -287,7 +333,9 @@ describe('GuildMemberService', () => {
 
       await service.updateRoster(mockGuildData as any, roster as any, false);
 
-      expect(mockCharacterGuildsMembersRepository.findBy).not.toHaveBeenCalled();
+      expect(
+        mockCharacterGuildsMembersRepository.findBy,
+      ).not.toHaveBeenCalled();
     });
   });
 });

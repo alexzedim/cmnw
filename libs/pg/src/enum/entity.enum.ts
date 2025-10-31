@@ -20,4 +20,5 @@ export enum CMNW_ENTITY_ENUM {
   SKILL_LINE = 'skill_line',
   SPELL_EFFECT = 'spell_effects',
   SPELL_REAGENTS = 'spell_reagents',
+  VALUATIONS = 'valuations',
 }

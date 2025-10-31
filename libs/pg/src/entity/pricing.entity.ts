@@ -1,4 +1,10 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import {
+  Column,
+  CreateDateColumn,
+  Entity,
+  PrimaryGeneratedColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 import { CMNW_ENTITY_ENUM } from '@app/pg';
 import { ItemNames, ItemPricing } from '@app/resources';
 
@@ -70,7 +76,7 @@ export class PricingEntity {
   @Column({
     nullable: false,
     type: 'real',
-    name: 'recipe_id'
+    name: 'recipe_id',
   })
   recipeId: number;
 
@@ -78,7 +84,7 @@ export class PricingEntity {
     nullable: true,
     default: null,
     type: 'int',
-    name: 'spell_id'
+    name: 'spell_id',
   })
   spellId: number;
 
@@ -88,7 +94,7 @@ export class PricingEntity {
     type: 'int',
     name: 'modified_crafting_slots',
   })
-  modifiedCraftingSlots: number[]
+  modifiedCraftingSlots: number[];
 
   // -- if from local source then convert from SkillLine -- //
   @Column({

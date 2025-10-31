@@ -328,17 +328,23 @@ export const guildUpdated: {
 /**
  * Helper functions to create roster maps as used in the worker
  */
-export const createGuildOriginalRosterMap = (): Map<number, CharactersGuildsMembersEntity> => {
+export const createGuildOriginalRosterMap = (): Map<
+  number,
+  CharactersGuildsMembersEntity
+> => {
   const map = new Map<number, CharactersGuildsMembersEntity>();
-  guildOriginal.members.forEach(member => {
+  guildOriginal.members.forEach((member) => {
     map.set(member.characterId, member);
   });
   return map;
 };
 
-export const createGuildUpdateRosterMap = (): Map<number, CharactersGuildsMembersEntity> => {
+export const createGuildUpdateRosterMap = (): Map<
+  number,
+  CharactersGuildsMembersEntity
+> => {
   const map = new Map<number, CharactersGuildsMembersEntity>();
-  guildUpdated.members.forEach(member => {
+  guildUpdated.members.forEach((member) => {
     map.set(member.characterId, member);
   });
   return map;

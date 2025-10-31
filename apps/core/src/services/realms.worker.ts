@@ -17,7 +17,8 @@ import {
   REALM_TICKER,
   RealmJobQueue,
   realmsQueue,
-  toLocale, toSlug,
+  toLocale,
+  toSlug,
   transformConnectedRealmId,
   transformNamedField,
 } from '@app/resources';
@@ -42,7 +43,11 @@ export class RealmsWorker extends WorkerHost {
    * @param jobData - Job context data for additional logging
    * @param additionalInfo - Additional context information
    */
-  private handleAxiosError(error: unknown, jobData?: RealmJobQueue, additionalInfo?: Record<string, any>): void {
+  private handleAxiosError(
+    error: unknown,
+    jobData?: RealmJobQueue,
+    additionalInfo?: Record<string, any>,
+  ): void {
     if (error instanceof AxiosError) {
       const errorInfo = {
         logTag: RealmsWorker.name,
@@ -53,12 +58,14 @@ export class RealmsWorker extends WorkerHost {
         method: error.config?.method?.toUpperCase(),
         responseData: error.response?.data,
         code: error.code,
-        jobData: jobData ? {
-          id: jobData.id,
-          name: jobData.name,
-          slug: jobData.slug,
-          region: jobData.region,
-        } : undefined,
+        jobData: jobData
+          ? {
+              id: jobData.id,
+              name: jobData.name,
+              slug: jobData.slug,
+              region: jobData.region,
+            }
+          : undefined,
         ...additionalInfo,
       };
 
@@ -68,12 +75,14 @@ export class RealmsWorker extends WorkerHost {
       this.logger.error({
         logTag: RealmsWorker.name,
         error,
-        jobData: jobData ? {
-          id: jobData.id,
-          name: jobData.name,
-          slug: jobData.slug,
-          region: jobData.region,
-        } : undefined,
+        jobData: jobData
+          ? {
+              id: jobData.id,
+              name: jobData.name,
+              slug: jobData.slug,
+              region: jobData.region,
+            }
+          : undefined,
         ...additionalInfo,
       });
     }
@@ -135,7 +144,11 @@ export class RealmsWorker extends WorkerHost {
       if (realmEntity.locale != 'enGB') {
         const realmLocale = await this.BNet.query<BlizzardApiResponse>(
           `/data/wow/realm/${args.slug}`,
-          apiConstParams(API_HEADERS_ENUM.DYNAMIC, OSINT_TIMEOUT_TOLERANCE, true),
+          apiConstParams(
+            API_HEADERS_ENUM.DYNAMIC,
+            OSINT_TIMEOUT_TOLERANCE,
+            true,
+          ),
         );
 
         await job.updateProgress(40);
@@ -171,7 +184,11 @@ export class RealmsWorker extends WorkerHost {
 
         realmEntity.connectedRealmId = get(connectedRealm, 'id', null);
         realmEntity.status = get(connectedRealm, 'status.name', null);
-        realmEntity.populationStatus = get(connectedRealm, 'population.name', null);
+        realmEntity.populationStatus = get(
+          connectedRealm,
+          'population.name',
+          null,
+        );
         await job.updateProgress(50);
 
         const isRealmsExists =

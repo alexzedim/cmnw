@@ -18,7 +18,9 @@ import { GUILD_WORKER_CONSTANTS, GUILD_SUMMARY_KEYS } from '@app/resources';
 
 @Injectable()
 export class GuildSummaryService {
-  private readonly logger = new Logger(GuildSummaryService.name, { timestamp: true });
+  private readonly logger = new Logger(GuildSummaryService.name, {
+    timestamp: true,
+  });
 
   constructor(
     @InjectRepository(KeysEntity)
@@ -31,7 +33,7 @@ export class GuildSummaryService {
     BNet: BlizzAPI,
   ): Promise<Partial<IGuildSummary>> {
     const summary: Partial<IGuildSummary> = {};
-    
+
     try {
       const response: Record<string, any> = await BNet.query(
         `/data/wow/guild/${realmSlug}/${guildNameSlug}`,
@@ -46,7 +48,7 @@ export class GuildSummaryService {
       this.extractFaction(response, summary);
       this.extractRealm(response, summary);
       this.extractDates(response, summary);
-      
+
       if ('member_count' in response) {
         summary.membersCount = response.member_count;
       }
@@ -64,19 +66,26 @@ export class GuildSummaryService {
     }
   }
 
-  private extractBasicFields(response: Record<string, any>, summary: Partial<IGuildSummary>): void {
+  private extractBasicFields(
+    response: Record<string, any>,
+    summary: Partial<IGuildSummary>,
+  ): void {
     Object.entries(response).forEach(([key, value]) => {
-      const isBasicFieldWithValue = GUILD_SUMMARY_KEYS.includes(key as any) && value !== null;
+      const isBasicFieldWithValue =
+        GUILD_SUMMARY_KEYS.includes(key as any) && value !== null;
       if (isBasicFieldWithValue) {
         summary[changeCase.camelCase(key)] = value;
       }
     });
   }
 
-  private extractFaction(response: Record<string, any>, summary: Partial<IGuildSummary>): void {
+  private extractFaction(
+    response: Record<string, any>,
+    summary: Partial<IGuildSummary>,
+  ): void {
     const faction = response.faction;
     const isFactionObject = typeof faction === 'object' && faction !== null;
-    
+
     if (!isFactionObject) {
       return;
     }
@@ -90,10 +99,18 @@ export class GuildSummaryService {
     }
   }
 
-  private extractRealm(response: Record<string, any>, summary: Partial<IGuildSummary>): void {
+  private extractRealm(
+    response: Record<string, any>,
+    summary: Partial<IGuildSummary>,
+  ): void {
     const realm = response.realm;
-    const isRealmValid = typeof realm === 'object' && realm !== null && realm.id && realm.name && realm.slug;
-    
+    const isRealmValid =
+      typeof realm === 'object' &&
+      realm !== null &&
+      realm.id &&
+      realm.name &&
+      realm.slug;
+
     if (isRealmValid) {
       summary.realmId = realm.id;
       summary.realmName = realm.name;
@@ -101,11 +118,14 @@ export class GuildSummaryService {
     }
   }
 
-  private extractDates(response: Record<string, any>, summary: Partial<IGuildSummary>): void {
+  private extractDates(
+    response: Record<string, any>,
+    summary: Partial<IGuildSummary>,
+  ): void {
     if ('last_modified' in response) {
       summary.lastModified = new Date(response.last_modified);
     }
-    
+
     if ('created_timestamp' in response) {
       summary.createdTimestamp = new Date(response.created_timestamp);
     }
@@ -118,9 +138,15 @@ export class GuildSummaryService {
     realmSlug: string,
     BNet: BlizzAPI,
   ): Promise<Partial<IGuildSummary>> {
-    summary.statusCode = get(errorOrException, 'status', STATUS_CODES.ERROR_GUILD);
-    
-    const isTooManyRequests = summary.statusCode === GUILD_WORKER_CONSTANTS.TOO_MANY_REQUESTS_STATUS_CODE;
+    summary.statusCode = get(
+      errorOrException,
+      'status',
+      STATUS_CODES.ERROR_GUILD,
+    );
+
+    const isTooManyRequests =
+      summary.statusCode ===
+      GUILD_WORKER_CONSTANTS.TOO_MANY_REQUESTS_STATUS_CODE;
     if (isTooManyRequests) {
       await incErrorCount(
         this.keysRepository,

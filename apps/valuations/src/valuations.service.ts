@@ -3,8 +3,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Market, Item, Pricing, RealmConnected } from '@app/mongo';
 import { Model } from 'mongoose';
 import {
-  ASSET_EVALUATION_PRIORITY, IVAAuctions,
-  IQItemValuation, IVARealm,
+  ASSET_EVALUATION_PRIORITY,
+  IVAAuctions,
+  IQItemValuation,
+  IVARealm,
   VALUATION_TYPE,
   valuationsQueue,
 } from '@app/resources';
@@ -13,12 +15,11 @@ import { Queue } from 'bullmq';
 import { valuationsConfig } from '@app/configuration';
 // import { Cron, CronExpression } from '@nestjs/schedule';
 
-
 @Injectable()
 export class ValuationsService implements OnApplicationBootstrap {
-  private readonly logger = new Logger(
-    ValuationsService.name, { timestamp: true },
-  );
+  private readonly logger = new Logger(ValuationsService.name, {
+    timestamp: true,
+  });
 
   constructor(
     @InjectModel(Item.name)
@@ -31,11 +32,14 @@ export class ValuationsService implements OnApplicationBootstrap {
     private readonly AuctionsModel: Model<Market>,
     @InjectQueue(valuationsQueue.name)
     private readonly queue: Queue<IQItemValuation, number>,
-  ) { }
+  ) {}
 
   async onApplicationBootstrap(): Promise<void> {
     await this.clearQueue();
-    await this.buildAssetClasses(['pricing', 'auctions', 'contracts', 'currency', 'tags'], valuationsConfig.build);
+    await this.buildAssetClasses(
+      ['pricing', 'auctions', 'contracts', 'currency', 'tags'],
+      valuationsConfig.build,
+    );
   }
 
   async clearQueue(): Promise<void> {
@@ -45,16 +49,15 @@ export class ValuationsService implements OnApplicationBootstrap {
   // @Cron(CronExpression.EVERY_10_MINUTES)
   async initValuations(): Promise<void> {
     try {
-      await this.RealmModel
-        .aggregate<IVARealm>([
-          {
-            $group: {
-              _id: '$connected_realm_id',
-              auctions: { $first: "$auctions" },
-              valuations: { $first: "$valuations" }
-            },
-          }
-        ])
+      await this.RealmModel.aggregate<IVARealm>([
+        {
+          $group: {
+            _id: '$connected_realm_id',
+            auctions: { $first: '$auctions' },
+            valuations: { $first: '$valuations' },
+          },
+        },
+      ])
         .cursor({ batchSize: 1 })
         .eachAsync(async ({ _id, auctions, valuations }: IVARealm) => {
           /** Update valuations with new auctions data */
@@ -66,35 +69,47 @@ export class ValuationsService implements OnApplicationBootstrap {
     }
   }
 
-  async buildValuations(connected_realm_id: number, timestamp: number): Promise<void> {
+  async buildValuations(
+    connected_realm_id: number,
+    timestamp: number,
+  ): Promise<void> {
     try {
       for (const [priority, query] of ASSET_EVALUATION_PRIORITY) {
         this.logger.log(`=======================================`);
         this.logger.log(`buildValuations: ${connected_realm_id}-${priority}`);
-        await this.ItemModel
-          .find(query)
+        await this.ItemModel.find(query)
           .lean()
           .cursor()
-          .eachAsync(async (item) => {
-            const _id = `${item._id}@${connected_realm_id}_${timestamp}`;
-            await this.queue.add(
-              _id, {
-                _id: item._id,
-                last_modified: timestamp,
-                connected_realm_id,
-                iteration: 0
-              }, {
-                jobId: _id,
-                priority: priority,
-              }
-            );
-          }, { parallel: 10 });
+          .eachAsync(
+            async (item) => {
+              const _id = `${item._id}@${connected_realm_id}_${timestamp}`;
+              await this.queue.add(
+                _id,
+                {
+                  _id: item._id,
+                  last_modified: timestamp,
+                  connected_realm_id,
+                  iteration: 0,
+                },
+                {
+                  jobId: _id,
+                  priority: priority,
+                },
+              );
+            },
+            { parallel: 10 },
+          );
         this.logger.log(`=======================================`);
       }
-      await this.RealmModel.updateMany({ connected_realm_id }, { valuations: timestamp });
-      this.logger.log(`buildValuations: realm: ${connected_realm_id} updated: ${timestamp}`);
+      await this.RealmModel.updateMany(
+        { connected_realm_id },
+        { valuations: timestamp },
+      );
+      this.logger.log(
+        `buildValuations: realm: ${connected_realm_id} updated: ${timestamp}`,
+      );
     } catch (errorOrException) {
-      this.logger.error(`buildValuations: ${errorOrException}`)
+      this.logger.error(`buildValuations: ${errorOrException}`);
     }
   }
   /**
@@ -102,7 +117,10 @@ export class ValuationsService implements OnApplicationBootstrap {
    * @param args
    * @param init
    */
-  async buildAssetClasses(args: string[] = ['pricing', 'auctions', 'contracts', 'currency', 'tags'], init: boolean = true): Promise<void> {
+  async buildAssetClasses(
+    args: string[] = ['pricing', 'auctions', 'contracts', 'currency', 'tags'],
+    init: boolean = true,
+  ): Promise<void> {
     try {
       this.logger.log(`buildAssetClasses: init: ${init}`);
       if (!init) {
@@ -114,29 +132,49 @@ export class ValuationsService implements OnApplicationBootstrap {
        */
       if (args.includes('pricing')) {
         const logTag = 'buildAssetIndex';
-        this.logger.debug({ logTag, stage: 'pricing', message: 'Pricing stage started' });
-        await this.PricingModel
-          .find({})
+        this.logger.debug({
+          logTag,
+          stage: 'pricing',
+          message: 'Pricing stage started',
+        });
+        await this.PricingModel.find({})
           .cursor()
-          .eachAsync(async (pricing: Pricing) => {
-            for (const { _id } of pricing.derivatives) {
-              const item = await this.ItemModel.findById(_id);
-              if (item) {
-                item.asset_class.addToSet(VALUATION_TYPE.DERIVATIVE);
-                this.logger.debug({ logTag, itemId: _id, assetClass: VALUATION_TYPE.DERIVATIVE, message: `Added derivative asset class to item: ${_id}` });
-                await item.save();
+          .eachAsync(
+            async (pricing: Pricing) => {
+              for (const { _id } of pricing.derivatives) {
+                const item = await this.ItemModel.findById(_id);
+                if (item) {
+                  item.asset_class.addToSet(VALUATION_TYPE.DERIVATIVE);
+                  this.logger.debug({
+                    logTag,
+                    itemId: _id,
+                    assetClass: VALUATION_TYPE.DERIVATIVE,
+                    message: `Added derivative asset class to item: ${_id}`,
+                  });
+                  await item.save();
+                }
               }
-            }
-            for (const { _id } of pricing.reagents) {
-              const item = await this.ItemModel.findById(_id);
-              if (item) {
-                item.asset_class.addToSet(VALUATION_TYPE.REAGENT);
-                this.logger.debug({ logTag, itemId: _id, assetClass: VALUATION_TYPE.REAGENT, message: `Added reagent asset class to item: ${_id}` });
-                await item.save();
+              for (const { _id } of pricing.reagents) {
+                const item = await this.ItemModel.findById(_id);
+                if (item) {
+                  item.asset_class.addToSet(VALUATION_TYPE.REAGENT);
+                  this.logger.debug({
+                    logTag,
+                    itemId: _id,
+                    assetClass: VALUATION_TYPE.REAGENT,
+                    message: `Added reagent asset class to item: ${_id}`,
+                  });
+                  await item.save();
+                }
               }
-            }
-          }, { parallel: 20 });
-        this.logger.debug({ logTag, stage: 'pricing', message: 'Pricing stage ended' });
+            },
+            { parallel: 20 },
+          );
+        this.logger.debug({
+          logTag,
+          stage: 'pricing',
+          message: 'Pricing stage ended',
+        });
       }
       /**
        * This stage add asset_classes from auction_db
@@ -148,27 +186,34 @@ export class ValuationsService implements OnApplicationBootstrap {
           {
             $group: {
               _id: '$item_id',
-              data: { $first: "$$ROOT"}
-            }
-          }
+              data: { $first: '$$ROOT' },
+            },
+          },
         ])
           .allowDiskUse(true)
           .cursor({})
-          .eachAsync(async (itemAuction: IVAAuctions) => {
-            const item = await this.ItemModel.findById(itemAuction._id)
-            if (item) {
-              item.asset_class.addToSet(VALUATION_TYPE.MARKET);
-              const { data: order } = itemAuction;
-              if (order.price) {
-                item.asset_class.addToSet(VALUATION_TYPE.COMMDTY);
-                this.logger.debug(`item: ${item._id}, asset_class: ${VALUATION_TYPE.COMMDTY}`);
-              } else if (order.bid || order.buyout) {
-                item.asset_class.addToSet(VALUATION_TYPE.ITEM);
-                this.logger.debug(`item: ${item._id}, asset_class: ${VALUATION_TYPE.ITEM}`);
+          .eachAsync(
+            async (itemAuction: IVAAuctions) => {
+              const item = await this.ItemModel.findById(itemAuction._id);
+              if (item) {
+                item.asset_class.addToSet(VALUATION_TYPE.MARKET);
+                const { data: order } = itemAuction;
+                if (order.price) {
+                  item.asset_class.addToSet(VALUATION_TYPE.COMMDTY);
+                  this.logger.debug(
+                    `item: ${item._id}, asset_class: ${VALUATION_TYPE.COMMDTY}`,
+                  );
+                } else if (order.bid || order.buyout) {
+                  item.asset_class.addToSet(VALUATION_TYPE.ITEM);
+                  this.logger.debug(
+                    `item: ${item._id}, asset_class: ${VALUATION_TYPE.ITEM}`,
+                  );
+                }
+                await item.save();
               }
-              await item.save();
-            }
-          }, { parallel: 20 });
+            },
+            { parallel: 20 },
+          );
         this.logger.debug('auctions stage ended');
       }
       /**
@@ -177,17 +222,21 @@ export class ValuationsService implements OnApplicationBootstrap {
        */
       if (args.includes('contracts')) {
         this.logger.debug('contracts stage started');
-        await this.ItemModel
-          .updateMany({
+        await this.ItemModel.updateMany(
+          {
             $or: [
               { _id: 1 },
               {
                 expansion: 'SHDW',
-                asset_class: { $all: [VALUATION_TYPE.MARKET, VALUATION_TYPE.COMMDTY] },
-                ticker: { $exists: true }
+                asset_class: {
+                  $all: [VALUATION_TYPE.MARKET, VALUATION_TYPE.COMMDTY],
+                },
+                ticker: { $exists: true },
               },
             ],
-          }, { contracts: true  });
+          },
+          { contracts: true },
+        );
         this.logger.debug('contracts stage ended');
       }
       /**
@@ -196,11 +245,10 @@ export class ValuationsService implements OnApplicationBootstrap {
        */
       if (args.includes('premium')) {
         this.logger.debug('premium stage started');
-        await this.ItemModel
-          .updateMany(
-            { asset_class: VALUATION_TYPE.REAGENT, loot_type: 'ON_ACQUIRE' },
-            { $addToSet: { asset_class: VALUATION_TYPE.PREMIUM } },
-          );
+        await this.ItemModel.updateMany(
+          { asset_class: VALUATION_TYPE.REAGENT, loot_type: 'ON_ACQUIRE' },
+          { $addToSet: { asset_class: VALUATION_TYPE.PREMIUM } },
+        );
         this.logger.debug('premium stage ended');
       }
       /**
@@ -228,30 +276,42 @@ export class ValuationsService implements OnApplicationBootstrap {
        */
       if (args.includes('tags')) {
         this.logger.debug('tags stage started');
-        await this.ItemModel
-          .find()
+        await this.ItemModel.find()
           .cursor()
-          .eachAsync(async (item: Item) => {
-            if (item.sell_price) item.asset_class.addToSet(VALUATION_TYPE.VSP);
-            if (item.expansion) item.tags.addToSet(item.expansion.toLowerCase());
-            if (item.profession_class) item.tags.addToSet(item.profession_class.toLowerCase());
-            if (item.asset_class) item.asset_class.map(asset_class => item.tags.addToSet(asset_class.toLowerCase()));
-            if (item.item_class) item.tags.addToSet(item.item_class.toLowerCase());
-            if (item.item_subclass) item.tags.addToSet(item.item_subclass.toLowerCase());
-            if (item.quality) item.tags.addToSet(item.quality.toLowerCase());
-            if (item.ticker) {
-              item.ticker.split('.').map(ticker => {
-                const t: string = ticker.toLowerCase()
-                if (t === 'j' || t === 'petal' || t === 'nugget') {
+          .eachAsync(
+            async (item: Item) => {
+              if (item.sell_price)
+                item.asset_class.addToSet(VALUATION_TYPE.VSP);
+              if (item.expansion)
+                item.tags.addToSet(item.expansion.toLowerCase());
+              if (item.profession_class)
+                item.tags.addToSet(item.profession_class.toLowerCase());
+              if (item.asset_class)
+                item.asset_class.map((asset_class) =>
+                  item.tags.addToSet(asset_class.toLowerCase()),
+                );
+              if (item.item_class)
+                item.tags.addToSet(item.item_class.toLowerCase());
+              if (item.item_subclass)
+                item.tags.addToSet(item.item_subclass.toLowerCase());
+              if (item.quality) item.tags.addToSet(item.quality.toLowerCase());
+              if (item.ticker) {
+                item.ticker.split('.').map((ticker) => {
+                  const t: string = ticker.toLowerCase();
+                  if (t === 'j' || t === 'petal' || t === 'nugget') {
+                    item.tags.addToSet(t);
+                    return;
+                  }
                   item.tags.addToSet(t);
-                  return;
-                }
-                item.tags.addToSet(t);
-              });
-            }
-            this.logger.debug(`item: ${item._id}, tags: ${item.tags.join(', ')}`);
-            await item.save();
-          }, { parallel: 20 });
+                });
+              }
+              this.logger.debug(
+                `item: ${item._id}, tags: ${item.tags.join(', ')}`,
+              );
+              await item.save();
+            },
+            { parallel: 20 },
+          );
         this.logger.debug('tags stage ended');
       }
     } catch (errorOrException) {

@@ -442,3 +442,15 @@ export interface ItemPricing {
   id: number;
   quantity: number;
 }
+
+/**
+ * Asset Class Build Arguments
+ * Configuration for buildAssetClasses stages
+ */
+export interface IAssetClassBuildArgs {
+  isByPricing?: boolean;
+  isByAuctions?: boolean;
+  isByPremium?: boolean;
+  isByCurrency?: boolean;
+  isByTags?: boolean;
+}

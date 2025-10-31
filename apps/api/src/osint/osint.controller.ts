@@ -56,11 +56,15 @@ export class OsintController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/character')
-  async getCharacter(@Query() input: CharacterIdDto): Promise<CharactersEntity> {
+  async getCharacter(
+    @Query() input: CharacterIdDto,
+  ): Promise<CharactersEntity> {
     return await this.osintService.getCharacter(input);
   }
 
-  @ApiOperation({ description: 'Returns characters which are looking for guild' })
+  @ApiOperation({
+    description: 'Returns characters which are looking for guild',
+  })
   @ApiOkResponse({
     description: 'Request characters with selected input parameters',
   })
@@ -76,7 +80,9 @@ export class OsintController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/character/lfg')
-  async getCharactersLfg(@Query() input: CharactersLfgDto): Promise<{ characters: CharactersProfileEntity[] }> {
+  async getCharactersLfg(
+    @Query() input: CharactersLfgDto,
+  ): Promise<{ characters: CharactersProfileEntity[] }> {
     const characters = await this.osintService.getCharactersLfg(input);
     return { characters };
   }
@@ -95,7 +101,9 @@ export class OsintController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/character/hash')
-  async getCharactersByHash(@Query() input: CharacterHashDto): Promise<{ characters: CharactersEntity[] }> {
+  async getCharactersByHash(
+    @Query() input: CharacterHashDto,
+  ): Promise<{ characters: CharactersEntity[] }> {
     const characters = await this.osintService.getCharactersByHash(input);
     return { characters };
   }
@@ -114,7 +122,9 @@ export class OsintController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/character/logs')
-  async getCharacterLogs(@Query() input: CharacterIdDto): Promise<{ logs: CharactersGuildsLogsEntity[] }> {
+  async getCharacterLogs(
+    @Query() input: CharacterIdDto,
+  ): Promise<{ logs: CharactersGuildsLogsEntity[] }> {
     const logs = await this.osintService.getCharacterLogs(input);
     return { logs };
   }
@@ -133,12 +143,16 @@ export class OsintController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/guild')
-  async getGuild(@Query() input: GuildIdDto): Promise<{ guild: GuildsEntity; members: any[]; memberCount: number }> {
+  async getGuild(
+    @Query() input: GuildIdDto,
+  ): Promise<{ guild: GuildsEntity; members: any[]; memberCount: number }> {
     return this.osintService.getGuild(input);
   }
 
   @ApiOperation({ description: 'Returns requested guild logs' })
-  @ApiOkResponse({ description: 'Request guild logs for guild with selected guid' })
+  @ApiOkResponse({
+    description: 'Request guild logs for guild with selected guid',
+  })
   @ApiUnauthorizedResponse({
     description: 'You need authenticate yourself before request',
   })
@@ -151,19 +165,25 @@ export class OsintController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/guild/logs')
-  async getGuildLogs(@Query() input: GuildIdDto): Promise<{ logs: CharactersGuildsLogsEntity[] }> {
+  async getGuildLogs(
+    @Query() input: GuildIdDto,
+  ): Promise<{ logs: CharactersGuildsLogsEntity[] }> {
     const logs = await this.osintService.getGuildLogs(input);
     return { logs };
   }
 
   @HttpCode(HttpStatus.OK)
   @Get('/realm/population/:realmId')
-  async getRealmPopulation(@Param('realmId') realmId: string): Promise<string[]> {
+  async getRealmPopulation(
+    @Param('realmId') realmId: string,
+  ): Promise<string[]> {
     return this.osintService.getRealmPopulation(realmId);
   }
 
   @ApiOperation({ description: 'Returns requested realm' })
-  @ApiOkResponse({ description: 'Request realm logs by various different criteria' })
+  @ApiOkResponse({
+    description: 'Request realm logs by various different criteria',
+  })
   @ApiUnauthorizedResponse({
     description: 'You need authenticate yourself before request',
   })
@@ -176,7 +196,9 @@ export class OsintController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/realms')
-  async getRealms(@Query() input: RealmDto): Promise<{ realms: RealmsEntity[] }> {
+  async getRealms(
+    @Query() input: RealmDto,
+  ): Promise<{ realms: RealmsEntity[] }> {
     const realms = await this.osintService.getRealms(input);
     return { realms };
   }

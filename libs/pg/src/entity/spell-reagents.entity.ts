@@ -10,7 +10,7 @@ export class SpellReagentsEntity {
   @Column({
     nullable: false,
     type: 'int',
-    name: 'spell_id'
+    name: 'spell_id',
   })
   spellId: number;
 
@@ -19,5 +19,5 @@ export class SpellReagentsEntity {
     default: () => "'[]'",
     type: 'jsonb',
   })
-  reagents: string | Array<ItemPricing>
+  reagents: string | Array<ItemPricing>;
 }

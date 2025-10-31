@@ -11,14 +11,16 @@ import { toSlug } from '../utils';
  */
 @Injectable()
 export class RealmsCacheService implements OnModuleInit {
-  private readonly logger = new Logger(RealmsCacheService.name, { timestamp: true });
-  
+  private readonly logger = new Logger(RealmsCacheService.name, {
+    timestamp: true,
+  });
+
   private realmsById = new Map<number, RealmsEntity>();
   private realmsByName = new Map<string, RealmsEntity>();
   private realmsBySlug = new Map<string, RealmsEntity>();
   private realmsByLocaleName = new Map<string, RealmsEntity>();
   private realmsByLocaleSlug = new Map<string, RealmsEntity>();
-  
+
   private isInitialized = false;
   private initializationPromise: Promise<void> | null = null;
 
@@ -36,7 +38,7 @@ export class RealmsCacheService implements OnModuleInit {
    */
   private async loadRealms(): Promise<void> {
     const logTag = 'loadRealms';
-    
+
     if (this.initializationPromise) {
       return this.initializationPromise;
     }
@@ -45,7 +47,7 @@ export class RealmsCacheService implements OnModuleInit {
       try {
         const startTime = Date.now();
         const realms = await this.realmsRepository.find();
-        
+
         // Clear existing maps
         this.realmsById.clear();
         this.realmsByName.clear();
@@ -56,22 +58,22 @@ export class RealmsCacheService implements OnModuleInit {
         // Build lookup maps
         for (const realm of realms) {
           this.realmsById.set(realm.id, realm);
-          
+
           if (realm.name) {
             this.realmsByName.set(realm.name, realm);
             this.realmsByName.set(realm.name.toLowerCase(), realm);
           }
-          
+
           if (realm.slug) {
             this.realmsBySlug.set(realm.slug, realm);
             this.realmsBySlug.set(realm.slug.toLowerCase(), realm);
           }
-          
+
           if (realm.localeName) {
             this.realmsByLocaleName.set(realm.localeName, realm);
             this.realmsByLocaleName.set(realm.localeName.toLowerCase(), realm);
           }
-          
+
           if (realm.localeSlug) {
             this.realmsByLocaleSlug.set(realm.localeSlug, realm);
             this.realmsByLocaleSlug.set(realm.localeSlug.toLowerCase(), realm);
@@ -81,13 +83,13 @@ export class RealmsCacheService implements OnModuleInit {
         this.isInitialized = true;
         const duration = Date.now() - startTime;
         const memoryUsageKB = Math.round((realms.length * 450) / 1024);
-        
+
         this.logger.log({
           logTag,
           realmCount: realms.length,
           duration,
           estimatedMemoryKB: memoryUsageKB,
-          message: `Loaded ${realms.length} realms into memory cache in ${duration}ms (~${memoryUsageKB}KB)`
+          message: `Loaded ${realms.length} realms into memory cache in ${duration}ms (~${memoryUsageKB}KB)`,
         });
       } catch (errorOrException) {
         this.logger.error({ logTag, errorOrException });
@@ -121,10 +123,11 @@ export class RealmsCacheService implements OnModuleInit {
     if (!query) return null;
 
     // Try exact matches first
-    let realm = this.realmsByName.get(query) 
-      || this.realmsBySlug.get(query)
-      || this.realmsByLocaleName.get(query)
-      || this.realmsByLocaleSlug.get(query);
+    let realm =
+      this.realmsByName.get(query) ||
+      this.realmsBySlug.get(query) ||
+      this.realmsByLocaleName.get(query) ||
+      this.realmsByLocaleSlug.get(query);
 
     if (realm) return realm;
 
@@ -136,10 +139,11 @@ export class RealmsCacheService implements OnModuleInit {
 
     // Try lowercase variations
     const lowerQuery = query.toLowerCase();
-    realm = this.realmsByName.get(lowerQuery)
-      || this.realmsBySlug.get(lowerQuery)
-      || this.realmsByLocaleName.get(lowerQuery)
-      || this.realmsByLocaleSlug.get(lowerQuery);
+    realm =
+      this.realmsByName.get(lowerQuery) ||
+      this.realmsBySlug.get(lowerQuery) ||
+      this.realmsByLocaleName.get(lowerQuery) ||
+      this.realmsByLocaleSlug.get(lowerQuery);
 
     return realm || null;
   }
@@ -157,11 +161,13 @@ export class RealmsCacheService implements OnModuleInit {
   /**
    * Get realm by connected realm ID
    */
-  async findByConnectedRealmId(connectedRealmId: number): Promise<RealmsEntity | null> {
+  async findByConnectedRealmId(
+    connectedRealmId: number,
+  ): Promise<RealmsEntity | null> {
     if (!this.isInitialized) {
       await this.loadRealms();
     }
-    
+
     for (const realm of this.realmsById.values()) {
       if (realm.connectedRealmId === connectedRealmId) {
         return realm;

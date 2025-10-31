@@ -16,3 +16,4 @@ export * from './character.dto';
 export * from './req-get-item.dto';
 export * from './auth-response.dto';
 export * from './item-realm.dto';
+export * from './search-item.dto';

@@ -1,26 +1,52 @@
 import { Module } from '@nestjs/common';
 import { bullConfig, postgresConfig, redisConfig } from '@app/configuration';
-import { AuctionsService, ContractsService, GoldService } from './services';
+import {
+  AuctionsService,
+  ContractsService,
+  GoldService,
+  ValuationsService,
+  PricingService,
+  ItemsService,
+} from './services';
 import { BullModule } from '@nestjs/bullmq';
-import { auctionsQueue } from '@app/resources';
+import { auctionsQueue, pricingQueue, itemsQueue } from '@app/resources';
 import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ContractEntity, ItemsEntity, KeysEntity, MarketEntity, RealmsEntity } from '@app/pg';
+import {
+  ContractEntity,
+  ItemsEntity,
+  KeysEntity,
+  MarketEntity,
+  PricingEntity,
+  RealmsEntity,
+  SkillLineEntity,
+  SpellEffectEntity,
+  SpellReagentsEntity,
+  ValuationEntity,
+} from '@app/pg';
 import { HttpModule } from '@nestjs/axios';
+import { S3Module } from '@app/s3';
+import { s3Config } from '@app/configuration';
 
 @Module({
   imports: [
     HttpModule,
     ScheduleModule.forRoot(),
+    S3Module.forRoot(s3Config),
     TypeOrmModule.forRoot(postgresConfig),
     TypeOrmModule.forFeature([
       KeysEntity,
       RealmsEntity,
       MarketEntity,
       ContractEntity,
-      ItemsEntity
+      ItemsEntity,
+      PricingEntity,
+      SkillLineEntity,
+      SpellEffectEntity,
+      SpellReagentsEntity,
+      ValuationEntity,
     ]),
     RedisModule.forRoot({
       type: 'single',
@@ -28,7 +54,7 @@ import { HttpModule } from '@nestjs/axios';
         host: redisConfig.host,
         port: redisConfig.port,
         password: redisConfig.password,
-      }
+      },
     }),
     BullModule.forRoot({
       connection: {
@@ -41,8 +67,24 @@ import { HttpModule } from '@nestjs/axios';
       name: auctionsQueue.name,
       defaultJobOptions: auctionsQueue.defaultJobOptions,
     }),
+    BullModule.registerQueue({
+      name: pricingQueue.name,
+      defaultJobOptions: pricingQueue.defaultJobOptions,
+    }),
+    BullModule.registerQueue({
+      name: itemsQueue.name,
+      defaultJobOptions: itemsQueue.defaultJobOptions,
+    }),
   ],
   controllers: [],
-  providers: [RealmsCacheService, AuctionsService, GoldService, ContractsService],
+  providers: [
+    RealmsCacheService,
+    AuctionsService,
+    GoldService,
+    ContractsService,
+    ValuationsService,
+    PricingService,
+    ItemsService,
+  ],
 })
 export class MarketModule {}

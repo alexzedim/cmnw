@@ -1,7 +1,7 @@
-import { 
-  FACTION, 
-  OSINT_SOURCE, 
-  STATUS_CODES, 
+import {
+  FACTION,
+  OSINT_SOURCE,
+  STATUS_CODES,
   OSINT_GM_RANK,
 } from '@app/resources';
 

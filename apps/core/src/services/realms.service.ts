@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, OnApplicationBootstrap } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  OnApplicationBootstrap,
+} from '@nestjs/common';
 import * as cheerio from 'cheerio';
 import { InjectQueue } from '@nestjs/bullmq';
 import { BlizzAPI } from '@alexzedim/blizzapi';
@@ -40,7 +44,6 @@ export class RealmsService implements OnApplicationBootstrap {
     private readonly queue: Queue<RealmJobQueue, number>,
   ) {}
 
-
   async onApplicationBootstrap(): Promise<void> {
     await this.init();
     await this.indexRealms(GLOBAL_KEY);
@@ -76,7 +79,12 @@ export class RealmsService implements OnApplicationBootstrap {
       );
 
       for (const { id, name, slug } of realmList) {
-        this.logger.log({ logTag, realmId: id, realmName: name, message: `Processing realm: ${id}:${name}` });
+        this.logger.log({
+          logTag,
+          realmId: id,
+          realmName: name,
+          message: `Processing realm: ${id}:${name}`,
+        });
         await this.queue.add(
           slug,
           {
@@ -115,7 +123,7 @@ export class RealmsService implements OnApplicationBootstrap {
           try {
             // Add delay to respect rate limits
             await delay(2);
-            
+
             const response = await this.httpService.axiosRef.get<string>(
               `https://www.warcraftlogs.com/server/id/${realmId}`,
               {
@@ -124,9 +132,13 @@ export class RealmsService implements OnApplicationBootstrap {
               },
             );
             const warcraftLogsPage = cheerio.load(response.data);
-            const warcraftLogsRealmElement = warcraftLogsPage.html('.server-name');
+            const warcraftLogsRealmElement =
+              warcraftLogsPage.html('.server-name');
             const realmName = warcraftLogsPage(warcraftLogsRealmElement).text();
-            const realmEntity = await findRealm(this.realmsRepository, realmName);
+            const realmEntity = await findRealm(
+              this.realmsRepository,
+              realmName,
+            );
             if (!realmEntity) {
               throw new NotFoundException(`${realmId}:${realmName} not found!`);
             }
@@ -141,17 +153,19 @@ export class RealmsService implements OnApplicationBootstrap {
               realmId,
               realmName,
               entityId: realmEntity.id,
-              message: `getRealmsWarcraftLogsID: ${realmId}:${realmName} | ${realmEntity.id} updated!`
+              message: `getRealmsWarcraftLogsID: ${realmId}:${realmName} | ${realmEntity.id} updated!`,
             });
           } catch (errorOrException) {
             // Skip logging for 403/404 errors to reduce noise
-            const isExpectedError = errorOrException?.status === 403 || errorOrException?.status === 404;
+            const isExpectedError =
+              errorOrException?.status === 403 ||
+              errorOrException?.status === 404;
             if (!isExpectedError) {
               this.logger.error({
                 logTag,
                 errorOrException,
                 realmId,
-                url: `https://www.warcraftlogs.com/server/id/${realmId}`
+                url: `https://www.warcraftlogs.com/server/id/${realmId}`,
               });
             }
           }

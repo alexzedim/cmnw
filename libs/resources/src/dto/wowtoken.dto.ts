@@ -1,7 +1,10 @@
 import { Transform } from 'class-transformer';
 import { IsOptional, IsString, Max } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { SWAGGER_WOWTOKEN_LIMIT, SWAGGER_WOWTOKEN_REGION } from '@app/resources';
+import {
+  SWAGGER_WOWTOKEN_LIMIT,
+  SWAGGER_WOWTOKEN_REGION,
+} from '@app/resources';
 
 export class WowtokenDto {
   @ApiProperty(SWAGGER_WOWTOKEN_REGION)

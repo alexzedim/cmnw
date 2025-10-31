@@ -1,10 +1,5 @@
 import { CMNW_ENTITY_ENUM } from '@app/pg';
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  PrimaryColumn,
-} from 'typeorm';
+import { Column, CreateDateColumn, Entity, PrimaryColumn } from 'typeorm';
 
 @Entity({ name: CMNW_ENTITY_ENUM.PETS })
 export class PetsEntity {
