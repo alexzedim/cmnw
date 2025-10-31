@@ -4,7 +4,7 @@
  * Extracted from TradeSkillMaster with comprehensive metadata
  */
 
-import { DMA_SOURCE, PROFESSION_TICKER } from '@app/resources/constants';
+import { DMA_SOURCE, EXPANSION_TICKER, PROFESSION_TICKER } from '@app/resources/constants';
 
 // Profession ID for Inscription is 773
 const PROF_INSC = PROFESSION_TICKER.get(773) || 'INSC';
@@ -19,7 +19,7 @@ export const DARKMOON_DECKS = {
     // SHADOWLANDS - Darkmoon Decks of Fortune
     // ========================================================================
     {
-      expansion: 'SL',
+      expansion: EXPANSION_TICKER.SHDW,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -38,7 +38,7 @@ export const DARKMOON_DECKS = {
       ],
     },
     {
-      expansion: 'SL',
+      expansion: EXPANSION_TICKER.SHDW,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -57,7 +57,7 @@ export const DARKMOON_DECKS = {
       ],
     },
     {
-      expansion: 'SL',
+      expansion: EXPANSION_TICKER.SHDW,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -76,7 +76,7 @@ export const DARKMOON_DECKS = {
       ],
     },
     {
-      expansion: 'SL',
+      expansion: EXPANSION_TICKER.SHDW,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -95,7 +95,7 @@ export const DARKMOON_DECKS = {
       ],
     },
     {
-      expansion: 'SL',
+      expansion: EXPANSION_TICKER.SHDW,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -114,7 +114,7 @@ export const DARKMOON_DECKS = {
       ],
     },
     {
-      expansion: 'SL',
+      expansion: EXPANSION_TICKER.SHDW,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -133,7 +133,7 @@ export const DARKMOON_DECKS = {
       ],
     },
     {
-      expansion: 'SL',
+      expansion: EXPANSION_TICKER.SHDW,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -152,7 +152,7 @@ export const DARKMOON_DECKS = {
       ],
     },
     {
-      expansion: 'SL',
+      expansion: EXPANSION_TICKER.SHDW,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -175,7 +175,7 @@ export const DARKMOON_DECKS = {
     // DRAGONFLIGHT - Darkmoon Decks of War
     // ========================================================================
     {
-      expansion: 'DF',
+      expansion: EXPANSION_TICKER.DF,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -194,7 +194,7 @@ export const DARKMOON_DECKS = {
       ],
     },
     {
-      expansion: 'DF',
+      expansion: EXPANSION_TICKER.DF,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -213,7 +213,7 @@ export const DARKMOON_DECKS = {
       ],
     },
     {
-      expansion: 'DF',
+      expansion: EXPANSION_TICKER.DF,
       rank: 2,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -232,7 +232,7 @@ export const DARKMOON_DECKS = {
       ],
     },
     {
-      expansion: 'DF',
+      expansion: EXPANSION_TICKER.DF,
       rank: 2,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -255,7 +255,7 @@ export const DARKMOON_DECKS = {
     // CLASSIC ERA - Original Darkmoon Decks
     // ========================================================================
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -274,7 +274,7 @@ export const DARKMOON_DECKS = {
       ],
     },
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -293,7 +293,7 @@ export const DARKMOON_DECKS = {
       ],
     },
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 2,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -324,5 +324,6 @@ export const DARKMOON_DECKS = {
     // - The actual card items are consumed in the combination process
   ],
 };
+
 
 

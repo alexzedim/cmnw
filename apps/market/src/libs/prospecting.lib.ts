@@ -3,7 +3,7 @@
  * Extracted from TradeSkillMaster with comprehensive metadata
  */
 
-import { DMA_SOURCE, PROFESSION_TICKER } from '@app/resources/constants';
+import { DMA_SOURCE, EXPANSION_TICKER, PROFESSION_TICKER } from '@app/resources/constants';
 
 // Profession ID for Jewelcrafting is 755
 const PROF_JC = PROFESSION_TICKER.get(755) || 'JC';
@@ -18,7 +18,7 @@ export const PROSPECTING = {
     // CLASSIC ERA - Copper & Tin Ore
     // ========================================================================
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 1,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -33,7 +33,7 @@ export const PROSPECTING = {
       ],
     },
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 1,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -52,7 +52,7 @@ export const PROSPECTING = {
     // CLASSIC ERA - Iron & Gold Ore
     // ========================================================================
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 2,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -67,7 +67,7 @@ export const PROSPECTING = {
       ],
     },
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 2,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -86,7 +86,7 @@ export const PROSPECTING = {
     // CLASSIC ERA - Mithril & Thorium Ore
     // ========================================================================
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 3,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -101,7 +101,7 @@ export const PROSPECTING = {
       ],
     },
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 3,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -120,7 +120,7 @@ export const PROSPECTING = {
     // OUTLAND - Fel Iron & Adamantite Ore
     // ========================================================================
     {
-      expansion: 'TBC',
+      expansion: EXPANSION_TICKER.TBC,
       rank: 1,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -134,7 +134,7 @@ export const PROSPECTING = {
       ],
     },
     {
-      expansion: 'TBC',
+      expansion: EXPANSION_TICKER.TBC,
       rank: 2,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -152,7 +152,7 @@ export const PROSPECTING = {
     // WRATH - Cobalt & Saronite Ore
     // ========================================================================
     {
-      expansion: 'WOTLK',
+      expansion: EXPANSION_TICKER.WOTLK,
       rank: 1,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -166,7 +166,7 @@ export const PROSPECTING = {
       ],
     },
     {
-      expansion: 'WOTLK',
+      expansion: EXPANSION_TICKER.WOTLK,
       rank: 2,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -185,7 +185,7 @@ export const PROSPECTING = {
     // CATACLYSM - Obsidium & Elementium Ore
     // ========================================================================
     {
-      expansion: 'CATA',
+      expansion: EXPANSION_TICKER.CATA,
       rank: 1,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -200,7 +200,7 @@ export const PROSPECTING = {
       ],
     },
     {
-      expansion: 'CATA',
+      expansion: EXPANSION_TICKER.CATA,
       rank: 2,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -219,7 +219,7 @@ export const PROSPECTING = {
     // MISTS OF PANDARIA - Copper Ore to Gems
     // ========================================================================
     {
-      expansion: 'MOP',
+      expansion: EXPANSION_TICKER.MOP,
       rank: 1,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -233,7 +233,7 @@ export const PROSPECTING = {
       ],
     },
     {
-      expansion: 'MOP',
+      expansion: EXPANSION_TICKER.MOP,
       rank: 1,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -247,7 +247,7 @@ export const PROSPECTING = {
       ],
     },
     {
-      expansion: 'MOP',
+      expansion: EXPANSION_TICKER.MOP,
       rank: 2,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -266,7 +266,7 @@ export const PROSPECTING = {
     // WARLORDS OF DRAENOR - Draenor Ore
     // ========================================================================
     {
-      expansion: 'WOD',
+      expansion: EXPANSION_TICKER.WOD,
       rank: 1,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -316,7 +316,7 @@ export const PROSPECTING = {
     // BATTLE FOR AZEROTH - Ore Conversions
     // ========================================================================
     {
-      expansion: 'BFA',
+      expansion: EXPANSION_TICKER.BFA,
       rank: 1,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -330,7 +330,7 @@ export const PROSPECTING = {
       ],
     },
     {
-      expansion: 'BFA',
+      expansion: EXPANSION_TICKER.BFA,
       rank: 1,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -344,7 +344,7 @@ export const PROSPECTING = {
       ],
     },
     {
-      expansion: 'BFA',
+      expansion: EXPANSION_TICKER.BFA,
       rank: 2,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -359,7 +359,7 @@ export const PROSPECTING = {
       ],
     },
     {
-      expansion: 'BFA',
+      expansion: EXPANSION_TICKER.BFA,
       rank: 2,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -378,7 +378,7 @@ export const PROSPECTING = {
     // SHADOWLANDS - Ore Conversions
     // ========================================================================
     {
-      expansion: 'SL',
+      expansion: EXPANSION_TICKER.SHDW,
       rank: 1,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -392,7 +392,7 @@ export const PROSPECTING = {
       ],
     },
     {
-      expansion: 'SL',
+      expansion: EXPANSION_TICKER.SHDW,
       rank: 1,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -406,7 +406,7 @@ export const PROSPECTING = {
       ],
     },
     {
-      expansion: 'SL',
+      expansion: EXPANSION_TICKER.SHDW,
       rank: 2,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -424,7 +424,7 @@ export const PROSPECTING = {
     // DRAGONFLIGHT - Ore Conversions with Quality Tiers
     // ========================================================================
     {
-      expansion: 'DF',
+      expansion: EXPANSION_TICKER.DF,
       rank: 1,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -438,7 +438,7 @@ export const PROSPECTING = {
       ],
     },
     {
-      expansion: 'DF',
+      expansion: EXPANSION_TICKER.DF,
       rank: 1,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -452,7 +452,7 @@ export const PROSPECTING = {
       ],
     },
     {
-      expansion: 'DF',
+      expansion: EXPANSION_TICKER.DF,
       rank: 2,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -466,7 +466,7 @@ export const PROSPECTING = {
       ],
     },
     {
-      expansion: 'DF',
+      expansion: EXPANSION_TICKER.DF,
       rank: 3,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
@@ -481,5 +481,6 @@ export const PROSPECTING = {
     },
   ],
 };
+
 
 
