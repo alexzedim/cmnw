@@ -3,74 +3,74 @@ export const PROSPECT = {
   methods: [
     {
       reagents: [
-        { id: 171828, quantity: 20 }, // LAE
+        { itemId: 171828, quantity: 20 }, // LAE
       ],
       derivatives: [
-        { id: 173109, quantity: 2.0 },
-        { id: 173108, quantity: 2.0 },
-        { id: 173110, quantity: 1.8 },
-        { id: 173170, quantity: 0.155 },
-        { id: 173172, quantity: 0.155 },
-        { id: 173171, quantity: 0.155 },
-        { id: 173173, quantity: 0.155 },
+        { itemId: 173109, quantity: 2.0 },
+        { itemId: 173108, quantity: 2.0 },
+        { itemId: 173110, quantity: 1.8 },
+        { itemId: 173170, quantity: 0.155 },
+        { itemId: 173172, quantity: 0.155 },
+        { itemId: 173171, quantity: 0.155 },
+        { itemId: 173173, quantity: 0.155 },
       ],
     },
     {
       reagents: [
-        { id: 171832, quantity: 20 }, // SINVYR
+        { itemId: 171832, quantity: 20 }, // SINVYR
       ],
       derivatives: [
-        { id: 173109, quantity: 2.35 },
-        { id: 173108, quantity: 2.28 },
-        { id: 173110, quantity: 1.4 },
-        { id: 173171, quantity: 1.35 },
+        { itemId: 173109, quantity: 2.35 },
+        { itemId: 173108, quantity: 2.28 },
+        { itemId: 173110, quantity: 1.4 },
+        { itemId: 173171, quantity: 1.35 },
       ],
     },
     {
       reagents: [
-        { id: 171831, quantity: 20 }, // PHAE
+        { itemId: 171831, quantity: 20 }, // PHAE
       ],
       derivatives: [
-        { id: 173109, quantity: 1.6 },
-        { id: 173108, quantity: 2.28 },
-        { id: 173110, quantity: 2.25 },
-        { id: 173170, quantity: 1.35 },
+        { itemId: 173109, quantity: 1.6 },
+        { itemId: 173108, quantity: 2.28 },
+        { itemId: 173110, quantity: 2.25 },
+        { itemId: 173170, quantity: 1.35 },
       ],
     },
     {
       reagents: [
-        { id: 171830, quantity: 20 }, // OXXE
+        { itemId: 171830, quantity: 20 }, // OXXE
       ],
       derivatives: [
-        { id: 173109, quantity: 2.5 },
-        { id: 173108, quantity: 1.5 },
-        { id: 173110, quantity: 2.25 },
-        { id: 173172, quantity: 1.14 },
+        { itemId: 173109, quantity: 2.5 },
+        { itemId: 173108, quantity: 1.5 },
+        { itemId: 173110, quantity: 2.25 },
+        { itemId: 173172, quantity: 1.14 },
       ],
     },
     {
       reagents: [
-        { id: 171831, quantity: 20 }, // SOLENUM
+        { itemId: 171831, quantity: 20 }, // SOLENUM
       ],
       derivatives: [
-        { id: 173109, quantity: 2 },
-        { id: 173108, quantity: 2 },
-        { id: 173110, quantity: 2 },
-        { id: 173173, quantity: 1.14 },
+        { itemId: 173109, quantity: 2 },
+        { itemId: 173108, quantity: 2 },
+        { itemId: 173110, quantity: 2 },
+        { itemId: 173173, quantity: 1.14 },
       ],
     },
     {
       reagents: [
-        { id: 171833, quantity: 20 }, // ELET
+        { itemId: 171833, quantity: 20 }, // ELET
       ],
       derivatives: [
-        { id: 173109, quantity: 4.5 },
-        { id: 173108, quantity: 3.1 },
-        { id: 173110, quantity: 4.4 },
-        { id: 173170, quantity: 1.5 },
-        { id: 173172, quantity: 1.5 },
-        { id: 173171, quantity: 1.5 },
-        { id: 173173, quantity: 1.5 },
+        { itemId: 173109, quantity: 4.5 },
+        { itemId: 173108, quantity: 3.1 },
+        { itemId: 173110, quantity: 4.4 },
+        { itemId: 173170, quantity: 1.5 },
+        { itemId: 173172, quantity: 1.5 },
+        { itemId: 173171, quantity: 1.5 },
+        { itemId: 173173, quantity: 1.5 },
       ],
     },
   ],
