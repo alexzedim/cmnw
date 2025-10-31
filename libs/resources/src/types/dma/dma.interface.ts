@@ -439,7 +439,7 @@ export interface IItemPriceAndQuantity {
 }
 
 export interface ItemPricing {
-  id: number;
+  itemId: number;
   quantity: number;
 }
 
