@@ -4,7 +4,11 @@
  * Extracted from TradeSkillMaster with comprehensive metadata
  */
 
-import { DMA_SOURCE, EXPANSION_TICKER, PROFESSION_TICKER } from '@app/resources/constants';
+import {
+  DMA_SOURCE,
+  EXPANSION_TICKER,
+  PROFESSION_TICKER,
+} from '@app/resources/constants';
 
 // Profession ID for Inscription is 773
 const PROF_INSC = PROFESSION_TICKER.INSC;
@@ -12,7 +16,8 @@ const PROF_INSC = PROFESSION_TICKER.INSC;
 export const DARKMOON_DECKS = {
   name: PROF_INSC,
   profession: 'Inscription',
-  media: 'https://render-eu.worldofwarcraft.com/icons/56/inv_misc_card_tarotmaelstrom_01.jpg',
+  media:
+    'https://render-eu.worldofwarcraft.com/icons/56/inv_misc_card_tarotmaelstrom_01.jpg',
   spellId: 89546,
   methods: [
     // ========================================================================
@@ -31,10 +36,10 @@ export const DARKMOON_DECKS = {
       },
       description: 'Darkmoon Card: Ace (8x) → Darkmoon Deck: Aces [8 → 1]',
       reagents: [
-        { itemId: 173495, quantity: 8 },  // Darkmoon Card: Ace
+        { itemId: 173495, quantity: 8 }, // Darkmoon Card: Ace
       ],
       derivatives: [
-        { itemId: 173495, quantity: 0 },  // Placeholder - actual deck itemId varies
+        { itemId: 173495, quantity: 0 }, // Placeholder - actual deck itemId varies
       ],
     },
     {
@@ -50,10 +55,10 @@ export const DARKMOON_DECKS = {
       },
       description: 'Darkmoon Card: Two (8x) → Darkmoon Deck: Twos [8 → 1]',
       reagents: [
-        { itemId: 173496, quantity: 8 },  // Darkmoon Card: Two
+        { itemId: 173496, quantity: 8 }, // Darkmoon Card: Two
       ],
       derivatives: [
-        { itemId: 173496, quantity: 0 },  // Placeholder - actual deck itemId varies
+        { itemId: 173496, quantity: 0 }, // Placeholder - actual deck itemId varies
       ],
     },
     {
@@ -69,10 +74,10 @@ export const DARKMOON_DECKS = {
       },
       description: 'Darkmoon Card: Three (8x) → Darkmoon Deck: Threes [8 → 1]',
       reagents: [
-        { itemId: 173497, quantity: 8 },  // Darkmoon Card: Three
+        { itemId: 173497, quantity: 8 }, // Darkmoon Card: Three
       ],
       derivatives: [
-        { itemId: 173497, quantity: 0 },  // Placeholder - actual deck itemId varies
+        { itemId: 173497, quantity: 0 }, // Placeholder - actual deck itemId varies
       ],
     },
     {
@@ -88,10 +93,10 @@ export const DARKMOON_DECKS = {
       },
       description: 'Darkmoon Card: Four (8x) → Darkmoon Deck: Fours [8 → 1]',
       reagents: [
-        { itemId: 173498, quantity: 8 },  // Darkmoon Card: Four
+        { itemId: 173498, quantity: 8 }, // Darkmoon Card: Four
       ],
       derivatives: [
-        { itemId: 173498, quantity: 0 },  // Placeholder - actual deck itemId varies
+        { itemId: 173498, quantity: 0 }, // Placeholder - actual deck itemId varies
       ],
     },
     {
@@ -107,10 +112,10 @@ export const DARKMOON_DECKS = {
       },
       description: 'Darkmoon Card: Five (8x) → Darkmoon Deck: Fives [8 → 1]',
       reagents: [
-        { itemId: 173499, quantity: 8 },  // Darkmoon Card: Five
+        { itemId: 173499, quantity: 8 }, // Darkmoon Card: Five
       ],
       derivatives: [
-        { itemId: 173499, quantity: 0 },  // Placeholder - actual deck itemId varies
+        { itemId: 173499, quantity: 0 }, // Placeholder - actual deck itemId varies
       ],
     },
     {
@@ -126,10 +131,10 @@ export const DARKMOON_DECKS = {
       },
       description: 'Darkmoon Card: Six (8x) → Darkmoon Deck: Sixes [8 → 1]',
       reagents: [
-        { itemId: 173500, quantity: 8 },  // Darkmoon Card: Six
+        { itemId: 173500, quantity: 8 }, // Darkmoon Card: Six
       ],
       derivatives: [
-        { itemId: 173500, quantity: 0 },  // Placeholder - actual deck itemId varies
+        { itemId: 173500, quantity: 0 }, // Placeholder - actual deck itemId varies
       ],
     },
     {
@@ -145,10 +150,10 @@ export const DARKMOON_DECKS = {
       },
       description: 'Darkmoon Card: Seven (8x) → Darkmoon Deck: Sevens [8 → 1]',
       reagents: [
-        { itemId: 173501, quantity: 8 },  // Darkmoon Card: Seven
+        { itemId: 173501, quantity: 8 }, // Darkmoon Card: Seven
       ],
       derivatives: [
-        { itemId: 173501, quantity: 0 },  // Placeholder - actual deck itemId varies
+        { itemId: 173501, quantity: 0 }, // Placeholder - actual deck itemId varies
       ],
     },
     {
@@ -164,10 +169,10 @@ export const DARKMOON_DECKS = {
       },
       description: 'Darkmoon Card: Eight (8x) → Darkmoon Deck: Eights [8 → 1]',
       reagents: [
-        { itemId: 173502, quantity: 8 },  // Darkmoon Card: Eight
+        { itemId: 173502, quantity: 8 }, // Darkmoon Card: Eight
       ],
       derivatives: [
-        { itemId: 173502, quantity: 0 },  // Placeholder - actual deck itemId varies
+        { itemId: 173502, quantity: 0 }, // Placeholder - actual deck itemId varies
       ],
     },
 
@@ -187,10 +192,10 @@ export const DARKMOON_DECKS = {
       },
       description: 'Darkmoon Card: War * (8x) → Darkmoon Deck: War * [8 → 1]',
       reagents: [
-        { itemId: 198880, quantity: 8 },  // Darkmoon Card: War (Rank 1)
+        { itemId: 198880, quantity: 8 }, // Darkmoon Card: War (Rank 1)
       ],
       derivatives: [
-        { itemId: 198880, quantity: 0 },  // Placeholder - actual deck itemId varies
+        { itemId: 198880, quantity: 0 }, // Placeholder - actual deck itemId varies
       ],
     },
     {
@@ -206,10 +211,10 @@ export const DARKMOON_DECKS = {
       },
       description: 'Darkmoon Card: War ** (8x) → Darkmoon Deck: War ** [8 → 1]',
       reagents: [
-        { itemId: 198881, quantity: 8 },  // Darkmoon Card: War (Rank 2)
+        { itemId: 198881, quantity: 8 }, // Darkmoon Card: War (Rank 2)
       ],
       derivatives: [
-        { itemId: 198881, quantity: 0 },  // Placeholder - actual deck itemId varies
+        { itemId: 198881, quantity: 0 }, // Placeholder - actual deck itemId varies
       ],
     },
     {
@@ -223,12 +228,13 @@ export const DARKMOON_DECKS = {
         source: 'Darkmoon Cards: Conquest (Rank 1)',
         target: 'Darkmoon Deck: Conquest (Rank 1)',
       },
-      description: 'Darkmoon Card: Conquest * (8x) → Darkmoon Deck: Conquest * [8 → 1]',
+      description:
+        'Darkmoon Card: Conquest * (8x) → Darkmoon Deck: Conquest * [8 → 1]',
       reagents: [
-        { itemId: 198882, quantity: 8 },  // Darkmoon Card: Conquest (Rank 1)
+        { itemId: 198882, quantity: 8 }, // Darkmoon Card: Conquest (Rank 1)
       ],
       derivatives: [
-        { itemId: 198882, quantity: 0 },  // Placeholder - actual deck itemId varies
+        { itemId: 198882, quantity: 0 }, // Placeholder - actual deck itemId varies
       ],
     },
     {
@@ -242,12 +248,13 @@ export const DARKMOON_DECKS = {
         source: 'Darkmoon Cards: Conquest (Rank 2)',
         target: 'Darkmoon Deck: Conquest (Rank 2)',
       },
-      description: 'Darkmoon Card: Conquest ** (8x) → Darkmoon Deck: Conquest ** [8 → 1]',
+      description:
+        'Darkmoon Card: Conquest ** (8x) → Darkmoon Deck: Conquest ** [8 → 1]',
       reagents: [
-        { itemId: 198883, quantity: 8 },  // Darkmoon Card: Conquest (Rank 2)
+        { itemId: 198883, quantity: 8 }, // Darkmoon Card: Conquest (Rank 2)
       ],
       derivatives: [
-        { itemId: 198883, quantity: 0 },  // Placeholder - actual deck itemId varies
+        { itemId: 198883, quantity: 0 }, // Placeholder - actual deck itemId varies
       ],
     },
 
@@ -267,10 +274,10 @@ export const DARKMOON_DECKS = {
       },
       description: 'Darkmoon Card: Beast (8x) → Darkmoon Deck: Beasts [8 → 1]',
       reagents: [
-        { itemId: 19271, quantity: 8 },  // Darkmoon Card: Beast
+        { itemId: 19271, quantity: 8 }, // Darkmoon Card: Beast
       ],
       derivatives: [
-        { itemId: 19272, quantity: 1 },   // Darkmoon Deck: Beasts
+        { itemId: 19272, quantity: 1 }, // Darkmoon Deck: Beasts
       ],
     },
     {
@@ -284,12 +291,13 @@ export const DARKMOON_DECKS = {
         source: 'Darkmoon Cards: Elementals',
         target: 'Darkmoon Deck: Elementals',
       },
-      description: 'Darkmoon Card: Elemental (8x) → Darkmoon Deck: Elementals [8 → 1]',
+      description:
+        'Darkmoon Card: Elemental (8x) → Darkmoon Deck: Elementals [8 → 1]',
       reagents: [
-        { itemId: 19273, quantity: 8 },  // Darkmoon Card: Elemental
+        { itemId: 19273, quantity: 8 }, // Darkmoon Card: Elemental
       ],
       derivatives: [
-        { itemId: 19274, quantity: 1 },   // Darkmoon Deck: Elementals
+        { itemId: 19274, quantity: 1 }, // Darkmoon Deck: Elementals
       ],
     },
     {
@@ -303,12 +311,13 @@ export const DARKMOON_DECKS = {
         source: 'Darkmoon Cards: Warlords',
         target: 'Darkmoon Deck: Warlords',
       },
-      description: 'Darkmoon Card: Warlord (8x) → Darkmoon Deck: Warlords [8 → 1]',
+      description:
+        'Darkmoon Card: Warlord (8x) → Darkmoon Deck: Warlords [8 → 1]',
       reagents: [
-        { itemId: 19275, quantity: 8 },  // Darkmoon Card: Warlord
+        { itemId: 19275, quantity: 8 }, // Darkmoon Card: Warlord
       ],
       derivatives: [
-        { itemId: 19276, quantity: 1 },   // Darkmoon Deck: Warlords
+        { itemId: 19276, quantity: 1 }, // Darkmoon Deck: Warlords
       ],
     },
 
@@ -324,7 +333,3 @@ export const DARKMOON_DECKS = {
     // - The actual card items are consumed in the combination process
   ],
 };
-
-
-
-

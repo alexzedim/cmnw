@@ -3,7 +3,12 @@
  * Extracted from TradeSkillMaster with comprehensive metadata
  */
 
-import { DMA_SOURCE, EXPANSION_TICKER, EXPANSION_TICKER_ID, PROFESSION_TICKER } from '@app/resources/constants';
+import {
+  DMA_SOURCE,
+  EXPANSION_TICKER,
+  EXPANSION_TICKER_ID,
+  PROFESSION_TICKER,
+} from '@app/resources/constants';
 
 // Profession ID for Inscription is 773
 const PROF_INSC = PROFESSION_TICKER.INSC;
@@ -25,7 +30,8 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Silverleaf', target: 'Alabaster Pigment' },
-      description: 'Silverleaf (i:765) → Alabaster Pigment (i:39151) [1 → 0.578]',
+      description:
+        'Silverleaf (i:765) → Alabaster Pigment (i:39151) [1 → 0.578]',
       reagents: [{ itemId: 765, quantity: 1 }],
       derivatives: [{ itemId: 39151, quantity: 0.578 }],
     },
@@ -37,7 +43,8 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Peacebloom', target: 'Alabaster Pigment' },
-      description: 'Peacebloom (i:2447) → Alabaster Pigment (i:39151) [1 → 0.578]',
+      description:
+        'Peacebloom (i:2447) → Alabaster Pigment (i:39151) [1 → 0.578]',
       reagents: [{ itemId: 2447, quantity: 1 }],
       derivatives: [{ itemId: 39151, quantity: 0.578 }],
     },
@@ -85,7 +92,8 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Swiftthistle', target: 'Dusky Pigment' },
-      description: 'Swiftthistle (i:2452) → Dusky Pigment (i:39334) [1 → 0.5855]',
+      description:
+        'Swiftthistle (i:2452) → Dusky Pigment (i:39334) [1 → 0.5855]',
       reagents: [{ itemId: 2452, quantity: 1 }],
       derivatives: [{ itemId: 39334, quantity: 0.5855 }],
     },
@@ -121,7 +129,8 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Wild Steelbloom', target: 'Burnt Pigment' },
-      description: 'Wild Steelbloom (i:3355) → Burnt Pigment (i:43104) [1 → 0.0545]',
+      description:
+        'Wild Steelbloom (i:3355) → Burnt Pigment (i:43104) [1 → 0.0545]',
       reagents: [{ itemId: 3355, quantity: 1 }],
       derivatives: [{ itemId: 43104, quantity: 0.0545 }],
     },
@@ -133,7 +142,8 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Indigo Pigment', target: 'Indigo Pigment' },
-      description: 'Indigo Pigment group (Fadeleaf, Goldthorn, Khadgar\'s Whisker, Wintersbite)',
+      description:
+        "Indigo Pigment group (Fadeleaf, Goldthorn, Khadgar's Whisker, Wintersbite)",
       reagents: [{ itemId: 3818, quantity: 1 }],
       derivatives: [{ itemId: 43105, quantity: 0.0545 }],
     },
@@ -156,8 +166,9 @@ export const MILLING = {
       createdBy: DMA_SOURCE.TSM,
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
-      names: { source: 'Khadgar\'s Whisker', target: 'Indigo Pigment' },
-      description: 'Khadgar\'s Whisker (i:3358) → Indigo Pigment (i:43105) [1 → 0.1075]',
+      names: { source: "Khadgar's Whisker", target: 'Indigo Pigment' },
+      description:
+        "Khadgar's Whisker (i:3358) → Indigo Pigment (i:43105) [1 → 0.1075]",
       reagents: [{ itemId: 3358, quantity: 1 }],
       derivatives: [{ itemId: 43105, quantity: 0.1075 }],
     },
@@ -169,7 +180,8 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Wintersbite', target: 'Indigo Pigment' },
-      description: 'Wintersbite (i:3819) → Indigo Pigment (i:43105) [1 → 0.1075]',
+      description:
+        'Wintersbite (i:3819) → Indigo Pigment (i:43105) [1 → 0.1075]',
       reagents: [{ itemId: 3819, quantity: 1 }],
       derivatives: [{ itemId: 43105, quantity: 0.1075 }],
     },
@@ -181,7 +193,8 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Grave Moss', target: 'Golden Pigment' },
-      description: 'Grave Moss (i:3369) → Golden Pigment (i:39338) [1 → 0.5765]',
+      description:
+        'Grave Moss (i:3369) → Golden Pigment (i:39338) [1 → 0.5765]',
       reagents: [{ itemId: 3369, quantity: 1 }],
       derivatives: [{ itemId: 39338, quantity: 0.5765 }],
     },
@@ -233,7 +246,8 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Briarthorn', target: 'Verdant Pigment' },
-      description: 'Briarthorn (i:2450) → Verdant Pigment (i:43103) [1 → 0.0545]',
+      description:
+        'Briarthorn (i:2450) → Verdant Pigment (i:43103) [1 → 0.0545]',
       reagents: [{ itemId: 2450, quantity: 1 }],
       derivatives: [{ itemId: 43103, quantity: 0.0545 }],
     },
@@ -245,7 +259,8 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Swiftthistle', target: 'Verdant Pigment' },
-      description: 'Swiftthistle (i:2452) → Verdant Pigment (i:43103) [1 → 0.0545]',
+      description:
+        'Swiftthistle (i:2452) → Verdant Pigment (i:43103) [1 → 0.0545]',
       reagents: [{ itemId: 2452, quantity: 1 }],
       derivatives: [{ itemId: 43103, quantity: 0.0545 }],
     },
@@ -257,7 +272,8 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Stranglekelp', target: 'Verdant Pigment' },
-      description: 'Stranglekelp (i:3820) → Verdant Pigment (i:43103) [1 → 0.1075]',
+      description:
+        'Stranglekelp (i:3820) → Verdant Pigment (i:43103) [1 → 0.1075]',
       reagents: [{ itemId: 3820, quantity: 1 }],
       derivatives: [{ itemId: 43103, quantity: 0.1075 }],
     },
@@ -269,7 +285,8 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Bruiseweed', target: 'Verdant Pigment' },
-      description: 'Bruiseweed (i:2453) → Verdant Pigment (i:43103) [1 → 0.1075]',
+      description:
+        'Bruiseweed (i:2453) → Verdant Pigment (i:43103) [1 → 0.1075]',
       reagents: [{ itemId: 2453, quantity: 1 }],
       derivatives: [{ itemId: 43103, quantity: 0.1075 }],
     },
@@ -285,7 +302,8 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Marrowroot', target: 'Umbral Pigment' },
-      description: 'Marrowroot (i:168589) → Umbral Pigment (i:173056) [1 → 0.195]',
+      description:
+        'Marrowroot (i:168589) → Umbral Pigment (i:173056) [1 → 0.195]',
       reagents: [{ itemId: 168589, quantity: 1 }],
       derivatives: [{ itemId: 173056, quantity: 0.195 }],
     },
@@ -297,7 +315,8 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Widowbloom', target: 'Umbral Pigment' },
-      description: 'Widowbloom (i:168583) → Umbral Pigment (i:173056) [1 → 0.195]',
+      description:
+        'Widowbloom (i:168583) → Umbral Pigment (i:173056) [1 → 0.195]',
       reagents: [{ itemId: 168583, quantity: 1 }],
       derivatives: [{ itemId: 173056, quantity: 0.195 }],
     },
@@ -309,7 +328,8 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Nightshade', target: 'Umbral Pigment' },
-      description: 'Nightshade (i:171315) → Umbral Pigment (i:173056) [1 → 0.25]',
+      description:
+        'Nightshade (i:171315) → Umbral Pigment (i:173056) [1 → 0.25]',
       reagents: [{ itemId: 171315, quantity: 1 }],
       derivatives: [{ itemId: 173056, quantity: 0.25 }],
     },
@@ -321,7 +341,8 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Luminous Pigment', target: 'Widowbloom' },
-      description: 'Widowbloom (i:168583) → Luminous Pigment (i:173057) [1 → 0.105]',
+      description:
+        'Widowbloom (i:168583) → Luminous Pigment (i:173057) [1 → 0.105]',
       reagents: [{ itemId: 168583, quantity: 1 }],
       derivatives: [{ itemId: 173057, quantity: 0.105 }],
     },
@@ -333,7 +354,8 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'First Flower', target: 'Tranquil Pigment' },
-      description: 'First Flower (i:187699) → Tranquil Pigment (i:175788) [1 → 0.5]',
+      description:
+        'First Flower (i:187699) → Tranquil Pigment (i:175788) [1 → 0.5]',
       reagents: [{ itemId: 187699, quantity: 1 }],
       derivatives: [{ itemId: 175788, quantity: 0.5 }],
     },
@@ -349,7 +371,8 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Hochenblume *', target: 'Shimmering Pigment *' },
-      description: 'Hochenblume * (i:191460) → Shimmering Pigment * (i:198421) [1 → 0.7]',
+      description:
+        'Hochenblume * (i:191460) → Shimmering Pigment * (i:198421) [1 → 0.7]',
       reagents: [{ itemId: 191460, quantity: 1 }],
       derivatives: [{ itemId: 198421, quantity: 0.7 }],
     },
@@ -361,7 +384,8 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Hochenblume **', target: 'Shimmering Pigment **' },
-      description: 'Hochenblume ** (i:191461) → Shimmering Pigment ** (i:198422) [1 → 0.7]',
+      description:
+        'Hochenblume ** (i:191461) → Shimmering Pigment ** (i:198422) [1 → 0.7]',
       reagents: [{ itemId: 191461, quantity: 1 }],
       derivatives: [{ itemId: 198422, quantity: 0.7 }],
     },
@@ -373,13 +397,10 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Hochenblume ***', target: 'Shimmering Pigment ***' },
-      description: 'Hochenblume *** (i:191462) → Shimmering Pigment *** (i:198423) [1 → 0.7]',
+      description:
+        'Hochenblume *** (i:191462) → Shimmering Pigment *** (i:198423) [1 → 0.7]',
       reagents: [{ itemId: 191462, quantity: 1 }],
       derivatives: [{ itemId: 198423, quantity: 0.7 }],
     },
   ],
 };
-
-
-
-
