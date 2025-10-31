@@ -73,6 +73,23 @@ export enum PRICING_TYPE {
   REVIEW = 'review',
 }
 
+export enum PROFESSION_TICKER {
+  BSMT = 'BSMT',
+  LTHR = 'LTHR',
+  ALCH = 'ALCH',
+  HRBS = 'HRBS',
+  COOK = 'COOK',
+  ORE = 'ORE',
+  CLTH = 'CLTH',
+  ENGR = 'ENGR',
+  ENCH = 'ENCH',
+  FISH = 'FISH',
+  SKIN = 'SKIN',
+  JWLC = 'JWLC',
+  INSC = 'INSC',
+  ARCH = 'ARCH',
+}
+
 export enum EXPANSION_TICKER {
   CLSC = 'CLSC',
   TBC = 'TBC',
@@ -110,21 +127,21 @@ export const EXPANSION_TICKER_ID: Map<number, string> = new Map([
   [0, EXPANSION_TICKER.CLSC],
 ]);
 
-export const PROFESSION_TICKER: Map<number, string> = new Map([
-  [164, 'BSMT'],
-  [165, 'LTHR'],
-  [171, 'ALCH'],
-  [182, 'HRBS'],
-  [185, 'COOK'],
-  [186, 'ORE'],
-  [197, 'CLTH'],
-  [202, 'ENGR'],
-  [333, 'ENCH'],
-  [356, 'FISH'],
-  [393, 'SKIN'],
-  [755, 'JWLC'],
-  [773, 'INSC'],
-  [794, 'ARCH'],
+export const PROFESSION_TICKER_MAP: Map<number, string> = new Map([
+  [164, PROFESSION_TICKER.BSMT],
+  [165, PROFESSION_TICKER.LTHR],
+  [171, PROFESSION_TICKER.ALCH],
+  [182, PROFESSION_TICKER.HRBS],
+  [185, PROFESSION_TICKER.COOK],
+  [186, PROFESSION_TICKER.ORE],
+  [197, PROFESSION_TICKER.CLTH],
+  [202, PROFESSION_TICKER.ENGR],
+  [333, PROFESSION_TICKER.ENCH],
+  [356, PROFESSION_TICKER.FISH],
+  [393, PROFESSION_TICKER.SKIN],
+  [755, PROFESSION_TICKER.JWLC],
+  [773, PROFESSION_TICKER.INSC],
+  [794, PROFESSION_TICKER.ARCH],
 ]);
 
 export const GOLD_ITEM_ENTITY = {
