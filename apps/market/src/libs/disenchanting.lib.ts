@@ -138,7 +138,7 @@ export const DISENCHANTING = {
     },
     {
       expansion: 'DF',
-      rank: 1,
+      rank: 2,
       profession: PROF_ENCH,
       createdBy: DMA_SOURCE.TSM,
       updatedBy: DMA_SOURCE.TSM,
@@ -151,7 +151,7 @@ export const DISENCHANTING = {
     },
     {
       expansion: 'DF',
-      rank: 2,
+      rank: 1,
       profession: PROF_ENCH,
       createdBy: DMA_SOURCE.TSM,
       updatedBy: DMA_SOURCE.TSM,
@@ -164,7 +164,7 @@ export const DISENCHANTING = {
     },
     {
       expansion: 'DF',
-      rank: 1,
+      rank: 2,
       profession: PROF_ENCH,
       createdBy: DMA_SOURCE.TSM,
       updatedBy: DMA_SOURCE.TSM,
@@ -190,7 +190,7 @@ export const DISENCHANTING = {
     },
     {
       expansion: 'DF',
-      rank: 2,
+      rank: 3,
       profession: PROF_ENCH,
       createdBy: DMA_SOURCE.TSM,
       updatedBy: DMA_SOURCE.TSM,

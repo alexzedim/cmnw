@@ -343,7 +343,7 @@ export const MILLING = {
     },
     {
       expansion: 'DF',
-      rank: 2,
+      rank: 3,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
       updatedBy: DMA_SOURCE.TSM,
