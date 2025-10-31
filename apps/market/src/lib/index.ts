@@ -1,4 +1,4 @@
-export * from './deck.lib';
-export * from './disenchant.lib';
+export * from './darkmoon-decks.lib';
+export * from './disenchanting.lib';
 export * from './milling.lib';
-export * from './prospect.lib';
+export * from './prospecting.lib';
