@@ -6,7 +6,7 @@
 import { DMA_SOURCE, EXPANSION_TICKER, EXPANSION_TICKER_ID, PROFESSION_TICKER } from '@app/resources/constants';
 
 // Profession ID for Inscription is 773
-const PROF_INSC = PROFESSION_TICKER.get(773) || 'INSC';
+const PROF_INSC = PROFESSION_TICKER.INSC;
 
 export const MILLING = {
   name: PROF_INSC,
@@ -331,6 +331,7 @@ export const MILLING = {
     },
   ],
 };
+
 
 
 

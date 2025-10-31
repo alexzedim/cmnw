@@ -6,7 +6,7 @@
 import { DMA_SOURCE, EXPANSION_TICKER, PROFESSION_TICKER } from '@app/resources/constants';
 
 // Profession ID for Enchanting is 333
-const PROF_ENCH = PROFESSION_TICKER.get(333) || 'ENCH';
+const PROF_ENCH = PROFESSION_TICKER.ENCH;
 
 export const DISENCHANTING = {
   name: PROF_ENCH,
@@ -190,6 +190,7 @@ export const DISENCHANTING = {
     },
   ],
 };
+
 
 
 

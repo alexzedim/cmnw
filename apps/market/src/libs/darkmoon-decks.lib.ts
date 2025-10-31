@@ -7,7 +7,7 @@
 import { DMA_SOURCE, EXPANSION_TICKER, PROFESSION_TICKER } from '@app/resources/constants';
 
 // Profession ID for Inscription is 773
-const PROF_INSC = PROFESSION_TICKER.get(773) || 'INSC';
+const PROF_INSC = PROFESSION_TICKER.INSC;
 
 export const DARKMOON_DECKS = {
   name: PROF_INSC,
@@ -324,6 +324,7 @@ export const DARKMOON_DECKS = {
     // - The actual card items are consumed in the combination process
   ],
 };
+
 
 
 

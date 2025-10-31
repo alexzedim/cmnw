@@ -6,7 +6,7 @@
 import { DMA_SOURCE, EXPANSION_TICKER, PROFESSION_TICKER } from '@app/resources/constants';
 
 // Profession ID for Jewelcrafting is 755
-const PROF_JC = PROFESSION_TICKER.get(755) || 'JC';
+const PROF_JC = PROFESSION_TICKER.JWLC;
 
 export const PROSPECTING = {
   name: PROF_JC,
@@ -481,6 +481,7 @@ export const PROSPECTING = {
     },
   ],
 };
+
 
 
 
