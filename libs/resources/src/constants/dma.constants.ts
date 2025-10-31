@@ -101,6 +101,9 @@ export enum EXPANSION_TICKER {
   BFA = 'BFA',
   SHDW = 'SHDW',
   DF = 'DF',
+  TWW = 'TWW', // The War Within
+  MINT = 'MINT', // Midnight
+  LT = 'LT', // The Last Titan
 }
 
 export const EXPANSION_TICKER_MAP: Map<string, string> = new Map([
@@ -116,6 +119,10 @@ export const EXPANSION_TICKER_MAP: Map<string, string> = new Map([
 ]);
 
 export const EXPANSION_TICKER_ID: Map<number, string> = new Map([
+  [12, EXPANSION_TICKER.LT],
+  [11, EXPANSION_TICKER.MINT],
+  [10, EXPANSION_TICKER.TWW],
+  [9, EXPANSION_TICKER.DF],
   [8, EXPANSION_TICKER.SHDW],
   [7, EXPANSION_TICKER.BFA],
   [6, EXPANSION_TICKER.LGN],
