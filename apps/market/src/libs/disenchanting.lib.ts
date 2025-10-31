@@ -3,7 +3,7 @@
  * Extracted from TradeSkillMaster with comprehensive metadata
  */
 
-import { DMA_SOURCE, PROFESSION_TICKER } from '@app/resources/constants';
+import { DMA_SOURCE, EXPANSION_TICKER, PROFESSION_TICKER } from '@app/resources/constants';
 
 // Profession ID for Enchanting is 333
 const PROF_ENCH = PROFESSION_TICKER.get(333) || 'ENCH';
@@ -18,7 +18,7 @@ export const DISENCHANTING = {
     // CLASSIC ERA - Green Items (Level 16-25)
     // ========================================================================
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 1,
       profession: PROF_ENCH,
       createdBy: DMA_SOURCE.TSM,
@@ -30,7 +30,7 @@ export const DISENCHANTING = {
       derivatives: [{ itemId: 10940, quantity: 1.2 }],  // Illumated Shard
     },
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 1,
       profession: PROF_ENCH,
       createdBy: DMA_SOURCE.TSM,
@@ -46,7 +46,7 @@ export const DISENCHANTING = {
     // CLASSIC ERA - Green Items (Level 26-35)
     // ========================================================================
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 2,
       profession: PROF_ENCH,
       createdBy: DMA_SOURCE.TSM,
@@ -58,7 +58,7 @@ export const DISENCHANTING = {
       derivatives: [{ itemId: 11084, quantity: 1.2 }],  // Glowing Shard
     },
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 2,
       profession: PROF_ENCH,
       createdBy: DMA_SOURCE.TSM,
@@ -74,7 +74,7 @@ export const DISENCHANTING = {
     // SHADOWLANDS - Greens to Shards
     // ========================================================================
     {
-      expansion: 'SL',
+      expansion: EXPANSION_TICKER.SHDW,
       rank: 1,
       profession: PROF_ENCH,
       createdBy: DMA_SOURCE.TSM,
@@ -86,7 +86,7 @@ export const DISENCHANTING = {
       derivatives: [{ itemId: 172230, quantity: 1.5 }],  // Enchanting Shard
     },
     {
-      expansion: 'SL',
+      expansion: EXPANSION_TICKER.SHDW,
       rank: 1,
       profession: PROF_ENCH,
       createdBy: DMA_SOURCE.TSM,
@@ -98,7 +98,7 @@ export const DISENCHANTING = {
       derivatives: [{ itemId: 172230, quantity: 2.5 }],  // Enchanting Shard
     },
     {
-      expansion: 'SL',
+      expansion: EXPANSION_TICKER.SHDW,
       rank: 2,
       profession: PROF_ENCH,
       createdBy: DMA_SOURCE.TSM,
@@ -117,7 +117,7 @@ export const DISENCHANTING = {
     // DRAGONFLIGHT - Multi-Quality Disenchanting
     // ========================================================================
     {
-      expansion: 'DF',
+      expansion: EXPANSION_TICKER.DF,
       rank: 1,
       profession: PROF_ENCH,
       createdBy: DMA_SOURCE.TSM,
@@ -129,7 +129,7 @@ export const DISENCHANTING = {
       derivatives: [{ itemId: 194457, quantity: 1.0 }],  // Chromatic Dust
     },
     {
-      expansion: 'DF',
+      expansion: EXPANSION_TICKER.DF,
       rank: 2,
       profession: PROF_ENCH,
       createdBy: DMA_SOURCE.TSM,
@@ -141,7 +141,7 @@ export const DISENCHANTING = {
       derivatives: [{ itemId: 194458, quantity: 1.5 }],  // Chromatic Dust **
     },
     {
-      expansion: 'DF',
+      expansion: EXPANSION_TICKER.DF,
       rank: 1,
       profession: PROF_ENCH,
       createdBy: DMA_SOURCE.TSM,
@@ -153,7 +153,7 @@ export const DISENCHANTING = {
       derivatives: [{ itemId: 194459, quantity: 2.0 }],  // Chromatic Shard
     },
     {
-      expansion: 'DF',
+      expansion: EXPANSION_TICKER.DF,
       rank: 2,
       profession: PROF_ENCH,
       createdBy: DMA_SOURCE.TSM,
@@ -165,7 +165,7 @@ export const DISENCHANTING = {
       derivatives: [{ itemId: 194460, quantity: 3.0 }],  // Chromatic Shard **
     },
     {
-      expansion: 'DF',
+      expansion: EXPANSION_TICKER.DF,
       rank: 2,
       profession: PROF_ENCH,
       createdBy: DMA_SOURCE.TSM,
@@ -177,7 +177,7 @@ export const DISENCHANTING = {
       derivatives: [{ itemId: 194458, quantity: 2.0 }],  // Resonant Crystal
     },
     {
-      expansion: 'DF',
+      expansion: EXPANSION_TICKER.DF,
       rank: 3,
       profession: PROF_ENCH,
       createdBy: DMA_SOURCE.TSM,
@@ -190,5 +190,6 @@ export const DISENCHANTING = {
     },
   ],
 };
+
 
 

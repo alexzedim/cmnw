@@ -3,7 +3,7 @@
  * Extracted from TradeSkillMaster with comprehensive metadata
  */
 
-import { DMA_SOURCE, EXPANSION_TICKER_ID, PROFESSION_TICKER } from '@app/resources/constants';
+import { DMA_SOURCE, EXPANSION_TICKER, EXPANSION_TICKER_ID, PROFESSION_TICKER } from '@app/resources/constants';
 
 // Profession ID for Inscription is 773
 const PROF_INSC = PROFESSION_TICKER.get(773) || 'INSC';
@@ -18,7 +18,7 @@ export const MILLING = {
     // CLASSIC ERA - Common Pigments
     // ========================================================================
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -30,7 +30,7 @@ export const MILLING = {
       derivatives: [{ itemId: 39151, quantity: 0.578 }],
     },
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -42,7 +42,7 @@ export const MILLING = {
       derivatives: [{ itemId: 39151, quantity: 0.578 }],
     },
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -54,7 +54,7 @@ export const MILLING = {
       derivatives: [{ itemId: 39151, quantity: 0.6 }],
     },
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -66,7 +66,7 @@ export const MILLING = {
       derivatives: [{ itemId: 39334, quantity: 0.566 }],
     },
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -78,7 +78,7 @@ export const MILLING = {
       derivatives: [{ itemId: 39334, quantity: 0.5765 }],
     },
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -90,7 +90,7 @@ export const MILLING = {
       derivatives: [{ itemId: 39334, quantity: 0.5855 }],
     },
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -102,7 +102,7 @@ export const MILLING = {
       derivatives: [{ itemId: 39334, quantity: 0.6 }],
     },
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -114,7 +114,7 @@ export const MILLING = {
       derivatives: [{ itemId: 39334, quantity: 0.6 }],
     },
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -126,7 +126,7 @@ export const MILLING = {
       derivatives: [{ itemId: 39338, quantity: 0.5765 }],
     },
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -138,7 +138,7 @@ export const MILLING = {
       derivatives: [{ itemId: 39338, quantity: 0.5765 }],
     },
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -150,7 +150,7 @@ export const MILLING = {
       derivatives: [{ itemId: 39338, quantity: 0.6 }],
     },
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -166,7 +166,7 @@ export const MILLING = {
     // CLASSIC ERA - Uncommon Pigments
     // ========================================================================
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 2,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -178,7 +178,7 @@ export const MILLING = {
       derivatives: [{ itemId: 43103, quantity: 0.0915 }],
     },
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 2,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -190,7 +190,7 @@ export const MILLING = {
       derivatives: [{ itemId: 43103, quantity: 0.0915 }],
     },
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 2,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -202,7 +202,7 @@ export const MILLING = {
       derivatives: [{ itemId: 43103, quantity: 0.1005 }],
     },
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 2,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -214,7 +214,7 @@ export const MILLING = {
       derivatives: [{ itemId: 43103, quantity: 0.1075 }],
     },
     {
-      expansion: 'CLSC',
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 2,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -230,7 +230,7 @@ export const MILLING = {
     // SHADOWLANDS - Umbral & Luminous Pigments
     // ========================================================================
     {
-      expansion: 'SL',
+      expansion: EXPANSION_TICKER.SHDW,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -242,7 +242,7 @@ export const MILLING = {
       derivatives: [{ itemId: 173056, quantity: 0.195 }],
     },
     {
-      expansion: 'SL',
+      expansion: EXPANSION_TICKER.SHDW,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -254,7 +254,7 @@ export const MILLING = {
       derivatives: [{ itemId: 173056, quantity: 0.195 }],
     },
     {
-      expansion: 'SL',
+      expansion: EXPANSION_TICKER.SHDW,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -266,7 +266,7 @@ export const MILLING = {
       derivatives: [{ itemId: 173056, quantity: 0.25 }],
     },
     {
-      expansion: 'SL',
+      expansion: EXPANSION_TICKER.SHDW,
       rank: 2,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -278,7 +278,7 @@ export const MILLING = {
       derivatives: [{ itemId: 173057, quantity: 0.105 }],
     },
     {
-      expansion: 'SL',
+      expansion: EXPANSION_TICKER.SHDW,
       rank: 3,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -294,7 +294,7 @@ export const MILLING = {
     // DRAGONFLIGHT - Multi-Quality Pigments
     // ========================================================================
     {
-      expansion: 'DF',
+      expansion: EXPANSION_TICKER.DF,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -306,7 +306,7 @@ export const MILLING = {
       derivatives: [{ itemId: 198421, quantity: 0.7 }],
     },
     {
-      expansion: 'DF',
+      expansion: EXPANSION_TICKER.DF,
       rank: 1,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -318,7 +318,7 @@ export const MILLING = {
       derivatives: [{ itemId: 198422, quantity: 0.7 }],
     },
     {
-      expansion: 'DF',
+      expansion: EXPANSION_TICKER.DF,
       rank: 3,
       profession: PROF_INSC,
       createdBy: DMA_SOURCE.TSM,
@@ -331,5 +331,6 @@ export const MILLING = {
     },
   ],
 };
+
 
 

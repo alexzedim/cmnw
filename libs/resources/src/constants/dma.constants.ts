@@ -73,28 +73,41 @@ export enum PRICING_TYPE {
   REVIEW = 'review',
 }
 
-export const EXPANSION_TICKER: Map<string, string> = new Map([
-  ['Shadowlands', 'SHDW'],
-  ['Kul', 'BFA'],
-  ['Zandalari', 'BFA'],
-  ['Legion', 'LGN'],
-  ['Draenor', 'WOD'],
-  ['Pandaria', 'MOP'],
-  ['Cataclysm', 'CATA'],
-  ['Northrend', 'WOTLK'],
-  ['Outland', 'TBC'],
+export enum EXPANSION_TICKER {
+  CLSC = 'CLSC',
+  TBC = 'TBC',
+  WOTLK = 'WOTLK',
+  CATA = 'CATA',
+  MOP = 'MOP',
+  WOD = 'WOD',
+  LGN = 'LGN',
+  BFA = 'BFA',
+  SHDW = 'SHDW',
+  DF = 'DF',
+}
+
+export const EXPANSION_TICKER_MAP: Map<string, string> = new Map([
+  ['Shadowlands', EXPANSION_TICKER.SHDW],
+  ['Kul', EXPANSION_TICKER.BFA],
+  ['Zandalari', EXPANSION_TICKER.BFA],
+  ['Legion', EXPANSION_TICKER.LGN],
+  ['Draenor', EXPANSION_TICKER.WOD],
+  ['Pandaria', EXPANSION_TICKER.MOP],
+  ['Cataclysm', EXPANSION_TICKER.CATA],
+  ['Northrend', EXPANSION_TICKER.WOTLK],
+  ['Outland', EXPANSION_TICKER.TBC],
 ]);
 
 export const EXPANSION_TICKER_ID: Map<number, string> = new Map([
-  [8, 'SHDW'],
-  [7, 'BFA'],
-  [6, 'LGN'],
-  [5, 'WOD'],
-  [4, 'MOP'],
-  [3, 'CATA'],
-  [2, 'WOTLK'],
-  [1, 'TBC'],
-  [0, 'CLSC'],
+  [8, EXPANSION_TICKER.SHDW],
+  [7, EXPANSION_TICKER.BFA],
+  [6, EXPANSION_TICKER.LGN],
+  [5, EXPANSION_TICKER.WOD],
+  [4, EXPANSION_TICKER.MOP],
+  [3, EXPANSION_TICKER.CATA],
+  [2, EXPANSION_TICKER.WOTLK],
+  [1, EXPANSION_TICKER.TBC],
+  [0, EXPANSION_TICKER.CLSC],
 ]);
 
 export const PROFESSION_TICKER: Map<number, string> = new Map([
