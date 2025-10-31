@@ -40,7 +40,7 @@ export class AdaptiveRateLimiter {
     const isCondition = timeSinceLastRequest < requiredDelay;
     if (isCondition) {
       const waitTime = requiredDelay - timeSinceLastRequest;
-      await new Promise(resolve => setTimeout(resolve, waitTime));
+      await new Promise((resolve) => setTimeout(resolve, waitTime));
     }
 
     this.lastRequestTime = Date.now();
@@ -59,7 +59,7 @@ export class AdaptiveRateLimiter {
       // Gradually reduce delay back to base
       this.currentDelayMs = Math.max(
         this.baseDelayMs,
-        this.currentDelayMs / this.backoffMultiplier
+        this.currentDelayMs / this.backoffMultiplier,
       );
       this.successCount = 0;
     }
@@ -76,7 +76,7 @@ export class AdaptiveRateLimiter {
     // Exponential backoff
     this.currentDelayMs = Math.min(
       this.currentDelayMs * this.backoffMultiplier,
-      this.maxDelayMs
+      this.maxDelayMs,
     );
   }
 

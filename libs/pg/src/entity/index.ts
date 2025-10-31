@@ -22,6 +22,7 @@ export * from './realms.entity';
 export * from './market.entity';
 export * from './items.entity';
 export * from './contract.entity';
+export * from './valuation.entity';
 
 export * from './pricing.entity';
 

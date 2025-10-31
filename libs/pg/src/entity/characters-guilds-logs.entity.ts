@@ -3,7 +3,8 @@ import { ACTION_LOG } from '@app/resources';
 import {
   Column,
   CreateDateColumn,
-  Entity, Index,
+  Entity,
+  Index,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 

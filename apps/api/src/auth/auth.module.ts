@@ -15,11 +15,7 @@ import { DiscordStrategy, BattleNetStrategy } from './strategies';
     HttpModule,
     PassportModule,
   ],
-  providers: [
-    AuthService,
-    DiscordStrategy,
-    BattleNetStrategy,
-  ],
+  providers: [AuthService, DiscordStrategy, BattleNetStrategy],
   controllers: [AuthController],
   exports: [AuthService],
 })

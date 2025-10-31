@@ -41,7 +41,7 @@ export class CharacterLifecycleService {
     const timestampNow = new Date().getTime();
 
     const realmEntity = await findRealm(this.realmsRepository, character.realm);
-    
+
     const isRealmNotFound = !realmEntity;
     if (isRealmNotFound) {
       throw new NotFoundException(`Realm ${character.realm} not found`);
@@ -69,7 +69,7 @@ export class CharacterLifecycleService {
     const updateSafe = timestampNow - forceUpdate;
     const updatedAt = characterEntity.updatedAt.getTime();
     const isNotReadyToUpdate = updateSafe < updatedAt;
-    
+
     if (isNotReadyToUpdate) {
       return {
         characterEntity,
@@ -109,16 +109,16 @@ export class CharacterLifecycleService {
     }
 
     characterNew.statusCode = STATUS_CODES.DEFAULT_STATUS;
-    
+
     const hasGuild = character.guild;
     if (hasGuild) characterNew.guild = character.guild;
-    
+
     const hasGuildGuid = character.guildGuid;
     if (hasGuildGuid) characterNew.guildGuid = character.guildGuid;
-    
+
     const hasGuildId = character.guildId;
     if (hasGuildId) characterNew.guildId = character.guildId;
-    
+
     characterNew.createdBy = character.createdBy
       ? character.createdBy
       : OSINT_SOURCE.CHARACTER_GET;
@@ -179,7 +179,7 @@ export class CharacterLifecycleService {
     const timestampNow = new Date().getTime();
     const updateSafe = timestampNow - forceUpdate;
     const updatedAt = characterEntity.updatedAt.getTime();
-    
+
     return updateSafe >= updatedAt;
   }
 }

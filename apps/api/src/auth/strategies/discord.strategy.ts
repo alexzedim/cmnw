@@ -6,7 +6,9 @@ import { DiscordProfile } from '@app/resources';
 
 @Injectable()
 export class DiscordStrategy extends PassportStrategy(Strategy, 'discord') {
-  private readonly logger = new Logger(DiscordStrategy.name, { timestamp: true });
+  private readonly logger = new Logger(DiscordStrategy.name, {
+    timestamp: true,
+  });
 
   constructor(private readonly authService: AuthService) {
     super({
@@ -24,8 +26,11 @@ export class DiscordStrategy extends PassportStrategy(Strategy, 'discord') {
     _done: VerifyCallback,
   ): Promise<any> {
     try {
-      this.logger.log(`Discord OAuth validation for user: ${profile.id}`, 'validate');
-      
+      this.logger.log(
+        `Discord OAuth validation for user: ${profile.id}`,
+        'validate',
+      );
+
       const discordProfile: DiscordProfile = {
         id: profile.id,
         username: profile.username,
@@ -35,19 +40,20 @@ export class DiscordStrategy extends PassportStrategy(Strategy, 'discord') {
         locale: profile.locale,
       };
 
-      const authResponse = await this.authService.handleDiscordAuth(discordProfile);
-      
+      const authResponse =
+        await this.authService.handleDiscordAuth(discordProfile);
+
       this.logger.log(
-        `Discord OAuth successful for user: ${profile.id}, isNewUser: ${authResponse.isNewUser}`, 
-        'validate'
+        `Discord OAuth successful for user: ${profile.id}, isNewUser: ${authResponse.isNewUser}`,
+        'validate',
       );
-      
+
       return authResponse;
     } catch (error) {
       this.logger.error(
         `Discord OAuth validation failed for user: ${profile.id}`,
         error instanceof Error ? error.stack : String(error),
-        'validate'
+        'validate',
       );
       throw error;
     }

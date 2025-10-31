@@ -56,17 +56,32 @@ export class CharactersService implements OnApplicationBootstrap {
     try {
       const jobs = await this.queue.count();
       if (jobs > 10_000) {
-        this.logger.warn({ logTag, jobCount: jobs, message: `${jobs} jobs found, skipping indexing` });
+        this.logger.warn({
+          logTag,
+          jobCount: jobs,
+          message: `${jobs} jobs found, skipping indexing`,
+        });
         return;
       }
 
       const globalConcurrency = await this.queue.getGlobalConcurrency();
       const updatedConcurrency = await this.queue.setGlobalConcurrency(10);
 
-      this.logger.log({ logTag, queueName: charactersQueue.name, globalConcurrency, updatedConcurrency, message: `Queue concurrency updated from ${globalConcurrency} to ${updatedConcurrency}` });
+      this.logger.log({
+        logTag,
+        queueName: charactersQueue.name,
+        globalConcurrency,
+        updatedConcurrency,
+        message: `Queue concurrency updated from ${globalConcurrency} to ${updatedConcurrency}`,
+      });
 
       let characterIteration = 0;
-      this.keyEntities = await getKeys(this.keysRepository, clearance, false, true);
+      this.keyEntities = await getKeys(
+        this.keysRepository,
+        clearance,
+        false,
+        true,
+      );
 
       let length = this.keyEntities.length;
 
@@ -81,7 +96,12 @@ export class CharactersService implements OnApplicationBootstrap {
       this.offset = this.offset + (isRotate ? OSINT_CHARACTER_LIMIT : 0);
 
       if (this.offset >= charactersCount) {
-        this.logger.warn({ logTag, offset: this.offset, charactersCount, message: `End of characters reached, resetting offset` });
+        this.logger.warn({
+          logTag,
+          offset: this.offset,
+          charactersCount,
+          message: `End of characters reached, resetting offset`,
+        });
         this.offset = 0;
       }
 
@@ -119,51 +139,88 @@ export class CharactersService implements OnApplicationBootstrap {
         ),
       );
 
-      this.logger.log({ logTag, offset: this.offset, characterCount: characters.length, message: `Processed ${characters.length} characters at offset ${this.offset}` });
+      this.logger.log({
+        logTag,
+        offset: this.offset,
+        characterCount: characters.length,
+        message: `Processed ${characters.length} characters at offset ${this.offset}`,
+      });
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });
     }
   }
-
 
   private async indexFromFile(
     isIndexCharactersFromFile: boolean = osintConfig.isIndexCharactersFromFile,
   ) {
     const logTag = this.indexFromFile.name;
     try {
-      this.logger.log({ logTag, isIndexCharactersFromFile, message: `Index from file: ${isIndexCharactersFromFile}` });
+      this.logger.log({
+        logTag,
+        isIndexCharactersFromFile,
+        message: `Index from file: ${isIndexCharactersFromFile}`,
+      });
       if (!isIndexCharactersFromFile) return;
 
       // Load characters from S3 cmnw bucket
       let charactersJson: string;
       try {
-        charactersJson = await this.s3Service.readFile('characters.json', 'cmnw');
-        this.logger.log({ logTag, bucket: 'cmnw', filename: 'characters.json', message: 'Characters loaded from S3' });
+        charactersJson = await this.s3Service.readFile(
+          'characters.json',
+          'cmnw',
+        );
+        this.logger.log({
+          logTag,
+          bucket: 'cmnw',
+          filename: 'characters.json',
+          message: 'Characters loaded from S3',
+        });
       } catch (error) {
-        this.logger.error({ logTag, bucket: 'cmnw', filename: 'characters.json', errorOrException: error, message: 'File not found in S3 bucket' });
+        this.logger.error({
+          logTag,
+          bucket: 'cmnw',
+          filename: 'characters.json',
+          errorOrException: error,
+          message: 'File not found in S3 bucket',
+        });
         throw new Error('Characters file not found in S3: characters.json');
       }
-      
+
       // Calculate file checksum and check if already imported
-      const fileChecksum = createHash('md5').update(charactersJson).digest('hex');
+      const fileChecksum = createHash('md5')
+        .update(charactersJson)
+        .digest('hex');
       const redisKey = `CHARACTERS_FILE_IMPORTED:${fileChecksum}`;
-      
+
       const isAlreadyImported = await this.redisService.exists(redisKey);
       if (isAlreadyImported) {
-        this.logger.log({ logTag, fileChecksum, message: 'Characters file already imported, skipping' });
+        this.logger.log({
+          logTag,
+          fileChecksum,
+          message: 'Characters file already imported, skipping',
+        });
         return;
       }
-      
-      const characters: Array<Pick<CharactersEntity, 'guid'>> = JSON.parse(charactersJson);
 
-      this.keyEntities = await getKeys(this.keysRepository, GLOBAL_OSINT_KEY, false);
+      const characters: Array<Pick<CharactersEntity, 'guid'>> =
+        JSON.parse(charactersJson);
+
+      this.keyEntities = await getKeys(
+        this.keysRepository,
+        GLOBAL_OSINT_KEY,
+        false,
+      );
 
       let characterIteration = 0;
       let length = this.keyEntities.length;
 
       const charactersCount = characters.length;
 
-      this.logger.log({ logTag, charactersCount, message: `Characters file loaded with ${charactersCount} characters` });
+      this.logger.log({
+        logTag,
+        charactersCount,
+        message: `Characters file loaded with ${charactersCount} characters`,
+      });
 
       for (const character of characters) {
         const [nameSlug, realmSlug] = character.guid.split('@');
@@ -188,11 +245,25 @@ export class CharactersService implements OnApplicationBootstrap {
         characterIteration = characterIteration + 1;
       }
 
-      this.logger.log({ logTag, charactersCount, insertedCount: characterIteration, message: `Processed ${charactersCount} characters, inserted ${characterIteration}` });
-      
+      this.logger.log({
+        logTag,
+        charactersCount,
+        insertedCount: characterIteration,
+        message: `Processed ${charactersCount} characters, inserted ${characterIteration}`,
+      });
+
       // Mark file as imported with checksum
-      await this.redisService.set(redisKey, Date.now(), 'EX', 60 * 60 * 24 * 30); // 30 days TTL
-      this.logger.log({ logTag, fileChecksum, message: 'Characters file marked as imported' });
+      await this.redisService.set(
+        redisKey,
+        Date.now(),
+        'EX',
+        60 * 60 * 24 * 30,
+      ); // 30 days TTL
+      this.logger.log({
+        logTag,
+        fileChecksum,
+        message: 'Characters file marked as imported',
+      });
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });
     }

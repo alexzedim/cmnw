@@ -26,7 +26,6 @@ RUN nest build api \
   && nest build osint \
   && nest build dma \
   && nest build core \
-  && nest build items \
   && nest build ladder \
   && nest build guilds \
   && nest build market \

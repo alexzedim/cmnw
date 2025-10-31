@@ -1,5 +1,8 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { SWAGGER_VALUATIONS, SWAGGER_VALUATIONS_EVALUATIONS } from '@app/resources';
+import {
+  SWAGGER_VALUATIONS,
+  SWAGGER_VALUATIONS_EVALUATIONS,
+} from '@app/resources';
 
 export class ItemValuationsDto {
   @ApiProperty(SWAGGER_VALUATIONS_EVALUATIONS)

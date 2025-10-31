@@ -70,7 +70,7 @@ export class ProfileWorker extends WorkerHost {
   public async process(job: Job<ProfileJobQueue, number>) {
     const startTime = Date.now();
     this.stats.total++;
-    
+
     try {
       const { data: args } = job;
 
@@ -108,19 +108,22 @@ export class ProfileWorker extends WorkerHost {
       }
 
       if (args.updateWP) {
-        const wowProgress = await this.getWowProgressProfile(args.name, args.realm);
+        const wowProgress = await this.getWowProgressProfile(
+          args.name,
+          args.realm,
+        );
         Object.assign(profileEntity, wowProgress);
         this.stats.wpUpdated++;
         await job.updateProgress(80);
       }
 
       await this.charactersProfileRepository.save(profileEntity);
-      
+
       this.stats.success++;
       const duration = Date.now() - startTime;
       this.logger.log(
         `${chalk.green('✓')} [${chalk.bold(this.stats.total)}] ${args.guid} ${chalk.dim(`(${duration}ms)`)} ` +
-        `${args.updateRIO ? chalk.blue('RIO') : ''}${args.updateWCL ? chalk.magenta(' WCL') : ''}${args.updateWP ? chalk.cyan(' WP') : ''}`
+          `${args.updateRIO ? chalk.blue('RIO') : ''}${args.updateWCL ? chalk.magenta(' WCL') : ''}${args.updateWP ? chalk.cyan(' WP') : ''}`,
       );
 
       // Progress report every 25 profiles
@@ -130,10 +133,10 @@ export class ProfileWorker extends WorkerHost {
     } catch (errorOrException) {
       this.stats.errors++;
       const duration = Date.now() - startTime;
-      
+
       await job.log(errorOrException);
       this.logger.error(
-        `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${job.data.guid} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`
+        `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${job.data.guid} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`,
       );
 
       return 500;
@@ -143,40 +146,44 @@ export class ProfileWorker extends WorkerHost {
   private logProgress(): void {
     const uptime = Date.now() - this.stats.startTime;
     const rate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
+      1,
+    );
 
     this.logger.log(
       `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
-      `${chalk.magenta('📊 PROFILES PROGRESS REPORT')}\n` +
-      `${chalk.dim('  Total:')} ${chalk.bold(this.stats.total)} profiles processed\n` +
-      `${chalk.green('  ✓ Success:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
-      `${chalk.blue('  RIO Updated:')} ${chalk.blue.bold(this.stats.rioUpdated)}\n` +
-      `${chalk.magenta('  WCL Updated:')} ${chalk.magenta.bold(this.stats.wclUpdated)}\n` +
-      `${chalk.cyan('  WP Updated:')} ${chalk.cyan.bold(this.stats.wpUpdated)}\n` +
-      `${chalk.red('  ✗ Errors:')} ${chalk.red.bold(this.stats.errors)}\n` +
-      `${chalk.dim('  Rate:')} ${chalk.bold(rate)} profiles/sec\n` +
-      `${chalk.magenta.bold('━'.repeat(60))}`
+        `${chalk.magenta('📊 PROFILES PROGRESS REPORT')}\n` +
+        `${chalk.dim('  Total:')} ${chalk.bold(this.stats.total)} profiles processed\n` +
+        `${chalk.green('  ✓ Success:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
+        `${chalk.blue('  RIO Updated:')} ${chalk.blue.bold(this.stats.rioUpdated)}\n` +
+        `${chalk.magenta('  WCL Updated:')} ${chalk.magenta.bold(this.stats.wclUpdated)}\n` +
+        `${chalk.cyan('  WP Updated:')} ${chalk.cyan.bold(this.stats.wpUpdated)}\n` +
+        `${chalk.red('  ✗ Errors:')} ${chalk.red.bold(this.stats.errors)}\n` +
+        `${chalk.dim('  Rate:')} ${chalk.bold(rate)} profiles/sec\n` +
+        `${chalk.magenta.bold('━'.repeat(60))}`,
     );
   }
 
   public logFinalSummary(): void {
     const uptime = Date.now() - this.stats.startTime;
     const avgRate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
+      1,
+    );
 
     this.logger.log(
       `\n${chalk.cyan.bold('═'.repeat(60))}\n` +
-      `${chalk.cyan.bold('  🎯 PROFILES FINAL SUMMARY')}\n` +
-      `${chalk.cyan.bold('═'.repeat(60))}\n` +
-      `${chalk.dim('  Total Profiles:')} ${chalk.bold.white(this.stats.total)}\n` +
-      `${chalk.green('  ✓ Successful:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
-      `${chalk.blue('  RIO Updated:')} ${chalk.blue.bold(this.stats.rioUpdated)}\n` +
-      `${chalk.magenta('  WCL Updated:')} ${chalk.magenta.bold(this.stats.wclUpdated)}\n` +
-      `${chalk.cyan('  WP Updated:')} ${chalk.cyan.bold(this.stats.wpUpdated)}\n` +
-      `${chalk.red('  ✗ Failed:')} ${chalk.red.bold(this.stats.errors)}\n` +
-      `${chalk.dim('  Total Time:')} ${chalk.bold((uptime / 1000).toFixed(1))}s\n` +
-      `${chalk.dim('  Avg Rate:')} ${chalk.bold(avgRate)} profiles/sec\n` +
-      `${chalk.cyan.bold('═'.repeat(60))}`
+        `${chalk.cyan.bold('  🎯 PROFILES FINAL SUMMARY')}\n` +
+        `${chalk.cyan.bold('═'.repeat(60))}\n` +
+        `${chalk.dim('  Total Profiles:')} ${chalk.bold.white(this.stats.total)}\n` +
+        `${chalk.green('  ✓ Successful:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
+        `${chalk.blue('  RIO Updated:')} ${chalk.blue.bold(this.stats.rioUpdated)}\n` +
+        `${chalk.magenta('  WCL Updated:')} ${chalk.magenta.bold(this.stats.wclUpdated)}\n` +
+        `${chalk.cyan('  WP Updated:')} ${chalk.cyan.bold(this.stats.wpUpdated)}\n` +
+        `${chalk.red('  ✗ Failed:')} ${chalk.red.bold(this.stats.errors)}\n` +
+        `${chalk.dim('  Total Time:')} ${chalk.bold((uptime / 1000).toFixed(1))}s\n` +
+        `${chalk.dim('  Avg Rate:')} ${chalk.bold(avgRate)} profiles/sec\n` +
+        `${chalk.cyan.bold('═'.repeat(60))}`,
     );
   }
 
@@ -187,12 +194,14 @@ export class ProfileWorker extends WorkerHost {
   ): Promise<WarcraftLogsProfile> {
     const warcraftLogsProfile = this.charactersProfileRepository.create();
     const guid = `${name}@${realmSlug}`;
-    
+
     try {
       const isBrowserLaunched = Boolean(this.browser && this.browserContext);
       if (!isBrowserLaunched) {
         this.browser = await chromium.launch();
-        this.browserContext = await this.browser.newContext(devices['iPhone 15 Pro Max landscape']);
+        this.browserContext = await this.browser.newContext(
+          devices['iPhone 15 Pro Max landscape'],
+        );
       }
 
       const difficulty = CHARACTER_RAID_DIFFICULTY.has(raidDifficulty)
@@ -205,7 +214,9 @@ export class ProfileWorker extends WorkerHost {
       );
 
       await page.goto(url);
-      const getBestPerfAvg = await page.getByText('Best Perf. Avg').allInnerTexts();
+      const getBestPerfAvg = await page
+        .getByText('Best Perf. Avg')
+        .allInnerTexts();
       const [getBestPerfAvgValue] = getBestPerfAvg;
 
       const [_text, value] = getBestPerfAvgValue.trim().split('\n');
@@ -214,11 +225,11 @@ export class ProfileWorker extends WorkerHost {
       if (isLogsNumberValid) {
         warcraftLogsProfile[difficulty.fieldName] = parseFloat(value);
         this.logger.log(
-          `${chalk.magenta('✓ WCL')} ${guid} - ${difficulty.fieldName}: ${chalk.bold(value)}`
+          `${chalk.magenta('✓ WCL')} ${guid} - ${difficulty.fieldName}: ${chalk.bold(value)}`,
         );
       } else {
         this.logger.warn(
-          `${chalk.yellow('⚠ WCL')} ${guid} - No valid logs data found`
+          `${chalk.yellow('⚠ WCL')} ${guid} - No valid logs data found`,
         );
       }
 
@@ -227,7 +238,7 @@ export class ProfileWorker extends WorkerHost {
       return warcraftLogsProfile;
     } catch (errorOrException) {
       this.logger.error(
-        `${chalk.red('✗ WCL')} ${guid} - ${errorOrException.message}`
+        `${chalk.red('✗ WCL')} ${guid} - ${errorOrException.message}`,
       );
 
       return warcraftLogsProfile;
@@ -242,16 +253,14 @@ export class ProfileWorker extends WorkerHost {
   ): Promise<WowProgressProfile> {
     const wowProgressProfile = this.charactersProfileRepository.create();
     const guid = `${name}@${realmSlug}`;
-    
+
     try {
       const { data } = await this.httpService.axiosRef.get<string>(
         encodeURI(`${OSINT_SOURCE_WOW_PROGRESS}/${realmSlug}/${name}`),
       );
 
       if (!data) {
-        this.logger.warn(
-          `${chalk.yellow('⚠ WP')} ${guid} - No data received`
-        );
+        this.logger.warn(`${chalk.yellow('⚠ WP')} ${guid} - No data received`);
         return wowProgressProfile;
       }
 
@@ -269,7 +278,8 @@ export class ProfileWorker extends WorkerHost {
 
           const fieldValueName = CHARACTER_PROFILE_MAPPING.get(key);
           if (fieldValueName === 'readyToTransfer')
-            wowProgressProfile.readyToTransfer = value.includes('ready to transfer');
+            wowProgressProfile.readyToTransfer =
+              value.includes('ready to transfer');
 
           if (fieldValueName === 'raidDays' && value) {
             const [from, to] = value.split(' - ');
@@ -293,22 +303,23 @@ export class ProfileWorker extends WorkerHost {
       );
 
       wowProgressProfile.updatedByWowProgress = new Date();
-      
-      const hasData = wowProgressProfile.battleTag || wowProgressProfile.playRole || wowProgressProfile.languages?.length > 0;
+
+      const hasData =
+        wowProgressProfile.battleTag ||
+        wowProgressProfile.playRole ||
+        wowProgressProfile.languages?.length > 0;
       if (hasData) {
-        this.logger.log(
-          `${chalk.cyan('✓ WP')} ${guid} - Profile updated`
-        );
+        this.logger.log(`${chalk.cyan('✓ WP')} ${guid} - Profile updated`);
       } else {
         this.logger.warn(
-          `${chalk.yellow('⚠ WP')} ${guid} - No profile data found`
+          `${chalk.yellow('⚠ WP')} ${guid} - No profile data found`,
         );
       }
 
       return wowProgressProfile;
     } catch (errorOrException) {
       this.logger.error(
-        `${chalk.red('✗ WP')} ${guid} - ${errorOrException.message}`
+        `${chalk.red('✗ WP')} ${guid} - ${errorOrException.message}`,
       );
 
       return wowProgressProfile;
@@ -318,7 +329,7 @@ export class ProfileWorker extends WorkerHost {
   private async getRaiderIoProfile(name: string, realmSlug: string) {
     const rioProfileCharacter = this.charactersProfileRepository.create();
     const guid = `${name}@${realmSlug}`;
-    
+
     try {
       const { data: raiderIoProfile } =
         await this.httpService.axiosRef.get<ICharacterRaiderIo>(
@@ -330,7 +341,7 @@ export class ProfileWorker extends WorkerHost {
       const isRaiderIoProfileValid = isRaiderIoProfile(raiderIoProfile);
       if (!isRaiderIoProfileValid) {
         this.logger.warn(
-          `${chalk.yellow('⚠ RIO')} ${guid} - Invalid profile data`
+          `${chalk.yellow('⚠ RIO')} ${guid} - Invalid profile data`,
         );
         return rioProfileCharacter;
       }
@@ -362,13 +373,13 @@ export class ProfileWorker extends WorkerHost {
       rioProfileCharacter.updatedByRaiderIo = new Date();
 
       this.logger.log(
-        `${chalk.blue('✓ RIO')} ${guid} - Score: ${chalk.bold(season.scores.all)}`
+        `${chalk.blue('✓ RIO')} ${guid} - Score: ${chalk.bold(season.scores.all)}`,
       );
 
       return rioProfileCharacter;
     } catch (errorOrException) {
       this.logger.error(
-        `${chalk.red('✗ RIO')} ${guid} - ${errorOrException.message}`
+        `${chalk.red('✗ RIO')} ${guid} - ${errorOrException.message}`,
       );
 
       return rioProfileCharacter;

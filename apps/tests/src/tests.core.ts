@@ -22,7 +22,7 @@ export class TestsCore implements OnApplicationBootstrap {
   constructor(
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
-  ) { }
+  ) {}
 
   async onApplicationBootstrap() {
     await this.logs('Aanzz', 'Aanzz');
@@ -43,7 +43,11 @@ export class TestsCore implements OnApplicationBootstrap {
         apiConstParams(API_HEADERS_ENUM.PROFILE),
       );
     } catch (errorOrException) {
-      this.logger.error({ context: 'logs', guid: 'guid', error: JSON.stringify(errorOrException) });
+      this.logger.error({
+        context: 'logs',
+        guid: 'guid',
+        error: JSON.stringify(errorOrException),
+      });
       return errorOrException;
     }
   }
@@ -54,6 +58,6 @@ export class TestsCore implements OnApplicationBootstrap {
     const keyV2 = await getKey(this.keysRepository, GLOBAL_WCL_KEY_V2);
     const keysV2 = await getKeys(this.keysRepository, GLOBAL_WCL_KEY_V2);
 
-    return [keyV1, keysV1, keyV2, keysV2 ];
+    return [keyV1, keysV1, keyV2, keysV2];
   }
 }

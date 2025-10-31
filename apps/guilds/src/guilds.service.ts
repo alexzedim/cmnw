@@ -49,13 +49,16 @@ export class GuildsService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
-    await this.indexGuildCharactersUnique(GLOBAL_OSINT_KEY, osintConfig.isIndexGuildsFromCharacters);
+    await this.indexGuildCharactersUnique(
+      GLOBAL_OSINT_KEY,
+      osintConfig.isIndexGuildsFromCharacters,
+    );
     await this.indexHallOfFame(GLOBAL_OSINT_KEY, false);
   }
 
   async indexGuildCharactersUnique(
     clearance: string = GLOBAL_OSINT_KEY,
-    isIndexGuildsFromCharacters: boolean
+    isIndexGuildsFromCharacters: boolean,
   ) {
     const logTag = this.indexGuildCharactersUnique.name;
     let uniqueGuildGuidsCount = 0;
@@ -63,11 +66,19 @@ export class GuildsService implements OnApplicationBootstrap {
     let guildJobsSuccessItx = 0;
 
     try {
-      this.logger.log({ logTag, isIndexGuildsFromCharacters, message: `Index guilds from characters: ${isIndexGuildsFromCharacters}` });
+      this.logger.log({
+        logTag,
+        isIndexGuildsFromCharacters,
+        message: `Index guilds from characters: ${isIndexGuildsFromCharacters}`,
+      });
       if (isIndexGuildsFromCharacters) return;
 
-
-      this.keyEntities = await getKeys(this.keysRepository, clearance, false, true);
+      this.keyEntities = await getKeys(
+        this.keysRepository,
+        clearance,
+        false,
+        true,
+      );
 
       let length = this.keyEntities.length;
 
@@ -79,7 +90,11 @@ export class GuildsService implements OnApplicationBootstrap {
 
       uniqueGuildGuidsCount = uniqueGuildGuids.length;
 
-      this.logger.log({ logTag, uniqueGuildGuidsCount, message: `Found ${uniqueGuildGuidsCount} unique guilds` });
+      this.logger.log({
+        logTag,
+        uniqueGuildGuidsCount,
+        message: `Found ${uniqueGuildGuidsCount} unique guilds`,
+      });
 
       const guildJobs = uniqueGuildGuids.map((guild) => {
         const { client, secret, token } =
@@ -108,21 +123,31 @@ export class GuildsService implements OnApplicationBootstrap {
             jobId: guildGuid,
             priority: 1,
           },
-        }
+        };
 
         guildJobsItx = guildJobsItx + 1;
 
         return guildJobData;
       });
 
-      this.logger.log({ logTag, guildJobsItx, message: `Created ${guildJobsItx} guild jobs` });
+      this.logger.log({
+        logTag,
+        guildJobsItx,
+        message: `Created ${guildJobsItx} guild jobs`,
+      });
       await lastValueFrom(
         from(guildJobs).pipe(
           bufferCount(500),
           concatMap(async (guildJobsBatch) => {
             try {
               await this.queueGuilds.addBulk(guildJobsBatch);
-              this.logger.log({ logTag, currentBatch: guildJobsBatch.length, totalJobs: guildJobsItx, processed: guildJobsSuccessItx, message: `Added ${guildJobsBatch.length} guild jobs to queue` });
+              this.logger.log({
+                logTag,
+                currentBatch: guildJobsBatch.length,
+                totalJobs: guildJobsItx,
+                processed: guildJobsSuccessItx,
+                message: `Added ${guildJobsBatch.length} guild jobs to queue`,
+              });
               guildJobsSuccessItx = guildJobsBatch.length;
             } catch (errorOrException) {
               this.logger.error({
@@ -131,21 +156,27 @@ export class GuildsService implements OnApplicationBootstrap {
                 guildJobsItx,
                 guildJobsSuccessItx,
                 errorOrException,
-                message: 'Error adding guild jobs batch to queue'
+                message: 'Error adding guild jobs batch to queue',
               });
             }
-          })
-        )
-      )
+          }),
+        ),
+      );
 
-      this.logger.log({ logTag, guildJobsSuccessItx, guildJobsItx, uniqueGuildGuidsCount, message: `Completed: ${guildJobsSuccessItx} of ${guildJobsItx} guild jobs added from ${uniqueGuildGuidsCount} unique guilds` });
+      this.logger.log({
+        logTag,
+        guildJobsSuccessItx,
+        guildJobsItx,
+        uniqueGuildGuidsCount,
+        message: `Completed: ${guildJobsSuccessItx} of ${guildJobsItx} guild jobs added from ${uniqueGuildGuidsCount} unique guilds`,
+      });
     } catch (errorOrException) {
       this.logger.error({
         logTag,
         uniqueGuildGuidsCount,
         guildJobsItx,
         guildJobsSuccessItx,
-        errorOrException
+        errorOrException,
       });
     }
   }
@@ -156,17 +187,33 @@ export class GuildsService implements OnApplicationBootstrap {
     try {
       const jobs = await this.queueGuilds.count();
       if (jobs > 1_000) {
-        this.logger.warn({ logTag, jobCount: jobs, message: `Too many jobs (${jobs}), skipping guild indexing` });
+        this.logger.warn({
+          logTag,
+          jobCount: jobs,
+          message: `Too many jobs (${jobs}), skipping guild indexing`,
+        });
         return;
       }
 
       const globalConcurrency = await this.queueGuilds.getGlobalConcurrency();
-      const updatedConcurrency = await this.queueGuilds.setGlobalConcurrency(10);
+      const updatedConcurrency =
+        await this.queueGuilds.setGlobalConcurrency(10);
 
-      this.logger.log({ logTag, queueName: guildsQueue.name, globalConcurrency, updatedConcurrency, message: `Updated concurrency from ${globalConcurrency} to ${updatedConcurrency}` });
+      this.logger.log({
+        logTag,
+        queueName: guildsQueue.name,
+        globalConcurrency,
+        updatedConcurrency,
+        message: `Updated concurrency from ${globalConcurrency} to ${updatedConcurrency}`,
+      });
 
       let guildIteration = 0;
-      this.keyEntities = await getKeys(this.keysRepository, clearance, false, true);
+      this.keyEntities = await getKeys(
+        this.keysRepository,
+        clearance,
+        false,
+        true,
+      );
 
       let length = this.keyEntities.length;
 
@@ -181,7 +228,12 @@ export class GuildsService implements OnApplicationBootstrap {
       this.offset = this.offset + (isRotate ? OSINT_GUILD_LIMIT : 0);
 
       if (this.offset >= guildsCount) {
-        this.logger.warn({ logTag, offset: this.offset, guildsCount, message: `End of guilds reached, resetting offset` });
+        this.logger.warn({
+          logTag,
+          offset: this.offset,
+          guildsCount,
+          message: `End of guilds reached, resetting offset`,
+        });
         this.offset = 0;
       }
 
@@ -219,14 +271,14 @@ export class GuildsService implements OnApplicationBootstrap {
         ),
       );
 
-      this.logger.log(`${logTag}: offset ${this.offset} | ${guilds.length} characters`);
-    } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: logTag,
-          error: JSON.stringify(errorOrException),
-        }
+      this.logger.log(
+        `${logTag}: offset ${this.offset} | ${guilds.length} characters`,
       );
+    } catch (errorOrException) {
+      this.logger.error({
+        logTag: logTag,
+        error: JSON.stringify(errorOrException),
+      });
     }
   }
 
@@ -251,7 +303,9 @@ export class GuildsService implements OnApplicationBootstrap {
       });
 
       for (const raid of HALL_OF_FAME_RAIDS) {
-        const isOnlyLast = onlyLast && raid !== HALL_OF_FAME_RAIDS[HALL_OF_FAME_RAIDS.length - 1];
+        const isOnlyLast =
+          onlyLast &&
+          raid !== HALL_OF_FAME_RAIDS[HALL_OF_FAME_RAIDS.length - 1];
         if (isOnlyLast) continue;
         await delay(2);
 
@@ -264,55 +318,66 @@ export class GuildsService implements OnApplicationBootstrap {
           const isEntries = isHallOfFame(response);
           if (!isEntries) continue;
 
-          const guildJobs = response.entries.map((guildEntry, guildIteration ) => {
-            const { client, secret, token } =
-              this.keyEntities[guildIteration % length];
+          const guildJobs = response.entries
+            .map((guildEntry, guildIteration) => {
+              const { client, secret, token } =
+                this.keyEntities[guildIteration % length];
 
-            const faction = raidFaction === 'HORDE' ? FACTION.H : FACTION.A;
+              const faction = raidFaction === 'HORDE' ? FACTION.H : FACTION.A;
 
-            const isNotEuRegion = !isEuRegion(guildEntry.region);
-            if (isNotEuRegion) {
-              return null;
-            }
+              const isNotEuRegion = !isEuRegion(guildEntry.region);
+              if (isNotEuRegion) {
+                return null;
+              }
 
-            return {
-              name: toGuid(guildEntry.guild.name, guildEntry.guild.realm.slug),
-              data: {
-                clientId: client,
-                clientSecret: secret,
-                accessToken: token,
-                guid: toGuid(guildEntry.guild.name, guildEntry.guild.realm.slug),
-                name: guildEntry.guild.name,
-                realm: guildEntry.guild.realm.slug,
-                realmId: guildEntry.guild.realm.id,
-                realmName: guildEntry.guild.realm.name,
-                faction: faction,
-                createdBy: OSINT_SOURCE.TOP100,
-                updatedBy: OSINT_SOURCE.TOP100,
-                region: <RegionIdOrName>guildEntry.region,
-                forceUpdate: ms('1h'),
-                iteration: guildEntry.rank,
-                createOnlyUnique: false,
-              },
-              opts: {
-                jobId: toGuid(guildEntry.guild.name, guildEntry.guild.realm.slug),
-                priority: 2,
-              },
-            }
-          }).filter(notNull);
+              return {
+                name: toGuid(
+                  guildEntry.guild.name,
+                  guildEntry.guild.realm.slug,
+                ),
+                data: {
+                  clientId: client,
+                  clientSecret: secret,
+                  accessToken: token,
+                  guid: toGuid(
+                    guildEntry.guild.name,
+                    guildEntry.guild.realm.slug,
+                  ),
+                  name: guildEntry.guild.name,
+                  realm: guildEntry.guild.realm.slug,
+                  realmId: guildEntry.guild.realm.id,
+                  realmName: guildEntry.guild.realm.name,
+                  faction: faction,
+                  createdBy: OSINT_SOURCE.TOP100,
+                  updatedBy: OSINT_SOURCE.TOP100,
+                  region: <RegionIdOrName>guildEntry.region,
+                  forceUpdate: ms('1h'),
+                  iteration: guildEntry.rank,
+                  createOnlyUnique: false,
+                },
+                opts: {
+                  jobId: toGuid(
+                    guildEntry.guild.name,
+                    guildEntry.guild.realm.slug,
+                  ),
+                  priority: 2,
+                },
+              };
+            })
+            .filter(notNull);
 
           await this.queueGuilds.addBulk(guildJobs);
 
-          this.logger.log(`${logTag}: Raid ${raid} | Faction ${raidFaction} | Guilds ${guildJobs.length}`);
+          this.logger.log(
+            `${logTag}: Raid ${raid} | Faction ${raidFaction} | Guilds ${guildJobs.length}`,
+          );
         }
       }
     } catch (errorOrException) {
-      this.logger.error(
-        {
-          logTag: logTag,
-          error: JSON.stringify(errorOrException),
-        }
-      );
+      this.logger.error({
+        logTag: logTag,
+        error: JSON.stringify(errorOrException),
+      });
     }
   }
 }

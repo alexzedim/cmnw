@@ -18,12 +18,3 @@ services:
     command: [ 'node', 'dist/apps/market/main.js' ]
     env_file:
       - stack.env
-
-  items:
-    image: ghcr.io/alexzedim/dma:latest
-    restart: always
-    command: [ 'node', 'dist/apps/items/main.js' ]
-    environment:
-      - ITEMS_WORKER_CONCURRENCY=${ITEMS_WORKER_CONCURRENCY:-3}
-    env_file:
-      - stack.env

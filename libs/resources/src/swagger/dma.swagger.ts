@@ -1,4 +1,8 @@
-import { ApiProperty, ApiPropertyOptions, getSchemaPath } from '@nestjs/swagger';
+import {
+  ApiProperty,
+  ApiPropertyOptions,
+  getSchemaPath,
+} from '@nestjs/swagger';
 import { MarketEntity } from '@app/pg';
 import { MARKET_TYPE } from '@app/resources/constants';
 
@@ -125,7 +129,8 @@ export const SWAGGER_ITEM: ApiPropertyOptions = {
 
 export const SWAGGER_CONNECTED_REALM_ID: ApiPropertyOptions = {
   name: 'connected_realm_id',
-  description: 'Connected realm ID for group of realms with common players and AH',
+  description:
+    'Connected realm ID for group of realms with common players and AH',
   type: Number,
   example: 1602,
 };
@@ -147,7 +152,8 @@ export const SWAGGER_VALUATIONS: ApiPropertyOptions = {
 
 export const SWAGGER_WOWTOKEN_LIMIT: ApiPropertyOptions = {
   name: 'limit',
-  description: 'Request required number of plots from 1 to 250, latest by default',
+  description:
+    'Request required number of plots from 1 to 250, latest by default',
   type: Number,
   required: false,
   minimum: 0,

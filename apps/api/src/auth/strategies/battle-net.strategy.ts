@@ -13,11 +13,13 @@ import { cmnwConfig } from '@app/configuration';
 
 @Injectable()
 export class BattleNetStrategy extends PassportStrategy(Strategy, 'battlenet') {
-  private readonly logger = new Logger(BattleNetStrategy.name, { timestamp: true });
+  private readonly logger = new Logger(BattleNetStrategy.name, {
+    timestamp: true,
+  });
 
   constructor(
-    private readonly authService: AuthService, 
-    private readonly httpService: HttpService
+    private readonly authService: AuthService,
+    private readonly httpService: HttpService,
   ) {
     super({
       authorizationURL: `https://eu.battle.net/oauth/authorize`,
@@ -32,34 +34,38 @@ export class BattleNetStrategy extends PassportStrategy(Strategy, 'battlenet') {
   async validate(accessToken: string): Promise<AuthResponseDto> {
     try {
       this.logger.log('Battle.net OAuth validation started', 'validate');
-      
+
       const { data } = await lastValueFrom(
         this.httpService.get('https://eu.battle.net/oauth/userinfo', {
           headers: { Authorization: `Bearer ${accessToken}` },
         }),
       );
 
-      this.logger.log(`Battle.net OAuth validation for user: ${data.id}`, 'validate');
-      
+      this.logger.log(
+        `Battle.net OAuth validation for user: ${data.id}`,
+        'validate',
+      );
+
       const battleNetProfile: BattleNetProfile = {
         id: data.id || data.sub,
         battletag: data.battletag,
         sub: data.sub,
       };
 
-      const authResponse = await this.authService.handleBattleNetAuth(battleNetProfile);
-      
+      const authResponse =
+        await this.authService.handleBattleNetAuth(battleNetProfile);
+
       this.logger.log(
-        `Battle.net OAuth successful for user: ${data.id}, isNewUser: ${authResponse.isNewUser}`, 
-        'validate'
+        `Battle.net OAuth successful for user: ${data.id}, isNewUser: ${authResponse.isNewUser}`,
+        'validate',
       );
-      
+
       return authResponse;
     } catch (error) {
       this.logger.error(
         'Battle.net OAuth validation failed',
         error instanceof Error ? error.stack : String(error),
-        'validate'
+        'validate',
       );
       throw error;
     }

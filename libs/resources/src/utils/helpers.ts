@@ -22,7 +22,8 @@ export const enumKeys = <O extends object, K extends keyof O = keyof O>(
 export const randomInt = (min: number, max: number): number =>
   Math.floor(Math.random() * (max - min + 1) + min);
 
-export const getRandomElement = <T>(arr: T[]): T => arr[Math.floor(Math.random()*arr.length)]
+export const getRandomElement = <T>(arr: T[]): T =>
+  arr[Math.floor(Math.random() * arr.length)];
 
 export const formatBytes = (bytes: number): string => {
   if (bytes === 0) return '0 B';
@@ -32,4 +33,4 @@ export const formatBytes = (bytes: number): string => {
   const i = Math.floor(Math.log(bytes) / Math.log(k));
 
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}
+};

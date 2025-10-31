@@ -1,7 +1,12 @@
 import { Injectable, ConsoleLogger, Scope } from '@nestjs/common';
 import { lokiConfig } from '@app/configuration';
 import axios from 'axios';
-import { StandardizedErrorInfo, LogInput, LogLevel, LokiRequestPayload } from './logger.type';
+import {
+  StandardizedErrorInfo,
+  LogInput,
+  LogLevel,
+  LokiRequestPayload,
+} from './logger.type';
 import { isAxiosError, isStandardError, isPlainObject } from './logger.guard';
 
 @Injectable({ scope: Scope.TRANSIENT })
@@ -31,7 +36,7 @@ export class LoggerService extends ConsoleLogger {
   private sendLokiRequest = (
     labels: Record<string, string>,
     message: string,
-    retryCount: number = 0
+    retryCount: number = 0,
   ): void => {
     const maxRetries = 3;
     const retryDelay = Math.pow(2, retryCount) * 1000; // Exponential backoff: 1s, 2s, 4s
@@ -44,7 +49,7 @@ export class LoggerService extends ConsoleLogger {
         },
       ],
     };
-    
+
     const data = JSON.stringify(payload);
 
     const requestConfig = {
@@ -52,27 +57,29 @@ export class LoggerService extends ConsoleLogger {
       url: this.lokiUrl,
       headers: this.gzip
         ? {
-          'Content-Type': 'application/json',
-          'Content-Encoding': 'application/gzip',
-        }
+            'Content-Type': 'application/json',
+            'Content-Encoding': 'application/gzip',
+          }
         : {
-          'Content-Type': 'application/json',
-          // Authorization: `Bearer ${this.lokiToken}`,
-        },
+            'Content-Type': 'application/json',
+            // Authorization: `Bearer ${this.lokiToken}`,
+          },
       data: data,
       timeout: 10000, // 10 second timeout
     };
 
-    axios.request(requestConfig)
+    axios
+      .request(requestConfig)
       .then(() => {
         // Successfully sent to Loki
       })
       .catch((error) => {
-        const shouldRetry = retryCount < maxRetries && 
+        const shouldRetry =
+          retryCount < maxRetries &&
           (error.code === 'ECONNABORTED' || // Timeout
-           error.code === 'ECONNREFUSED' || // Connection refused
-           error.code === 'ENETUNREACH' || // Network unreachable
-           (error.response?.status >= 500)); // Server errors
+            error.code === 'ECONNREFUSED' || // Connection refused
+            error.code === 'ENETUNREACH' || // Network unreachable
+            error.response?.status >= 500); // Server errors
 
         if (shouldRetry) {
           setTimeout(() => {
@@ -88,7 +95,7 @@ export class LoggerService extends ConsoleLogger {
             data: error.response?.data,
             retryCount,
             originalLabels: labels,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
           };
 
           if (this.onLokiError) {
@@ -113,7 +120,7 @@ export class LoggerService extends ConsoleLogger {
     input: LogInput,
     logTag?: string,
     level: string = 'info',
-    additionalInfo?: Record<string, any>
+    additionalInfo?: Record<string, any>,
   ): StandardizedErrorInfo {
     const timestamp = new Date().toISOString();
     const baseInfo: StandardizedErrorInfo = {
@@ -165,27 +172,37 @@ export class LoggerService extends ConsoleLogger {
       if (input.logTag && input.errorOrException) {
         // Extract the actual error and recursively parse it
         const actualError = input.errorOrException;
-        const parsedError = this.parseLogInput(actualError, input.logTag, level, additionalInfo);
-        
+        const parsedError = this.parseLogInput(
+          actualError,
+          input.logTag,
+          level,
+          additionalInfo,
+        );
+
         return {
           ...parsedError,
           logTag: input.logTag, // Ensure logTag is preserved
           originalInput: input, // Keep reference to original input object
         };
       }
-      
+
       // Check if object has logTag and error (alternative property name)
       if (input.logTag && input.error) {
         const actualError = input.error;
-        const parsedError = this.parseLogInput(actualError, input.logTag, level, additionalInfo);
-        
+        const parsedError = this.parseLogInput(
+          actualError,
+          input.logTag,
+          level,
+          additionalInfo,
+        );
+
         return {
           ...parsedError,
           logTag: input.logTag,
           originalInput: input,
         };
       }
-      
+
       // Check if object has logTag and some other content
       if (input.logTag) {
         const { logTag, ...restOfObject } = input;
@@ -198,7 +215,7 @@ export class LoggerService extends ConsoleLogger {
           ...restOfObject, // Include all other properties
         };
       }
-      
+
       // Standard object handling (no special logTag handling)
       return {
         ...baseInfo,
@@ -234,13 +251,13 @@ export class LoggerService extends ConsoleLogger {
    */
   private formatForConsole(errorInfo: StandardizedErrorInfo): string {
     const parts = [];
-    
+
     if (errorInfo.logTag) {
       parts.push(`[${errorInfo.logTag}]`);
     }
-    
+
     parts.push(errorInfo.message);
-    
+
     // Add additional context for different error types
     if (errorInfo.errorType === 'axios' && errorInfo.status) {
       parts.push(`HTTP ${errorInfo.status}`);
@@ -250,13 +267,22 @@ export class LoggerService extends ConsoleLogger {
     } else if (errorInfo.errorType === 'object' && errorInfo.originalError) {
       // For objects, show key properties in console for better readability
       const obj = errorInfo.originalError as Record<string, any>;
-      const relevantKeys = ['id', 'code', 'type', 'status', 'error', 'details'].filter(key => obj[key] !== undefined);
+      const relevantKeys = [
+        'id',
+        'code',
+        'type',
+        'status',
+        'error',
+        'details',
+      ].filter((key) => obj[key] !== undefined);
       if (relevantKeys.length > 0) {
-        const contextInfo = relevantKeys.map(key => `${key}: ${String(obj[key])}`).join(', ');
+        const contextInfo = relevantKeys
+          .map((key) => `${key}: ${String(obj[key])}`)
+          .join(', ');
         parts.push(`{${contextInfo}}`);
       }
     }
-    
+
     return parts.join(' | ');
   }
 
@@ -267,26 +293,41 @@ export class LoggerService extends ConsoleLogger {
    * @param level - Log level to determine which fields to include
    * @returns Properly formatted message for Loki
    */
-  private formatForLoki(input: LogInput, parsedInfo: StandardizedErrorInfo, level: LogLevel): string {
+  private formatForLoki(
+    input: LogInput,
+    parsedInfo: StandardizedErrorInfo,
+    level: LogLevel,
+  ): string {
     // For simple strings without additional context, send as-is to Loki
-    if (typeof input === 'string' && !parsedInfo.logTag && parsedInfo.errorType === 'string') {
+    if (
+      typeof input === 'string' &&
+      !parsedInfo.logTag &&
+      parsedInfo.errorType === 'string'
+    ) {
       return input;
     }
-    
+
     // For everything else, send the structured data
     try {
       // For non-error levels (log, debug, info, verbose, warn), exclude error-specific fields
       const isErrorLevel = level === 'error';
-      
+
       if (!isErrorLevel) {
         // Create a clean copy without error-specific fields for non-error logs
-        const { originalError, errorType, stack, cause, originalInput, ...cleanInfo } = parsedInfo;
-        
+        const {
+          originalError,
+          errorType,
+          stack,
+          cause,
+          originalInput,
+          ...cleanInfo
+        } = parsedInfo;
+
         // Only include stack trace if it's explicitly part of the message context
         // and not just from error parsing
         return JSON.stringify(cleanInfo, null, 0);
       }
-      
+
       // For error level, include all fields
       return JSON.stringify(parsedInfo, null, 0); // Compact JSON for Loki
     } catch (error) {
@@ -296,7 +337,8 @@ export class LoggerService extends ConsoleLogger {
         message: parsedInfo.message,
         level: parsedInfo.level,
         timestamp: parsedInfo.timestamp,
-        serializationError: error instanceof Error ? error.message : String(error)
+        serializationError:
+          error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -318,12 +360,17 @@ export class LoggerService extends ConsoleLogger {
     labels?: Record<string, string>,
     logTag?: string,
     additionalInfo?: Record<string, any>,
-    trace?: string
+    trace?: string,
   ): void {
-    const parsedInfo = this.parseLogInput(input, logTag, level === 'log' ? 'info' : level, additionalInfo);
+    const parsedInfo = this.parseLogInput(
+      input,
+      logTag,
+      level === 'log' ? 'info' : level,
+      additionalInfo,
+    );
     const consoleMessage = this.formatForConsole(parsedInfo);
     const lokiMessage = this.formatForLoki(input, parsedInfo, level);
-    
+
     // Send to Loki if enabled
     if (this.logsToLoki) {
       this.sendLokiRequest(
@@ -376,9 +423,17 @@ export class LoggerService extends ConsoleLogger {
     context?: string,
     labels?: Record<string, string>,
     logTag?: string,
-    additionalInfo?: Record<string, any>
+    additionalInfo?: Record<string, any>,
   ): void {
-    this.universalLog('error', input, context, labels, logTag, additionalInfo, trace);
+    this.universalLog(
+      'error',
+      input,
+      context,
+      labels,
+      logTag,
+      additionalInfo,
+      trace,
+    );
   }
 
   /**
@@ -394,7 +449,7 @@ export class LoggerService extends ConsoleLogger {
     logTag?: string,
     additionalInfo?: Record<string, any>,
     context?: string,
-    labels?: Record<string, string>
+    labels?: Record<string, string>,
   ): void {
     this.error(error, undefined, context, labels, logTag, additionalInfo);
   }
@@ -412,7 +467,7 @@ export class LoggerService extends ConsoleLogger {
     context?: string,
     labels?: Record<string, string>,
     logTag?: string,
-    additionalInfo?: Record<string, any>
+    additionalInfo?: Record<string, any>,
   ): void {
     this.universalLog('info', input, context, labels, logTag, additionalInfo);
   }
@@ -430,7 +485,7 @@ export class LoggerService extends ConsoleLogger {
     context?: string,
     labels?: Record<string, string>,
     logTag?: string,
-    additionalInfo?: Record<string, any>
+    additionalInfo?: Record<string, any>,
   ): void {
     this.universalLog('log', input, context, labels, logTag, additionalInfo);
   }
@@ -448,7 +503,7 @@ export class LoggerService extends ConsoleLogger {
     context?: string,
     labels?: Record<string, string>,
     logTag?: string,
-    additionalInfo?: Record<string, any>
+    additionalInfo?: Record<string, any>,
   ): void {
     this.universalLog('warn', input, context, labels, logTag, additionalInfo);
   }
@@ -466,7 +521,7 @@ export class LoggerService extends ConsoleLogger {
     context?: string,
     labels?: Record<string, string>,
     logTag?: string,
-    additionalInfo?: Record<string, any>
+    additionalInfo?: Record<string, any>,
   ): void {
     this.universalLog('debug', input, context, labels, logTag, additionalInfo);
   }
@@ -484,8 +539,15 @@ export class LoggerService extends ConsoleLogger {
     context?: string,
     labels?: Record<string, string>,
     logTag?: string,
-    additionalInfo?: Record<string, any>
+    additionalInfo?: Record<string, any>,
   ): void {
-    this.universalLog('verbose', input, context, labels, logTag, additionalInfo);
+    this.universalLog(
+      'verbose',
+      input,
+      context,
+      labels,
+      logTag,
+      additionalInfo,
+    );
   }
 }

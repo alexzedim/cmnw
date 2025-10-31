@@ -17,7 +17,7 @@ import { RedisModule } from '@nestjs-modules/ioredis';
         host: redisConfig.host,
         port: redisConfig.port,
         password: redisConfig.password,
-      }
+      },
     }),
     BullModule.forRoot({
       connection: {

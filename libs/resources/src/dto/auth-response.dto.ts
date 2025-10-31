@@ -26,17 +26,23 @@ export class AuthUserDto {
   @ApiProperty({ description: 'Battle.net BattleTag', required: false })
   readonly battlenetBattletag?: string;
 
-  @ApiProperty({ enum: AuthProvider, description: 'Primary authentication provider' })
+  @ApiProperty({
+    enum: AuthProvider,
+    description: 'Primary authentication provider',
+  })
   readonly primaryProvider: AuthProvider;
 
-  @ApiProperty({ 
-    enum: AuthProvider, 
-    isArray: true, 
-    description: 'All linked authentication providers' 
+  @ApiProperty({
+    enum: AuthProvider,
+    isArray: true,
+    description: 'All linked authentication providers',
   })
   readonly linkedProviders: AuthProvider[];
 
-  @ApiProperty({ description: 'User locale/language preference', required: false })
+  @ApiProperty({
+    description: 'User locale/language preference',
+    required: false,
+  })
   readonly locale?: string;
 
   @ApiProperty({ description: 'Whether user account is active' })
@@ -62,6 +68,9 @@ export class AuthResponseDto {
   @ApiProperty({ description: 'Whether this is a new user registration' })
   readonly isNewUser: boolean;
 
-  @ApiProperty({ description: 'Access token for API requests', required: false })
+  @ApiProperty({
+    description: 'Access token for API requests',
+    required: false,
+  })
   readonly accessToken?: string;
 }

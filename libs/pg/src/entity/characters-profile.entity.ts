@@ -1,11 +1,6 @@
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
 import { LFG_STATUS, IRaiderIORaidProgress } from '@app/resources';
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  PrimaryColumn,
-} from 'typeorm';
+import { Column, CreateDateColumn, Entity, PrimaryColumn } from 'typeorm';
 
 @Entity({ name: CMNW_ENTITY_ENUM.CHARACTERS_PROFILE })
 export class CharactersProfileEntity {

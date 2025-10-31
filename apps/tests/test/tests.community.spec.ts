@@ -22,11 +22,7 @@ describe('COMMUNITY', () => {
 
   describe('WCL-PAGE-LOGS', () => {
     it('page response', async () => {
-      const response = await testsService.getLogsFromPage(
-        osintConfig,
-        417,
-        1,
-      );
+      const response = await testsService.getLogsFromPage(osintConfig, 417, 1);
 
       expect(Array.isArray(response)).toBeTruthy();
       response.map((logId) => expect(logId).toEqual(expect.any(String)));

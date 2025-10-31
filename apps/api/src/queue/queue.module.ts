@@ -37,7 +37,7 @@ import { queueMetricsProviders } from './queue-metrics.provider';
       },
     }),
     BullModule.registerQueue({
-      name: auctionsQueue.name
+      name: auctionsQueue.name,
     }),
     BullModule.registerQueue({
       name: charactersQueue.name,
@@ -73,6 +73,10 @@ import { queueMetricsProviders } from './queue-metrics.provider';
     ),
   ],
   controllers: [QueueMonitorController, WorkersController],
-  providers: [QueueMonitorService, QueueMetricsService, ...queueMetricsProviders],
+  providers: [
+    QueueMonitorService,
+    QueueMetricsService,
+    ...queueMetricsProviders,
+  ],
 })
 export class QueueModule {}

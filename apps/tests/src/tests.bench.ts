@@ -93,7 +93,7 @@ export class TestsBench implements OnApplicationBootstrap {
     console.log(m);
 
     const p = await this.getPercentile('DISC', 0.99, itemId, timestamp);
-    console.log(p)
+    console.log(p);
 
     const contractData = await this.marketRepository
       .createQueryBuilder('m')
@@ -117,15 +117,23 @@ export class TestsBench implements OnApplicationBootstrap {
    * Calculate the 10th percentile using PERCENTILE_CONT
    * This returns an interpolated value
    */
-  async getPercentile95Cont(itemId: number, timestamp: number): Promise<number> {
+  async getPercentile95Cont(
+    itemId: number,
+    timestamp: number,
+  ): Promise<number> {
     // Create query builder
     const queryBuilder = this.marketRepository
       .createQueryBuilder('markets')
-      .select('PERCENTILE_DISC(0.99) WITHIN GROUP (ORDER BY markets.price)', 'percentile95');
+      .select(
+        'PERCENTILE_DISC(0.99) WITHIN GROUP (ORDER BY markets.price)',
+        'percentile95',
+      );
 
     // Add optional category filter
     queryBuilder.where('markets.item_id = :itemId', { itemId: itemId });
-    queryBuilder.andWhere('markets.timestamp = :timestamp', { timestamp: timestamp });
+    queryBuilder.andWhere('markets.timestamp = :timestamp', {
+      timestamp: timestamp,
+    });
 
     const result = await queryBuilder.getRawOne();
     return result.percentile95;
@@ -139,7 +147,10 @@ export class TestsBench implements OnApplicationBootstrap {
     // Create query builder
     const queryBuilder = this.marketRepository
       .createQueryBuilder('markets')
-      .select('PERCENTILE_DISC(0.05) WITHIN GROUP (ORDER BY markets.price)', 'percentile10');
+      .select(
+        'PERCENTILE_DISC(0.05) WITHIN GROUP (ORDER BY markets.price)',
+        'percentile10',
+      );
 
     // Add optional category filter
     if (itemId) {
@@ -153,7 +164,12 @@ export class TestsBench implements OnApplicationBootstrap {
   /**
    * Alternative implementation using raw SQL
    */
-  async getPercentile(type: 'CONT' | 'DISC', percentile: number, itemId: number, timestamp: number): Promise<number> {
+  async getPercentile(
+    type: 'CONT' | 'DISC',
+    percentile: number,
+    itemId: number,
+    timestamp: number,
+  ): Promise<number> {
     let query = `
         SELECT PERCENTILE_${type}(${percentile}) WITHIN GROUP (ORDER BY price) as percentile
         FROM market
@@ -173,8 +189,14 @@ export class TestsBench implements OnApplicationBootstrap {
    * Get multiple percentiles at once (more efficient)
    */
   async getMultiplePercentiles(
-    itemId: number, timestamp: number
-  ): Promise<{ p05_cont: number; p05_disc: number; p50_cont: number; p90_cont: number }> {
+    itemId: number,
+    timestamp: number,
+  ): Promise<{
+    p05_cont: number;
+    p05_disc: number;
+    p50_cont: number;
+    p90_cont: number;
+  }> {
     let query = `
       SELECT 
         PERCENTILE_CONT(0.05) WITHIN GROUP (ORDER BY price) as p5_cont,
@@ -223,14 +245,16 @@ export class TestsBench implements OnApplicationBootstrap {
    * Alternative approach using the Raw SQL in QueryBuilder
    */
   async getSumByCategoryRawSql(itemId: number): Promise<any[]> {
-    return this.marketRepository
-      .query(`
+    return this.marketRepository.query(
+      `
         SELECT item_id, SUM(quantity) as "totalQuantity"
         FROM "market"
         WHERE item_id = $1
         GROUP BY item_id
         ORDER BY "totalQuantity" DESC
-      `, [itemId]);
+      `,
+      [itemId],
+    );
   }
 
   async getAggregatesByCategory(itemId: number): Promise<any[]> {
@@ -284,7 +308,11 @@ export class TestsBench implements OnApplicationBootstrap {
       .map((x, y) => parseFloat((x + y * tick).toFixed(4)));
   }
 
-  async test(priceRangeArray: number[], timestampArray: number[], itemId: number) {
+  async test(
+    priceRangeArray: number[],
+    timestampArray: number[],
+    itemId: number,
+  ) {
     const dataset: IChartOrder[] = [];
     if (!priceRangeArray.length) return { dataset };
     /** Find distinct timestamps for each realm */
@@ -322,7 +350,8 @@ export class TestsBench implements OnApplicationBootstrap {
             if (isPriceItxUp) priceItx = priceItx + 1;
             plDataset[priceItx].orders = plDataset[priceItx].orders + 1;
             plDataset[priceItx].oi = plDataset[priceItx].oi + order.value;
-            plDataset[priceItx].value = plDataset[priceItx].value + order.quantity;
+            plDataset[priceItx].value =
+              plDataset[priceItx].value + order.quantity;
             plDataset[priceItx].price =
               plDataset[priceItx].oi / plDataset[priceItx].value;
           }
@@ -385,10 +414,20 @@ export class TestsBench implements OnApplicationBootstrap {
       const faction = exchangeListingPage(element).find('.tc-side').text();
       const status = Boolean(exchangeListingPage(element).attr('data-online'));
       const quantity = exchangeListingPage(element).find('.tc-amount').text();
-      const owner = exchangeListingPage(element).find('.media-user-name').text();
+      const owner = exchangeListingPage(element)
+        .find('.media-user-name')
+        .text();
       const price = exchangeListingPage(element).find('.tc-price div').text();
 
-      goldOrders.push({ orderId, realm, faction, status, quantity, owner, price });
+      goldOrders.push({
+        orderId,
+        realm,
+        faction,
+        status,
+        quantity,
+        owner,
+        price,
+      });
     });
 
     await lastValueFrom(
@@ -403,8 +442,8 @@ export class TestsBench implements OnApplicationBootstrap {
               !realmEntity && order.realm === 'Любой'
                 ? 1
                 : realmEntity
-                ? realmEntity.connectedRealmId
-                : 0;
+                  ? realmEntity.connectedRealmId
+                  : 0;
 
             const isValid = Boolean(
               connectedRealmId && order.price && order.quantity,
@@ -458,7 +497,7 @@ export class TestsBench implements OnApplicationBootstrap {
       ),
     );
 
-    console.log(marketOrders)
+    console.log(marketOrders);
     // await this.marketRepository.save(marketOrders);
   }
 
@@ -475,7 +514,8 @@ export class TestsBench implements OnApplicationBootstrap {
 
     await Promise.allSettled(
       page(wpPage).map(async (_x, node) => {
-        const isAttributes = 'attribs' in node && node.attribs.href.includes('eu_');
+        const isAttributes =
+          'attribs' in node && node.attribs.href.includes('eu_');
         if (!isAttributes) return;
 
         const url = node.attribs.href;
@@ -484,7 +524,9 @@ export class TestsBench implements OnApplicationBootstrap {
         const downloadLink = encodeURI(
           decodeURI(OSINT_SOURCE_WOW_PROGRESS_RANKS + url),
         );
-        const fileName = decodeURIComponent(url.substr(url.lastIndexOf('/') + 1));
+        const fileName = decodeURIComponent(
+          url.substr(url.lastIndexOf('/') + 1),
+        );
         const realmMatch = fileName.match(/(?<=_)(.*?)(?=_)/g);
         const isMatchExists = realmMatch && realmMatch.length;
 
@@ -521,7 +563,9 @@ export class TestsBench implements OnApplicationBootstrap {
       );
 
       await page.goto(url);
-      const getBestPerfAvg = await page.getByText('Best Perf. Avg').allInnerTexts();
+      const getBestPerfAvg = await page
+        .getByText('Best Perf. Avg')
+        .allInnerTexts();
       const [getBestPerfAvgValue] = getBestPerfAvg;
 
       const [_text, value] = getBestPerfAvgValue.trim().split('\n');
@@ -557,7 +601,10 @@ export class TestsBench implements OnApplicationBootstrap {
 
             const [realmSlug] = realmMatch;
 
-            const realmEntity = await findRealm(this.realmsRepository, realmSlug);
+            const realmEntity = await findRealm(
+              this.realmsRepository,
+              realmSlug,
+            );
 
             if (!realmEntity) {
               throw new NotFoundException(`realm ${realmSlug} not found!`);

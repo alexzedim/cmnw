@@ -54,7 +54,10 @@ export class Market extends Document {
 }
 
 export const AuctionsSchema = SchemaFactory.createForClass(Market);
-AuctionsSchema.index({ createdAt: -1 }, { name: 'TTL', expireAfterSeconds: 86400 });
+AuctionsSchema.index(
+  { createdAt: -1 },
+  { name: 'TTL', expireAfterSeconds: 86400 },
+);
 AuctionsSchema.index(
   { connected_realm_id: -1, item_id: -1, last_modified: -1 },
   { name: 'TSqPL' },

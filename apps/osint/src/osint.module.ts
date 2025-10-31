@@ -60,7 +60,7 @@ import {
         host: redisConfig.host,
         port: redisConfig.port,
         password: redisConfig.password,
-      }
+      },
     }),
     BullModule.forRoot({
       connection: {

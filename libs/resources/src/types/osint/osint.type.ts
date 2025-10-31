@@ -1,4 +1,8 @@
-import { CharactersEntity, CharactersProfileEntity, GuildsEntity } from '@app/pg';
+import {
+  CharactersEntity,
+  CharactersProfileEntity,
+  GuildsEntity,
+} from '@app/pg';
 import { ICharacterRaiderIo } from '@app/resources/types';
 
 export type CharacterStatus = {

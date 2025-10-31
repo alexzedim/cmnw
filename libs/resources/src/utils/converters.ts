@@ -11,7 +11,8 @@ const kebabCase = (s: string): string =>
     .replace(/[\s_]+/g, '-')
     .toLowerCase();
 
-export const toGuid = (name: string, realm: string) => kebabCase(`${name}@${realm}`);
+export const toGuid = (name: string, realm: string) =>
+  kebabCase(`${name}@${realm}`);
 /**
  * @description Returns capitalized string
  * @param s {string}
@@ -38,8 +39,7 @@ export const toGold = (n: number, digits = 2) =>
  * @param s {string}
  * @return {string}
  */
-export const toSlug = (s: string): string =>
-  kebabCase(s);
+export const toSlug = (s: string): string => kebabCase(s);
 
 /**
  * @description Return force lowercase with underscore format string
@@ -49,7 +49,8 @@ export const toSlug = (s: string): string =>
 export const toKey = (s: string): string =>
   s.replace(/\s+/g, '_').replace(/'+/g, '').toLowerCase();
 
-export const toLocale = (s: string): string => s.substr(0, 2) + '_' + s.substr(2);
+export const toLocale = (s: string): string =>
+  s.substr(0, 2) + '_' + s.substr(2);
 
 export const toDate = (lastModified: unknown): Date => {
   if (lastModified instanceof Date) return lastModified;

@@ -34,7 +34,12 @@ export interface StandardizedErrorInfo {
  * Type for any possible input to logger methods
  * Supports strings, errors, objects, and unknown types
  */
-export type LogInput = string | Error | AxiosError | Record<string, any> | unknown;
+export type LogInput =
+  | string
+  | Error
+  | AxiosError
+  | Record<string, any>
+  | unknown;
 
 /**
  * Type for log levels supported by the logger

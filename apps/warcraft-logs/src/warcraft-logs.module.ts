@@ -19,10 +19,14 @@ import { RedisModule } from '@nestjs-modules/ioredis';
         host: redisConfig.host,
         port: redisConfig.port,
         password: redisConfig.password,
-      }
+      },
     }),
     TypeOrmModule.forRoot(postgresConfig),
-    TypeOrmModule.forFeature([KeysEntity, RealmsEntity, CharactersRaidLogsEntity]),
+    TypeOrmModule.forFeature([
+      KeysEntity,
+      RealmsEntity,
+      CharactersRaidLogsEntity,
+    ]),
     BullModule.forRoot({
       connection: {
         host: bullConfig.host,

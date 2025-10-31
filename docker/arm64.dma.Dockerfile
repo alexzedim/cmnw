@@ -21,7 +21,6 @@ RUN npm install -g @nestjs/cli
 RUN corepack enable
 
 RUN nest build market \
-  && nest build items \
   && nest build dma
 
 CMD ["node"]

@@ -12,7 +12,9 @@ import {
 
 @Injectable()
 export class GuildMasterService {
-  private readonly logger = new Logger(GuildMasterService.name, { timestamp: true });
+  private readonly logger = new Logger(GuildMasterService.name, {
+    timestamp: true,
+  });
 
   constructor(
     @InjectRepository(CharactersEntity)
@@ -111,7 +113,7 @@ export class GuildMasterService {
     ];
 
     await this.logsRepository.save(logEntities);
-    
+
     this.logger.debug(
       `Guild ${guildEntity.guid} GM transition logged: ${action} (${originalGMGuid} → ${newGMGuid})`,
     );
@@ -125,7 +127,9 @@ export class GuildMasterService {
 
     if (areBothGMsFound) {
       const isSameFamily = originalGM.hashA === newGM.hashA;
-      return isSameFamily ? ACTION_LOG.GUILD_INHERIT : ACTION_LOG.GUILD_OWNERSHIP;
+      return isSameFamily
+        ? ACTION_LOG.GUILD_INHERIT
+        : ACTION_LOG.GUILD_OWNERSHIP;
     }
 
     return ACTION_LOG.GUILD_TRANSIT;

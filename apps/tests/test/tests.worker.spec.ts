@@ -32,18 +32,18 @@ describe('WORKER', () => {
   describe('INTERSECTION', () => {
     it('should process member promotion correctly', async () => {
       // Setup: Member gets promoted from rank 5 to rank 2
-      const originalRoster =  new Map<number, CharactersGuildsMembersEntity>();
+      const originalRoster = new Map<number, CharactersGuildsMembersEntity>();
       const updatedRoster = new Map<number, CharactersGuildsMembersEntity>();
 
       // Add original member (rank 5)
       const originalMember = guildOriginal.members.find(
-        member => member.characterGuid === 'promotedmember@stormrage'
+        (member) => member.characterGuid === 'promotedmember@stormrage',
       );
       originalRoster.set(originalMember.characterId, originalMember);
 
       // Add updated member (rank 2)
       const updatedMember = guildUpdated.members.find(
-        member => member.characterGuid === 'promotedmember@stormrage'
+        (member) => member.characterGuid === 'promotedmember@stormrage',
       );
       updatedRoster.set(updatedMember.characterId, updatedMember);
 
@@ -56,7 +56,7 @@ describe('WORKER', () => {
         rosterUpdateAt,
         originalMember.characterId,
         originalRoster,
-        updatedRoster
+        updatedRoster,
       );
 
       // Assertions
@@ -77,13 +77,13 @@ describe('WORKER', () => {
 
       // Add original member (rank 3)
       const originalMember = guildOriginal.members.find(
-        member => member.characterGuid === 'demotedmember@stormrage'
+        (member) => member.characterGuid === 'demotedmember@stormrage',
       );
       originalRoster.set(originalMember.characterId, originalMember);
 
       // Add updated member (rank 6)
       const updatedMember = guildUpdated.members.find(
-        member => member.characterGuid === 'demotedmember@stormrage'
+        (member) => member.characterGuid === 'demotedmember@stormrage',
       );
       updatedRoster.set(updatedMember.characterId, updatedMember);
 
@@ -96,7 +96,7 @@ describe('WORKER', () => {
         rosterUpdateAt,
         originalMember.characterId,
         originalRoster,
-        updatedRoster
+        updatedRoster,
       );
 
       // Assertions
@@ -117,7 +117,7 @@ describe('WORKER', () => {
 
       // Add original guild master (rank 0)
       const originalGM = guildOriginal.members.find(
-        member => member.characterGuid === 'oldguildmaster@stormrage'
+        (member) => member.characterGuid === 'oldguildmaster@stormrage',
       );
       originalRoster.set(originalGM.characterId, originalGM);
 
@@ -126,7 +126,7 @@ describe('WORKER', () => {
         ...originalGM,
         rank: 1, // Demoted from GM
         id: originalGM.characterId,
-        guid: originalGM.characterGuid
+        guid: originalGM.characterGuid,
       };
       updatedRoster.set(originalGM.characterId, updatedGM);
 
@@ -139,7 +139,7 @@ describe('WORKER', () => {
         rosterUpdateAt,
         originalGM.characterId,
         originalRoster,
-        updatedRoster
+        updatedRoster,
       );
 
       // Assertions
@@ -153,18 +153,18 @@ describe('WORKER', () => {
 
       // Add stable member (no rank change)
       const stableMember = guildOriginal.members.find(
-        member => member.characterGuid === 'stablemember@stormrage'
+        (member) => member.characterGuid === 'stablemember@stormrage',
       );
       originalRoster.set(stableMember.characterId, stableMember);
 
       // Add same member in updated roster (same rank)
       const updatedStableMember = guildUpdated.members.find(
-        member => member.characterGuid === 'stablemember@stormrage'
+        (member) => member.characterGuid === 'stablemember@stormrage',
       );
       updatedRoster.set(updatedStableMember.characterId, {
         ...updatedStableMember,
         id: updatedStableMember.characterId,
-        guid: updatedStableMember.characterGuid
+        guid: updatedStableMember.characterGuid,
       });
 
       // Mock roster data
@@ -176,7 +176,7 @@ describe('WORKER', () => {
         rosterUpdateAt,
         stableMember.characterId,
         originalRoster,
-        updatedRoster
+        updatedRoster,
       );
 
       // Assertions
@@ -191,12 +191,12 @@ describe('WORKER', () => {
 
       // Add new member from updated roster
       const newMember = guildUpdated.members.find(
-        member => member.characterGuid === 'newmember1@stormrage'
+        (member) => member.characterGuid === 'newmember1@stormrage',
       );
       updatedRoster.set(newMember.characterId, {
         id: newMember.characterId,
         guid: newMember.characterGuid,
-        rank: newMember.rank
+        rank: newMember.rank,
       });
 
       // Mock roster data
@@ -207,7 +207,7 @@ describe('WORKER', () => {
         guildUpdated.guildEntity,
         rosterUpdateAt,
         newMember.characterId,
-        updatedRoster
+        updatedRoster,
       );
 
       // Assertions
@@ -229,12 +229,12 @@ describe('WORKER', () => {
 
       // Add new member from updated roster
       const newMember = guildUpdated.members.find(
-        member => member.characterGuid === 'newmember2@stormrage'
+        (member) => member.characterGuid === 'newmember2@stormrage',
       );
       updatedRoster.set(newMember.characterId, {
         id: newMember.characterId,
         guid: newMember.characterGuid,
-        rank: newMember.rank
+        rank: newMember.rank,
       });
 
       // Mock roster data
@@ -245,7 +245,7 @@ describe('WORKER', () => {
         guildUpdated.guildEntity,
         rosterUpdateAt,
         newMember.characterId,
-        updatedRoster
+        updatedRoster,
       );
 
       // Assertions
@@ -267,7 +267,7 @@ describe('WORKER', () => {
       updatedRoster.set(mockGMId, {
         id: mockGMId,
         guid: 'newguildmaster@stormrage',
-        rank: OSINT_GM_RANK // Guild Master rank (0)
+        rank: OSINT_GM_RANK, // Guild Master rank (0)
       });
 
       // Mock roster data
@@ -278,7 +278,7 @@ describe('WORKER', () => {
         guildUpdated.guildEntity,
         rosterUpdateAt,
         mockGMId,
-        updatedRoster
+        updatedRoster,
       );
 
       // Assertions
@@ -297,7 +297,7 @@ describe('WORKER', () => {
 
       // Add leaving member from original roster
       const leavingMember = guildOriginal.members.find(
-        member => member.characterGuid === 'leavingmember@stormrage'
+        (member) => member.characterGuid === 'leavingmember@stormrage',
       );
       originalRoster.set(leavingMember.characterId, leavingMember);
 
@@ -309,14 +309,16 @@ describe('WORKER', () => {
         guildUpdated.guildEntity,
         rosterUpdateAt,
         leavingMember.characterId,
-        originalRoster
+        originalRoster,
       );
 
       // Assertions
       expect(result.action).toBe(ACTION_LOG.LEAVE);
       expect(result.isGuildMaster).toBe(false);
       expect(result.originalMember).toBeDefined();
-      expect(result.originalMember.characterGuid).toBe('leavingmember@stormrage');
+      expect(result.originalMember.characterGuid).toBe(
+        'leavingmember@stormrage',
+      );
       expect(result.originalMember.rank).toBe(4); // Member rank
       expect(result.logEntity).toBeDefined();
       expect(result.logEntity.characterGuid).toBe('leavingmember@stormrage');
@@ -330,7 +332,7 @@ describe('WORKER', () => {
 
       // Add another leaving member (trial rank)
       const leavingTrialMember = guildOriginal.members.find(
-        member => member.characterGuid === 'anotherleavingmember@stormrage'
+        (member) => member.characterGuid === 'anotherleavingmember@stormrage',
       );
       originalRoster.set(leavingTrialMember.characterId, leavingTrialMember);
 
@@ -342,14 +344,16 @@ describe('WORKER', () => {
         guildUpdated.guildEntity,
         rosterUpdateAt,
         leavingTrialMember.characterId,
-        originalRoster
+        originalRoster,
       );
 
       // Assertions
       expect(result.action).toBe(ACTION_LOG.LEAVE);
       expect(result.isGuildMaster).toBe(false);
       expect(result.originalMember).toBeDefined();
-      expect(result.originalMember.characterGuid).toBe('anotherleavingmember@stormrage');
+      expect(result.originalMember.characterGuid).toBe(
+        'anotherleavingmember@stormrage',
+      );
       expect(result.originalMember.rank).toBe(6); // Trial rank
       expect(result.logEntity).toBeDefined();
       expect(result.logEntity.action).toBe(ACTION_LOG.LEAVE);
@@ -362,7 +366,7 @@ describe('WORKER', () => {
 
       // Add old guild master as leaving
       const oldGM = guildOriginal.members.find(
-        member => member.characterGuid === 'oldguildmaster@stormrage'
+        (member) => member.characterGuid === 'oldguildmaster@stormrage',
       );
       originalRoster.set(oldGM.characterId, oldGM);
 
@@ -374,7 +378,7 @@ describe('WORKER', () => {
         guildUpdated.guildEntity,
         rosterUpdateAt,
         oldGM.characterId,
-        originalRoster
+        originalRoster,
       );
 
       // Assertions
@@ -385,5 +389,4 @@ describe('WORKER', () => {
       expect(result.logEntity).toBeNull(); // No log for GM leaving
     });
   });
-
 });

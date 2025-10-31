@@ -1,6 +1,9 @@
 import { toGold, BlizzardApiNamedField, ConvertPrice } from '@app/resources';
 
-export const transformNamedField = <T extends object>(value: T, key = 'name') => {
+export const transformNamedField = <T extends object>(
+  value: T,
+  key = 'name',
+) => {
   if (!value) return null;
 
   const isNamed = typeof value === 'object' && key in value;

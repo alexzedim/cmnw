@@ -28,6 +28,8 @@ import {
   ItemValuationsDto,
   ReqGetItemDto,
   WowtokenDto,
+  SearchItemDto,
+  SearchItemResponseDto,
 } from '@app/resources';
 import { ItemsEntity, MarketEntity } from '@app/pg';
 import { ItemRealmDto } from '@app/resources';
@@ -37,14 +39,15 @@ import { ItemRealmDto } from '@app/resources';
 export class DmaController {
   constructor(private readonly dmaService: DmaService) {}
 
-  @ApiOperation({ description: 'Returns requested item' })
-  @ApiOkResponse({ description: 'Request item with selected _id' })
+  @ApiOperation({ description: 'Returns requested item with realm data' })
+  @ApiOkResponse({ description: 'Request item with selected id' })
   @ApiUnauthorizedResponse({
     description: 'You need authenticate yourself before request',
   })
   @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
   @ApiBadRequestResponse({
-    description: 'The server could not understand the request due to invalid syntax',
+    description:
+      'The server could not understand the request due to invalid syntax',
   })
   @ApiServiceUnavailableResponse({
     description: 'Server is under maintenance or overloaded',
@@ -53,7 +56,9 @@ export class DmaController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/item')
-  async getItem(@Query() input: ReqGetItemDto): Promise<ItemsEntity> {
+  async getItem(
+    @Query() input: ReqGetItemDto,
+  ): Promise<{ item: ItemsEntity; realm: any[] }> {
     return this.dmaService.getItem(input);
   }
 
@@ -64,7 +69,8 @@ export class DmaController {
   })
   @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
   @ApiBadRequestResponse({
-    description: 'The server could not understand the request due to invalid syntax',
+    description:
+      'The server could not understand the request due to invalid syntax',
   })
   @ApiServiceUnavailableResponse({
     description: 'Server is under maintenance or overloaded',
@@ -84,7 +90,8 @@ export class DmaController {
   })
   @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
   @ApiBadRequestResponse({
-    description: 'The server could not understand the request due to invalid syntax',
+    description:
+      'The server could not understand the request due to invalid syntax',
   })
   @ApiServiceUnavailableResponse({
     description: 'Server is under maintenance or overloaded',
@@ -104,7 +111,8 @@ export class DmaController {
   })
   @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
   @ApiBadRequestResponse({
-    description: 'The server could not understand the request due to invalid syntax',
+    description:
+      'The server could not understand the request due to invalid syntax',
   })
   @ApiServiceUnavailableResponse({
     description: 'Server is under maintenance or overloaded',
@@ -113,7 +121,9 @@ export class DmaController {
   @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/commodity/chart')
-  async getCommodityChart(@Query() input: ReqGetItemDto): Promise<ItemChartDto> {
+  async getCommodityChart(
+    @Query() input: ReqGetItemDto,
+  ): Promise<ItemChartDto> {
     return this.dmaService.getChart(input);
   }
 
@@ -124,7 +134,8 @@ export class DmaController {
   })
   @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
   @ApiBadRequestResponse({
-    description: 'The server could not understand the request due to invalid syntax',
+    description:
+      'The server could not understand the request due to invalid syntax',
   })
   @ApiServiceUnavailableResponse({
     description: 'Server is under maintenance or overloaded',
@@ -144,7 +155,8 @@ export class DmaController {
   })
   @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
   @ApiBadRequestResponse({
-    description: 'The server could not understand the request due to invalid syntax',
+    description:
+      'The server could not understand the request due to invalid syntax',
   })
   @ApiServiceUnavailableResponse({
     description: 'Server is under maintenance or overloaded',
@@ -164,7 +176,8 @@ export class DmaController {
   })
   @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
   @ApiBadRequestResponse({
-    description: 'The server could not understand the request due to invalid syntax',
+    description:
+      'The server could not understand the request due to invalid syntax',
   })
   @ApiServiceUnavailableResponse({
     description: 'Server is under maintenance or overloaded',
@@ -175,5 +188,38 @@ export class DmaController {
   @Get('/item/feed')
   async getItemFeed(@Query() input: ItemRealmDto): Promise<ItemFeedDto> {
     return this.dmaService.getItemFeed(input);
+  }
+
+  @ApiOperation({
+    description:
+      'Search for items by ID, name, or localized names for autocomplete',
+  })
+  @ApiOkResponse({
+    description: 'Returns list of matching items',
+    type: SearchItemResponseDto,
+  })
+  @ApiUnauthorizedResponse({
+    description: 'You need authenticate yourself before request',
+  })
+  @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
+  @ApiBadRequestResponse({
+    description:
+      'The server could not understand the request due to invalid syntax',
+  })
+  @ApiServiceUnavailableResponse({
+    description: 'Server is under maintenance or overloaded',
+  })
+  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
+  @UsePipes(new ValidationPipe({ transform: true }))
+  @HttpCode(HttpStatus.OK)
+  @Get('/item/search')
+  async searchItems(
+    @Query() input: SearchItemDto,
+  ): Promise<SearchItemResponseDto> {
+    const results = await this.dmaService.searchItems(
+      input.q,
+      input.limit || 25,
+    );
+    return { results };
   }
 }

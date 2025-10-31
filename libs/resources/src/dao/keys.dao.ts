@@ -47,7 +47,9 @@ export const getKeys = async (
   const keyEntities = await repository.findBy(findBy);
 
   if (!keyEntities.length) {
-    throw new NotFoundException(`No ${clearance} found | ${keyEntities.length} keys`);
+    throw new NotFoundException(
+      `No ${clearance} found | ${keyEntities.length} keys`,
+    );
   }
 
   return isRandom && keyEntities.length > 1
@@ -55,11 +57,13 @@ export const getKeys = async (
     : keyEntities;
 };
 
-export const getRandomProxy = async (repository: Repository<KeysEntity>): Promise<HttpsProxyAgent<string>> => {
+export const getRandomProxy = async (
+  repository: Repository<KeysEntity>,
+): Promise<HttpsProxyAgent<string>> => {
   const [proxyEntity] = await getKeys(repository, GLOBAL_PROXY_V4, true, false);
   const proxy = `http://${proxyEntity.client}:${proxyEntity.secret}@${proxyEntity.token}`;
   return new HttpsProxyAgent(proxy);
-}
+};
 
 export const incErrorCount = async (
   repository: Repository<KeysEntity>,
