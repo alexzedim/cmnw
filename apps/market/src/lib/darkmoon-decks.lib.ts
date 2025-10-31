@@ -4,8 +4,13 @@
  * Extracted from TradeSkillMaster with comprehensive metadata
  */
 
+import { DMA_SOURCE, PROFESSION_TICKER } from '@app/resources/constants';
+
+// Profession ID for Inscription is 773
+const PROF_INSC = PROFESSION_TICKER.get(773) || 'INSC';
+
 export const DARKMOON_DECKS = {
-  name: 'DECK',
+  name: PROF_INSC,
   profession: 'Inscription',
   media: 'https://render-eu.worldofwarcraft.com/icons/56/inv_misc_card_tarotmaelstrom_01.jpg',
   spellId: 89546,
@@ -16,10 +21,10 @@ export const DARKMOON_DECKS = {
     {
       expansion: 'SL',
       rank: 1,
-      profession: 'Inscription',
-      createdBy: 'TSM',
-      updatedBy: 'TSM',
-      ticker: 'DECK',
+      profession: PROF_INSC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_INSC,
       names: {
         source: 'Darkmoon Cards: Aces',
         target: 'Darkmoon Deck: Aces',
@@ -36,10 +41,10 @@ export const DARKMOON_DECKS = {
     {
       expansion: 'SL',
       rank: 1,
-      profession: 'Inscription',
-      createdBy: 'TSM',
-      updatedBy: 'TSM',
-      ticker: 'DECK',
+      profession: PROF_INSC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_INSC,
       names: {
         source: 'Darkmoon Cards: Twos',
         target: 'Darkmoon Deck: Twos',
@@ -56,10 +61,10 @@ export const DARKMOON_DECKS = {
     {
       expansion: 'SL',
       rank: 1,
-      profession: 'Inscription',
-      createdBy: 'TSM',
-      updatedBy: 'TSM',
-      ticker: 'DECK',
+      profession: PROF_INSC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_INSC,
       names: {
         source: 'Darkmoon Cards: Threes',
         target: 'Darkmoon Deck: Threes',
@@ -76,10 +81,10 @@ export const DARKMOON_DECKS = {
     {
       expansion: 'SL',
       rank: 1,
-      profession: 'Inscription',
-      createdBy: 'TSM',
-      updatedBy: 'TSM',
-      ticker: 'DECK',
+      profession: PROF_INSC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_INSC,
       names: {
         source: 'Darkmoon Cards: Fours',
         target: 'Darkmoon Deck: Fours',
@@ -96,10 +101,10 @@ export const DARKMOON_DECKS = {
     {
       expansion: 'SL',
       rank: 1,
-      profession: 'Inscription',
-      createdBy: 'TSM',
-      updatedBy: 'TSM',
-      ticker: 'DECK',
+      profession: PROF_INSC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_INSC,
       names: {
         source: 'Darkmoon Cards: Fives',
         target: 'Darkmoon Deck: Fives',
@@ -116,10 +121,10 @@ export const DARKMOON_DECKS = {
     {
       expansion: 'SL',
       rank: 1,
-      profession: 'Inscription',
-      createdBy: 'TSM',
-      updatedBy: 'TSM',
-      ticker: 'DECK',
+      profession: PROF_INSC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_INSC,
       names: {
         source: 'Darkmoon Cards: Sixes',
         target: 'Darkmoon Deck: Sixes',
@@ -136,10 +141,10 @@ export const DARKMOON_DECKS = {
     {
       expansion: 'SL',
       rank: 1,
-      profession: 'Inscription',
-      createdBy: 'TSM',
-      updatedBy: 'TSM',
-      ticker: 'DECK',
+      profession: PROF_INSC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_INSC,
       names: {
         source: 'Darkmoon Cards: Sevens',
         target: 'Darkmoon Deck: Sevens',
@@ -156,10 +161,10 @@ export const DARKMOON_DECKS = {
     {
       expansion: 'SL',
       rank: 1,
-      profession: 'Inscription',
-      createdBy: 'TSM',
-      updatedBy: 'TSM',
-      ticker: 'DECK',
+      profession: PROF_INSC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_INSC,
       names: {
         source: 'Darkmoon Cards: Eights',
         target: 'Darkmoon Deck: Eights',
@@ -180,10 +185,10 @@ export const DARKMOON_DECKS = {
     {
       expansion: 'DF',
       rank: 1,
-      profession: 'Inscription',
-      createdBy: 'TSM',
-      updatedBy: 'TSM',
-      ticker: 'DECK',
+      profession: PROF_INSC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_INSC,
       names: {
         source: 'Darkmoon Cards: War (Rank 1)',
         target: 'Darkmoon Deck: War (Rank 1)',
@@ -200,10 +205,10 @@ export const DARKMOON_DECKS = {
     {
       expansion: 'DF',
       rank: 1,
-      profession: 'Inscription',
-      createdBy: 'TSM',
-      updatedBy: 'TSM',
-      ticker: 'DECK',
+      profession: PROF_INSC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_INSC,
       names: {
         source: 'Darkmoon Cards: War (Rank 2)',
         target: 'Darkmoon Deck: War (Rank 2)',
@@ -220,10 +225,10 @@ export const DARKMOON_DECKS = {
     {
       expansion: 'DF',
       rank: 2,
-      profession: 'Inscription',
-      createdBy: 'TSM',
-      updatedBy: 'TSM',
-      ticker: 'DECK',
+      profession: PROF_INSC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_INSC,
       names: {
         source: 'Darkmoon Cards: Conquest (Rank 1)',
         target: 'Darkmoon Deck: Conquest (Rank 1)',
@@ -240,10 +245,10 @@ export const DARKMOON_DECKS = {
     {
       expansion: 'DF',
       rank: 2,
-      profession: 'Inscription',
-      createdBy: 'TSM',
-      updatedBy: 'TSM',
-      ticker: 'DECK',
+      profession: PROF_INSC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_INSC,
       names: {
         source: 'Darkmoon Cards: Conquest (Rank 2)',
         target: 'Darkmoon Deck: Conquest (Rank 2)',
@@ -264,10 +269,10 @@ export const DARKMOON_DECKS = {
     {
       expansion: 'CLSC',
       rank: 1,
-      profession: 'Inscription',
-      createdBy: 'TSM',
-      updatedBy: 'TSM',
-      ticker: 'DECK',
+      profession: PROF_INSC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_INSC,
       names: {
         source: 'Darkmoon Cards: Beasts',
         target: 'Darkmoon Deck: Beasts',
@@ -284,10 +289,10 @@ export const DARKMOON_DECKS = {
     {
       expansion: 'CLSC',
       rank: 1,
-      profession: 'Inscription',
-      createdBy: 'TSM',
-      updatedBy: 'TSM',
-      ticker: 'DECK',
+      profession: PROF_INSC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_INSC,
       names: {
         source: 'Darkmoon Cards: Elementals',
         target: 'Darkmoon Deck: Elementals',
@@ -304,10 +309,10 @@ export const DARKMOON_DECKS = {
     {
       expansion: 'CLSC',
       rank: 2,
-      profession: 'Inscription',
-      createdBy: 'TSM',
-      updatedBy: 'TSM',
-      ticker: 'DECK',
+      profession: PROF_INSC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_INSC,
       names: {
         source: 'Darkmoon Cards: Warlords',
         target: 'Darkmoon Deck: Warlords',
@@ -334,3 +339,5 @@ export const DARKMOON_DECKS = {
     // - The actual card items are consumed in the combination process
   ],
 };
+
+

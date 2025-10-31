@@ -16,6 +16,7 @@ export const WOW_TOKEN_ITEM_ID = 122284;
 export enum DMA_SOURCE {
   API = 'DMA-API',
   LAB = 'DMA-LAB',
+  TSM = 'DMA-TSM',
 }
 
 export enum VALUATION_TYPE {
@@ -203,7 +204,6 @@ export const ASSET_EVALUATION_PRIORITY: Map<number, mquery> = new Map([
     3,
     {
       $and: [
-        { expansion: 'SHDW' },
         {
           asset_class: {
             $nin: [VALUATION_TYPE.DERIVATIVE, VALUATION_TYPE.PREMIUM],
@@ -226,7 +226,6 @@ export const ASSET_EVALUATION_PRIORITY: Map<number, mquery> = new Map([
     4,
     {
       $and: [
-        { expansion: 'SHDW' },
         {
           asset_class: {
             $all: [VALUATION_TYPE.REAGENT, VALUATION_TYPE.DERIVATIVE],
@@ -240,7 +239,6 @@ export const ASSET_EVALUATION_PRIORITY: Map<number, mquery> = new Map([
     5,
     {
       $and: [
-        { expansion: 'SHDW' },
         {
           asset_class: {
             $nin: [VALUATION_TYPE.REAGENT],
