@@ -134,7 +134,7 @@ export class PricingService implements OnApplicationBootstrap {
               reversePricingMethod.reagents = method.reagents;
               reversePricingMethod.derivatives = method.derivatives;
               reversePricingMethod.recipeId = parseInt(
-                `${reversePricingMethod.spellId}${method.reagents[0].id}`,
+                `${reversePricingMethod.spellId}${method.reagents[0].itemId}`,
               );
 
               await this.pricingRepository.save(reversePricingMethod);
@@ -155,7 +155,7 @@ export class PricingService implements OnApplicationBootstrap {
               reversePricingMethod.reagents = method.reagents;
               reversePricingMethod.derivatives = method.derivatives;
               reversePricingMethod.recipeId = parseInt(
-                `${reversePricingMethod.spellId}${method.reagents[0].id}`,
+                `${reversePricingMethod.spellId}${method.reagents[0].itemId}`,
               );
 
               await this.pricingRepository.save(reversePricingMethod);
@@ -176,7 +176,7 @@ export class PricingService implements OnApplicationBootstrap {
               reversePricingMethod.reagents = method.reagents;
               reversePricingMethod.derivatives = method.derivatives;
               reversePricingMethod.recipeId = parseInt(
-                `${reversePricingMethod.spellId}${method.reagents[0].id}`,
+                `${reversePricingMethod.spellId}${method.reagents[0].itemId}`,
               );
 
               await this.pricingRepository.save(reversePricingMethod);
@@ -446,7 +446,7 @@ export class PricingService implements OnApplicationBootstrap {
         reagentsKeyIndex.forEach((n, i) => {
           if (rowValues[n] !== 0) {
             reagents.push({
-              id: rowValues[n],
+              itemId: rowValues[n],
               quantity: rowValues[quantityIndex[i]],
             });
           }
