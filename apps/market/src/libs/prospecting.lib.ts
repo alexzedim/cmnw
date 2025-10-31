@@ -65,17 +65,100 @@ export const PROSPECTING = {
     // ========================================================================
     {
       expansion: EXPANSION_TICKER.CLSC,
+      rank: 1,
+      profession: PROF_JC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_JC,
+      names: { source: 'Tin Ore', target: 'Shadowgem' },
+      description: 'Tin Ore (i:2771) → Shadowgem (i:1210) [5 → 0.36]',
+      reagents: [{ itemId: 2771, quantity: 5 }],
+      derivatives: [
+        { itemId: 1210, quantity: 0.36 },    // Shadowgem
+      ],
+    },
+    {
+      expansion: EXPANSION_TICKER.CLSC,
+      rank: 1,
+      profession: PROF_JC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_JC,
+      names: { source: 'Copper Ore', target: 'Shadowgem' },
+      description: 'Copper Ore (i:2770) → Shadowgem (i:1210) [5 → 0.1]',
+      reagents: [{ itemId: 2770, quantity: 5 }],
+      derivatives: [
+        { itemId: 1210, quantity: 0.1 },    // Shadowgem
+      ],
+    },
+    {
+      expansion: EXPANSION_TICKER.CLSC,
+      rank: 1,
+      profession: PROF_JC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_JC,
+      names: { source: 'Tin Ore', target: 'Lesser Moonstone' },
+      description: 'Tin Ore (i:2771) → Lesser Moonstone (i:1705) [5 → 0.36]',
+      reagents: [{ itemId: 2771, quantity: 5 }],
+      derivatives: [
+        { itemId: 1705, quantity: 0.36 },    // Lesser Moonstone
+      ],
+    },
+    {
+      expansion: EXPANSION_TICKER.CLSC,
+      rank: 1,
+      profession: PROF_JC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_JC,
+      names: { source: 'Iron Ore', target: 'Lesser Moonstone' },
+      description: 'Iron Ore (i:2772) → Lesser Moonstone (i:1705) [5 → 0.33]',
+      reagents: [{ itemId: 2772, quantity: 5 }],
+      derivatives: [
+        { itemId: 1705, quantity: 0.33 },    // Lesser Moonstone
+      ],
+    },
+    {
+      expansion: EXPANSION_TICKER.CLSC,
       rank: 2,
       profession: PROF_JC,
       createdBy: DMA_SOURCE.TSM,
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
-      names: { source: 'Iron Ore', target: 'Jade & Aquamarine' },
-      description: 'Iron Ore (i:2771) → Jade (i:1705), Aquamarine (i:3864)',
+      names: { source: 'Iron Ore', target: 'Jade' },
+      description: 'Iron Ore (i:2772) → Jade (i:1529) [5 → 0.33]',
+      reagents: [{ itemId: 2772, quantity: 5 }],
+      derivatives: [
+        { itemId: 1529, quantity: 0.33 },    // Jade
+      ],
+    },
+    {
+      expansion: EXPANSION_TICKER.CLSC,
+      rank: 2,
+      profession: PROF_JC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_JC,
+      names: { source: 'Tin Ore', target: 'Jade' },
+      description: 'Tin Ore (i:2771) → Jade (i:1529) [5 → 0.0325]',
       reagents: [{ itemId: 2771, quantity: 5 }],
       derivatives: [
-        { itemId: 1705, quantity: 0.8 },    // Jade
-        { itemId: 3864, quantity: 0.4 },    // Aquamarine
+        { itemId: 1529, quantity: 0.0325 },    // Jade
+      ],
+    },
+    {
+      expansion: EXPANSION_TICKER.CLSC,
+      rank: 2,
+      profession: PROF_JC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_JC,
+      names: { source: 'Iron Ore', target: 'Citrine' },
+      description: 'Iron Ore (i:2772) → Citrine (i:3864) [5 → 0.33]',
+      reagents: [{ itemId: 2772, quantity: 5 }],
+      derivatives: [
+        { itemId: 3864, quantity: 0.33 },    // Citrine
       ],
     },
     {
