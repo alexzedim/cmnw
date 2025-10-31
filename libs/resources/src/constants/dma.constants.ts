@@ -1,4 +1,3 @@
-import { mquery } from 'mongoose';
 import {
   AuctionItemExtra,
   IItem,
@@ -169,9 +168,10 @@ export const GOLD_ITEM_ENTITY = {
     zh_CN: 'Gold (Currency)',
   },
   quality: 'Currency',
+  itemLevel: 0,
   itemClass: 'Currency',
   itemSubClass: 'Currency',
-  inventory_type: 'Non-equippable',
+  inventoryType: 'Non-equippable',
   isEquip: false,
   isStackable: true,
   hasContracts: true,
@@ -231,9 +231,9 @@ export const SPELL_EFFECT_KEY_MAPPING = new Map<
   ['itemQuantity', 'EffectBasePointsF'],
 ]);
 
-export const ASSET_EVALUATION_PRIORITY: Map<number, mquery> = new Map([
+export const ASSET_EVALUATION_PRIORITY: Map<number, any> = new Map([
   // GOLD
-  [1, { _id: 1 }],
+  [1, { id: 1 }],
   // WOWTOKEN
   [2, { asset_class: VALUATION_TYPE.WOWTOKEN }],
   // ACTUAL NON DERIVATIVE REAGENT & MARKET & COMMDTY

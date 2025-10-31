@@ -24,12 +24,11 @@ export const PROSPECTING = {
       createdBy: DMA_SOURCE.TSM,
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
-      names: { source: 'Copper Ore', target: 'Malachite & Tigerseye' },
-      description: 'Copper Ore (i:2770) → Malachite (i:818), Tigerseye (i:774)',
+      names: { source: 'Copper Ore', target: 'Malachite' },
+      description: 'Copper Ore (i:2770) → Malachite (i:774) [5 → 0.5]',
       reagents: [{ itemId: 2770, quantity: 5 }],
       derivatives: [
-        { itemId: 818, quantity: 0.8 },     // Malachite
-        { itemId: 774, quantity: 0.4 },     // Tigerseye
+        { itemId: 774, quantity: 0.5 },     // Malachite
       ],
     },
     {
@@ -39,12 +38,25 @@ export const PROSPECTING = {
       createdBy: DMA_SOURCE.TSM,
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
-      names: { source: 'Tin Ore', target: 'Azurite & Moss Agate' },
-      description: 'Tin Ore (i:3575) → Azurite (i:1210), Moss Agate (i:1206)',
+      names: { source: 'Copper Ore', target: 'Tigerseye' },
+      description: 'Copper Ore (i:2770) → Tigerseye (i:818) [5 → 0.5]',
+      reagents: [{ itemId: 2770, quantity: 5 }],
+      derivatives: [
+        { itemId: 818, quantity: 0.5 },     // Tigerseye
+      ],
+    },
+    {
+      expansion: EXPANSION_TICKER.CLSC,
+      rank: 1,
+      profession: PROF_JC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_JC,
+      names: { source: 'Tin Ore', target: 'Moss Agate' },
+      description: 'Tin Ore (i:3575) → Moss Agate (i:1206) [5 → 0.36]',
       reagents: [{ itemId: 3575, quantity: 5 }],
       derivatives: [
-        { itemId: 1210, quantity: 0.8 },    // Azurite
-        { itemId: 1206, quantity: 0.4 },    // Moss Agate
+        { itemId: 1206, quantity: 0.36 },    // Moss Agate
       ],
     },
 
