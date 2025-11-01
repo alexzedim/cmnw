@@ -32,7 +32,14 @@ export const PROSPECTING = {
       description: 'Copper Ore (i:2770) → Malachite (i:774) [5 → 0.5]',
       reagents: [{ itemId: 2770, quantity: 5 }],
       derivatives: [
-        { itemId: 774, quantity: 0.5, matRate: 0.90, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Malachite
+        {
+          itemId: 774,
+          quantity: 0.5,
+          matRate: 0.9,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Malachite
       ],
     },
     {
@@ -46,7 +53,14 @@ export const PROSPECTING = {
       description: 'Copper Ore (i:2770) → Tigerseye (i:818) [5 → 0.5]',
       reagents: [{ itemId: 2770, quantity: 5 }],
       derivatives: [
-        { itemId: 818, quantity: 0.5, matRate: 0.90, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Tigerseye
+        {
+          itemId: 818,
+          quantity: 0.5,
+          matRate: 0.9,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Tigerseye
       ],
     },
     {
@@ -60,7 +74,14 @@ export const PROSPECTING = {
       description: 'Tin Ore (i:3575) → Moss Agate (i:1206) [5 → 0.36]',
       reagents: [{ itemId: 3575, quantity: 5 }],
       derivatives: [
-        { itemId: 1206, quantity: 0.36, matRate: 0.85, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Moss Agate
+        {
+          itemId: 1206,
+          quantity: 0.36,
+          matRate: 0.85,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Moss Agate
       ],
     },
 
@@ -78,7 +99,14 @@ export const PROSPECTING = {
       description: 'Tin Ore (i:2771) → Shadowgem (i:1210) [5 → 0.36]',
       reagents: [{ itemId: 2771, quantity: 5 }],
       derivatives: [
-        { itemId: 1210, quantity: 0.36, matRate: 0.85, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Shadowgem
+        {
+          itemId: 1210,
+          quantity: 0.36,
+          matRate: 0.85,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Shadowgem
       ],
     },
     {
@@ -92,7 +120,14 @@ export const PROSPECTING = {
       description: 'Copper Ore (i:2770) → Shadowgem (i:1210) [5 → 0.1]',
       reagents: [{ itemId: 2770, quantity: 5 }],
       derivatives: [
-        { itemId: 1210, quantity: 0.1, matRate: 0.75, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Shadowgem
+        {
+          itemId: 1210,
+          quantity: 0.1,
+          matRate: 0.75,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Shadowgem
       ],
     },
     {
@@ -106,7 +141,14 @@ export const PROSPECTING = {
       description: 'Tin Ore (i:2771) → Lesser Moonstone (i:1705) [5 → 0.36]',
       reagents: [{ itemId: 2771, quantity: 5 }],
       derivatives: [
-        { itemId: 1705, quantity: 0.36, matRate: 0.85, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Lesser Moonstone
+        {
+          itemId: 1705,
+          quantity: 0.36,
+          matRate: 0.85,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Lesser Moonstone
       ],
     },
     {
@@ -120,7 +162,14 @@ export const PROSPECTING = {
       description: 'Iron Ore (i:2772) → Lesser Moonstone (i:1705) [5 → 0.33]',
       reagents: [{ itemId: 2772, quantity: 5 }],
       derivatives: [
-        { itemId: 1705, quantity: 0.33, matRate: 0.82, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Lesser Moonstone
+        {
+          itemId: 1705,
+          quantity: 0.33,
+          matRate: 0.82,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Lesser Moonstone
       ],
     },
     {
@@ -134,7 +183,14 @@ export const PROSPECTING = {
       description: 'Iron Ore (i:2772) → Jade (i:1529) [5 → 0.33]',
       reagents: [{ itemId: 2772, quantity: 5 }],
       derivatives: [
-        { itemId: 1529, quantity: 0.33, matRate: 0.82, minAmount: 0, maxAmount: 1, itemQuality: 3 }, // Jade
+        {
+          itemId: 1529,
+          quantity: 0.33,
+          matRate: 0.82,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 3,
+        }, // Jade
       ],
     },
     {
@@ -148,7 +204,14 @@ export const PROSPECTING = {
       description: 'Tin Ore (i:2771) → Jade (i:1529) [5 → 0.0325]',
       reagents: [{ itemId: 2771, quantity: 5 }],
       derivatives: [
-        { itemId: 1529, quantity: 0.0325, matRate: 0.65, minAmount: 0, maxAmount: 1, itemQuality: 3 }, // Jade
+        {
+          itemId: 1529,
+          quantity: 0.0325,
+          matRate: 0.65,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 3,
+        }, // Jade
       ],
     },
     {
@@ -162,7 +225,14 @@ export const PROSPECTING = {
       description: 'Iron Ore (i:2772) → Citrine (i:3864) [5 → 0.33]',
       reagents: [{ itemId: 2772, quantity: 5 }],
       derivatives: [
-        { itemId: 3864, quantity: 0.33, matRate: 0.82, minAmount: 0, maxAmount: 1, itemQuality: 3 }, // Citrine
+        {
+          itemId: 3864,
+          quantity: 0.33,
+          matRate: 0.82,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 3,
+        }, // Citrine
       ],
     },
     {
@@ -176,7 +246,14 @@ export const PROSPECTING = {
       description: 'Gold Ore (i:2772) → Citrine (i:3862) [5 → 0.8]',
       reagents: [{ itemId: 2772, quantity: 5 }],
       derivatives: [
-        { itemId: 3862, quantity: 0.8, matRate: 0.90, minAmount: 0, maxAmount: 1, itemQuality: 3 }, // Citrine
+        {
+          itemId: 3862,
+          quantity: 0.8,
+          matRate: 0.9,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 3,
+        }, // Citrine
       ],
     },
     {
@@ -190,7 +267,14 @@ export const PROSPECTING = {
       description: 'Gold Ore (i:2772) → Ruby (i:1529) [5 → 0.4]',
       reagents: [{ itemId: 2772, quantity: 5 }],
       derivatives: [
-        { itemId: 1529, quantity: 0.4, matRate: 0.88, minAmount: 0, maxAmount: 1, itemQuality: 3 }, // Ruby
+        {
+          itemId: 1529,
+          quantity: 0.4,
+          matRate: 0.88,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 3,
+        }, // Ruby
       ],
     },
 
@@ -208,7 +292,14 @@ export const PROSPECTING = {
       description: 'Mithril Ore (i:3858) → Emerald (i:7909) [5 → 0.8]',
       reagents: [{ itemId: 3858, quantity: 5 }],
       derivatives: [
-        { itemId: 7909, quantity: 0.8, matRate: 0.90, minAmount: 0, maxAmount: 1, itemQuality: 3 }, // Emerald
+        {
+          itemId: 7909,
+          quantity: 0.8,
+          matRate: 0.9,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 3,
+        }, // Emerald
       ],
     },
     {
@@ -222,7 +313,14 @@ export const PROSPECTING = {
       description: 'Mithril Ore (i:3858) → Sapphire (i:1707) [5 → 0.4]',
       reagents: [{ itemId: 3858, quantity: 5 }],
       derivatives: [
-        { itemId: 1707, quantity: 0.4, matRate: 0.88, minAmount: 0, maxAmount: 1, itemQuality: 3 }, // Sapphire
+        {
+          itemId: 1707,
+          quantity: 0.4,
+          matRate: 0.88,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 3,
+        }, // Sapphire
       ],
     },
     {
@@ -236,7 +334,14 @@ export const PROSPECTING = {
       description: 'Thorium Ore (i:3859) → Diamond (i:12361) [5 → 0.8]',
       reagents: [{ itemId: 3859, quantity: 5 }],
       derivatives: [
-        { itemId: 12361, quantity: 0.8, matRate: 0.90, minAmount: 0, maxAmount: 1, itemQuality: 4 }, // Diamond
+        {
+          itemId: 12361,
+          quantity: 0.8,
+          matRate: 0.9,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        }, // Diamond
       ],
     },
     {
@@ -247,10 +352,18 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Thorium Ore', target: 'Azerothian Diamond' },
-      description: 'Thorium Ore (i:3859) → Azerothian Diamond (i:12800) [5 → 0.4]',
+      description:
+        'Thorium Ore (i:3859) → Azerothian Diamond (i:12800) [5 → 0.4]',
       reagents: [{ itemId: 3859, quantity: 5 }],
       derivatives: [
-        { itemId: 12800, quantity: 0.4, matRate: 0.88, minAmount: 0, maxAmount: 1, itemQuality: 4 }, // Azerothian Diamond
+        {
+          itemId: 12800,
+          quantity: 0.4,
+          matRate: 0.88,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        }, // Azerothian Diamond
       ],
     },
 
@@ -268,7 +381,14 @@ export const PROSPECTING = {
       description: 'Fel Iron Ore (i:23425) → Prismatic Shards & Gems',
       reagents: [{ itemId: 23425, quantity: 5 }],
       derivatives: [
-        { itemId: 21929, quantity: 1.2, matRate: 0.85, minAmount: 1, maxAmount: 2, itemQuality: 3 }, // Prismatic Shard
+        {
+          itemId: 21929,
+          quantity: 1.2,
+          matRate: 0.85,
+          minAmount: 1,
+          maxAmount: 2,
+          itemQuality: 3,
+        }, // Prismatic Shard
       ],
     },
     {
@@ -286,7 +406,14 @@ export const PROSPECTING = {
         'Adamantite Ore (i:23426) → Prismatic Shards & High Quality Gems',
       reagents: [{ itemId: 23426, quantity: 5 }],
       derivatives: [
-        { itemId: 21929, quantity: 1.5, matRate: 0.88, minAmount: 1, maxAmount: 2, itemQuality: 4 }, // Prismatic Shard
+        {
+          itemId: 21929,
+          quantity: 1.5,
+          matRate: 0.88,
+          minAmount: 1,
+          maxAmount: 2,
+          itemQuality: 4,
+        }, // Prismatic Shard
       ],
     },
 
@@ -304,7 +431,14 @@ export const PROSPECTING = {
       description: 'Cobalt Ore (i:36910) → Eternal Fire & Gems',
       reagents: [{ itemId: 36910, quantity: 5 }],
       derivatives: [
-        { itemId: 36860, quantity: 0.5, matRate: 0.80, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Eternal Fire
+        {
+          itemId: 36860,
+          quantity: 0.5,
+          matRate: 0.8,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Eternal Fire
       ],
     },
     {
@@ -318,7 +452,14 @@ export const PROSPECTING = {
       description: 'Saronite Ore (i:36911) → Eternal Earth [5 → 0.6]',
       reagents: [{ itemId: 36911, quantity: 5 }],
       derivatives: [
-        { itemId: 36859, quantity: 0.6, matRate: 0.82, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Eternal Earth
+        {
+          itemId: 36859,
+          quantity: 0.6,
+          matRate: 0.82,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Eternal Earth
       ],
     },
     {
@@ -332,7 +473,14 @@ export const PROSPECTING = {
       description: 'Saronite Ore (i:36911) → Eternal Fire [5 → 0.4]',
       reagents: [{ itemId: 36911, quantity: 5 }],
       derivatives: [
-        { itemId: 36860, quantity: 0.4, matRate: 0.80, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Eternal Fire
+        {
+          itemId: 36860,
+          quantity: 0.4,
+          matRate: 0.8,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Eternal Fire
       ],
     },
 
@@ -350,7 +498,14 @@ export const PROSPECTING = {
       description: 'Obsidium Ore (i:53038) → Hessonite (i:52256) [5 → 1.0]',
       reagents: [{ itemId: 53038, quantity: 5 }],
       derivatives: [
-        { itemId: 52256, quantity: 1.0, matRate: 0.88, minAmount: 1, maxAmount: 1, itemQuality: 3 }, // Hessonite
+        {
+          itemId: 52256,
+          quantity: 1.0,
+          matRate: 0.88,
+          minAmount: 1,
+          maxAmount: 1,
+          itemQuality: 3,
+        }, // Hessonite
       ],
     },
     {
@@ -364,7 +519,14 @@ export const PROSPECTING = {
       description: 'Obsidium Ore (i:53038) → Jasper (i:52183) [5 → 0.6]',
       reagents: [{ itemId: 53038, quantity: 5 }],
       derivatives: [
-        { itemId: 52183, quantity: 0.6, matRate: 0.82, minAmount: 0, maxAmount: 1, itemQuality: 3 }, // Jasper
+        {
+          itemId: 52183,
+          quantity: 0.6,
+          matRate: 0.82,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 3,
+        }, // Jasper
       ],
     },
     {
@@ -378,7 +540,14 @@ export const PROSPECTING = {
       description: 'Elementium Ore (i:52185) → Amberjewel (i:52198) [5 → 1.0]',
       reagents: [{ itemId: 52185, quantity: 5 }],
       derivatives: [
-        { itemId: 52198, quantity: 1.0, matRate: 0.88, minAmount: 1, maxAmount: 1, itemQuality: 3 }, // Amberjewel
+        {
+          itemId: 52198,
+          quantity: 1.0,
+          matRate: 0.88,
+          minAmount: 1,
+          maxAmount: 1,
+          itemQuality: 3,
+        }, // Amberjewel
       ],
     },
     {
@@ -392,7 +561,14 @@ export const PROSPECTING = {
       description: 'Elementium Ore (i:52185) → Alicite (i:52255) [5 → 0.6]',
       reagents: [{ itemId: 52185, quantity: 5 }],
       derivatives: [
-        { itemId: 52255, quantity: 0.6, matRate: 0.82, minAmount: 0, maxAmount: 1, itemQuality: 3 }, // Alicite
+        {
+          itemId: 52255,
+          quantity: 0.6,
+          matRate: 0.82,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 3,
+        }, // Alicite
       ],
     },
 
@@ -410,7 +586,14 @@ export const PROSPECTING = {
       description: 'Copper Ore (i:2770) → Gems & Shards',
       reagents: [{ itemId: 2770, quantity: 5 }],
       derivatives: [
-        { itemId: 76133, quantity: 0.8, matRate: 0.80, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Vermillion Sapphire
+        {
+          itemId: 76133,
+          quantity: 0.8,
+          matRate: 0.8,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Vermillion Sapphire
       ],
     },
     {
@@ -424,7 +607,14 @@ export const PROSPECTING = {
       description: 'Tin Ore (i:3575) → Gems & Shards',
       reagents: [{ itemId: 3575, quantity: 5 }],
       derivatives: [
-        { itemId: 76137, quantity: 0.8, matRate: 0.80, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Sunstone
+        {
+          itemId: 76137,
+          quantity: 0.8,
+          matRate: 0.8,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Sunstone
       ],
     },
     {
@@ -438,7 +628,14 @@ export const PROSPECTING = {
       description: 'Kyparite (i:72092) → Primordial Ruby (i:76130) [5 → 0.8]',
       reagents: [{ itemId: 72092, quantity: 5 }],
       derivatives: [
-        { itemId: 76130, quantity: 0.8, matRate: 0.85, minAmount: 0, maxAmount: 1, itemQuality: 4 }, // Primordial Ruby
+        {
+          itemId: 76130,
+          quantity: 0.8,
+          matRate: 0.85,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        }, // Primordial Ruby
       ],
     },
     {
@@ -452,7 +649,14 @@ export const PROSPECTING = {
       description: 'Kyparite (i:72092) → Prismatic Shard (i:52180) [5 → 0.2]',
       reagents: [{ itemId: 72092, quantity: 5 }],
       derivatives: [
-        { itemId: 52180, quantity: 0.2, matRate: 0.75, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Prismatic Shard
+        {
+          itemId: 52180,
+          quantity: 0.2,
+          matRate: 0.75,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Prismatic Shard
       ],
     },
 
@@ -470,7 +674,14 @@ export const PROSPECTING = {
       description: 'Draenor Ore (i:109119) → Draenite Gems',
       reagents: [{ itemId: 109119, quantity: 5 }],
       derivatives: [
-        { itemId: 109126, quantity: 0.45, matRate: 0.78, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Polished Draenite
+        {
+          itemId: 109126,
+          quantity: 0.45,
+          matRate: 0.78,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Polished Draenite
       ],
     },
 
@@ -488,7 +699,14 @@ export const PROSPECTING = {
       description: 'Felslate Ore (i:123918) → Gems & Essences',
       reagents: [{ itemId: 123918, quantity: 5 }],
       derivatives: [
-        { itemId: 130250, quantity: 0.5, matRate: 0.75, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Gem Fragment
+        {
+          itemId: 130250,
+          quantity: 0.5,
+          matRate: 0.75,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Gem Fragment
       ],
     },
     {
@@ -502,7 +720,14 @@ export const PROSPECTING = {
       description: 'Leystone Ore (i:123919) → Higher Quality Gems',
       reagents: [{ itemId: 123919, quantity: 5 }],
       derivatives: [
-        { itemId: 130250, quantity: 0.6, matRate: 0.78, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Gem Fragment
+        {
+          itemId: 130250,
+          quantity: 0.6,
+          matRate: 0.78,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Gem Fragment
       ],
     },
 
@@ -520,7 +745,14 @@ export const PROSPECTING = {
       description: 'Copper Ore (i:2770) → Gems',
       reagents: [{ itemId: 2770, quantity: 5 }],
       derivatives: [
-        { itemId: 152512, quantity: 0.8, matRate: 0.75, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Gem Fragment
+        {
+          itemId: 152512,
+          quantity: 0.8,
+          matRate: 0.75,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Gem Fragment
       ],
     },
     {
@@ -534,7 +766,14 @@ export const PROSPECTING = {
       description: 'Tin Ore (i:3575) → Gems',
       reagents: [{ itemId: 3575, quantity: 5 }],
       derivatives: [
-        { itemId: 152512, quantity: 0.8, matRate: 0.75, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Gem Fragment
+        {
+          itemId: 152512,
+          quantity: 0.8,
+          matRate: 0.75,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Gem Fragment
       ],
     },
     {
@@ -545,10 +784,18 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Monelite Ore', target: 'Gem Fragment' },
-      description: 'Monelite Ore (i:152579) → Gem Fragment (i:152512) [5 → 1.2]',
+      description:
+        'Monelite Ore (i:152579) → Gem Fragment (i:152512) [5 → 1.2]',
       reagents: [{ itemId: 152579, quantity: 5 }],
       derivatives: [
-        { itemId: 152512, quantity: 1.2, matRate: 0.82, minAmount: 1, maxAmount: 1, itemQuality: 3 }, // Gem Fragment
+        {
+          itemId: 152512,
+          quantity: 1.2,
+          matRate: 0.82,
+          minAmount: 1,
+          maxAmount: 1,
+          itemQuality: 3,
+        }, // Gem Fragment
       ],
     },
     {
@@ -562,7 +809,14 @@ export const PROSPECTING = {
       description: 'Monelite Ore (i:152579) → Shard (i:154123) [5 → 0.1]',
       reagents: [{ itemId: 152579, quantity: 5 }],
       derivatives: [
-        { itemId: 154123, quantity: 0.1, matRate: 0.70, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Shard
+        {
+          itemId: 154123,
+          quantity: 0.1,
+          matRate: 0.7,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Shard
       ],
     },
     {
@@ -573,10 +827,18 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Storm Silver Ore', target: 'Gem Fragment' },
-      description: 'Storm Silver Ore (i:152580) → Gem Fragment (i:152512) [5 → 1.2]',
+      description:
+        'Storm Silver Ore (i:152580) → Gem Fragment (i:152512) [5 → 1.2]',
       reagents: [{ itemId: 152580, quantity: 5 }],
       derivatives: [
-        { itemId: 152512, quantity: 1.2, matRate: 0.82, minAmount: 1, maxAmount: 1, itemQuality: 3 }, // Gem Fragment
+        {
+          itemId: 152512,
+          quantity: 1.2,
+          matRate: 0.82,
+          minAmount: 1,
+          maxAmount: 1,
+          itemQuality: 3,
+        }, // Gem Fragment
       ],
     },
     {
@@ -590,7 +852,14 @@ export const PROSPECTING = {
       description: 'Storm Silver Ore (i:152580) → Shard (i:154123) [5 → 0.2]',
       reagents: [{ itemId: 152580, quantity: 5 }],
       derivatives: [
-        { itemId: 154123, quantity: 0.2, matRate: 0.72, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Shard
+        {
+          itemId: 154123,
+          quantity: 0.2,
+          matRate: 0.72,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Shard
       ],
     },
 
@@ -608,7 +877,14 @@ export const PROSPECTING = {
       description: 'Copper Ore (i:2770) → Shards',
       reagents: [{ itemId: 2770, quantity: 5 }],
       derivatives: [
-        { itemId: 177045, quantity: 0.8, matRate: 0.75, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Shard
+        {
+          itemId: 177045,
+          quantity: 0.8,
+          matRate: 0.75,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Shard
       ],
     },
     {
@@ -622,7 +898,14 @@ export const PROSPECTING = {
       description: 'Tin Ore (i:3575) → Shards',
       reagents: [{ itemId: 3575, quantity: 5 }],
       derivatives: [
-        { itemId: 177045, quantity: 0.8, matRate: 0.75, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Shard
+        {
+          itemId: 177045,
+          quantity: 0.8,
+          matRate: 0.75,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Shard
       ],
     },
     {
@@ -637,7 +920,14 @@ export const PROSPECTING = {
         'Oxxein Ore (i:171833) → Vibrant Shards (i:177045) & Gems [5 → 1.5 + gems]',
       reagents: [{ itemId: 171833, quantity: 5 }],
       derivatives: [
-        { itemId: 177045, quantity: 1.5, matRate: 0.80, minAmount: 1, maxAmount: 2, itemQuality: 2 }, // Vibrant Shard
+        {
+          itemId: 177045,
+          quantity: 1.5,
+          matRate: 0.8,
+          minAmount: 1,
+          maxAmount: 2,
+          itemQuality: 2,
+        }, // Vibrant Shard
       ],
     },
 
@@ -652,8 +942,8 @@ export const PROSPECTING = {
       createdBy: DMA_SOURCE.TSM,
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
-      names: { source: 'Various Ores', target: 'Queen\'s Ruby *' },
-      description: 'Dragonflight Ores → Queen\'s Ruby * (i:192837) [rare gem]',
+      names: { source: 'Various Ores', target: "Queen's Ruby *" },
+      description: "Dragonflight Ores → Queen's Ruby * (i:192837) [rare gem]",
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -661,13 +951,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192837, quantity: 0.125, matRate: 0.70, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 192837,
+          quantity: 0.125,
+          matRate: 0.7,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Queen's Ruby **
     {
@@ -677,8 +976,8 @@ export const PROSPECTING = {
       createdBy: DMA_SOURCE.TSM,
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
-      names: { source: 'Various Ores', target: 'Queen\'s Ruby **' },
-      description: 'Dragonflight Ores → Queen\'s Ruby ** (i:192838) [rare gem]',
+      names: { source: 'Various Ores', target: "Queen's Ruby **" },
+      description: "Dragonflight Ores → Queen's Ruby ** (i:192838) [rare gem]",
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -686,13 +985,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192838, quantity: 0.125, matRate: 0.70, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 192838,
+          quantity: 0.125,
+          matRate: 0.7,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Queen's Ruby ***
     {
@@ -702,8 +1010,8 @@ export const PROSPECTING = {
       createdBy: DMA_SOURCE.TSM,
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
-      names: { source: 'Various Ores', target: 'Queen\'s Ruby ***' },
-      description: 'Dragonflight Ores → Queen\'s Ruby *** (i:192839) [rare gem]',
+      names: { source: 'Various Ores', target: "Queen's Ruby ***" },
+      description: "Dragonflight Ores → Queen's Ruby *** (i:192839) [rare gem]",
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -711,13 +1019,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192839, quantity: 0.125, matRate: 0.70, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 192839,
+          quantity: 0.125,
+          matRate: 0.7,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Mystic Sapphire *
     {
@@ -728,7 +1045,8 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Mystic Sapphire *' },
-      description: 'Dragonflight Ores → Mystic Sapphire * (i:192840) [rare gem]',
+      description:
+        'Dragonflight Ores → Mystic Sapphire * (i:192840) [rare gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -736,13 +1054,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192840, quantity: 0.125, matRate: 0.70, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 192840,
+          quantity: 0.125,
+          matRate: 0.7,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Mystic Sapphire **
     {
@@ -753,7 +1080,8 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Mystic Sapphire **' },
-      description: 'Dragonflight Ores → Mystic Sapphire ** (i:192841) [rare gem]',
+      description:
+        'Dragonflight Ores → Mystic Sapphire ** (i:192841) [rare gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -761,13 +1089,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192841, quantity: 0.125, matRate: 0.70, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 192841,
+          quantity: 0.125,
+          matRate: 0.7,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Mystic Sapphire ***
     {
@@ -778,7 +1115,8 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Mystic Sapphire ***' },
-      description: 'Dragonflight Ores → Mystic Sapphire *** (i:192842) [rare gem]',
+      description:
+        'Dragonflight Ores → Mystic Sapphire *** (i:192842) [rare gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -786,13 +1124,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192842, quantity: 0.125, matRate: 0.70, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 192842,
+          quantity: 0.125,
+          matRate: 0.7,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Vibrant Emerald *
     {
@@ -803,7 +1150,8 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Vibrant Emerald *' },
-      description: 'Dragonflight Ores → Vibrant Emerald * (i:192843) [rare gem]',
+      description:
+        'Dragonflight Ores → Vibrant Emerald * (i:192843) [rare gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -811,13 +1159,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192843, quantity: 0.125, matRate: 0.70, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 192843,
+          quantity: 0.125,
+          matRate: 0.7,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Vibrant Emerald **
     {
@@ -828,7 +1185,8 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Vibrant Emerald **' },
-      description: 'Dragonflight Ores → Vibrant Emerald ** (i:192844) [rare gem]',
+      description:
+        'Dragonflight Ores → Vibrant Emerald ** (i:192844) [rare gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -836,13 +1194,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192844, quantity: 0.125, matRate: 0.70, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 192844,
+          quantity: 0.125,
+          matRate: 0.7,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Vibrant Emerald ***
     {
@@ -853,7 +1220,8 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Vibrant Emerald ***' },
-      description: 'Dragonflight Ores → Vibrant Emerald *** (i:192845) [rare gem]',
+      description:
+        'Dragonflight Ores → Vibrant Emerald *** (i:192845) [rare gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -861,13 +1229,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192845, quantity: 0.125, matRate: 0.70, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 192845,
+          quantity: 0.125,
+          matRate: 0.7,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Sundered Onyx *
     {
@@ -886,13 +1263,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192846, quantity: 0.125, matRate: 0.70, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 192846,
+          quantity: 0.125,
+          matRate: 0.7,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Sundered Onyx **
     {
@@ -911,13 +1297,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192847, quantity: 0.125, matRate: 0.70, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 192847,
+          quantity: 0.125,
+          matRate: 0.7,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Sundered Onyx ***
     {
@@ -928,7 +1323,8 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Sundered Onyx ***' },
-      description: 'Dragonflight Ores → Sundered Onyx *** (i:192848) [rare gem]',
+      description:
+        'Dragonflight Ores → Sundered Onyx *** (i:192848) [rare gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -936,13 +1332,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192848, quantity: 0.125, matRate: 0.70, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 192848,
+          quantity: 0.125,
+          matRate: 0.7,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Eternity Amber *
     {
@@ -961,13 +1366,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192849, quantity: 0.35, matRate: 0.75, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 192849,
+          quantity: 0.35,
+          matRate: 0.75,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Eternity Amber **
     {
@@ -978,7 +1392,8 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Eternity Amber **' },
-      description: 'Dragonflight Ores → Eternity Amber ** (i:192850) [rare gem]',
+      description:
+        'Dragonflight Ores → Eternity Amber ** (i:192850) [rare gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -986,13 +1401,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192850, quantity: 0.35, matRate: 0.75, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 192850,
+          quantity: 0.35,
+          matRate: 0.75,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Eternity Amber ***
     {
@@ -1003,7 +1427,8 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Eternity Amber ***' },
-      description: 'Dragonflight Ores → Eternity Amber *** (i:192851) [rare gem]',
+      description:
+        'Dragonflight Ores → Eternity Amber *** (i:192851) [rare gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -1011,13 +1436,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192851, quantity: 0.35, matRate: 0.75, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 192851,
+          quantity: 0.35,
+          matRate: 0.75,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
 
     // ========================================================================
@@ -1040,13 +1474,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192852, quantity: 0.0425, matRate: 0.65, minAmount: 0, maxAmount: 1, itemQuality: 5 }],
+      derivatives: [
+        {
+          itemId: 192852,
+          quantity: 0.0425,
+          matRate: 0.65,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 5,
+        },
+      ],
     },
     // Alexstraszite **
     {
@@ -1065,13 +1508,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192853, quantity: 0.0425, matRate: 0.65, minAmount: 0, maxAmount: 1, itemQuality: 5 }],
+      derivatives: [
+        {
+          itemId: 192853,
+          quantity: 0.0425,
+          matRate: 0.65,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 5,
+        },
+      ],
     },
     // Alexstraszite ***
     {
@@ -1082,7 +1534,8 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Alexstraszite ***' },
-      description: 'Dragonflight Ores → Alexstraszite *** (i:192855) [epic gem]',
+      description:
+        'Dragonflight Ores → Alexstraszite *** (i:192855) [epic gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -1090,13 +1543,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192855, quantity: 0.0425, matRate: 0.65, minAmount: 0, maxAmount: 1, itemQuality: 5 }],
+      derivatives: [
+        {
+          itemId: 192855,
+          quantity: 0.0425,
+          matRate: 0.65,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 5,
+        },
+      ],
     },
     // Malygite *
     {
@@ -1115,13 +1577,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192856, quantity: 0.0425, matRate: 0.65, minAmount: 0, maxAmount: 1, itemQuality: 5 }],
+      derivatives: [
+        {
+          itemId: 192856,
+          quantity: 0.0425,
+          matRate: 0.65,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 5,
+        },
+      ],
     },
     // Malygite **
     {
@@ -1140,13 +1611,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192857, quantity: 0.0425, matRate: 0.65, minAmount: 0, maxAmount: 1, itemQuality: 5 }],
+      derivatives: [
+        {
+          itemId: 192857,
+          quantity: 0.0425,
+          matRate: 0.65,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 5,
+        },
+      ],
     },
     // Malygite ***
     {
@@ -1165,13 +1645,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192858, quantity: 0.0425, matRate: 0.65, minAmount: 0, maxAmount: 1, itemQuality: 5 }],
+      derivatives: [
+        {
+          itemId: 192858,
+          quantity: 0.0425,
+          matRate: 0.65,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 5,
+        },
+      ],
     },
     // Ysemerald *
     {
@@ -1190,13 +1679,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192859, quantity: 0.0425, matRate: 0.65, minAmount: 0, maxAmount: 1, itemQuality: 5 }],
+      derivatives: [
+        {
+          itemId: 192859,
+          quantity: 0.0425,
+          matRate: 0.65,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 5,
+        },
+      ],
     },
     // Ysemerald **
     {
@@ -1215,13 +1713,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192860, quantity: 0.0425, matRate: 0.65, minAmount: 0, maxAmount: 1, itemQuality: 5 }],
+      derivatives: [
+        {
+          itemId: 192860,
+          quantity: 0.0425,
+          matRate: 0.65,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 5,
+        },
+      ],
     },
     // Ysemerald ***
     {
@@ -1240,13 +1747,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192861, quantity: 0.0425, matRate: 0.65, minAmount: 0, maxAmount: 1, itemQuality: 5 }],
+      derivatives: [
+        {
+          itemId: 192861,
+          quantity: 0.0425,
+          matRate: 0.65,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 5,
+        },
+      ],
     },
     // Neltharite *
     {
@@ -1265,13 +1781,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192862, quantity: 0.0425, matRate: 0.65, minAmount: 0, maxAmount: 1, itemQuality: 5 }],
+      derivatives: [
+        {
+          itemId: 192862,
+          quantity: 0.0425,
+          matRate: 0.65,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 5,
+        },
+      ],
     },
     // Neltharite **
     {
@@ -1290,13 +1815,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192863, quantity: 0.0425, matRate: 0.65, minAmount: 0, maxAmount: 1, itemQuality: 5 }],
+      derivatives: [
+        {
+          itemId: 192863,
+          quantity: 0.0425,
+          matRate: 0.65,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 5,
+        },
+      ],
     },
     // Neltharite ***
     {
@@ -1315,13 +1849,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192865, quantity: 0.0425, matRate: 0.65, minAmount: 0, maxAmount: 1, itemQuality: 5 }],
+      derivatives: [
+        {
+          itemId: 192865,
+          quantity: 0.0425,
+          matRate: 0.65,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 5,
+        },
+      ],
     },
     // Nozdorite *
     {
@@ -1340,13 +1883,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192866, quantity: 0.15, matRate: 0.68, minAmount: 0, maxAmount: 1, itemQuality: 5 }],
+      derivatives: [
+        {
+          itemId: 192866,
+          quantity: 0.15,
+          matRate: 0.68,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 5,
+        },
+      ],
     },
     // Nozdorite **
     {
@@ -1365,13 +1917,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192867, quantity: 0.15, matRate: 0.68, minAmount: 0, maxAmount: 1, itemQuality: 5 }],
+      derivatives: [
+        {
+          itemId: 192867,
+          quantity: 0.15,
+          matRate: 0.68,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 5,
+        },
+      ],
     },
     // Nozdorite ***
     {
@@ -1390,13 +1951,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192868, quantity: 0.15, matRate: 0.68, minAmount: 0, maxAmount: 1, itemQuality: 5 }],
+      derivatives: [
+        {
+          itemId: 192868,
+          quantity: 0.15,
+          matRate: 0.68,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 5,
+        },
+      ],
     },
     // Illimited Diamond *
     {
@@ -1407,7 +1977,8 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Illimited Diamond *' },
-      description: 'Dragonflight Ores → Illimited Diamond * (i:192869) [epic gem]',
+      description:
+        'Dragonflight Ores → Illimited Diamond * (i:192869) [epic gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -1415,13 +1986,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192869, quantity: 0.0055, matRate: 0.60, minAmount: 0, maxAmount: 1, itemQuality: 5 }],
+      derivatives: [
+        {
+          itemId: 192869,
+          quantity: 0.0055,
+          matRate: 0.6,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 5,
+        },
+      ],
     },
     // Illimited Diamond **
     {
@@ -1432,7 +2012,8 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Illimited Diamond **' },
-      description: 'Dragonflight Ores → Illimited Diamond ** (i:192870) [epic gem]',
+      description:
+        'Dragonflight Ores → Illimited Diamond ** (i:192870) [epic gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -1440,13 +2021,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192870, quantity: 0.0055, matRate: 0.60, minAmount: 0, maxAmount: 1, itemQuality: 5 }],
+      derivatives: [
+        {
+          itemId: 192870,
+          quantity: 0.0055,
+          matRate: 0.6,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 5,
+        },
+      ],
     },
     // Illimited Diamond ***
     {
@@ -1457,7 +2047,8 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Illimited Diamond ***' },
-      description: 'Dragonflight Ores → Illimited Diamond *** (i:192871) [epic gem]',
+      description:
+        'Dragonflight Ores → Illimited Diamond *** (i:192871) [epic gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -1465,13 +2056,22 @@ export const PROSPECTING = {
         { itemId: 189143, quantity: 1, label: 'Draconium Ore *' },
         { itemId: 188658, quantity: 1, label: 'Draconium Ore **' },
         { itemId: 190311, quantity: 1, label: 'Draconium Ore ***' },
-        { itemId: 190312, quantity: 1, label: 'Khaz\'gorite Ore *' },
-        { itemId: 190313, quantity: 1, label: 'Khaz\'gorite Ore **' },
-        { itemId: 190314, quantity: 1, label: 'Khaz\'gorite Ore ***' },
+        { itemId: 190312, quantity: 1, label: "Khaz'gorite Ore *" },
+        { itemId: 190313, quantity: 1, label: "Khaz'gorite Ore **" },
+        { itemId: 190314, quantity: 1, label: "Khaz'gorite Ore ***" },
         { itemId: 194545, quantity: 1, label: 'Prismatic Ore' },
         { itemId: 199344, quantity: 1, label: 'Magma Thresher' },
       ],
-      derivatives: [{ itemId: 192871, quantity: 0.0055, matRate: 0.60, minAmount: 0, maxAmount: 1, itemQuality: 5 }],
+      derivatives: [
+        {
+          itemId: 192871,
+          quantity: 0.0055,
+          matRate: 0.6,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 5,
+        },
+      ],
     },
 
     // ========================================================================
@@ -1493,7 +2093,16 @@ export const PROSPECTING = {
         { itemId: 171833, quantity: 1, label: 'Elethium Ore' },
         { itemId: 187700, quantity: 1, label: 'Progenium Ore' },
       ],
-      derivatives: [{ itemId: 173170, quantity: 0.2, matRate: 0.70, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 173170,
+          quantity: 0.2,
+          matRate: 0.7,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Essence of Torment
     {
@@ -1511,7 +2120,16 @@ export const PROSPECTING = {
         { itemId: 171833, quantity: 1, label: 'Elethium Ore' },
         { itemId: 187700, quantity: 1, label: 'Progenium Ore' },
       ],
-      derivatives: [{ itemId: 173171, quantity: 0.2, matRate: 0.70, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 173171,
+          quantity: 0.2,
+          matRate: 0.7,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Essence of Servitude
     {
@@ -1529,7 +2147,16 @@ export const PROSPECTING = {
         { itemId: 171833, quantity: 1, label: 'Elethium Ore' },
         { itemId: 187700, quantity: 1, label: 'Progenium Ore' },
       ],
-      derivatives: [{ itemId: 173172, quantity: 0.2, matRate: 0.70, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 173172,
+          quantity: 0.2,
+          matRate: 0.7,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Essence of Valor
     {
@@ -1547,7 +2174,16 @@ export const PROSPECTING = {
         { itemId: 171833, quantity: 1, label: 'Elethium Ore' },
         { itemId: 187700, quantity: 1, label: 'Progenium Ore' },
       ],
-      derivatives: [{ itemId: 173173, quantity: 0.2, matRate: 0.70, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 173173,
+          quantity: 0.2,
+          matRate: 0.7,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
 
     // ========================================================================
@@ -1567,7 +2203,16 @@ export const PROSPECTING = {
         { itemId: 23424, quantity: 1, label: 'Fel Iron Ore' },
         { itemId: 23425, quantity: 1, label: 'Adamantite Ore' },
       ],
-      derivatives: [{ itemId: 23440, quantity: 0.015, matRate: 0.50, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 23440,
+          quantity: 0.015,
+          matRate: 0.5,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Living Ruby
     {
@@ -1583,7 +2228,16 @@ export const PROSPECTING = {
         { itemId: 23424, quantity: 1, label: 'Fel Iron Ore' },
         { itemId: 23425, quantity: 1, label: 'Adamantite Ore' },
       ],
-      derivatives: [{ itemId: 23436, quantity: 0.015, matRate: 0.50, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 23436,
+          quantity: 0.015,
+          matRate: 0.5,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Nightseye
     {
@@ -1599,7 +2253,16 @@ export const PROSPECTING = {
         { itemId: 23424, quantity: 1, label: 'Fel Iron Ore' },
         { itemId: 23425, quantity: 1, label: 'Adamantite Ore' },
       ],
-      derivatives: [{ itemId: 23441, quantity: 0.015, matRate: 0.50, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 23441,
+          quantity: 0.015,
+          matRate: 0.5,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Noble Topaz
     {
@@ -1615,7 +2278,16 @@ export const PROSPECTING = {
         { itemId: 23424, quantity: 1, label: 'Fel Iron Ore' },
         { itemId: 23425, quantity: 1, label: 'Adamantite Ore' },
       ],
-      derivatives: [{ itemId: 23439, quantity: 0.015, matRate: 0.50, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 23439,
+          quantity: 0.015,
+          matRate: 0.5,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Star of Elune
     {
@@ -1631,7 +2303,16 @@ export const PROSPECTING = {
         { itemId: 23424, quantity: 1, label: 'Fel Iron Ore' },
         { itemId: 23425, quantity: 1, label: 'Adamantite Ore' },
       ],
-      derivatives: [{ itemId: 23438, quantity: 0.015, matRate: 0.50, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 23438,
+          quantity: 0.015,
+          matRate: 0.5,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Talasite
     {
@@ -1647,7 +2328,16 @@ export const PROSPECTING = {
         { itemId: 23424, quantity: 1, label: 'Fel Iron Ore' },
         { itemId: 23425, quantity: 1, label: 'Adamantite Ore' },
       ],
-      derivatives: [{ itemId: 23437, quantity: 0.015, matRate: 0.50, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 23437,
+          quantity: 0.015,
+          matRate: 0.5,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
 
     // ========================================================================
@@ -1661,14 +2351,23 @@ export const PROSPECTING = {
       createdBy: DMA_SOURCE.TSM,
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
-      names: { source: 'WotLK Ores', target: 'Autumn\'s Glow' },
-      description: 'WotLK Ores → Autumn\'s Glow (i:36921) [rare gem]',
+      names: { source: 'WotLK Ores', target: "Autumn's Glow" },
+      description: "WotLK Ores → Autumn's Glow (i:36921) [rare gem]",
       reagents: [
         { itemId: 36909, quantity: 1, label: 'Cobalt Ore' },
         { itemId: 36912, quantity: 1, label: 'Saronite Ore' },
         { itemId: 36910, quantity: 1, label: 'Titanium Ore' },
       ],
-      derivatives: [{ itemId: 36921, quantity: 0.015, matRate: 0.50, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 36921,
+          quantity: 0.015,
+          matRate: 0.5,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Forest Emerald
     {
@@ -1685,7 +2384,16 @@ export const PROSPECTING = {
         { itemId: 36912, quantity: 1, label: 'Saronite Ore' },
         { itemId: 36910, quantity: 1, label: 'Titanium Ore' },
       ],
-      derivatives: [{ itemId: 36933, quantity: 0.015, matRate: 0.50, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 36933,
+          quantity: 0.015,
+          matRate: 0.5,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Monarch Topaz
     {
@@ -1702,7 +2410,16 @@ export const PROSPECTING = {
         { itemId: 36912, quantity: 1, label: 'Saronite Ore' },
         { itemId: 36910, quantity: 1, label: 'Titanium Ore' },
       ],
-      derivatives: [{ itemId: 36930, quantity: 0.015, matRate: 0.50, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 36930,
+          quantity: 0.015,
+          matRate: 0.5,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Scarlet Ruby
     {
@@ -1719,7 +2436,16 @@ export const PROSPECTING = {
         { itemId: 36912, quantity: 1, label: 'Saronite Ore' },
         { itemId: 36910, quantity: 1, label: 'Titanium Ore' },
       ],
-      derivatives: [{ itemId: 36918, quantity: 0.015, matRate: 0.50, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 36918,
+          quantity: 0.015,
+          matRate: 0.5,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Sky Sapphire
     {
@@ -1736,7 +2462,16 @@ export const PROSPECTING = {
         { itemId: 36912, quantity: 1, label: 'Saronite Ore' },
         { itemId: 36910, quantity: 1, label: 'Titanium Ore' },
       ],
-      derivatives: [{ itemId: 36924, quantity: 0.015, matRate: 0.50, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 36924,
+          quantity: 0.015,
+          matRate: 0.5,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Twilight Opal
     {
@@ -1753,7 +2488,16 @@ export const PROSPECTING = {
         { itemId: 36912, quantity: 1, label: 'Saronite Ore' },
         { itemId: 36910, quantity: 1, label: 'Titanium Ore' },
       ],
-      derivatives: [{ itemId: 36927, quantity: 0.015, matRate: 0.50, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 36927,
+          quantity: 0.015,
+          matRate: 0.5,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // WotLK Epic Gems
     // Cardinal Ruby
@@ -1765,9 +2509,19 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Titanium Ore', target: 'Cardinal Ruby' },
-      description: 'Titanium Ore (i:36910) → Cardinal Ruby (i:36919) [epic gem]',
+      description:
+        'Titanium Ore (i:36910) → Cardinal Ruby (i:36919) [epic gem]',
       reagents: [{ itemId: 36910, quantity: 1, label: 'Titanium Ore' }],
-      derivatives: [{ itemId: 36919, quantity: 0.030, matRate: 0.55, minAmount: 0, maxAmount: 1, itemQuality: 5 }],
+      derivatives: [
+        {
+          itemId: 36919,
+          quantity: 0.03,
+          matRate: 0.55,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 5,
+        },
+      ],
     },
     // Dreadstone (Epic)
     {
@@ -1780,7 +2534,16 @@ export const PROSPECTING = {
       names: { source: 'Titanium Ore', target: 'Dreadstone' },
       description: 'Titanium Ore (i:36910) → Dreadstone (i:36928) [epic gem]',
       reagents: [{ itemId: 36910, quantity: 1, label: 'Titanium Ore' }],
-      derivatives: [{ itemId: 36928, quantity: 0.030, matRate: 0.55, minAmount: 0, maxAmount: 1, itemQuality: 5 }],
+      derivatives: [
+        {
+          itemId: 36928,
+          quantity: 0.03,
+          matRate: 0.55,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 5,
+        },
+      ],
     },
     // Eye of Zul (Epic)
     {
@@ -1793,7 +2556,16 @@ export const PROSPECTING = {
       names: { source: 'Titanium Ore', target: 'Eye of Zul' },
       description: 'Titanium Ore (i:36910) → Eye of Zul (i:36934) [epic gem]',
       reagents: [{ itemId: 36910, quantity: 1, label: 'Titanium Ore' }],
-      derivatives: [{ itemId: 36934, quantity: 0.030, matRate: 0.55, minAmount: 0, maxAmount: 1, itemQuality: 5 }],
+      derivatives: [
+        {
+          itemId: 36934,
+          quantity: 0.03,
+          matRate: 0.55,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 5,
+        },
+      ],
     },
 
     // ========================================================================
@@ -1814,7 +2586,16 @@ export const PROSPECTING = {
         { itemId: 52185, quantity: 1, label: 'Elementium Ore' },
         { itemId: 52183, quantity: 1, label: 'Pyrite Ore' },
       ],
-      derivatives: [{ itemId: 52192, quantity: 0.0125, matRate: 0.48, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 52192,
+          quantity: 0.0125,
+          matRate: 0.48,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Inferno Ruby
     {
@@ -1831,7 +2612,16 @@ export const PROSPECTING = {
         { itemId: 52185, quantity: 1, label: 'Elementium Ore' },
         { itemId: 52183, quantity: 1, label: 'Pyrite Ore' },
       ],
-      derivatives: [{ itemId: 52190, quantity: 0.0125, matRate: 0.48, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 52190,
+          quantity: 0.0125,
+          matRate: 0.48,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Ocean Sapphire
     {
@@ -1848,7 +2638,16 @@ export const PROSPECTING = {
         { itemId: 52185, quantity: 1, label: 'Elementium Ore' },
         { itemId: 52183, quantity: 1, label: 'Pyrite Ore' },
       ],
-      derivatives: [{ itemId: 52191, quantity: 0.0125, matRate: 0.48, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 52191,
+          quantity: 0.0125,
+          matRate: 0.48,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
 
     // ========================================================================
@@ -1870,7 +2669,16 @@ export const PROSPECTING = {
         { itemId: 72103, quantity: 1, label: 'White Trillium Ore' },
         { itemId: 72094, quantity: 1, label: 'Black Trillium Ore' },
       ],
-      derivatives: [{ itemId: 76131, quantity: 0.045, matRate: 0.55, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 76131,
+          quantity: 0.045,
+          matRate: 0.55,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
     // Wild Jade
     {
@@ -1888,7 +2696,16 @@ export const PROSPECTING = {
         { itemId: 72103, quantity: 1, label: 'White Trillium Ore' },
         { itemId: 72094, quantity: 1, label: 'Black Trillium Ore' },
       ],
-      derivatives: [{ itemId: 76139, quantity: 0.045, matRate: 0.55, minAmount: 0, maxAmount: 1, itemQuality: 4 }],
+      derivatives: [
+        {
+          itemId: 76139,
+          quantity: 0.045,
+          matRate: 0.55,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 4,
+        },
+      ],
     },
 
     // ========================================================================
@@ -1906,7 +2723,14 @@ export const PROSPECTING = {
         'Copper Ore (i:2770) → Vibrant Shards * (i:206448) [5 → 0.8]',
       reagents: [{ itemId: 2770, quantity: 5 }],
       derivatives: [
-        { itemId: 206448, quantity: 0.8, matRate: 0.75, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Vibrant Shard *
+        {
+          itemId: 206448,
+          quantity: 0.8,
+          matRate: 0.75,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Vibrant Shard *
       ],
     },
     {
@@ -1920,7 +2744,14 @@ export const PROSPECTING = {
       description: 'Tin Ore (i:3575) → Vibrant Shards * (i:206448) [5 → 0.8]',
       reagents: [{ itemId: 3575, quantity: 5 }],
       derivatives: [
-        { itemId: 206448, quantity: 0.8, matRate: 0.75, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Vibrant Shard *
+        {
+          itemId: 206448,
+          quantity: 0.8,
+          matRate: 0.75,
+          minAmount: 0,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Vibrant Shard *
       ],
     },
     {
@@ -1935,7 +2766,14 @@ export const PROSPECTING = {
         'Hochenblume (i:191460) → Vibrant Shards ** (i:206449) [5 → 1.2]',
       reagents: [{ itemId: 191460, quantity: 5 }],
       derivatives: [
-        { itemId: 206449, quantity: 1.2, matRate: 0.80, minAmount: 1, maxAmount: 1, itemQuality: 2 }, // Vibrant Shard **
+        {
+          itemId: 206449,
+          quantity: 1.2,
+          matRate: 0.8,
+          minAmount: 1,
+          maxAmount: 1,
+          itemQuality: 2,
+        }, // Vibrant Shard **
       ],
     },
     {
@@ -1950,7 +2788,14 @@ export const PROSPECTING = {
         'Rousing Fire (i:191451) → Vibrant Shards *** (i:206450) [5 → 1.8]',
       reagents: [{ itemId: 191451, quantity: 5 }],
       derivatives: [
-        { itemId: 206450, quantity: 1.8, matRate: 0.82, minAmount: 1, maxAmount: 2, itemQuality: 2 }, // Vibrant Shard ***
+        {
+          itemId: 206450,
+          quantity: 1.8,
+          matRate: 0.82,
+          minAmount: 1,
+          maxAmount: 2,
+          itemQuality: 2,
+        }, // Vibrant Shard ***
       ],
     },
   ],

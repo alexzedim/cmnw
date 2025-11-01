@@ -6,7 +6,7 @@ import { Queue } from 'bullmq';
 import csv from 'async-csv';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { get } from 'lodash';
-import { DISENCHANT, MILLING, PROSPECT } from '../lib';
+import { DISENCHANTING, MILLING, PROSPECTING } from '../libs';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
@@ -30,6 +30,7 @@ import {
   toStringOrNumber,
   SKILL_LINE_KEY_MAPPING,
   SPELL_EFFECT_KEY_MAPPING,
+  EXPANSION_TICKER_MAP,
 } from '@app/resources';
 
 @Injectable()
@@ -112,9 +113,34 @@ export class PricingService implements OnApplicationBootstrap {
         message: `Deleted ${deletePricing.affected} lab pricing entries`,
       });
 
+      if (isProspect) {
+        await this.libPricingProspect();
+      }
+
+      if (isMilling) {
+        await this.libPricingMilling();
+      }
+
+      if (isDisenchant) {
+        await this.libPricingDisenchant();
+      }
+    } catch (errorOrException) {
+      this.logger.error({
+        logTag,
+        errorOrException,
+        message: 'Error processing lib pricing',
+      });
+    }
+  }
+
+  private async libPricingProspect(): Promise<void> {
+    const logTag = 'libPricingProspect';
+    try {
       const reversePricingMethod = this.pricingRepository.create({
-        media: 'MEDIA',
-        spellId: 0,
+        ticker: PROSPECTING.name,
+        media:
+          'https://render-eu.worldofwarcraft.com/icons/56/inv_misc_gem_bloodgem_01.jpg',
+        spellId: 31252,
         profession: 'PROFESSION',
         expansion: 'TWW',
         type: PRICING_TYPE.REVERSE,
@@ -122,70 +148,144 @@ export class PricingService implements OnApplicationBootstrap {
         updatedBy: DMA_SOURCE.LAB,
       });
 
-      if (isProspect) {
-        reversePricingMethod.ticker = PROSPECT.name;
-        reversePricingMethod.media =
-          'https://render-eu.worldofwarcraft.com/icons/56/inv_misc_gem_bloodgem_01.jpg';
-        reversePricingMethod.spellId = 31252;
+      let methodCount = 0;
 
-        await lastValueFrom(
-          from(PROSPECT.methods).pipe(
-            mergeMap(async (method) => {
-              reversePricingMethod.reagents = method.reagents;
-              reversePricingMethod.derivatives = method.derivatives;
-              reversePricingMethod.recipeId = parseInt(
+      await lastValueFrom(
+        from(PROSPECTING.methods).pipe(
+          mergeMap(async (method) => {
+            const entry = {
+              ...reversePricingMethod,
+              reagents: method.reagents,
+              derivatives: method.derivatives,
+              recipeId: parseInt(
                 `${reversePricingMethod.spellId}${method.reagents[0].itemId}`,
-              );
+              ),
+            };
 
-              await this.pricingRepository.save(reversePricingMethod);
-            }),
-          ),
-        );
-      }
+            await this.pricingRepository.save(entry);
+            methodCount++;
+          }),
+        ),
+      );
 
-      if (isMilling) {
-        reversePricingMethod.ticker = MILLING.name;
-        reversePricingMethod.media =
-          'https://render-eu.worldofwarcraft.com/icons/56/ability_miling.jpg';
-        reversePricingMethod.spellId = 51005;
-
-        await lastValueFrom(
-          from(MILLING.methods).pipe(
-            mergeMap(async (method) => {
-              reversePricingMethod.reagents = method.reagents;
-              reversePricingMethod.derivatives = method.derivatives;
-              reversePricingMethod.recipeId = parseInt(
-                `${reversePricingMethod.spellId}${method.reagents[0].itemId}`,
-              );
-
-              await this.pricingRepository.save(reversePricingMethod);
-            }),
-          ),
-        );
-      }
-
-      if (isDisenchant) {
-        reversePricingMethod.ticker = DISENCHANT.name;
-        reversePricingMethod.media =
-          'https://render-eu.worldofwarcraft.com/icons/56/inv_enchant_disenchant.jpg';
-        reversePricingMethod.spellId = 13262;
-
-        await lastValueFrom(
-          from(DISENCHANT.methods).pipe(
-            mergeMap(async (method) => {
-              reversePricingMethod.reagents = method.reagents;
-              reversePricingMethod.derivatives = method.derivatives;
-              reversePricingMethod.recipeId = parseInt(
-                `${reversePricingMethod.spellId}${method.reagents[0].itemId}`,
-              );
-
-              await this.pricingRepository.save(reversePricingMethod);
-            }),
-          ),
-        );
-      }
+      this.logger.log({
+        logTag,
+        method: PROSPECTING.name,
+        count: methodCount,
+        spellId: reversePricingMethod.spellId,
+        message: `Processed ${methodCount} prospecting methods`,
+      });
     } catch (errorOrException) {
-      this.logger.error({ logTag, errorOrException });
+      this.logger.error({
+        logTag,
+        method: PROSPECTING.name,
+        errorOrException,
+        message: 'Error processing prospecting pricing',
+      });
+    }
+  }
+
+  private async libPricingMilling(): Promise<void> {
+    const logTag = 'libPricingMilling';
+    try {
+      const reversePricingMethod = this.pricingRepository.create({
+        ticker: MILLING.name,
+        media:
+          'https://render-eu.worldofwarcraft.com/icons/56/ability_miling.jpg',
+        spellId: 51005,
+        profession: 'PROFESSION',
+        expansion: 'TWW',
+        type: PRICING_TYPE.REVERSE,
+        createdBy: DMA_SOURCE.LAB,
+        updatedBy: DMA_SOURCE.LAB,
+      });
+
+      let methodCount = 0;
+
+      await lastValueFrom(
+        from(MILLING.methods).pipe(
+          mergeMap(async (method) => {
+            const entry = {
+              ...reversePricingMethod,
+              reagents: method.reagents,
+              derivatives: method.derivatives,
+              recipeId: parseInt(
+                `${reversePricingMethod.spellId}${method.reagents[0].itemId}`,
+              ),
+            };
+
+            await this.pricingRepository.save(entry);
+            methodCount++;
+          }),
+        ),
+      );
+
+      this.logger.log({
+        logTag,
+        method: MILLING.name,
+        count: methodCount,
+        spellId: reversePricingMethod.spellId,
+        message: `Processed ${methodCount} milling methods`,
+      });
+    } catch (errorOrException) {
+      this.logger.error({
+        logTag,
+        method: MILLING.name,
+        errorOrException,
+        message: 'Error processing milling pricing',
+      });
+    }
+  }
+
+  private async libPricingDisenchant(): Promise<void> {
+    const logTag = 'libPricingDisenchant';
+    try {
+      const reversePricingMethod = this.pricingRepository.create({
+        ticker: DISENCHANTING.name,
+        media:
+          'https://render-eu.worldofwarcraft.com/icons/56/inv_enchant_disenchant.jpg',
+        spellId: 13262,
+        profession: 'PROFESSION',
+        expansion: 'TWW',
+        type: PRICING_TYPE.REVERSE,
+        createdBy: DMA_SOURCE.LAB,
+        updatedBy: DMA_SOURCE.LAB,
+      });
+
+      let methodCount = 0;
+
+      await lastValueFrom(
+        from(DISENCHANTING.methods).pipe(
+          mergeMap(async (method) => {
+            const entry = {
+              ...reversePricingMethod,
+              reagents: method.reagents,
+              derivatives: method.derivatives,
+              recipeId: parseInt(
+                `${reversePricingMethod.spellId}${method.reagents[0].itemId}`,
+              ),
+            };
+
+            await this.pricingRepository.save(entry);
+            methodCount++;
+          }),
+        ),
+      );
+
+      this.logger.log({
+        logTag,
+        method: DISENCHANTING.name,
+        count: methodCount,
+        spellId: reversePricingMethod.spellId,
+        message: `Processed ${methodCount} disenchanting methods`,
+      });
+    } catch (errorOrException) {
+      this.logger.error({
+        logTag,
+        method: DISENCHANTING.name,
+        errorOrException,
+        message: 'Error processing disenchanting pricing',
+      });
     }
   }
 
@@ -236,7 +336,7 @@ export class PricingService implements OnApplicationBootstrap {
         for (let tier of skill_tiers) {
           let expansion: string = 'CLSC';
 
-          Array.from(EXPANSION_TICKER.entries()).some(([k, v]) => {
+          Array.from(EXPANSION_TICKER_MAP.entries()).some(([k, v]) => {
             tier.name.en_GB.includes(k) ? (expansion = v) : '';
           });
 
@@ -275,7 +375,7 @@ export class PricingService implements OnApplicationBootstrap {
     } catch (errorOrException) {
       this.logger.error({
         logTag: logTag,
-        error: JSON.stringify(errorOrException),
+        error: errorOrException,
       });
     }
   }
@@ -283,7 +383,11 @@ export class PricingService implements OnApplicationBootstrap {
   async buildSkillLine(buildSkillLine: boolean = true): Promise<void> {
     const logTag = this.buildSkillLine.name;
     if (!buildSkillLine) {
-      this.logger.log(`${logTag}: buildSkillLine: ${buildSkillLine}`);
+      this.logger.debug({
+        logTag,
+        buildSkillLine,
+        message: `Skill line build disabled: ${buildSkillLine}`,
+      });
       return;
     }
 
@@ -336,15 +440,24 @@ export class PricingService implements OnApplicationBootstrap {
 
       const skillLineMethodsCount = skillLineEntities.length;
 
-      this.logger.log(`${logTag}: ${skillLineMethodsCount} created`);
+      this.logger.log({
+        logTag,
+        created: skillLineMethodsCount,
+        message: `Created ${skillLineMethodsCount} skill line entities`,
+      });
 
       await this.skillLineRepository.save(skillLineEntities, { chunk: 500 });
 
-      this.logger.log(`${logTag}: ${skillLineMethodsCount} saved`);
+      this.logger.log({
+        logTag,
+        saved: skillLineMethodsCount,
+        message: `Saved ${skillLineMethodsCount} skill line entities`,
+      });
     } catch (errorOrException) {
       this.logger.error({
-        logTag: logTag,
-        error: JSON.stringify(errorOrException),
+        logTag,
+        errorOrException,
+        message: 'Error building skill line',
       });
     }
   }
@@ -352,7 +465,11 @@ export class PricingService implements OnApplicationBootstrap {
   async buildSpellEffect(isItemsPricingBuild: boolean = true): Promise<void> {
     const logTag = this.buildSpellEffect.name;
     if (!isItemsPricingBuild) {
-      this.logger.log(`${logTag}: isItemsPricingBuild: ${isItemsPricingBuild}`);
+      this.logger.debug({
+        logTag,
+        isItemsPricingBuild,
+        message: `Spell effect build disabled: ${isItemsPricingBuild}`,
+      });
       return;
     }
 
@@ -398,13 +515,16 @@ export class PricingService implements OnApplicationBootstrap {
         spellEffectCount = spellEffectCount + 1;
       }
 
-      this.logger.log(`${logTag}:: ${spellEffectCount} created`);
-
-      this.logger.log(`${logTag}:: ${spellEffectCount} saved`);
+      this.logger.log({
+        logTag,
+        created: spellEffectCount,
+        message: `Created and saved ${spellEffectCount} spell effect entities`,
+      });
     } catch (errorOrException) {
       this.logger.error({
-        logTag: logTag,
-        error: JSON.stringify(errorOrException),
+        logTag,
+        errorOrException,
+        message: 'Error building spell effect',
       });
     }
   }
@@ -412,7 +532,11 @@ export class PricingService implements OnApplicationBootstrap {
   async buildSpellReagents(isItemsPricingBuild: boolean = true): Promise<void> {
     const logTag = this.buildSpellReagents.name;
     if (!isItemsPricingBuild) {
-      this.logger.log(`${logTag}: isItemsPricingBuild: ${isItemsPricingBuild}`);
+      this.logger.debug({
+        logTag,
+        isItemsPricingBuild,
+        message: `Spell reagents build disabled: ${isItemsPricingBuild}`,
+      });
       return;
     }
 
@@ -463,17 +587,26 @@ export class PricingService implements OnApplicationBootstrap {
 
       const spellReagentsCount = spellReagentsEntities.length;
 
-      this.logger.log(`${logTag}: ${spellReagentsCount} created`);
+      this.logger.log({
+        logTag,
+        created: spellReagentsCount,
+        message: `Created ${spellReagentsCount} spell reagent entities`,
+      });
 
       await this.spellReagentsRepository.save(spellReagentsEntities, {
         chunk: 500,
       });
 
-      this.logger.log(`${logTag}: ${spellReagentsCount} saved`);
+      this.logger.log({
+        logTag,
+        saved: spellReagentsCount,
+        message: `Saved ${spellReagentsCount} spell reagent entities`,
+      });
     } catch (errorOrException) {
       this.logger.error({
-        logTag: logTag,
-        error: JSON.stringify(errorOrException),
+        logTag,
+        errorOrException,
+        message: 'Error building spell reagents',
       });
     }
   }
