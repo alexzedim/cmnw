@@ -172,11 +172,24 @@ export const PROSPECTING = {
       createdBy: DMA_SOURCE.TSM,
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
-      names: { source: 'Gold Ore', target: 'Citrine & Ruby' },
-      description: 'Gold Ore (i:2772) → Citrine (i:3862), Ruby (i:1529)',
+      names: { source: 'Gold Ore', target: 'Citrine' },
+      description: 'Gold Ore (i:2772) → Citrine (i:3862) [5 → 0.8]',
       reagents: [{ itemId: 2772, quantity: 5 }],
       derivatives: [
         { itemId: 3862, quantity: 0.8, matRate: 0.90, minAmount: 0, maxAmount: 1, itemQuality: 3 }, // Citrine
+      ],
+    },
+    {
+      expansion: EXPANSION_TICKER.CLSC,
+      rank: 2,
+      profession: PROF_JC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_JC,
+      names: { source: 'Gold Ore', target: 'Ruby' },
+      description: 'Gold Ore (i:2772) → Ruby (i:1529) [5 → 0.4]',
+      reagents: [{ itemId: 2772, quantity: 5 }],
+      derivatives: [
         { itemId: 1529, quantity: 0.4, matRate: 0.88, minAmount: 0, maxAmount: 1, itemQuality: 3 }, // Ruby
       ],
     },
@@ -191,11 +204,24 @@ export const PROSPECTING = {
       createdBy: DMA_SOURCE.TSM,
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
-      names: { source: 'Mithril Ore', target: 'Emerald & Sapphire' },
-      description: 'Mithril Ore (i:3858) → Emerald (i:7909), Sapphire (i:1707)',
+      names: { source: 'Mithril Ore', target: 'Emerald' },
+      description: 'Mithril Ore (i:3858) → Emerald (i:7909) [5 → 0.8]',
       reagents: [{ itemId: 3858, quantity: 5 }],
       derivatives: [
         { itemId: 7909, quantity: 0.8, matRate: 0.90, minAmount: 0, maxAmount: 1, itemQuality: 3 }, // Emerald
+      ],
+    },
+    {
+      expansion: EXPANSION_TICKER.CLSC,
+      rank: 3,
+      profession: PROF_JC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_JC,
+      names: { source: 'Mithril Ore', target: 'Sapphire' },
+      description: 'Mithril Ore (i:3858) → Sapphire (i:1707) [5 → 0.4]',
+      reagents: [{ itemId: 3858, quantity: 5 }],
+      derivatives: [
         { itemId: 1707, quantity: 0.4, matRate: 0.88, minAmount: 0, maxAmount: 1, itemQuality: 3 }, // Sapphire
       ],
     },
@@ -206,12 +232,24 @@ export const PROSPECTING = {
       createdBy: DMA_SOURCE.TSM,
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
-      names: { source: 'Thorium Ore', target: 'Diamond & Azerothian Diamond' },
-      description:
-        'Thorium Ore (i:3859) → Diamond (i:12361), Azerothian Diamond (i:12800)',
+      names: { source: 'Thorium Ore', target: 'Diamond' },
+      description: 'Thorium Ore (i:3859) → Diamond (i:12361) [5 → 0.8]',
       reagents: [{ itemId: 3859, quantity: 5 }],
       derivatives: [
         { itemId: 12361, quantity: 0.8, matRate: 0.90, minAmount: 0, maxAmount: 1, itemQuality: 4 }, // Diamond
+      ],
+    },
+    {
+      expansion: EXPANSION_TICKER.CLSC,
+      rank: 3,
+      profession: PROF_JC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_JC,
+      names: { source: 'Thorium Ore', target: 'Azerothian Diamond' },
+      description: 'Thorium Ore (i:3859) → Azerothian Diamond (i:12800) [5 → 0.4]',
+      reagents: [{ itemId: 3859, quantity: 5 }],
+      derivatives: [
         { itemId: 12800, quantity: 0.4, matRate: 0.88, minAmount: 0, maxAmount: 1, itemQuality: 4 }, // Azerothian Diamond
       ],
     },
@@ -276,11 +314,24 @@ export const PROSPECTING = {
       createdBy: DMA_SOURCE.TSM,
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
-      names: { source: 'Saronite Ore', target: 'Eternal Earth & Fire' },
-      description: 'Saronite Ore (i:36911) → Eternal Earth & Fire',
+      names: { source: 'Saronite Ore', target: 'Eternal Earth' },
+      description: 'Saronite Ore (i:36911) → Eternal Earth [5 → 0.6]',
       reagents: [{ itemId: 36911, quantity: 5 }],
       derivatives: [
         { itemId: 36859, quantity: 0.6, matRate: 0.82, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Eternal Earth
+      ],
+    },
+    {
+      expansion: EXPANSION_TICKER.WOTLK,
+      rank: 2,
+      profession: PROF_JC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_JC,
+      names: { source: 'Saronite Ore', target: 'Eternal Fire' },
+      description: 'Saronite Ore (i:36911) → Eternal Fire [5 → 0.4]',
+      reagents: [{ itemId: 36911, quantity: 5 }],
+      derivatives: [
         { itemId: 36860, quantity: 0.4, matRate: 0.80, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Eternal Fire
       ],
     },
@@ -295,12 +346,24 @@ export const PROSPECTING = {
       createdBy: DMA_SOURCE.TSM,
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
-      names: { source: 'Obsidium Ore', target: 'Hessonite & Jasper' },
-      description:
-        'Obsidium Ore (i:53038) → Hessonite (i:52256), Jasper (i:52183)',
+      names: { source: 'Obsidium Ore', target: 'Hessonite' },
+      description: 'Obsidium Ore (i:53038) → Hessonite (i:52256) [5 → 1.0]',
       reagents: [{ itemId: 53038, quantity: 5 }],
       derivatives: [
         { itemId: 52256, quantity: 1.0, matRate: 0.88, minAmount: 1, maxAmount: 1, itemQuality: 3 }, // Hessonite
+      ],
+    },
+    {
+      expansion: EXPANSION_TICKER.CATA,
+      rank: 1,
+      profession: PROF_JC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_JC,
+      names: { source: 'Obsidium Ore', target: 'Jasper' },
+      description: 'Obsidium Ore (i:53038) → Jasper (i:52183) [5 → 0.6]',
+      reagents: [{ itemId: 53038, quantity: 5 }],
+      derivatives: [
         { itemId: 52183, quantity: 0.6, matRate: 0.82, minAmount: 0, maxAmount: 1, itemQuality: 3 }, // Jasper
       ],
     },
@@ -311,12 +374,24 @@ export const PROSPECTING = {
       createdBy: DMA_SOURCE.TSM,
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
-      names: { source: 'Elementium Ore', target: 'Amberjewel & Alicite' },
-      description:
-        'Elementium Ore (i:52185) → Amberjewel (i:52198), Alicite (i:52255)',
+      names: { source: 'Elementium Ore', target: 'Amberjewel' },
+      description: 'Elementium Ore (i:52185) → Amberjewel (i:52198) [5 → 1.0]',
       reagents: [{ itemId: 52185, quantity: 5 }],
       derivatives: [
         { itemId: 52198, quantity: 1.0, matRate: 0.88, minAmount: 1, maxAmount: 1, itemQuality: 3 }, // Amberjewel
+      ],
+    },
+    {
+      expansion: EXPANSION_TICKER.CATA,
+      rank: 2,
+      profession: PROF_JC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_JC,
+      names: { source: 'Elementium Ore', target: 'Alicite' },
+      description: 'Elementium Ore (i:52185) → Alicite (i:52255) [5 → 0.6]',
+      reagents: [{ itemId: 52185, quantity: 5 }],
+      derivatives: [
         { itemId: 52255, quantity: 0.6, matRate: 0.82, minAmount: 0, maxAmount: 1, itemQuality: 3 }, // Alicite
       ],
     },
@@ -359,11 +434,24 @@ export const PROSPECTING = {
       createdBy: DMA_SOURCE.TSM,
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
-      names: { source: 'Kyparite', target: 'Rare Gems' },
-      description: 'Kyparite (i:72092) → Rare Gems & Prismatic Shards',
+      names: { source: 'Kyparite', target: 'Primordial Ruby' },
+      description: 'Kyparite (i:72092) → Primordial Ruby (i:76130) [5 → 0.8]',
       reagents: [{ itemId: 72092, quantity: 5 }],
       derivatives: [
         { itemId: 76130, quantity: 0.8, matRate: 0.85, minAmount: 0, maxAmount: 1, itemQuality: 4 }, // Primordial Ruby
+      ],
+    },
+    {
+      expansion: EXPANSION_TICKER.MOP,
+      rank: 2,
+      profession: PROF_JC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_JC,
+      names: { source: 'Kyparite', target: 'Prismatic Shard' },
+      description: 'Kyparite (i:72092) → Prismatic Shard (i:52180) [5 → 0.2]',
+      reagents: [{ itemId: 72092, quantity: 5 }],
+      derivatives: [
         { itemId: 52180, quantity: 0.2, matRate: 0.75, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Prismatic Shard
       ],
     },
@@ -456,11 +544,24 @@ export const PROSPECTING = {
       createdBy: DMA_SOURCE.TSM,
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
-      names: { source: 'Monelite Ore', target: 'Rare Gems' },
-      description: 'Monelite Ore (i:152579) → Rare Gems & Shards',
+      names: { source: 'Monelite Ore', target: 'Gem Fragment' },
+      description: 'Monelite Ore (i:152579) → Gem Fragment (i:152512) [5 → 1.2]',
       reagents: [{ itemId: 152579, quantity: 5 }],
       derivatives: [
         { itemId: 152512, quantity: 1.2, matRate: 0.82, minAmount: 1, maxAmount: 1, itemQuality: 3 }, // Gem Fragment
+      ],
+    },
+    {
+      expansion: EXPANSION_TICKER.BFA,
+      rank: 2,
+      profession: PROF_JC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_JC,
+      names: { source: 'Monelite Ore', target: 'Shard' },
+      description: 'Monelite Ore (i:152579) → Shard (i:154123) [5 → 0.1]',
+      reagents: [{ itemId: 152579, quantity: 5 }],
+      derivatives: [
         { itemId: 154123, quantity: 0.1, matRate: 0.70, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Shard
       ],
     },
@@ -471,12 +572,24 @@ export const PROSPECTING = {
       createdBy: DMA_SOURCE.TSM,
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
-      names: { source: 'Storm Silver Ore', target: 'Rare Gems & Shards' },
-      description:
-        'Storm Silver Ore (i:152580) → Rare Gems & High-Yield Shards',
+      names: { source: 'Storm Silver Ore', target: 'Gem Fragment' },
+      description: 'Storm Silver Ore (i:152580) → Gem Fragment (i:152512) [5 → 1.2]',
       reagents: [{ itemId: 152580, quantity: 5 }],
       derivatives: [
         { itemId: 152512, quantity: 1.2, matRate: 0.82, minAmount: 1, maxAmount: 1, itemQuality: 3 }, // Gem Fragment
+      ],
+    },
+    {
+      expansion: EXPANSION_TICKER.BFA,
+      rank: 2,
+      profession: PROF_JC,
+      createdBy: DMA_SOURCE.TSM,
+      updatedBy: DMA_SOURCE.TSM,
+      ticker: PROF_JC,
+      names: { source: 'Storm Silver Ore', target: 'Shard' },
+      description: 'Storm Silver Ore (i:152580) → Shard (i:154123) [5 → 0.2]',
+      reagents: [{ itemId: 152580, quantity: 5 }],
+      derivatives: [
         { itemId: 154123, quantity: 0.2, matRate: 0.72, minAmount: 0, maxAmount: 1, itemQuality: 2 }, // Shard
       ],
     },
