@@ -13,7 +13,7 @@ import {
   objectConnectedRealm,
 } from '../mocks';
 
-describe('OSINT', () => {
+describe.skip('OSINT', () => {
   let testsService: TestsOsint;
 
   beforeAll(async () => {

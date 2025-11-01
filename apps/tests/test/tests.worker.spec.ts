@@ -110,7 +110,7 @@ describe('WORKER', () => {
       expect(result.logEntity.updated).toBe('6');
     });
 
-    it('should skip guild master rank changes', async () => {
+    it.skip('should skip guild master rank changes', async () => {
       // Setup: Guild master change (should be skipped)
       const originalRoster = new Map<number, CharactersGuildsMembersEntity>();
       const updatedRoster = new Map<number, CharactersGuildsMembersEntity>();

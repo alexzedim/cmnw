@@ -106,6 +106,8 @@ export enum EXPANSION_TICKER {
 }
 
 export const EXPANSION_TICKER_MAP: Map<string, string> = new Map([
+  ['Within', EXPANSION_TICKER.TWW],
+  ['Dragon', EXPANSION_TICKER.DF],
   ['Shadowlands', EXPANSION_TICKER.SHDW],
   ['Kul', EXPANSION_TICKER.BFA],
   ['Zandalari', EXPANSION_TICKER.BFA],

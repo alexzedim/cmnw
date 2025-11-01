@@ -158,7 +158,7 @@
       "<rootDir>/libs/"
     ],
     "transformIgnorePatterns": [
-      "node_modules/(?!((change-case|lower-case|no-case|upper-case|capital-case|constant-case|dot-case|header-case|param-case|pascal-case|path-case|sentence-case|snake-case|title-case)|.*\\.mjs$))"
+      "node_modules/(?!((chalk|change-case|lower-case|no-case|upper-case|capital-case|constant-case|dot-case|header-case|param-case|pascal-case|path-case|sentence-case|snake-case|title-case)|.*\\.mjs$))"
     ],
     "moduleNameMapper": {
       "@app/configuration": "<rootDir>/libs/configuration/src",
