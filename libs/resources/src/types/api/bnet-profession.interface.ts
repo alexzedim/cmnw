@@ -57,14 +57,16 @@ export interface IBnetSkillTier {
   maximum_skill_level: number;
 }
 
+export interface IBnetProfessionType {
+  type: string;
+  name: string;
+}
+
 export interface IBnetProfessionDetailResponse {
   _links: Record<string, IBnetLink>;
   id: number;
   name: IBnetNameField;
-  type: {
-    type: string;
-    name: string;
-  };
+  type: IBnetProfessionType;
   skill_tiers: IBnetSkillTier[];
 }
 
