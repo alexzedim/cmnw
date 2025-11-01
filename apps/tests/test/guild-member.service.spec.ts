@@ -134,18 +134,41 @@ describe('GuildMemberService', () => {
   describe('processIntersectionMember - Rank Changes', () => {
     it('should log PROMOTE event when member rank decreases (lower number = higher rank)', async () => {
       const guildMemberId = mockCharacterData.id;
-      const originalRoster = new Map([
+      const originalRoster = new Map<number, CharactersGuildsMembersEntity>([
         [
           guildMemberId,
           {
-            ...mockCharacterData,
-            rank: 5,
+            uuid: 'test-uuid-1',
+            guildGuid: mockGuildData.guid,
+            guildId: mockGuildData.id,
+            characterId: guildMemberId,
             characterGuid: mockCharacterData.guid,
-          },
+            name: mockCharacterData.name,
+            realm: mockCharacterData.realm,
+            level: mockCharacterData.level,
+            rank: 5,
+            updatedAt: new Date(),
+            createdAt: new Date(),
+          } as unknown as CharactersGuildsMembersEntity,
         ],
       ]);
-      const updatedRoster = new Map([
-        [guildMemberId, { ...mockCharacterData, rank: 3 }],
+      const updatedRoster = new Map<number, CharactersGuildsMembersEntity>([
+        [
+          guildMemberId,
+          {
+            uuid: 'test-uuid-1',
+            guildGuid: mockGuildData.guid,
+            guildId: mockGuildData.id,
+            characterId: guildMemberId,
+            characterGuid: mockCharacterData.guid,
+            name: mockCharacterData.name,
+            realm: mockCharacterData.realm,
+            level: mockCharacterData.level,
+            rank: 3,
+            updatedAt: new Date(),
+            createdAt: new Date(),
+          } as unknown as CharactersGuildsMembersEntity,
+        ],
       ]);
       const rosterUpdatedAt = new Date();
 
@@ -168,18 +191,41 @@ describe('GuildMemberService', () => {
 
     it('should log DEMOTE event when member rank increases (higher number = lower rank)', async () => {
       const guildMemberId = mockCharacterData.id;
-      const originalRoster = new Map([
+      const originalRoster = new Map<number, CharactersGuildsMembersEntity>([
         [
           guildMemberId,
           {
-            ...mockCharacterData,
-            rank: 2,
+            uuid: 'test-uuid-2',
+            guildGuid: mockGuildData.guid,
+            guildId: mockGuildData.id,
+            characterId: guildMemberId,
             characterGuid: mockCharacterData.guid,
-          },
+            name: mockCharacterData.name,
+            realm: mockCharacterData.realm,
+            level: mockCharacterData.level,
+            rank: 2,
+            updatedAt: new Date(),
+            createdAt: new Date(),
+          } as unknown as CharactersGuildsMembersEntity,
         ],
       ]);
-      const updatedRoster = new Map([
-        [guildMemberId, { ...mockCharacterData, rank: 4 }],
+      const updatedRoster = new Map<number, CharactersGuildsMembersEntity>([
+        [
+          guildMemberId,
+          {
+            uuid: 'test-uuid-2',
+            guildGuid: mockGuildData.guid,
+            guildId: mockGuildData.id,
+            characterId: guildMemberId,
+            characterGuid: mockCharacterData.guid,
+            name: mockCharacterData.name,
+            realm: mockCharacterData.realm,
+            level: mockCharacterData.level,
+            rank: 4,
+            updatedAt: new Date(),
+            createdAt: new Date(),
+          } as unknown as CharactersGuildsMembersEntity,
+        ],
       ]);
       const rosterUpdatedAt = new Date();
 
@@ -202,18 +248,41 @@ describe('GuildMemberService', () => {
 
     it('should NOT log rank change if either member is Guild Master', async () => {
       const guildMemberId = mockGuildMasterData.id;
-      const originalRoster = new Map([
+      const originalRoster = new Map<number, CharactersGuildsMembersEntity>([
         [
           guildMemberId,
           {
-            ...mockGuildMasterData,
-            rank: OSINT_GM_RANK,
+            uuid: 'test-uuid-3',
+            guildGuid: mockGuildData.guid,
+            guildId: mockGuildData.id,
+            characterId: guildMemberId,
             characterGuid: mockGuildMasterData.guid,
-          },
+            name: mockGuildMasterData.name,
+            realm: mockGuildMasterData.realm,
+            level: mockGuildMasterData.level,
+            rank: OSINT_GM_RANK,
+            updatedAt: new Date(),
+            createdAt: new Date(),
+          } as unknown as CharactersGuildsMembersEntity,
         ],
       ]);
-      const updatedRoster = new Map([
-        [guildMemberId, { ...mockGuildMasterData, rank: 1 }],
+      const updatedRoster = new Map<number, CharactersGuildsMembersEntity>([
+        [
+          guildMemberId,
+          {
+            uuid: 'test-uuid-3',
+            guildGuid: mockGuildData.guid,
+            guildId: mockGuildData.id,
+            characterId: guildMemberId,
+            characterGuid: mockGuildMasterData.guid,
+            name: mockGuildMasterData.name,
+            realm: mockGuildMasterData.realm,
+            level: mockGuildMasterData.level,
+            rank: 1,
+            updatedAt: new Date(),
+            createdAt: new Date(),
+          } as unknown as CharactersGuildsMembersEntity,
+        ],
       ]);
       const rosterUpdatedAt = new Date();
 
@@ -231,18 +300,41 @@ describe('GuildMemberService', () => {
 
     it('should NOT log if rank has not changed', async () => {
       const guildMemberId = mockCharacterData.id;
-      const originalRoster = new Map([
+      const originalRoster = new Map<number, CharactersGuildsMembersEntity>([
         [
           guildMemberId,
           {
-            ...mockCharacterData,
-            rank: 3,
+            uuid: 'test-uuid-4',
+            guildGuid: mockGuildData.guid,
+            guildId: mockGuildData.id,
+            characterId: guildMemberId,
             characterGuid: mockCharacterData.guid,
-          },
+            name: mockCharacterData.name,
+            realm: mockCharacterData.realm,
+            level: mockCharacterData.level,
+            rank: 3,
+            updatedAt: new Date(),
+            createdAt: new Date(),
+          } as unknown as CharactersGuildsMembersEntity,
         ],
       ]);
-      const updatedRoster = new Map([
-        [guildMemberId, { ...mockCharacterData, rank: 3 }],
+      const updatedRoster = new Map<number, CharactersGuildsMembersEntity>([
+        [
+          guildMemberId,
+          {
+            uuid: 'test-uuid-4',
+            guildGuid: mockGuildData.guid,
+            guildId: mockGuildData.id,
+            characterId: guildMemberId,
+            characterGuid: mockCharacterData.guid,
+            name: mockCharacterData.name,
+            realm: mockCharacterData.realm,
+            level: mockCharacterData.level,
+            rank: 3,
+            updatedAt: new Date(),
+            createdAt: new Date(),
+          } as unknown as CharactersGuildsMembersEntity,
+        ],
       ]);
       const rosterUpdatedAt = new Date();
 
@@ -261,14 +353,22 @@ describe('GuildMemberService', () => {
   describe('processLeaveMember', () => {
     it('should create LEAVE log for regular member', async () => {
       const guildMemberId = mockCharacterData.id;
-      const originalRoster = new Map([
+      const originalRoster = new Map<number, CharactersGuildsMembersEntity>([
         [
           guildMemberId,
           {
-            ...mockCharacterData,
-            rank: 2,
+            uuid: 'test-uuid-5',
+            guildGuid: mockGuildData.guid,
+            guildId: mockGuildData.id,
+            characterId: guildMemberId,
             characterGuid: mockCharacterData.guid,
-          },
+            name: mockCharacterData.name,
+            realm: mockCharacterData.realm,
+            level: mockCharacterData.level,
+            rank: 2,
+            updatedAt: new Date(),
+            createdAt: new Date(),
+          } as unknown as CharactersGuildsMembersEntity,
         ],
       ]);
       const rosterUpdatedAt = new Date();
@@ -302,14 +402,22 @@ describe('GuildMemberService', () => {
 
     it('should NOT create LEAVE log for Guild Master', async () => {
       const guildMemberId = mockGuildMasterData.id;
-      const originalRoster = new Map([
+      const originalRoster = new Map<number, CharactersGuildsMembersEntity>([
         [
           guildMemberId,
           {
-            ...mockGuildMasterData,
-            rank: OSINT_GM_RANK,
+            uuid: 'test-uuid-6',
+            guildGuid: mockGuildData.guid,
+            guildId: mockGuildData.id,
+            characterId: guildMemberId,
             characterGuid: mockGuildMasterData.guid,
-          },
+            name: mockGuildMasterData.name,
+            realm: mockGuildMasterData.realm,
+            level: mockGuildMasterData.level,
+            rank: OSINT_GM_RANK,
+            updatedAt: new Date(),
+            createdAt: new Date(),
+          } as unknown as CharactersGuildsMembersEntity,
         ],
       ]);
       const rosterUpdatedAt = new Date();

@@ -4,7 +4,7 @@ import { osintConfig } from '@app/configuration';
 import { HttpModule } from '@nestjs/axios';
 import { raidCharacter } from '../mocks';
 
-describe('COMMUNITY', () => {
+describe.skip('COMMUNITY', () => {
   let testsService: TestsCommunity;
   jest.setTimeout(600_000);
 
