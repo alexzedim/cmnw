@@ -31,6 +31,9 @@ import {
   SKILL_LINE_KEY_MAPPING,
   SPELL_EFFECT_KEY_MAPPING,
   EXPANSION_TICKER_MAP,
+  BnetProfessionIndexQueryResponse,
+  BnetProfessionDetailQueryResponse,
+  BnetSkillTierDetailQueryResponse,
 } from '@app/resources';
 
 @Injectable()
@@ -314,22 +317,26 @@ export class PricingService implements OnApplicationBootstrap {
         accessToken: key.token,
       });
 
-      const { professions } = await this.BNet.query<any>(
-        '/data/wow/profession/index',
-        {
-          timeout: 10000,
-          headers: { 'Battlenet-Namespace': 'static-eu' },
-        },
-      );
-
-      for (let profession of professions) {
-        const { skill_tiers } = await this.BNet.query<any>(
-          `/data/wow/profession/${profession.id}`,
+      const professionIndexResponse =
+        await this.BNet.query<BnetProfessionIndexQueryResponse>(
+          '/data/wow/profession/index',
           {
             timeout: 10000,
             headers: { 'Battlenet-Namespace': 'static-eu' },
           },
         );
+      const { professions } = professionIndexResponse;
+
+      for (let profession of professions) {
+        const professionDetailResponse =
+          await this.BNet.query<BnetProfessionDetailQueryResponse>(
+            `/data/wow/profession/${profession.id}`,
+            {
+              timeout: 10000,
+              headers: { 'Battlenet-Namespace': 'static-eu' },
+            },
+          );
+        const { skill_tiers } = professionDetailResponse;
 
         if (!skill_tiers) continue;
 
@@ -337,16 +344,18 @@ export class PricingService implements OnApplicationBootstrap {
           let expansion: string = 'CLSC';
 
           Array.from(EXPANSION_TICKER_MAP.entries()).some(([k, v]) => {
-            tier.name.en_GB.includes(k) ? (expansion = v) : '';
+            tier.name.en_GB?.includes(k) ? (expansion = v) : '';
           });
 
-          const { categories } = await this.BNet.query<any>(
-            `/data/wow/profession/${profession.id}/skill-tier/${tier.id}`,
-            {
-              timeout: 10000,
-              headers: { 'Battlenet-Namespace': 'static-eu' },
-            },
-          );
+          const skillTierDetailResponse =
+            await this.BNet.query<BnetSkillTierDetailQueryResponse>(
+              `/data/wow/profession/${profession.id}/skill-tier/${tier.id}`,
+              {
+                timeout: 10000,
+                headers: { 'Battlenet-Namespace': 'static-eu' },
+              },
+            );
+          const { categories } = skillTierDetailResponse;
 
           if (!categories) continue;
 
