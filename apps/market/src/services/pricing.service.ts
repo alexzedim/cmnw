@@ -34,6 +34,7 @@ import {
   BnetProfessionIndexQueryResponse,
   BnetProfessionDetailQueryResponse,
   BnetSkillTierDetailQueryResponse,
+  isResponseError,
 } from '@app/resources';
 
 @Injectable()
@@ -325,6 +326,16 @@ export class PricingService implements OnApplicationBootstrap {
             headers: { 'Battlenet-Namespace': 'static-eu' },
           },
         );
+
+      if (isResponseError(professionIndexResponse)) {
+        this.logger.error({
+          logTag,
+          error: professionIndexResponse,
+          message: 'Failed to fetch professions index',
+        });
+        return;
+      }
+
       const { professions } = professionIndexResponse;
 
       for (let profession of professions) {
@@ -336,6 +347,17 @@ export class PricingService implements OnApplicationBootstrap {
               headers: { 'Battlenet-Namespace': 'static-eu' },
             },
           );
+
+        if (isResponseError(professionDetailResponse)) {
+          this.logger.warn({
+            logTag,
+            professionId: profession.id,
+            error: professionDetailResponse,
+            message: `Failed to fetch profession detail for ID ${profession.id}`,
+          });
+          continue;
+        }
+
         const { skill_tiers } = professionDetailResponse;
 
         if (!skill_tiers) continue;
@@ -355,6 +377,18 @@ export class PricingService implements OnApplicationBootstrap {
                 headers: { 'Battlenet-Namespace': 'static-eu' },
               },
             );
+
+          if (isResponseError(skillTierDetailResponse)) {
+            this.logger.warn({
+              logTag,
+              professionId: profession.id,
+              tierId: tier.id,
+              error: skillTierDetailResponse,
+              message: `Failed to fetch skill tier detail for profession ${profession.id}, tier ${tier.id}`,
+            });
+            continue;
+          }
+
           const { categories } = skillTierDetailResponse;
 
           if (!categories) continue;
@@ -411,7 +445,7 @@ export class PricingService implements OnApplicationBootstrap {
         cast: (value: string | number) => toStringOrNumber(value),
       });
 
-      const skillLineEntities = [];
+      const skillLineEntities: SkillLineEntity[] = [];
 
       for (const row of skillLineAbilityRows) {
         const isIdExists = 'ID' in row;
@@ -441,7 +475,9 @@ export class PricingService implements OnApplicationBootstrap {
          */
         for (const [key, path] of SKILL_LINE_KEY_MAPPING.entries()) {
           const value = get(row, path, null);
-          if (value && key !== 'id') skillLineEntity[key] = value;
+          if (value && key !== 'id') {
+            (skillLineEntity as any)[key] = value;
+          }
         }
 
         skillLineEntities.push(skillLineEntity);
@@ -503,7 +539,7 @@ export class PricingService implements OnApplicationBootstrap {
         const isExists = await this.spellEffectRepository.existsBy({ id });
         if (isExists) continue;
 
-        const skillLineEntity = this.spellEffectRepository.create({
+        const spellEffectEntity = this.spellEffectRepository.create({
           id: id,
         });
         /**
@@ -516,10 +552,12 @@ export class PricingService implements OnApplicationBootstrap {
          */
         for (const [key, path] of SPELL_EFFECT_KEY_MAPPING.entries()) {
           const value = get(row, path, null);
-          if (value && key !== 'id') skillLineEntity[key] = value;
+          if (value && key !== 'id') {
+            (spellEffectEntity as any)[key] = value;
+          }
         }
 
-        await this.spellEffectRepository.save(skillLineEntity);
+        await this.spellEffectRepository.save(spellEffectEntity);
 
         spellEffectCount = spellEffectCount + 1;
       }
