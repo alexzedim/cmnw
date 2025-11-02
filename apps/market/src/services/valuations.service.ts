@@ -14,6 +14,10 @@ import {
   REALM_ENTITY_ANY,
   VALUATION_TYPE,
 } from '@app/resources';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+import { createHash } from 'crypto';
+import { dmaConfig } from '@app/configuration';
 
 @Injectable()
 export class ValuationsService implements OnApplicationBootstrap {
@@ -22,6 +26,8 @@ export class ValuationsService implements OnApplicationBootstrap {
   });
 
   constructor(
+    @InjectRedis()
+    private readonly redisService: Redis,
     @InjectRepository(ItemsEntity)
     private readonly itemsRepository: Repository<ItemsEntity>,
     @InjectRepository(RealmsEntity)
@@ -37,14 +43,89 @@ export class ValuationsService implements OnApplicationBootstrap {
   async onApplicationBootstrap(): Promise<void> {
     await this.buildAssetClasses(
       {
-        isByPricing: true,
-        isByAuctions: true,
-        isByPremium: false,
-        isByCurrency: true,
-        isByTags: true,
+        isByPricing: dmaConfig.isValuationsFromPricing,
+        isByAuctions: dmaConfig.isValuationsFromAuctions,
+        isByPremium: dmaConfig.isValuationsForPremium,
+        isByCurrency: dmaConfig.isValuationsForCurrency,
+        isByTags: dmaConfig.isValuationsBuildTags,
       },
-      true,
+      dmaConfig.isValuationsBuild,
     );
+  }
+
+  /**
+   * Generate state hash for a stage to detect if data has changed
+   */
+  private async generateStateHash(stage: string): Promise<string> {
+    const logTag = 'generateStateHash';
+    try {
+      let stateData = '';
+
+      switch (stage) {
+        case 'pricing':
+          const pricingCount = await this.pricingRepository.count();
+          const latestPricing = await this.pricingRepository.find({
+            order: { updatedAt: 'DESC' },
+            take: 1,
+          });
+          stateData = `${pricingCount}:${latestPricing[0]?.updatedAt || ''}`;
+          break;
+
+        case 'auctions':
+          const marketCount = await this.marketRepository.count();
+          const latestMarket = await this.marketRepository.find({
+            order: { createdAt: 'DESC' },
+            take: 1,
+          });
+          stateData = `${marketCount}:${latestMarket[0]?.createdAt || ''}`;
+          break;
+
+        case 'premium':
+        case 'currency':
+        case 'tags':
+          const itemsCount = await this.itemsRepository.count();
+          stateData = `${itemsCount}:${stage}`;
+          break;
+
+        default:
+          stateData = `${stage}:${Date.now()}`;
+      }
+
+      return createHash('md5').update(stateData).digest('hex');
+    } catch (errorOrException) {
+      this.logger.error({ logTag, stage, errorOrException });
+      return createHash('md5')
+        .update(`${stage}:${Date.now()}`)
+        .digest('hex');
+    }
+  }
+
+  /**
+   * Check if a stage has been processed with current state
+   */
+  private async isStageProcessed(stage: string): Promise<boolean> {
+    const stateHash = await this.generateStateHash(stage);
+    const redisKey = `VALUATION_STAGE_PROCESSED:${stage}:${stateHash}`;
+    const exists = await this.redisService.exists(redisKey);
+    return exists === 1;
+  }
+
+  /**
+   * Mark a stage as processed (expires after 7 days)
+   */
+  private async markStageAsProcessed(stage: string): Promise<void> {
+    const stateHash = await this.generateStateHash(stage);
+    const redisKey = `VALUATION_STAGE_PROCESSED:${stage}:${stateHash}`;
+    const ttl = 60 * 60 * 24 * 7; // 7 days
+    await this.redisService.setex(redisKey, ttl, new Date().toISOString());
+    this.logger.debug({
+      logTag: 'markStageAsProcessed',
+      stage,
+      stateHash,
+      redisKey,
+      ttl,
+      message: `Marked stage as processed: ${stage}`,
+    });
   }
 
   /**
@@ -72,6 +153,10 @@ export class ValuationsService implements OnApplicationBootstrap {
       });
 
       if (!init) {
+        this.logger.debug({
+          logTag,
+          message: 'Valuations build disabled',
+        });
         return;
       }
 
@@ -108,6 +193,16 @@ export class ValuationsService implements OnApplicationBootstrap {
     const logTag = 'buildAssetClassesFromPricing';
     this.logger.debug({ logTag, message: 'Pricing stage started' });
 
+    const isProcessed = await this.isStageProcessed('pricing');
+    if (isProcessed) {
+      this.logger.log({
+        logTag,
+        stage: 'pricing',
+        message: `Stage already processed with current state, skipping`,
+      });
+      return;
+    }
+
     const pricings = await this.pricingRepository.find();
 
     for (const pricing of pricings) {
@@ -143,6 +238,7 @@ export class ValuationsService implements OnApplicationBootstrap {
       }
     }
 
+    await this.markStageAsProcessed('pricing');
     this.logger.debug({ logTag, message: 'Pricing stage ended' });
   }
 
@@ -154,10 +250,29 @@ export class ValuationsService implements OnApplicationBootstrap {
     const logTag = 'buildAssetClassesFromAuctions';
     this.logger.debug({ logTag, message: 'Auctions stage started' });
 
-    await this.addMarketAssetClass();
-    await this.addCommodityAssetClass();
-    await this.addItemAssetClass();
+    const isProcessed = await this.isStageProcessed('auctions');
+    if (isProcessed) {
+      this.logger.log({
+        logTag,
+        stage: 'auctions',
+        message: `Stage already processed with current state, skipping`,
+      });
+      return;
+    }
 
+    if (dmaConfig.isValuationsMarketAssetClass) {
+      await this.addMarketAssetClass();
+    }
+
+    if (dmaConfig.isValuationsCommodityAssetClass) {
+      await this.addCommodityAssetClass();
+    }
+
+    if (dmaConfig.isValuationsItemAssetClass) {
+      await this.addItemAssetClass();
+    }
+
+    await this.markStageAsProcessed('auctions');
     this.logger.debug({ logTag, message: 'Auctions stage ended' });
   }
 
@@ -166,6 +281,10 @@ export class ValuationsService implements OnApplicationBootstrap {
    */
   private async addMarketAssetClass(): Promise<void> {
     const logTag = 'addMarketAssetClass';
+    this.logger.debug({
+      logTag,
+      message: 'Adding MARKET asset class',
+    });
 
     // Get all distinct item IDs from market table
     const distinctItemIds = await this.marketRepository
@@ -204,6 +323,10 @@ export class ValuationsService implements OnApplicationBootstrap {
    */
   private async addCommodityAssetClass(): Promise<void> {
     const logTag = 'addCommodityAssetClass';
+    this.logger.debug({
+      logTag,
+      message: 'Adding COMMDTY asset class',
+    });
 
     // Get commodity item IDs (item_id = 1 OR type = 'COMMDTY')
     const commodityItemIds = await this.marketRepository
@@ -244,6 +367,10 @@ export class ValuationsService implements OnApplicationBootstrap {
    */
   private async addItemAssetClass(): Promise<void> {
     const logTag = 'addItemAssetClass';
+    this.logger.debug({
+      logTag,
+      message: 'Adding ITEM asset class',
+    });
 
     // Get auction item IDs (type = 'AUCTION')
     const auctionItemIds = await this.marketRepository
@@ -286,6 +413,16 @@ export class ValuationsService implements OnApplicationBootstrap {
     const logTag = 'buildAssetClassesForPremium';
     this.logger.debug({ logTag, message: 'Premium stage started' });
 
+    const isProcessed = await this.isStageProcessed('premium');
+    if (isProcessed) {
+      this.logger.log({
+        logTag,
+        stage: 'premium',
+        message: `Stage already processed with current state, skipping`,
+      });
+      return;
+    }
+
     const premiumItems = await this.itemsRepository
       .createQueryBuilder('item')
       .where(':reagent = ANY(item.asset_class)', {
@@ -298,6 +435,7 @@ export class ValuationsService implements OnApplicationBootstrap {
       await this.addAssetClassToItem(item.id, VALUATION_TYPE.PREMIUM);
     }
 
+    await this.markStageAsProcessed('premium');
     this.logger.debug({ logTag, message: 'Premium stage ended' });
   }
 
@@ -308,10 +446,21 @@ export class ValuationsService implements OnApplicationBootstrap {
     const logTag = 'buildAssetClassesForCurrency';
     this.logger.debug({ logTag, message: 'Currency stage started' });
 
+    const isProcessed = await this.isStageProcessed('currency');
+    if (isProcessed) {
+      this.logger.log({
+        logTag,
+        stage: 'currency',
+        message: `Stage already processed with current state, skipping`,
+      });
+      return;
+    }
+
     await this.addAssetClassToItem(122270, VALUATION_TYPE.WOWTOKEN);
     await this.addAssetClassToItem(122284, VALUATION_TYPE.WOWTOKEN);
     await this.addAssetClassToItem(1, VALUATION_TYPE.GOLD);
 
+    await this.markStageAsProcessed('currency');
     this.logger.debug({ logTag, message: 'Currency stage ended' });
   }
 
@@ -321,6 +470,16 @@ export class ValuationsService implements OnApplicationBootstrap {
   private async buildTags(): Promise<void> {
     const logTag = 'buildTags';
     this.logger.debug({ logTag, message: 'Tags stage started' });
+
+    const isProcessed = await this.isStageProcessed('tags');
+    if (isProcessed) {
+      this.logger.log({
+        logTag,
+        stage: 'tags',
+        message: `Stage already processed with current state, skipping`,
+      });
+      return;
+    }
 
     const items = await this.itemsRepository.find();
 
@@ -368,6 +527,7 @@ export class ValuationsService implements OnApplicationBootstrap {
       });
     }
 
+    await this.markStageAsProcessed('tags');
     this.logger.debug({ logTag, message: 'Tags stage ended' });
   }
 
