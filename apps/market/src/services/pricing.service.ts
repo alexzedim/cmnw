@@ -6,7 +6,7 @@ import { Queue } from 'bullmq';
 import csv from 'async-csv';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { get } from 'lodash';
-import { DISENCHANTING, MILLING, PROSPECTING } from '../libs';
+import { CsvFileName, DISENCHANTING, MILLING, PROSPECTING } from '../libs';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
@@ -339,7 +339,7 @@ export class PricingService implements OnApplicationBootstrap {
           error: professionIndexResponse,
           message: 'Invalid profession index response',
         });
-        return;
+        return; 
       }
 
       const { professions } = professionIndexResponse;
@@ -436,7 +436,7 @@ export class PricingService implements OnApplicationBootstrap {
 
     try {
       const skillLineAbilityCsv = await this.readCsvFile(
-        'skilllineability.csv',
+        CsvFileName.SkillLineAbility,
       );
 
       const skillLineAbilityRows: any[] = await csv.parse(skillLineAbilityCsv, {
@@ -519,7 +519,7 @@ export class PricingService implements OnApplicationBootstrap {
     }
 
     try {
-      const spellEffectCsv = await this.readCsvFile('spelleffect.csv');
+      const spellEffectCsv = await this.readCsvFile(CsvFileName.SpellEffect);
 
       const spellEffectRows: any[] = await csv.parse(spellEffectCsv, {
         columns: true,
@@ -588,7 +588,7 @@ export class PricingService implements OnApplicationBootstrap {
     }
 
     try {
-      const spellReagentsCsv = await this.readCsvFile('spellreagents.csv');
+      const spellReagentsCsv = await this.readCsvFile(CsvFileName.SpellReagents);
 
       const spellReagentsRows: any[] = await csv.parse(spellReagentsCsv, {
         columns: true,
