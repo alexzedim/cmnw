@@ -584,7 +584,7 @@ export class DmaService {
       return items.map((item) => ({
         id: item.id,
         name: item.name,
-        quality: item.quality,
+        quality: item.quality ? parseInt(item.quality, 10) : undefined,
       }));
     } catch (error) {
       this.logger.error(

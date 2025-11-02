@@ -1,0 +1,125 @@
+{
+  "description": "B.net API responses for profession data with multilingual support",
+  "endpoints": [
+    {
+      "path": "/data/wow/profession/index",
+      "returns": "Array of professions with basic info",
+      "fields": [
+        "id",
+        "name",
+        "key"
+      ],
+      "example": {
+        "professions": [
+          {
+            "key": {
+              "href": "string"
+            },
+            "name": "string",
+            "id": "number"
+          }
+        ]
+      }
+    },
+    {
+      "path": "/data/wow/profession/{professionId}",
+      "returns": "Profession with skill tiers",
+      "fields": [
+        "id",
+        "name",
+        "type",
+        "skill_tiers"
+      ],
+      "notes": "name is multilingual object with 12 locales",
+      "example": {
+        "id": "number",
+        "name": {
+          "en_US": "string",
+          "en_GB": "string",
+          "de_DE": "string"
+        },
+        "type": {
+          "type": "string",
+          "name": "string"
+        },
+        "skill_tiers": [
+          {
+            "key": {
+              "href": "string"
+            },
+            "name": {
+              "en_US": "string"
+            },
+            "id": "number",
+            "tier_number": "number",
+            "minimum_skill_level": "number",
+            "maximum_skill_level": "number"
+          }
+        ]
+      }
+    },
+    {
+      "path": "/data/wow/profession/{professionId}/skill-tier/{skillTierId}",
+      "returns": "Skill tier with recipe categories",
+      "fields": [
+        "id",
+        "tier_number",
+        "minimum_skill_level",
+        "maximum_skill_level",
+        "categories"
+      ],
+      "notes": "categories contains recipes array",
+      "example": {
+        "id": "number",
+        "tier_number": "number",
+        "categories": [
+          {
+            "key": {
+              "href": "string"
+            },
+            "name": "string",
+            "id": "number",
+            "recipes": [
+              {
+                "key": {
+                  "href": "string"
+                },
+                "id": "number"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "multilingualSupport": [
+    "en_US",
+    "en_GB",
+    "de_DE",
+    "fr_FR",
+    "es_ES",
+    "es_MX",
+    "pt_BR",
+    "it_IT",
+    "ru_RU",
+    "ko_KR",
+    "zh_TW",
+    "zh_CN"
+  ],
+  "links": {
+    "description": "All responses include _links object with self reference",
+    "structure": {
+      "_links": {
+        "self": {
+          "href": "string - full URL with namespace parameter"
+        }
+      }
+    }
+  },
+  "headers": {
+    "required": [
+      "Battlenet-Namespace"
+    ],
+    "example": "static-eu for EU region"
+  }
+}
