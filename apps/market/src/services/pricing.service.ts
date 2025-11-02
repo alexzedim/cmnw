@@ -20,7 +20,6 @@ import { Repository } from 'typeorm';
 import { dmaConfig } from '@app/configuration';
 import {
   DMA_SOURCE,
-  EXPANSION_TICKER,
   GLOBAL_DMA_KEY,
   PRICING_TYPE,
   pricingQueue,
@@ -34,13 +33,9 @@ import {
   BnetProfessionIndexQueryResponse,
   BnetProfessionDetailQueryResponse,
   BnetSkillTierDetailQueryResponse,
-  isResponseError,
   isBnetProfessionIndexResponse,
   isBnetProfessionDetailResponse,
   isBnetSkillTierDetailResponse,
-  hasBnetSkillTiers,
-  hasBnetCategories,
-  hasBnetRecipes,
 } from '@app/resources';
 
 @Injectable()
