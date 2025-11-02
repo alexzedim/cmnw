@@ -35,6 +35,12 @@ import {
   BnetProfessionDetailQueryResponse,
   BnetSkillTierDetailQueryResponse,
   isResponseError,
+  isBnetProfessionIndexResponse,
+  isBnetProfessionDetailResponse,
+  isBnetSkillTierDetailResponse,
+  hasBnetSkillTiers,
+  hasBnetCategories,
+  hasBnetRecipes,
 } from '@app/resources';
 
 @Injectable()
@@ -327,11 +333,11 @@ export class PricingService implements OnApplicationBootstrap {
           },
         );
 
-      if (isResponseError(professionIndexResponse)) {
+      if (!isBnetProfessionIndexResponse(professionIndexResponse)) {
         this.logger.error({
           logTag,
           error: professionIndexResponse,
-          message: 'Failed to fetch professions index',
+          message: 'Invalid profession index response',
         });
         return;
       }
@@ -348,19 +354,16 @@ export class PricingService implements OnApplicationBootstrap {
             },
           );
 
-        if (isResponseError(professionDetailResponse)) {
+        if (!isBnetProfessionDetailResponse(professionDetailResponse)) {
           this.logger.warn({
             logTag,
             professionId: profession.id,
-            error: professionDetailResponse,
-            message: `Failed to fetch profession detail for ID ${profession.id}`,
+            message: `Invalid or missing profession detail for ID ${profession.id}`,
           });
           continue;
         }
 
         const { skill_tiers } = professionDetailResponse;
-
-        if (!skill_tiers) continue;
 
         for (let tier of skill_tiers) {
           let expansion: string = 'CLSC';
@@ -378,20 +381,17 @@ export class PricingService implements OnApplicationBootstrap {
               },
             );
 
-          if (isResponseError(skillTierDetailResponse)) {
+          if (!isBnetSkillTierDetailResponse(skillTierDetailResponse)) {
             this.logger.warn({
               logTag,
               professionId: profession.id,
               tierId: tier.id,
-              error: skillTierDetailResponse,
-              message: `Failed to fetch skill tier detail for profession ${profession.id}, tier ${tier.id}`,
+              message: `Invalid or missing skill tier detail for profession ${profession.id}, tier ${tier.id}`,
             });
             continue;
           }
 
           const { categories } = skillTierDetailResponse;
-
-          if (!categories) continue;
 
           for (let category of categories) {
             const { recipes } = category;
