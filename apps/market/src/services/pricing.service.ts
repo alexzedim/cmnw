@@ -37,6 +37,9 @@ import {
   isBnetProfessionDetailResponse,
   isBnetSkillTierDetailResponse,
 } from '@app/resources';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+import { createHash } from 'crypto';
 
 @Injectable()
 export class PricingService implements OnApplicationBootstrap {
@@ -47,6 +50,8 @@ export class PricingService implements OnApplicationBootstrap {
   private BNet: BlizzAPI;
 
   constructor(
+    @InjectRedis()
+    private readonly redisService: Redis,
     @InjectQueue(pricingQueue.name)
     private readonly queue: Queue<IQPricing, number>,
     @InjectRepository(KeysEntity)
@@ -70,25 +75,68 @@ export class PricingService implements OnApplicationBootstrap {
     try {
       return await this.s3Service.readFile(fileName, 'cmnw');
     } catch (errorOrException) {
-      this.logger.error({
-        logTag,
-        fileName,
-        bucket: 'cmnw',
-        errorOrException,
-        message: `CSV file not found in S3 bucket: ${fileName}`,
-      });
+      this.logger.error({ logTag, fileName, bucket: 'cmnw', errorOrException });
       throw new Error(`CSV file not found in S3: ${fileName}`);
     }
   }
 
+  /**
+   * Check if CSV file has been processed based on file hash
+   * Returns true if already processed, false otherwise
+   */
+  private async isFileProcessed(
+    fileName: string,
+    fileContent: string,
+  ): Promise<boolean> {
+    const fileHash = createHash('md5').update(fileContent).digest('hex');
+    const redisKey = `PRICING_CSV_PROCESSED:${fileName}:${fileHash}`;
+    const exists = await this.redisService.exists(redisKey);
+    return exists === 1;
+  }
+
+  /**
+   * Mark CSV file as processed in Redis (expires after 30 days)
+   */
+  private async markFileAsProcessed(
+    fileName: string,
+    fileContent: string,
+  ): Promise<void> {
+    const fileHash = createHash('md5').update(fileContent).digest('hex');
+    const redisKey = `PRICING_CSV_PROCESSED:${fileName}:${fileHash}`;
+    const ttl = 60 * 60 * 24 * 30; // 30 days
+    await this.redisService.setex(redisKey, ttl, new Date().toISOString());
+    this.logger.debug({
+      logTag: 'markFileAsProcessed',
+      fileName,
+      fileHash,
+      redisKey,
+      ttl,
+      message: `Marked file as processed: ${fileName}`,
+    });
+  }
+
   async onApplicationBootstrap(): Promise<void> {
-    await this.indexPricing(GLOBAL_DMA_KEY, dmaConfig.isItemsPricingInit);
+    await this.indexPricing(
+      GLOBAL_DMA_KEY,
+      dmaConfig.isItemsPricingInit && dmaConfig.isPricingIndexProfessions,
+    );
 
-    await this.libPricing(dmaConfig.isItemsPricingLab, true, true, true);
+    await this.libPricing(
+      dmaConfig.isItemsPricingLab,
+      dmaConfig.isPricingLabProspecting,
+      dmaConfig.isPricingLabDisenchanting,
+      dmaConfig.isPricingLabMilling,
+    );
 
-    await this.buildSkillLine(dmaConfig.isItemsPricingBuild);
-    await this.buildSpellEffect(dmaConfig.isItemsPricingBuild);
-    await this.buildSpellReagents(dmaConfig.isItemsPricingBuild);
+    await this.buildSkillLine(
+      dmaConfig.isItemsPricingBuild && dmaConfig.isPricingBuildSkillLine,
+    );
+    await this.buildSpellEffect(
+      dmaConfig.isItemsPricingBuild && dmaConfig.isPricingBuildSpellEffect,
+    );
+    await this.buildSpellReagents(
+      dmaConfig.isItemsPricingBuild && dmaConfig.isPricingBuildSpellReagents,
+    );
   }
 
   async libPricing(
@@ -97,13 +145,21 @@ export class PricingService implements OnApplicationBootstrap {
     isDisenchant: boolean = false,
     isMilling: boolean = false,
   ): Promise<void> {
-    const logTag = this.libPricing.name;
+    const logTag = 'libPricing';
     try {
       if (!isItemsPricingLab) {
         this.logger.debug({
           logTag,
           isItemsPricingLab,
           message: `Items pricing lab disabled: ${isItemsPricingLab}`,
+        });
+        return;
+      }
+
+      if (!isProspect && !isDisenchant && !isMilling) {
+        this.logger.debug({
+          logTag,
+          message: `All lab methods disabled, skipping`,
         });
         return;
       }
@@ -119,22 +175,33 @@ export class PricingService implements OnApplicationBootstrap {
       });
 
       if (isProspect) {
+        this.logger.debug({
+          logTag,
+          method: 'prospecting',
+          message: 'Prospecting method enabled',
+        });
         await this.libPricingProspect();
       }
 
       if (isMilling) {
+        this.logger.debug({
+          logTag,
+          method: 'milling',
+          message: 'Milling method enabled',
+        });
         await this.libPricingMilling();
       }
 
       if (isDisenchant) {
+        this.logger.debug({
+          logTag,
+          method: 'disenchanting',
+          message: 'Disenchanting method enabled',
+        });
         await this.libPricingDisenchant();
       }
     } catch (errorOrException) {
-      this.logger.error({
-        logTag,
-        errorOrException,
-        message: 'Error processing lib pricing',
-      });
+      this.logger.error({ logTag, errorOrException });
     }
   }
 
@@ -181,12 +248,7 @@ export class PricingService implements OnApplicationBootstrap {
         message: `Processed ${methodCount} prospecting methods`,
       });
     } catch (errorOrException) {
-      this.logger.error({
-        logTag,
-        method: PROSPECTING.name,
-        errorOrException,
-        message: 'Error processing prospecting pricing',
-      });
+      this.logger.error({ logTag, method: PROSPECTING.name, errorOrException });
     }
   }
 
@@ -233,12 +295,7 @@ export class PricingService implements OnApplicationBootstrap {
         message: `Processed ${methodCount} milling methods`,
       });
     } catch (errorOrException) {
-      this.logger.error({
-        logTag,
-        method: MILLING.name,
-        errorOrException,
-        message: 'Error processing milling pricing',
-      });
+      this.logger.error({ logTag, method: MILLING.name, errorOrException });
     }
   }
 
@@ -285,12 +342,7 @@ export class PricingService implements OnApplicationBootstrap {
         message: `Processed ${methodCount} disenchanting methods`,
       });
     } catch (errorOrException) {
-      this.logger.error({
-        logTag,
-        method: DISENCHANTING.name,
-        errorOrException,
-        message: 'Error processing disenchanting pricing',
-      });
+      this.logger.error({ logTag, method: DISENCHANTING.name, errorOrException });
     }
   }
 
@@ -299,16 +351,21 @@ export class PricingService implements OnApplicationBootstrap {
     clearance: string = GLOBAL_DMA_KEY,
     isItemsPricingInit: boolean = true,
   ): Promise<void> {
-    const logTag = this.indexPricing.name;
+    const logTag = 'indexPricing';
     try {
       if (!isItemsPricingInit) {
-        this.logger.log({
+        this.logger.debug({
           logTag,
           isItemsPricingInit,
           message: `Items pricing init disabled: ${isItemsPricingInit}`,
         });
         return;
       }
+
+      this.logger.log({
+        logTag,
+        message: 'Starting profession indexing from Blizzard API',
+      });
 
       const key = await getKey(this.keysRepository, clearance);
 
@@ -411,15 +468,12 @@ export class PricingService implements OnApplicationBootstrap {
         }
       }
     } catch (errorOrException) {
-      this.logger.error({
-        logTag: logTag,
-        error: errorOrException,
-      });
+      this.logger.error({ logTag, errorOrException });
     }
   }
 
   async buildSkillLine(buildSkillLine: boolean = true): Promise<void> {
-    const logTag = this.buildSkillLine.name;
+    const logTag = 'buildSkillLine';
     if (!buildSkillLine) {
       this.logger.debug({
         logTag,
@@ -433,6 +487,20 @@ export class PricingService implements OnApplicationBootstrap {
       const skillLineAbilityCsv = await this.readCsvFile(
         CsvFileName.SkillLineAbility,
       );
+
+      const isProcessed = await this.isFileProcessed(
+        CsvFileName.SkillLineAbility,
+        skillLineAbilityCsv,
+      );
+
+      if (isProcessed) {
+        this.logger.log({
+          logTag,
+          fileName: CsvFileName.SkillLineAbility,
+          message: `File already processed, skipping`,
+        });
+        return;
+      }
 
       const skillLineAbilityRows: any[] = await csv.parse(skillLineAbilityCsv, {
         columns: true,
@@ -493,17 +561,18 @@ export class PricingService implements OnApplicationBootstrap {
         saved: skillLineMethodsCount,
         message: `Saved ${skillLineMethodsCount} skill line entities`,
       });
+
+      await this.markFileAsProcessed(
+        CsvFileName.SkillLineAbility,
+        skillLineAbilityCsv,
+      );
     } catch (errorOrException) {
-      this.logger.error({
-        logTag,
-        errorOrException,
-        message: 'Error building skill line',
-      });
+      this.logger.error({ logTag, errorOrException });
     }
   }
 
   async buildSpellEffect(isItemsPricingBuild: boolean = true): Promise<void> {
-    const logTag = this.buildSpellEffect.name;
+    const logTag = 'buildSpellEffect';
     if (!isItemsPricingBuild) {
       this.logger.debug({
         logTag,
@@ -515,6 +584,20 @@ export class PricingService implements OnApplicationBootstrap {
 
     try {
       const spellEffectCsv = await this.readCsvFile(CsvFileName.SpellEffect);
+
+      const isProcessed = await this.isFileProcessed(
+        CsvFileName.SpellEffect,
+        spellEffectCsv,
+      );
+
+      if (isProcessed) {
+        this.logger.log({
+          logTag,
+          fileName: CsvFileName.SpellEffect,
+          message: `File already processed, skipping`,
+        });
+        return;
+      }
 
       const spellEffectRows: any[] = await csv.parse(spellEffectCsv, {
         columns: true,
@@ -562,17 +645,15 @@ export class PricingService implements OnApplicationBootstrap {
         created: spellEffectCount,
         message: `Created and saved ${spellEffectCount} spell effect entities`,
       });
+
+      await this.markFileAsProcessed(CsvFileName.SpellEffect, spellEffectCsv);
     } catch (errorOrException) {
-      this.logger.error({
-        logTag,
-        errorOrException,
-        message: 'Error building spell effect',
-      });
+      this.logger.error({ logTag, errorOrException });
     }
   }
 
   async buildSpellReagents(isItemsPricingBuild: boolean = true): Promise<void> {
-    const logTag = this.buildSpellReagents.name;
+    const logTag = 'buildSpellReagents';
     if (!isItemsPricingBuild) {
       this.logger.debug({
         logTag,
@@ -584,6 +665,20 @@ export class PricingService implements OnApplicationBootstrap {
 
     try {
       const spellReagentsCsv = await this.readCsvFile(CsvFileName.SpellReagents);
+
+      const isProcessed = await this.isFileProcessed(
+        CsvFileName.SpellReagents,
+        spellReagentsCsv,
+      );
+
+      if (isProcessed) {
+        this.logger.log({
+          logTag,
+          fileName: CsvFileName.SpellReagents,
+          message: `File already processed, skipping`,
+        });
+        return;
+      }
 
       const spellReagentsRows: any[] = await csv.parse(spellReagentsCsv, {
         columns: true,
@@ -644,12 +739,13 @@ export class PricingService implements OnApplicationBootstrap {
         saved: spellReagentsCount,
         message: `Saved ${spellReagentsCount} spell reagent entities`,
       });
+
+      await this.markFileAsProcessed(
+        CsvFileName.SpellReagents,
+        spellReagentsCsv,
+      );
     } catch (errorOrException) {
-      this.logger.error({
-        logTag,
-        errorOrException,
-        message: 'Error building spell reagents',
-      });
+      this.logger.error({ logTag, errorOrException });
     }
   }
 }
