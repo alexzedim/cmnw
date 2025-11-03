@@ -333,47 +333,110 @@ for (const pricing of pricings) {
 
 ### 7. Implementation Steps
 
-1. **Create base evaluation service structure**
-   - Set up dependency injection
-   - Add repository injections (PricingEntity, ItemsEntity, MarketEntity, ValuationEntity)
-   - Create logger
+1. ✅ **Create base evaluation service structure**
+   - ✅ Set up dependency injection
+   - ✅ Add repository injections (PricingEntity, ItemsEntity, MarketEntity, ValuationEntity, EvaluationEntity, RealmsEntity)
+   - ✅ Create logger
 
-2. **Implement data gathering methods**
-   - `gatherPricingMethods()`
-   - `batchGetMarketPrices()`
-   - Helper methods for data fetching
+2. ✅ **Implement data gathering methods**
+   - ✅ `gatherPricingMethods()`
+   - ✅ `gatherCraftingMethods()`
+   - ✅ `gatherReverseMethods()`
+   - ✅ `batchGetMarketPrices()`
+   - ✅ Helper methods for data fetching
 
-3. **Implement calculation methods**
-   - `calculateCraftingCost()`
-   - `calculateDisenchantValue()`
-   - `calculateProspectingValue()`
-   - `calculateMillingValue()`
+3. ✅ **Implement calculation methods**
+   - ✅ `calculateCraftingCost()`
+   - ✅ `calculateReversePricingValue()` (covers disenchant, prospecting, milling)
 
-4. **Implement main evaluation method**
-   - `evaluateItemPricing()`
-   - Ranking and recommendation logic
+4. ✅ **Implement main evaluation method**
+   - ✅ `evaluateItemPricing()`
+   - ✅ Ranking and recommendation logic
 
-5. **Add comparison methods**
-   - `compareMarketVsCrafting()`
-   - `findProfitableCrafts()`
+5. ✅ **Add comparison methods**
+   - ✅ `compareMarketVsCrafting()`
+   - ✅ `findProfitableCrafts()`
 
-6. **Create unit tests**
+6. ✅ **Add scheduled evaluation system**
+   - ✅ Created `EvaluationEntity` to store results
+   - ✅ Implemented `scheduledEvaluationJob()` (runs every 6 hours)
+   - ✅ Implemented `evaluateRealmProfitability()` for batch processing
+   - ✅ Implemented `getPreCalculatedEvaluations()` for querying results
+
+7. 🔄 **Create unit tests** (TODO)
    - Mock repositories
    - Test calculation logic
    - Test edge cases (missing data, multiple methods)
 
-7. **Integration testing**
+8. 🔄 **Integration testing** (TODO)
    - Test with real data from development database
    - Verify performance with large datasets
 
-8. **Documentation**
+9. 🔄 **Documentation** (TODO)
    - Add JSDoc comments
    - Create usage guide
    - Document pricing method priorities
 
+## Scheduled Evaluation System
+
+### Overview
+The system now includes a scheduled job that pre-calculates profitable crafting opportunities and stores them in the `evaluations` table for fast retrieval.
+
+### Schedule
+- **Frequency**: Every 6 hours (cron: `0 */6 * * *`)
+- **Trigger**: Automatic via `@Cron` decorator
+- **Bootstrap**: Commented out by default to avoid running on every startup
+
+### Process Flow
+1. Job fetches all realms from database
+2. For each realm:
+   - Calls `findProfitableCrafts()` with filters:
+     - Minimum 5% profit margin
+     - Minimum 100g absolute profit
+   - Evaluates each profitable craft for full context
+   - Creates `EvaluationEntity` records with:
+     - Market price, crafting cost, profit, margin
+     - Best recipe ID and rank
+     - Profession and expansion
+     - Asset classes
+     - Recommendations
+     - Confidence score and market volume
+3. Batch saves evaluations (500 per chunk)
+4. Logs summary statistics
+
+### Data Storage
+**EvaluationEntity** stores:
+- Item and realm identifiers
+- Price data (market, crafting, vendor, reverse)
+- Profitability metrics (profit, margin, isProfitable flag)
+- Recipe details (ID, rank, profession, expansion)
+- Metadata (asset classes, recommendations, confidence)
+- Timestamps for freshness tracking
+
+### Indexes
+- `item_id` - for item lookups
+- `connected_realm_id` - for realm filtering
+- `timestamp` - for freshness queries
+- `profit_margin` - for sorting by profitability
+
+### Retrieval
+Use `getPreCalculatedEvaluations()` with options:
+- `minProfitMargin` - filter by minimum margin %
+- `profession` - filter by profession (e.g., "JWLC")
+- `expansion` - filter by expansion (e.g., "TWW")
+- `limit` - limit number of results
+
+Results are ordered by profit margin (descending) by default.
+
+### Benefits
+- Fast queries without real-time calculation
+- Historical tracking of profitable opportunities
+- Reduced load on market price queries
+- Pre-filtered results for UI consumption
+
 ## Notes
 
-- The evaluation service is read-only and doesn't modify existing data
+- The evaluation service is read-only and doesn't modify existing pricing/valuation data
 - Market prices should be cached to avoid repeated queries
 - Consider adding Redis caching for frequently evaluated items
 - Handle missing market data gracefully (fallback to VSP or skip)
@@ -381,3 +444,5 @@ for (const pricing of pricings) {
 - Pricing confidence scores help users understand data quality
 - Reverse pricing probabilities (matRate) represent expected yield
 - Multiple recipe ranks should be evaluated (higher rank = lower cost usually)
+- Scheduled job can be resource-intensive on large datasets - monitor performance
+- Old evaluations are deleted before inserting new ones to prevent table bloat
