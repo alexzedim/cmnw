@@ -17,6 +17,7 @@ import { RedisModule } from '@nestjs-modules/ioredis';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   ContractEntity,
+  EvaluationEntity,
   ItemsEntity,
   KeysEntity,
   MarketEntity,
@@ -48,6 +49,7 @@ import { s3Config } from '@app/configuration';
       SpellEffectEntity,
       SpellReagentsEntity,
       ValuationEntity,
+      EvaluationEntity,
     ]),
     RedisModule.forRoot({
       type: 'single',

@@ -8,6 +8,7 @@ export enum CMNW_ENTITY_ENUM {
   CHARACTERS_PROFILE = 'characters_profile',
   CHARACTERS_RAID_LOGS = 'characters_raid_logs',
   CONTRACTS = 'contracts',
+  EVALUATIONS = 'evaluations',
   GUILDS = 'guilds',
   ITEMS = 'items',
   KEYS = 'keys',
