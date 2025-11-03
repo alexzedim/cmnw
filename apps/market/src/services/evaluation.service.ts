@@ -1,12 +1,15 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
+  EvaluationEntity,
   ItemsEntity,
   MarketEntity,
   PricingEntity,
+  RealmsEntity,
   ValuationEntity,
 } from '@app/pg';
 import { In, Repository } from 'typeorm';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import {
   CraftingCost,
   DisenchantValue,
@@ -20,7 +23,7 @@ import {
 import { PRICING_TYPE, VALUATION_TYPE } from '@app/resources/constants';
 
 @Injectable()
-export class EvaluationService {
+export class EvaluationService implements OnApplicationBootstrap {
   private readonly logger = new Logger(EvaluationService.name, {
     timestamp: true,
   });
@@ -34,7 +37,16 @@ export class EvaluationService {
     private readonly marketRepository: Repository<MarketEntity>,
     @InjectRepository(ValuationEntity)
     private readonly valuationRepository: Repository<ValuationEntity>,
+    @InjectRepository(EvaluationEntity)
+    private readonly evaluationRepository: Repository<EvaluationEntity>,
+    @InjectRepository(RealmsEntity)
+    private readonly realmsRepository: Repository<RealmsEntity>,
   ) {}
+
+  async onApplicationBootstrap(): Promise<void> {
+    // Optional: run evaluation on startup
+    // await this.scheduledEvaluationJob();
+  }
 
   /**
    * Main evaluation method - gathers all pricing methods and evaluates an item
@@ -515,6 +527,149 @@ export class EvaluationService {
   }
 
   /**
+   * Find all items that can be crafted profitably
+   */
+  async findProfitableCrafts(
+    connectedRealmId: number,
+    options: ProfitableCraftOptions = {},
+  ): Promise<PriceComparison[]> {
+    const logTag = 'findProfitableCrafts';
+    const profitableCrafts: PriceComparison[] = [];
+
+    try {
+      // Build query for pricing entities
+      let query = this.pricingRepository
+        .createQueryBuilder('pricing')
+        .where('pricing.type = :type', { type: PRICING_TYPE.PRIMARY });
+
+      // Filter by expansion if specified
+      if (options.expansion) {
+        query = query.andWhere('pricing.expansion = :expansion', {
+          expansion: options.expansion,
+        });
+      }
+
+      // Filter by profession if specified
+      if (options.profession) {
+        query = query.andWhere('pricing.profession = :profession', {
+          profession: options.profession,
+        });
+      }
+
+      const pricings = await query.getMany();
+
+      this.logger.log({
+        logTag,
+        connectedRealmId,
+        pricingCount: pricings.length,
+        options,
+        message: `Evaluating ${pricings.length} recipes for profitability`,
+      });
+
+      // Evaluate each recipe
+      for (const pricing of pricings) {
+        try {
+          const derivativesArray =
+            typeof pricing.derivatives === 'string'
+              ? JSON.parse(pricing.derivatives)
+              : pricing.derivatives;
+
+          if (!derivativesArray || derivativesArray.length === 0) {
+            continue;
+          }
+
+          // Calculate crafting cost
+          const craftingCost = await this.calculateCraftingCost(
+            pricing,
+            connectedRealmId,
+          );
+
+          if (!craftingCost || craftingCost.confidence < 0.5) {
+            continue; // Skip if we don't have enough data
+          }
+
+          // Filter by max crafting cost if specified
+          if (
+            options.maxCraftingCost &&
+            craftingCost.totalCost > options.maxCraftingCost
+          ) {
+            continue;
+          }
+
+          // Check each derivative for profitability
+          for (const derivative of derivativesArray) {
+            const itemId =
+              typeof derivative === 'object' ? derivative.itemId : derivative;
+
+            const marketPrice = await this.getMarketPrice(
+              itemId,
+              connectedRealmId,
+            );
+
+            if (!marketPrice) {
+              continue;
+            }
+
+            const costPerUnit = craftingCost.costPerUnit[itemId];
+            if (!costPerUnit) {
+              continue;
+            }
+
+            const profit = marketPrice - costPerUnit;
+            const profitMargin = (profit / costPerUnit) * 100;
+
+            // Apply filters
+            const meetsMinMargin =
+              !options.minMargin || profitMargin >= options.minMargin;
+            const meetsMinProfit =
+              !options.minProfit || profit >= options.minProfit;
+
+            if (profit > 0 && meetsMinMargin && meetsMinProfit) {
+              profitableCrafts.push({
+                itemId,
+                connectedRealmId,
+                marketPrice,
+                craftingCost: costPerUnit,
+                profit,
+                profitMargin,
+                isProfitable: true,
+                bestRecipe: {
+                  recipeId: pricing.recipeId,
+                  cost: costPerUnit,
+                  rank: pricing.rank,
+                },
+              });
+            }
+          }
+        } catch (error) {
+          // Log and continue to next recipe
+          this.logger.debug({
+            logTag,
+            recipeId: pricing.recipeId,
+            error,
+            message: 'Error evaluating recipe',
+          });
+        }
+      }
+
+      // Sort by profit margin descending
+      profitableCrafts.sort((a, b) => b.profitMargin - a.profitMargin);
+
+      this.logger.log({
+        logTag,
+        connectedRealmId,
+        profitableCount: profitableCrafts.length,
+        message: `Found ${profitableCrafts.length} profitable crafts`,
+      });
+
+      return profitableCrafts;
+    } catch (errorOrException) {
+      this.logger.error({ logTag, connectedRealmId, errorOrException });
+      return [];
+    }
+  }
+
+  /**
    * Compare market price vs crafting cost for an item
    */
   async compareMarketVsCrafting(
@@ -854,6 +1009,222 @@ export class EvaluationService {
     }
 
     return recommendations;
+  }
+
+  /**
+   * Scheduled job to pre-calculate evaluations for all profitable crafts
+   * Runs every 6 hours
+   */
+  @Cron('0 */6 * * *')
+  async scheduledEvaluationJob(): Promise<void> {
+    const logTag = 'scheduledEvaluationJob';
+    const startTime = Date.now();
+
+    try {
+      this.logger.log({
+        logTag,
+        message: 'Starting scheduled evaluation job',
+      });
+
+      // Get all realms
+      const realms = await this.realmsRepository.find();
+
+      let totalEvaluations = 0;
+
+      // Process each realm
+      for (const realm of realms) {
+        try {
+          const evaluationsCount = await this.evaluateRealmProfitability(
+            realm.connectedRealmId,
+          );
+          totalEvaluations += evaluationsCount;
+
+          this.logger.log({
+            logTag,
+            realmId: realm.connectedRealmId,
+            realmName: realm.name,
+            evaluationsCount,
+            message: `Evaluated ${evaluationsCount} items for realm ${realm.name}`,
+          });
+        } catch (error) {
+          this.logger.error({
+            logTag,
+            realmId: realm.connectedRealmId,
+            error,
+            message: `Error evaluating realm ${realm.connectedRealmId}`,
+          });
+        }
+      }
+
+      const duration = Date.now() - startTime;
+      this.logger.log({
+        logTag,
+        totalEvaluations,
+        realmsCount: realms.length,
+        duration,
+        message: `Completed scheduled evaluation job: ${totalEvaluations} evaluations in ${duration}ms`,
+      });
+    } catch (errorOrException) {
+      this.logger.error({ logTag, errorOrException });
+    }
+  }
+
+  /**
+   * Evaluate profitability for all craftable items on a realm
+   * and store results in evaluation entity
+   */
+  private async evaluateRealmProfitability(
+    connectedRealmId: number,
+  ): Promise<number> {
+    const logTag = 'evaluateRealmProfitability';
+    const timestamp = Date.now();
+
+    try {
+      // Find all profitable crafts
+      const profitableCrafts = await this.findProfitableCrafts(
+        connectedRealmId,
+        {
+          minMargin: 5, // Minimum 5% profit margin
+          minProfit: 100, // Minimum 100g profit
+        },
+      );
+
+      if (profitableCrafts.length === 0) {
+        return 0;
+      }
+
+      // Delete old evaluations for this realm
+      await this.evaluationRepository.delete({ connectedRealmId });
+
+      // Get item data for asset classes and additional info
+      const itemIds = profitableCrafts.map((pc) => pc.itemId);
+      const items = await this.itemsRepository.find({
+        where: { id: In(itemIds) },
+      });
+
+      const itemMap = new Map(items.map((item) => [item.id, item]));
+
+      // Create evaluation entities
+      const evaluations: EvaluationEntity[] = [];
+
+      for (const craft of profitableCrafts) {
+        const item = itemMap.get(craft.itemId);
+
+        // Get full evaluation for recommendations
+        const fullEval = await this.evaluateItemPricing(
+          craft.itemId,
+          connectedRealmId,
+          { includeCrafting: true, includeReverse: true },
+        );
+
+        // Find best crafting method details
+        const craftingMethod = fullEval.methods.find(
+          (m) => m.source === 'crafting' && m.pricing?.recipeId === craft.bestRecipe?.recipeId,
+        );
+
+        const evaluation = this.evaluationRepository.create({
+          itemId: craft.itemId,
+          connectedRealmId,
+          marketPrice: craft.marketPrice,
+          craftingCost: craft.craftingCost,
+          vendorSellPrice: item?.vendorSellPrice,
+          profit: craft.profit,
+          profitMargin: craft.profitMargin,
+          isProfitable: craft.isProfitable,
+          bestRecipeId: craft.bestRecipe?.recipeId,
+          recipeRank: craft.bestRecipe?.rank,
+          profession: craftingMethod?.metadata?.profession,
+          expansion: craftingMethod?.metadata?.expansion,
+          assetClass: item?.assetClass,
+          recommendations: fullEval.recommendations,
+          confidence: craftingMethod?.confidence || 0,
+          marketVolume: fullEval.marketVolume,
+          timestamp,
+        });
+
+        evaluations.push(evaluation);
+      }
+
+      // Batch save evaluations
+      await this.evaluationRepository.save(evaluations, { chunk: 500 });
+
+      this.logger.log({
+        logTag,
+        connectedRealmId,
+        evaluationsCount: evaluations.length,
+        message: `Saved ${evaluations.length} evaluations for realm ${connectedRealmId}`,
+      });
+
+      return evaluations.length;
+    } catch (errorOrException) {
+      this.logger.error({ logTag, connectedRealmId, errorOrException });
+      return 0;
+    }
+  }
+
+  /**
+   * Get pre-calculated evaluations for a realm
+   */
+  async getPreCalculatedEvaluations(
+    connectedRealmId: number,
+    options?: {
+      minProfitMargin?: number;
+      profession?: string;
+      expansion?: string;
+      limit?: number;
+    },
+  ): Promise<EvaluationEntity[]> {
+    const logTag = 'getPreCalculatedEvaluations';
+
+    try {
+      let query = this.evaluationRepository
+        .createQueryBuilder('evaluation')
+        .where('evaluation.connected_realm_id = :connectedRealmId', {
+          connectedRealmId,
+        })
+        .andWhere('evaluation.is_profitable = :isProfitable', {
+          isProfitable: true,
+        })
+        .orderBy('evaluation.profit_margin', 'DESC');
+
+      if (options?.minProfitMargin) {
+        query = query.andWhere(
+          'evaluation.profit_margin >= :minProfitMargin',
+          { minProfitMargin: options.minProfitMargin },
+        );
+      }
+
+      if (options?.profession) {
+        query = query.andWhere('evaluation.profession = :profession', {
+          profession: options.profession,
+        });
+      }
+
+      if (options?.expansion) {
+        query = query.andWhere('evaluation.expansion = :expansion', {
+          expansion: options.expansion,
+        });
+      }
+
+      if (options?.limit) {
+        query = query.limit(options.limit);
+      }
+
+      const evaluations = await query.getMany();
+
+      this.logger.debug({
+        logTag,
+        connectedRealmId,
+        options,
+        count: evaluations.length,
+        message: `Retrieved ${evaluations.length} pre-calculated evaluations`,
+      });
+
+      return evaluations;
+    } catch (errorOrException) {
+      this.logger.error({ logTag, connectedRealmId, errorOrException });
+      return [];
+    }
   }
 }
 

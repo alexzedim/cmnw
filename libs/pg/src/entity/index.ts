@@ -23,6 +23,7 @@ export * from './market.entity';
 export * from './items.entity';
 export * from './contract.entity';
 export * from './valuation.entity';
+export * from './evaluation.entity';
 
 export * from './pricing.entity';
 
