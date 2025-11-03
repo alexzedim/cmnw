@@ -3,6 +3,7 @@ import { bullConfig, postgresConfig, redisConfig } from '@app/configuration';
 import {
   AuctionsService,
   ContractsService,
+  EvaluationService,
   GoldService,
   ValuationsService,
   PricingService,
@@ -85,6 +86,7 @@ import { s3Config } from '@app/configuration';
     ValuationsService,
     PricingService,
     ItemsService,
+    EvaluationService,
   ],
 })
 export class MarketModule {}
