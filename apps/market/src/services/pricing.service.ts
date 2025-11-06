@@ -210,10 +210,9 @@ export class PricingService implements OnApplicationBootstrap {
     try {
       const reversePricingMethod = this.pricingRepository.create({
         ticker: PROSPECTING.name,
-        media:
-          'https://render-eu.worldofwarcraft.com/icons/56/inv_misc_gem_bloodgem_01.jpg',
-        spellId: 31252,
-        profession: 'PROFESSION',
+        media: PROSPECTING.media,
+        spellId: PROSPECTING.spellId,
+        profession: PROSPECTING.name,
         expansion: 'TWW',
         type: PRICING_TYPE.REVERSE,
         createdBy: DMA_SOURCE.LAB,
@@ -257,10 +256,9 @@ export class PricingService implements OnApplicationBootstrap {
     try {
       const reversePricingMethod = this.pricingRepository.create({
         ticker: MILLING.name,
-        media:
-          'https://render-eu.worldofwarcraft.com/icons/56/ability_miling.jpg',
-        spellId: 51005,
-        profession: 'PROFESSION',
+        media: MILLING.media,
+        spellId: MILLING.spellId,
+        profession: MILLING.name,
         expansion: 'TWW',
         type: PRICING_TYPE.REVERSE,
         createdBy: DMA_SOURCE.LAB,
@@ -304,10 +302,9 @@ export class PricingService implements OnApplicationBootstrap {
     try {
       const reversePricingMethod = this.pricingRepository.create({
         ticker: DISENCHANTING.name,
-        media:
-          'https://render-eu.worldofwarcraft.com/icons/56/inv_enchant_disenchant.jpg',
-        spellId: 13262,
-        profession: 'PROFESSION',
+        media: DISENCHANTING.media,
+        spellId: DISENCHANTING.spellId,
+        profession: DISENCHANTING.name,
         expansion: 'TWW',
         type: PRICING_TYPE.REVERSE,
         createdBy: DMA_SOURCE.LAB,
