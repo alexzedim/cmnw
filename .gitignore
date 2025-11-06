@@ -45,6 +45,11 @@ lerna-debug.log*
 # Warp AI
 WARP.md
 
+# Markdown files (except README.md and docs/)
+*.md
+!README.md
+!/docs/**/*.md
+
 # IDE - VSCode
 .vscode/*
 !.vscode/settings.json
