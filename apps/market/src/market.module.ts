@@ -5,8 +5,7 @@ import {
   ContractsService,
   EvaluationService,
   GoldService,
-  ValuationsService,
-  PricingService,
+  PricingValuationsService,
   ItemsService,
 } from './services';
 import { BullModule } from '@nestjs/bullmq';
@@ -85,8 +84,7 @@ import { s3Config } from '@app/configuration';
     AuctionsService,
     GoldService,
     ContractsService,
-    ValuationsService,
-    PricingService,
+    PricingValuationsService,
     ItemsService,
     EvaluationService,
   ],
