@@ -215,7 +215,7 @@ export class ValuationsService implements OnApplicationBootstrap {
 
         for (const derivative of derivativesArray) {
           const itemId =
-            typeof derivative === 'object' ? derivative._id : derivative;
+            typeof derivative === 'object' ? derivative.itemId : derivative;
           if (itemId) {
             await this.addAssetClassToItem(itemId, VALUATION_TYPE.DERIVATIVE);
           }
@@ -230,7 +230,7 @@ export class ValuationsService implements OnApplicationBootstrap {
             : pricing.reagents;
 
         for (const reagent of reagentsArray) {
-          const itemId = typeof reagent === 'object' ? reagent._id : reagent;
+          const itemId = typeof reagent === 'object' ? reagent.itemId : reagent;
           if (itemId) {
             await this.addAssetClassToItem(itemId, VALUATION_TYPE.REAGENT);
           }
