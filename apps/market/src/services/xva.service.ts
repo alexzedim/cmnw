@@ -48,9 +48,27 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { createHash } from 'crypto';
 
+// ============================================================================
+// CONSTANTS
+// ============================================================================
+
+const REDIS_TTL = {
+  CSV_FILES: 60 * 60 * 24 * 30, // 30 days
+  VALUATION_STAGES: 60 * 60 * 24 * 7, // 7 days
+} as const;
+
+const BATCH_SIZE = 500;
+
+interface LabPricingMethod {
+  name: string;
+  media: string;
+  spellId: number;
+  methods: Array<{ reagents: any[]; derivatives: any[] }>;
+}
+
 @Injectable()
-export class PricingValuationsService implements OnApplicationBootstrap {
-  private readonly logger = new Logger(PricingValuationsService.name, {
+export class XvaService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(XvaService.name, {
     timestamp: true,
   });
 
@@ -83,40 +101,62 @@ export class PricingValuationsService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
-    // Phase 1: PRICING - Build all pricing methods
-    await this.indexPricing(
-      GLOBAL_DMA_KEY,
-      dmaConfig.isItemsPricingInit && dmaConfig.isPricingIndexProfessions,
-    );
+    await this.runPricingPhase();
+    await this.runValuationsPhase();
+  }
 
-    await this.libPricing(
-      dmaConfig.isItemsPricingLab,
-      dmaConfig.isPricingLabProspecting,
-      dmaConfig.isPricingLabDisenchanting,
-      dmaConfig.isPricingLabMilling,
-    );
+  /**
+   * Phase 1: PRICING - Build all pricing methods
+   */
+  private async runPricingPhase(): Promise<void> {
+    const logTag = 'runPricingPhase';
+    this.logger.log({ logTag, message: 'Starting pricing phase' });
 
-    await this.buildSkillLine(
-      dmaConfig.isItemsPricingBuild && dmaConfig.isPricingBuildSkillLine,
-    );
-    await this.buildSpellEffect(
-      dmaConfig.isItemsPricingBuild && dmaConfig.isPricingBuildSpellEffect,
-    );
-    await this.buildSpellReagents(
-      dmaConfig.isItemsPricingBuild && dmaConfig.isPricingBuildSpellReagents,
-    );
+    // Blizzard API indexing
+    if (dmaConfig.isItemsPricingInit && dmaConfig.isPricingIndexProfessions) {
+      await this.indexPricing(GLOBAL_DMA_KEY, true);
+    }
 
-    // Phase 2: VALUATIONS - Assign asset classes
-    await this.buildAssetClasses(
-      {
-        isByPricing: dmaConfig.isValuationsFromPricing,
-        isByAuctions: dmaConfig.isValuationsFromAuctions,
-        isByPremium: dmaConfig.isValuationsForPremium,
-        isByCurrency: dmaConfig.isValuationsForCurrency,
-        isByTags: dmaConfig.isValuationsBuildTags,
-      },
-      dmaConfig.isValuationsBuild,
-    );
+    // Lab pricing (reverse methods)
+    if (dmaConfig.isItemsPricingLab) {
+      await this.libPricing({
+        isProspect: dmaConfig.isPricingLabProspecting,
+        isMilling: dmaConfig.isPricingLabMilling,
+        isDisenchant: dmaConfig.isPricingLabDisenchanting,
+      });
+    }
+
+    // CSV data building
+    if (dmaConfig.isItemsPricingBuild) {
+      await this.buildSkillLine(dmaConfig.isPricingBuildSkillLine);
+      await this.buildSpellEffect(dmaConfig.isPricingBuildSpellEffect);
+      await this.buildSpellReagents(dmaConfig.isPricingBuildSpellReagents);
+    }
+
+    this.logger.log({ logTag, message: 'Pricing phase completed' });
+  }
+
+  /**
+   * Phase 2: VALUATIONS - Assign asset classes
+   */
+  private async runValuationsPhase(): Promise<void> {
+    const logTag = 'runValuationsPhase';
+    this.logger.log({ logTag, message: 'Starting valuations phase' });
+
+    if (!dmaConfig.isValuationsBuild) {
+      this.logger.debug({ logTag, message: 'Valuations build disabled' });
+      return;
+    }
+
+    await this.buildAssetClasses({
+      isByPricing: dmaConfig.isValuationsFromPricing,
+      isByAuctions: dmaConfig.isValuationsFromAuctions,
+      isByPremium: dmaConfig.isValuationsForPremium,
+      isByCurrency: dmaConfig.isValuationsForCurrency,
+      isByTags: dmaConfig.isValuationsBuildTags,
+    });
+
+    this.logger.log({ logTag, message: 'Valuations phase completed' });
   }
 
   // ============================================================================
@@ -151,7 +191,7 @@ export class PricingValuationsService implements OnApplicationBootstrap {
   }
 
   /**
-   * Mark CSV file as processed in Redis (expires after 30 days)
+   * Mark CSV file as processed in Redis
    */
   private async markFileAsProcessed(
     fileName: string,
@@ -159,14 +199,15 @@ export class PricingValuationsService implements OnApplicationBootstrap {
   ): Promise<void> {
     const fileHash = createHash('md5').update(fileContent).digest('hex');
     const redisKey = `PRICING_CSV_PROCESSED:${fileName}:${fileHash}`;
-    const ttl = 60 * 60 * 24 * 30; // 30 days
-    await this.redisService.setex(redisKey, ttl, new Date().toISOString());
+    await this.redisService.setex(
+      redisKey,
+      REDIS_TTL.CSV_FILES,
+      new Date().toISOString(),
+    );
     this.logger.debug({
       logTag: 'markFileAsProcessed',
       fileName,
       fileHash,
-      redisKey,
-      ttl,
       message: `Marked file as processed: ${fileName}`,
     });
   }
@@ -175,80 +216,58 @@ export class PricingValuationsService implements OnApplicationBootstrap {
   // PRICING METHODS - Lab Pricing (Reverse Methods)
   // ============================================================================
 
-  async libPricing(
-    isItemsPricingLab: boolean = true,
-    isProspect: boolean = false,
-    isDisenchant: boolean = false,
-    isMilling: boolean = false,
-  ): Promise<void> {
+  async libPricing(options: {
+    isProspect?: boolean;
+    isMilling?: boolean;
+    isDisenchant?: boolean;
+  }): Promise<void> {
     const logTag = 'libPricing';
+    const { isProspect = false, isMilling = false, isDisenchant = false } = options;
+
     try {
-      if (!isItemsPricingLab) {
-        this.logger.debug({
-          logTag,
-          isItemsPricingLab,
-          message: `Items pricing lab disabled: ${isItemsPricingLab}`,
-        });
+      if (!isProspect && !isMilling && !isDisenchant) {
+        this.logger.debug({ logTag, message: 'All lab methods disabled, skipping' });
         return;
       }
 
-      if (!isProspect && !isDisenchant && !isMilling) {
-        this.logger.debug({
-          logTag,
-          message: `All lab methods disabled, skipping`,
-        });
-        return;
-      }
-
+      // Clear existing lab pricing data
       const deletePricing = await this.pricingRepository.delete({
         createdBy: DMA_SOURCE.LAB,
       });
       this.logger.log({
         logTag,
-        source: DMA_SOURCE.LAB,
         deletedCount: deletePricing.affected,
-        message: `Deleted ${deletePricing.affected} lab pricing entries`,
+        message: `Cleared ${deletePricing.affected} existing lab pricing entries`,
       });
 
-      if (isProspect) {
-        this.logger.debug({
-          logTag,
-          method: 'prospecting',
-          message: 'Prospecting method enabled',
-        });
-        await this.libPricingProspect();
-      }
+      // Process enabled methods
+      const methods: Array<{ enabled: boolean; config: LabPricingMethod }> = [
+        { enabled: isProspect, config: PROSPECTING },
+        { enabled: isMilling, config: MILLING },
+        { enabled: isDisenchant, config: DISENCHANTING },
+      ];
 
-      if (isMilling) {
-        this.logger.debug({
-          logTag,
-          method: 'milling',
-          message: 'Milling method enabled',
-        });
-        await this.libPricingMilling();
-      }
-
-      if (isDisenchant) {
-        this.logger.debug({
-          logTag,
-          method: 'disenchanting',
-          message: 'Disenchanting method enabled',
-        });
-        await this.libPricingDisenchant();
+      for (const { enabled, config } of methods) {
+        if (enabled) {
+          await this.processLabPricingMethod(config);
+        }
       }
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });
     }
   }
 
-  private async libPricingProspect(): Promise<void> {
-    const logTag = 'libPricingProspect';
+  /**
+   * Generic method to process any lab pricing method (prospecting, milling, disenchanting)
+   */
+  private async processLabPricingMethod(config: LabPricingMethod): Promise<void> {
+    const logTag = 'processLabPricingMethod';
     try {
       const reversePricingMethod = this.pricingRepository.create({
-        ticker: PROSPECTING.name,
-        media: PROSPECTING.media,
-        spellId: PROSPECTING.spellId,
-        profession: PROSPECTING.name,
+        ticker: config.name,
+        media: config.media,
+        spellId: config.spellId,
+        profession: config.name,
         expansion: 'TWW',
         type: PRICING_TYPE.REVERSE,
         createdBy: DMA_SOURCE.LAB,
@@ -258,7 +277,7 @@ export class PricingValuationsService implements OnApplicationBootstrap {
       let methodCount = 0;
 
       await lastValueFrom(
-        from(PROSPECTING.methods).pipe(
+        from(config.methods).pipe(
           mergeMap(async (method) => {
             const entry = {
               ...reversePricingMethod,
@@ -277,105 +296,13 @@ export class PricingValuationsService implements OnApplicationBootstrap {
 
       this.logger.log({
         logTag,
-        method: PROSPECTING.name,
+        method: config.name,
         count: methodCount,
-        spellId: reversePricingMethod.spellId,
-        message: `Processed ${methodCount} prospecting methods`,
+        spellId: config.spellId,
+        message: `Processed ${methodCount} ${config.name.toLowerCase()} methods`,
       });
     } catch (errorOrException) {
-      this.logger.error({ logTag, method: PROSPECTING.name, errorOrException });
-    }
-  }
-
-  private async libPricingMilling(): Promise<void> {
-    const logTag = 'libPricingMilling';
-    try {
-      const reversePricingMethod = this.pricingRepository.create({
-        ticker: MILLING.name,
-        media: MILLING.media,
-        spellId: MILLING.spellId,
-        profession: MILLING.name,
-        expansion: 'TWW',
-        type: PRICING_TYPE.REVERSE,
-        createdBy: DMA_SOURCE.LAB,
-        updatedBy: DMA_SOURCE.LAB,
-      });
-
-      let methodCount = 0;
-
-      await lastValueFrom(
-        from(MILLING.methods).pipe(
-          mergeMap(async (method) => {
-            const entry = {
-              ...reversePricingMethod,
-              reagents: method.reagents,
-              derivatives: method.derivatives,
-              recipeId: parseInt(
-                `${reversePricingMethod.spellId}${method.reagents[0].itemId}`,
-              ),
-            };
-
-            await this.pricingRepository.save(entry);
-            methodCount++;
-          }),
-        ),
-      );
-
-      this.logger.log({
-        logTag,
-        method: MILLING.name,
-        count: methodCount,
-        spellId: reversePricingMethod.spellId,
-        message: `Processed ${methodCount} milling methods`,
-      });
-    } catch (errorOrException) {
-      this.logger.error({ logTag, method: MILLING.name, errorOrException });
-    }
-  }
-
-  private async libPricingDisenchant(): Promise<void> {
-    const logTag = 'libPricingDisenchant';
-    try {
-      const reversePricingMethod = this.pricingRepository.create({
-        ticker: DISENCHANTING.name,
-        media: DISENCHANTING.media,
-        spellId: DISENCHANTING.spellId,
-        profession: DISENCHANTING.name,
-        expansion: 'TWW',
-        type: PRICING_TYPE.REVERSE,
-        createdBy: DMA_SOURCE.LAB,
-        updatedBy: DMA_SOURCE.LAB,
-      });
-
-      let methodCount = 0;
-
-      await lastValueFrom(
-        from(DISENCHANTING.methods).pipe(
-          mergeMap(async (method) => {
-            const entry = {
-              ...reversePricingMethod,
-              reagents: method.reagents,
-              derivatives: method.derivatives,
-              recipeId: parseInt(
-                `${reversePricingMethod.spellId}${method.reagents[0].itemId}`,
-              ),
-            };
-
-            await this.pricingRepository.save(entry);
-            methodCount++;
-          }),
-        ),
-      );
-
-      this.logger.log({
-        logTag,
-        method: DISENCHANTING.name,
-        count: methodCount,
-        spellId: reversePricingMethod.spellId,
-        message: `Processed ${methodCount} disenchanting methods`,
-      });
-    } catch (errorOrException) {
-      this.logger.error({ logTag, method: DISENCHANTING.name, errorOrException });
+      this.logger.error({ logTag, method: config.name, errorOrException });
     }
   }
 
@@ -834,19 +761,19 @@ export class PricingValuationsService implements OnApplicationBootstrap {
   }
 
   /**
-   * Mark a stage as processed (expires after 7 days)
+   * Mark a stage as processed
    */
   private async markStageAsProcessed(stage: string): Promise<void> {
     const stateHash = await this.generateStateHash(stage);
     const redisKey = `VALUATION_STAGE_PROCESSED:${stage}:${stateHash}`;
-    const ttl = 60 * 60 * 24 * 7; // 7 days
-    await this.redisService.setex(redisKey, ttl, new Date().toISOString());
+    await this.redisService.setex(
+      redisKey,
+      REDIS_TTL.VALUATION_STAGES,
+      new Date().toISOString(),
+    );
     this.logger.debug({
       logTag: 'markStageAsProcessed',
       stage,
-      stateHash,
-      redisKey,
-      ttl,
       message: `Marked stage as processed: ${stage}`,
     });
   }
@@ -857,60 +784,27 @@ export class PricingValuationsService implements OnApplicationBootstrap {
 
   /**
    * Build asset classes based on various data sources
-   * @param args Object with flags for each stage to process
-   * @param init Whether to initialize the build
    */
-  async buildAssetClasses(
-    args: IAssetClassBuildArgs = {
-      isByPricing: true,
-      isByAuctions: true,
-      isByPremium: false,
-      isByCurrency: true,
-      isByTags: true,
-    },
-    init: boolean = true,
-  ): Promise<void> {
+  async buildAssetClasses(args: IAssetClassBuildArgs): Promise<void> {
+    const logTag = 'buildAssetClasses';
+    this.logger.log({ logTag, args, message: 'Building asset classes' });
+
     try {
-      const logTag = 'buildAssetClasses';
-      this.logger.log({
-        logTag,
-        init,
-        args,
-        message: `Building asset classes: init=${init}`,
-      });
+      const stages = [
+        { enabled: args.isByPricing, fn: () => this.buildAssetClassesFromPricing() },
+        { enabled: args.isByAuctions, fn: () => this.buildAssetClassesFromAuctions() },
+        { enabled: args.isByPremium, fn: () => this.buildAssetClassesForPremium() },
+        { enabled: args.isByCurrency, fn: () => this.buildAssetClassesForCurrency() },
+        { enabled: true, fn: () => this.addToAssetClassVSP() }, // Always run VSP
+        { enabled: args.isByTags, fn: () => this.buildTags() },
+      ];
 
-      if (!init) {
-        this.logger.debug({
-          logTag,
-          message: 'Valuations build disabled',
-        });
-        return;
-      }
-
-      if (args.isByPricing) {
-        await this.buildAssetClassesFromPricing();
-      }
-
-      if (args.isByAuctions) {
-        await this.buildAssetClassesFromAuctions();
-      }
-
-      if (args.isByPremium) {
-        await this.buildAssetClassesForPremium();
-      }
-
-      if (args.isByCurrency) {
-        await this.buildAssetClassesForCurrency();
-      }
-
-      // Add VSP asset class before tags
-      await this.addToAssetClassVSP();
-
-      if (args.isByTags) {
-        await this.buildTags();
+      for (const stage of stages) {
+        if (stage.enabled) {
+          await stage.fn();
+        }
       }
     } catch (errorOrException) {
-      const logTag = 'buildAssetClasses';
       this.logger.error({ logTag, errorOrException });
     }
   }
@@ -923,53 +817,46 @@ export class PricingValuationsService implements OnApplicationBootstrap {
     const logTag = 'buildAssetClassesFromPricing';
     this.logger.debug({ logTag, message: 'Pricing stage started' });
 
-    const isProcessed = await this.isStageProcessed('pricing');
-    if (isProcessed) {
-      this.logger.log({
-        logTag,
-        stage: 'pricing',
-        message: `Stage already processed with current state, skipping`,
-      });
+    if (await this.isStageProcessed('pricing')) {
+      this.logger.log({ logTag, message: 'Stage already processed, skipping' });
       return;
     }
 
     const pricings = await this.pricingRepository.find();
 
-    for (const pricing of pricings) {
-      // Handle derivatives
-      if (pricing.derivatives) {
-        const derivativesArray =
-          typeof pricing.derivatives === 'string'
-            ? JSON.parse(pricing.derivatives)
-            : pricing.derivatives;
+    // Collect all item IDs and their asset classes
+    const derivativeIds: number[] = [];
+    const reagentIds: number[] = [];
 
-        for (const derivative of derivativesArray) {
-          const itemId =
-            typeof derivative === 'object' ? derivative.itemId : derivative;
-          if (itemId) {
-            await this.addAssetClassToItem(itemId, VALUATION_TYPE.DERIVATIVE);
-          }
-        }
+    for (const pricing of pricings) {
+      if (pricing.derivatives) {
+        const derivatives = this.parseJsonField(pricing.derivatives);
+        derivatives.forEach((d) => {
+          const itemId = typeof d === 'object' ? d.itemId : d;
+          if (itemId) derivativeIds.push(itemId);
+        });
       }
 
-      // Handle reagents
       if (pricing.reagents) {
-        const reagentsArray =
-          typeof pricing.reagents === 'string'
-            ? JSON.parse(pricing.reagents)
-            : pricing.reagents;
-
-        for (const reagent of reagentsArray) {
-          const itemId = typeof reagent === 'object' ? reagent.itemId : reagent;
-          if (itemId) {
-            await this.addAssetClassToItem(itemId, VALUATION_TYPE.REAGENT);
-          }
-        }
+        const reagents = this.parseJsonField(pricing.reagents);
+        reagents.forEach((r) => {
+          const itemId = typeof r === 'object' ? r.itemId : r;
+          if (itemId) reagentIds.push(itemId);
+        });
       }
     }
 
+    // Batch process derivatives and reagents
+    await this.batchAddAssetClass(derivativeIds, VALUATION_TYPE.DERIVATIVE);
+    await this.batchAddAssetClass(reagentIds, VALUATION_TYPE.REAGENT);
+
     await this.markStageAsProcessed('pricing');
-    this.logger.debug({ logTag, message: 'Pricing stage ended' });
+    this.logger.log({
+      logTag,
+      derivatives: derivativeIds.length,
+      reagents: reagentIds.length,
+      message: 'Pricing stage completed',
+    });
   }
 
   /**
@@ -980,13 +867,8 @@ export class PricingValuationsService implements OnApplicationBootstrap {
     const logTag = 'buildAssetClassesFromAuctions';
     this.logger.debug({ logTag, message: 'Auctions stage started' });
 
-    const isProcessed = await this.isStageProcessed('auctions');
-    if (isProcessed) {
-      this.logger.log({
-        logTag,
-        stage: 'auctions',
-        message: `Stage already processed with current state, skipping`,
-      });
+    if (await this.isStageProcessed('auctions')) {
+      this.logger.log({ logTag, message: 'Stage already processed, skipping' });
       return;
     }
 
@@ -1143,13 +1025,8 @@ export class PricingValuationsService implements OnApplicationBootstrap {
     const logTag = 'buildAssetClassesForPremium';
     this.logger.debug({ logTag, message: 'Premium stage started' });
 
-    const isProcessed = await this.isStageProcessed('premium');
-    if (isProcessed) {
-      this.logger.log({
-        logTag,
-        stage: 'premium',
-        message: `Stage already processed with current state, skipping`,
-      });
+    if (await this.isStageProcessed('premium')) {
+      this.logger.log({ logTag, message: 'Stage already processed, skipping' });
       return;
     }
 
@@ -1161,12 +1038,15 @@ export class PricingValuationsService implements OnApplicationBootstrap {
       .andWhere('item.loot_type = :lootType', { lootType: 'ON_ACQUIRE' })
       .getMany();
 
-    for (const item of premiumItems) {
-      await this.addAssetClassToItem(item.id, VALUATION_TYPE.PREMIUM);
-    }
+    const premiumIds = premiumItems.map((item) => item.id);
+    await this.batchAddAssetClass(premiumIds, VALUATION_TYPE.PREMIUM);
 
     await this.markStageAsProcessed('premium');
-    this.logger.debug({ logTag, message: 'Premium stage ended' });
+    this.logger.log({
+      logTag,
+      count: premiumIds.length,
+      message: 'Premium stage completed',
+    });
   }
 
   /**
@@ -1176,22 +1056,19 @@ export class PricingValuationsService implements OnApplicationBootstrap {
     const logTag = 'buildAssetClassesForCurrency';
     this.logger.debug({ logTag, message: 'Currency stage started' });
 
-    const isProcessed = await this.isStageProcessed('currency');
-    if (isProcessed) {
-      this.logger.log({
-        logTag,
-        stage: 'currency',
-        message: `Stage already processed with current state, skipping`,
-      });
+    if (await this.isStageProcessed('currency')) {
+      this.logger.log({ logTag, message: 'Stage already processed, skipping' });
       return;
     }
 
+    // WoW Token items
     await this.addAssetClassToItem(122270, VALUATION_TYPE.WOWTOKEN);
     await this.addAssetClassToItem(122284, VALUATION_TYPE.WOWTOKEN);
+    // Gold currency
     await this.addAssetClassToItem(1, VALUATION_TYPE.GOLD);
 
     await this.markStageAsProcessed('currency');
-    this.logger.debug({ logTag, message: 'Currency stage ended' });
+    this.logger.log({ logTag, message: 'Currency stage completed' });
   }
 
   /**
@@ -1202,19 +1079,14 @@ export class PricingValuationsService implements OnApplicationBootstrap {
     const logTag = 'addToAssetClassVSP';
     this.logger.debug({ logTag, message: 'VSP stage started' });
 
-    const isProcessed = await this.isStageProcessed('vsp');
-    if (isProcessed) {
-      this.logger.log({
-        logTag,
-        stage: 'vsp',
-        message: `Stage already processed with current state, skipping`,
-      });
+    if (await this.isStageProcessed('vsp')) {
+      this.logger.log({ logTag, message: 'Stage already processed, skipping' });
       return;
     }
 
-    // Get all items with vendor_sell_price > 0
     const itemsWithVSP = await this.itemsRepository
       .createQueryBuilder('item')
+      .select('item.id')
       .where('item.vendor_sell_price IS NOT NULL')
       .andWhere('item.vendor_sell_price > 0')
       .andWhere('NOT (:vsp = ANY(item.asset_class))', {
@@ -1222,19 +1094,14 @@ export class PricingValuationsService implements OnApplicationBootstrap {
       })
       .getMany();
 
-    let addedCount = 0;
-
-    for (const item of itemsWithVSP) {
-      await this.addAssetClassToItem(item.id, VALUATION_TYPE.VSP);
-      addedCount++;
-    }
+    const vspIds = itemsWithVSP.map((item) => item.id);
+    await this.batchAddAssetClass(vspIds, VALUATION_TYPE.VSP);
 
     await this.markStageAsProcessed('vsp');
     this.logger.log({
       logTag,
-      count: addedCount,
-      assetClass: VALUATION_TYPE.VSP,
-      message: `Added VSP asset class to ${addedCount} items`,
+      count: vspIds.length,
+      message: 'VSP stage completed',
     });
   }
 
@@ -1245,60 +1112,110 @@ export class PricingValuationsService implements OnApplicationBootstrap {
     const logTag = 'buildTags';
     this.logger.debug({ logTag, message: 'Tags stage started' });
 
-    const isProcessed = await this.isStageProcessed('tags');
-    if (isProcessed) {
-      this.logger.log({
-        logTag,
-        stage: 'tags',
-        message: `Stage already processed with current state, skipping`,
-      });
+    if (await this.isStageProcessed('tags')) {
+      this.logger.log({ logTag, message: 'Stage already processed, skipping' });
       return;
     }
 
     const items = await this.itemsRepository.find();
+    const updates: Array<{ id: number; tags: string[] }> = [];
 
     for (const item of items) {
-      const tagsSet = new Set<string>(item.tags || []);
-
-      if (item.expansion) tagsSet.add(item.expansion.toLowerCase());
-      if (item.professionClass) tagsSet.add(item.professionClass.toLowerCase());
-
-      if (item.assetClass) {
-        item.assetClass.forEach((assetClass) => {
-          tagsSet.add(assetClass.toLowerCase());
-        });
+      const tags = this.buildTagsForItem(item);
+      if (tags.length > 0) {
+        updates.push({ id: item.id, tags });
       }
+    }
 
-      if (item.itemClass) tagsSet.add(item.itemClass.toLowerCase());
-      if (item.itemSubClass) tagsSet.add(item.itemSubClass.toLowerCase());
-      if (item.quality) tagsSet.add(item.quality.toLowerCase());
-
-      if (item.ticker) {
-        item.ticker.split('.').forEach((ticker) => {
-          const t = ticker.toLowerCase();
-          if (t === 'j' || t === 'petal' || t === 'nugget') {
-            tagsSet.add(t);
-            return;
-          }
-          tagsSet.add(t);
-        });
-      }
-
-      // Convert Set back to array
-      const uniqueTags = Array.from(tagsSet);
-
-      await this.itemsRepository.update({ id: item.id }, { tags: uniqueTags });
-
-      this.logger.debug({
-        logTag,
-        itemId: item.id,
-        tags: uniqueTags.join(', '),
-        message: `Updated tags for item: ${item.id}`,
-      });
+    // Batch update tags
+    for (let i = 0; i < updates.length; i += BATCH_SIZE) {
+      const chunk = updates.slice(i, i + BATCH_SIZE);
+      await Promise.all(
+        chunk.map((update) =>
+          this.itemsRepository.update({ id: update.id }, { tags: update.tags }),
+        ),
+      );
     }
 
     await this.markStageAsProcessed('tags');
-    this.logger.debug({ logTag, message: 'Tags stage ended' });
+    this.logger.log({
+      logTag,
+      count: updates.length,
+      message: 'Tags stage completed',
+    });
+  }
+
+  // ============================================================================
+  // HELPER METHODS
+  // ============================================================================
+
+  /**
+   * Parse JSON field that might be string or already parsed
+   */
+  private parseJsonField(field: any): any[] {
+    if (typeof field === 'string') {
+      try {
+        return JSON.parse(field);
+      } catch {
+        return [];
+      }
+    }
+    return Array.isArray(field) ? field : [];
+  }
+
+  /**
+   * Batch add asset class to multiple items
+   */
+  private async batchAddAssetClass(
+    itemIds: number[],
+    assetClass: VALUATION_TYPE,
+  ): Promise<void> {
+    if (itemIds.length === 0) return;
+
+    // Remove duplicates
+    const uniqueIds = [...new Set(itemIds)];
+
+    // Process in batches
+    for (let i = 0; i < uniqueIds.length; i += BATCH_SIZE) {
+      const chunk = uniqueIds.slice(i, i + BATCH_SIZE);
+      await Promise.all(
+        chunk.map((itemId) => this.addAssetClassToItem(itemId, assetClass)),
+      );
+    }
+  }
+
+  /**
+   * Build tags for a single item
+   */
+  private buildTagsForItem(item: ItemsEntity): string[] {
+    const tagsSet = new Set<string>(item.tags || []);
+
+    // Add various item properties as tags
+    const fieldsToTag = [
+      item.expansion,
+      item.professionClass,
+      item.itemClass,
+      item.itemSubClass,
+      item.quality,
+    ];
+
+    fieldsToTag.forEach((field) => {
+      if (field) tagsSet.add(field.toLowerCase());
+    });
+
+    // Add asset classes as tags
+    if (item.assetClass) {
+      item.assetClass.forEach((ac) => tagsSet.add(ac.toLowerCase()));
+    }
+
+    // Add ticker parts as tags
+    if (item.ticker) {
+      item.ticker.split('.').forEach((ticker) => {
+        tagsSet.add(ticker.toLowerCase());
+      });
+    }
+
+    return Array.from(tagsSet);
   }
 
   /**
@@ -1308,17 +1225,9 @@ export class PricingValuationsService implements OnApplicationBootstrap {
     itemId: number,
     assetClass: VALUATION_TYPE,
   ): Promise<void> {
-    const logTag = 'addAssetClassToItem';
-
     const item = await this.itemsRepository.findOne({ where: { id: itemId } });
 
     if (!item) {
-      this.logger.warn({
-        logTag,
-        itemId,
-        assetClass,
-        message: `Item not found: ${itemId}`,
-      });
       return;
     }
 
@@ -1329,13 +1238,6 @@ export class PricingValuationsService implements OnApplicationBootstrap {
         { id: itemId },
         { assetClass: [...currentAssetClasses, assetClass] },
       );
-
-      this.logger.debug({
-        logTag,
-        itemId,
-        assetClass,
-        message: `Added ${assetClass} asset class to item: ${itemId}`,
-      });
     }
   }
 }
