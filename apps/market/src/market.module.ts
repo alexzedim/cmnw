@@ -3,9 +3,9 @@ import { bullConfig, postgresConfig, redisConfig } from '@app/configuration';
 import {
   AuctionsService,
   ContractsService,
+  EvaluationService,
   GoldService,
-  ValuationsService,
-  PricingService,
+  XvaService,
   ItemsService,
 } from './services';
 import { BullModule } from '@nestjs/bullmq';
@@ -16,6 +16,7 @@ import { RedisModule } from '@nestjs-modules/ioredis';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   ContractEntity,
+  EvaluationEntity,
   ItemsEntity,
   KeysEntity,
   MarketEntity,
@@ -47,6 +48,7 @@ import { s3Config } from '@app/configuration';
       SpellEffectEntity,
       SpellReagentsEntity,
       ValuationEntity,
+      EvaluationEntity,
     ]),
     RedisModule.forRoot({
       type: 'single',
@@ -82,9 +84,9 @@ import { s3Config } from '@app/configuration';
     AuctionsService,
     GoldService,
     ContractsService,
-    ValuationsService,
-    PricingService,
+    XvaService,
     ItemsService,
+    EvaluationService,
   ],
 })
 export class MarketModule {}
