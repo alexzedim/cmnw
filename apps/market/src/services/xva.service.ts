@@ -43,28 +43,13 @@ import {
   IAssetClassBuildArgs,
   MARKET_TYPE,
   VALUATION_TYPE,
+  LabPricingMethod,
+  REDIS_TTL,
+  BATCH_SIZE,
 } from '@app/resources';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { createHash } from 'crypto';
-
-// ============================================================================
-// CONSTANTS
-// ============================================================================
-
-const REDIS_TTL = {
-  CSV_FILES: 60 * 60 * 24 * 30, // 30 days
-  VALUATION_STAGES: 60 * 60 * 24 * 7, // 7 days
-} as const;
-
-const BATCH_SIZE = 500;
-
-interface LabPricingMethod {
-  name: string;
-  media: string;
-  spellId: number;
-  methods: Array<{ reagents: any[]; derivatives: any[] }>;
-}
 
 @Injectable()
 export class XvaService implements OnApplicationBootstrap {
