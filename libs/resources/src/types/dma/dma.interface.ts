@@ -454,3 +454,14 @@ export interface IAssetClassBuildArgs {
   isByCurrency?: boolean;
   isByTags?: boolean;
 }
+
+/**
+ * Lab Pricing Method
+ * Configuration for lab pricing methods (prospecting, milling, disenchanting)
+ */
+export interface LabPricingMethod {
+  name: string;
+  media: string;
+  spellId: number;
+  methods: Array<{ reagents: any[]; derivatives: any[] }>;
+}

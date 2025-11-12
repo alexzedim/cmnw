@@ -288,3 +288,18 @@ export const ASSET_EVALUATION_PRIORITY: Map<number, any> = new Map([
     },
   ],
 ]);
+
+/**
+ * Redis TTL Configuration for XVA Service
+ * Defines cache expiration times for CSV files and valuation stages
+ */
+export const REDIS_TTL = {
+  CSV_FILES: 60 * 60 * 24 * 30, // 30 days
+  VALUATION_STAGES: 60 * 60 * 24 * 7, // 7 days
+} as const;
+
+/**
+ * Batch Size for XVA Service Operations
+ * Used for processing large datasets in chunks
+ */
+export const BATCH_SIZE = 500;
