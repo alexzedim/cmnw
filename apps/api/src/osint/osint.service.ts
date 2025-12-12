@@ -16,12 +16,13 @@ import {
   CharactersGuildsMembersEntity,
   CharactersProfileEntity,
   GuildsEntity,
+  ItemsEntity,
   KeysEntity,
   CharactersGuildsLogsEntity,
   RealmsEntity,
 } from '@app/pg';
 
-import { FindOptionsWhere, In, MoreThanOrEqual, Repository } from 'typeorm';
+import { FindOptionsWhere, ILike, In, MoreThanOrEqual, Repository } from 'typeorm';
 
 import {
   CHARACTER_HASH_FIELDS,
@@ -39,6 +40,7 @@ import {
   LFG_STATUS,
   OSINT_SOURCE,
   RealmDto,
+  SearchQueryDto,
   toGuid,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
@@ -59,6 +61,8 @@ export class OsintService {
     private readonly charactersGuildMembersRepository: Repository<CharactersGuildsMembersEntity>,
     @InjectRepository(CharactersProfileEntity)
     private readonly charactersProfileRepository: Repository<CharactersProfileEntity>,
+    @InjectRepository(ItemsEntity)
+    private readonly itemsRepository: Repository<ItemsEntity>,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(CharactersGuildsLogsEntity)
@@ -490,6 +494,71 @@ export class OsintService {
       });
 
       throw new ServiceUnavailableException('Error fetching realms data');
+    }
+  }
+
+  async indexSearch(input: SearchQueryDto) {
+    const logTag = 'indexSearch';
+    try {
+      this.logger.log({
+        logTag,
+        searchQuery: input.searchQuery,
+        message: `Performing universal search: ${input.searchQuery}`,
+      });
+
+      const searchPattern = `%${input.searchQuery}%`;
+
+      const [characters, guilds, items] = await Promise.all([
+        this.charactersRepository.find({
+          where: {
+            guid: ILike(searchPattern),
+          },
+          take: 100,
+        }),
+        this.guildsRepository.find({
+          where: {
+            guid: ILike(searchPattern),
+          },
+          take: 100,
+        }),
+        this.itemsRepository
+          .createQueryBuilder('items')
+          .where('LOWER(items.name) LIKE LOWER(:searchPattern)', {
+            searchPattern,
+          })
+          .orWhere(
+            "LOWER(items.names::text) LIKE LOWER(:searchPattern)",
+            { searchPattern },
+          )
+          .take(100)
+          .getMany(),
+      ]);
+
+      this.logger.log({
+        logTag,
+        searchQuery: input.searchQuery,
+        characterCount: characters.length,
+        guildCount: guilds.length,
+        itemCount: items.length,
+        message: `Search completed: ${characters.length} characters, ${guilds.length} guilds, ${items.length} items`,
+      });
+
+      return {
+        characters,
+        guilds,
+        items,
+      };
+    } catch (errorOrException) {
+      this.logger.error({
+        logTag,
+        searchQuery: input.searchQuery,
+        errorOrException,
+        message: `Error performing universal search: ${input.searchQuery}`,
+      });
+
+      throw new ServiceUnavailableException(
+        `Error performing search for ${input.searchQuery}`,
+      );
     }
   }
 }
