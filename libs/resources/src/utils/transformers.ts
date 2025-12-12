@@ -52,3 +52,8 @@ export const extractRealmName = (filename: string): string | null => {
   const match = filename.match(/eu_(.+?)_tier/);
   return match ? match[1] : null;
 };
+
+export const transformSearchQuery = ({ value }: { value: string }): string => {
+  if (!value || typeof value !== 'string') return '';
+  return value.trim().toLowerCase();
+};
