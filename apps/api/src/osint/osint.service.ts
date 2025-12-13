@@ -30,12 +30,14 @@ import {
   CharacterHashFieldType,
   CharacterIdDto,
   CharacterJobQueue,
+  CharacterJobQueueDto,
   CharactersLfgDto,
   charactersQueue,
   getKeys,
   GLOBAL_OSINT_KEY,
   GuildIdDto,
   GuildJobQueue,
+  GuildJobQueueDto,
   guildsQueue,
   LFG_STATUS,
   OSINT_SOURCE,
@@ -101,16 +103,11 @@ export class OsintService {
         }),
       ]);
 
-      await this.queueGuild.add(guid, {
-        createOnlyUnique: false,
-        forceUpdate: 60 * 60 * 24,
-        region: 'eu',
-        guid: guid,
+      const dto = GuildJobQueueDto.fromGuildRequest({
         name: nameSlug,
         realm: realmEntity.slug,
-        createdBy: OSINT_SOURCE.GUILD_REQUEST,
-        updatedBy: OSINT_SOURCE.GUILD_REQUEST,
       });
+      await this.queueGuild.add(dto.guid, dto);
 
       if (!guild) {
         this.logger.warn({

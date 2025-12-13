@@ -22,6 +22,7 @@ import chalk from 'chalk';
 import {
   delay,
   GuildJobQueue,
+  GuildJobQueueDto,
   guildsQueue,
   WowProgressLink,
   DownloadSummary,
@@ -576,31 +577,25 @@ export class WowProgressRanksService
     obj: WowProgressJson,
     realmSlug: string,
   ): IGuildJob => {
-    const guildGuid = toGuid(obj.name, realmSlug);
-
     const { client, secret, token } =
       this.keyEntities[this.guildJobsItx % this.keyEntities.length];
+
+    const dto = GuildJobQueueDto.fromWowProgress({
+      name: obj.name,
+      realm: realmSlug,
+      iteration: this.guildJobsItx,
+      clientId: client,
+      clientSecret: secret,
+      accessToken: token,
+    });
 
     this.guildJobsItx = this.guildJobsItx + 1;
 
     return {
-      name: guildGuid,
-      data: {
-        guid: guildGuid,
-        name: obj.name,
-        realm: realmSlug,
-        accessToken: token,
-        clientId: client,
-        clientSecret: secret,
-        createOnlyUnique: true,
-        forceUpdate: ms('12h'),
-        iteration: this.guildJobsItx,
-        region: 'eu',
-        createdBy: OSINT_SOURCE.WOW_PROGRESS,
-        updatedBy: OSINT_SOURCE.WOW_PROGRESS,
-      },
+      name: dto.guid,
+      data: dto,
       opts: {
-        jobId: guildGuid,
+        jobId: dto.guid,
         priority: 3,
       },
     };
