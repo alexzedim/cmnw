@@ -40,7 +40,7 @@ export class CharactersService implements OnApplicationBootstrap {
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
     @InjectQueue(charactersQueue.name)
-    private readonly queue: Queue<CharacterJobQueue, number>,
+    private readonly queue: Queue<CharacterJobQueueDto, number>,
     private readonly s3Service: S3Service,
   ) {}
 

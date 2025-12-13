@@ -5,8 +5,8 @@ import { Repository, MoreThan } from 'typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { Redis } from 'ioredis';
 import { DateTime } from 'luxon';
+import { AnalyticsMetricCategory, AnalyticsMetricType } from '@app/resources';
 import {
-  AnalyticsMetric,
   CharacterFactionAggregation,
   CharacterClassAggregation,
   CharacterRaceAggregation,
@@ -124,32 +124,20 @@ export class AnalyticsService implements OnApplicationBootstrap {
       });
 
       // Compute all metrics in parallel
-      const [charMetrics, guildMetrics, marketMetrics, contractMetrics] = await Promise.all([
+      const [charCount, guildCount, marketCount, contractCount] = await Promise.all([
         this.computeCharacterMetrics(snapshotDate),
         this.computeGuildMetrics(snapshotDate),
         this.computeMarketMetrics(snapshotDate),
         this.computeContractMetrics(snapshotDate),
       ]);
 
-      // Combine all metrics
-      const allMetrics: AnalyticsMetric[] = [
-        ...charMetrics,
-        ...guildMetrics,
-        ...marketMetrics,
-        ...contractMetrics,
-      ];
-
-      // Save to PostgreSQL
-      await this.saveMetrics(allMetrics);
-
-      // Cache latest metrics
-      await this.cacheSnapshot(allMetrics);
+      const totalMetrics = charCount + guildCount + marketCount + contractCount;
 
       const duration = Date.now() - startTime;
       this.logger.log({
         logTag,
         message: 'Daily analytics computation completed',
-        metricsCount: allMetrics.length,
+        metricsCount: totalMetrics,
         durationMs: duration,
       });
     } catch (errorOrException) {
@@ -162,9 +150,10 @@ export class AnalyticsService implements OnApplicationBootstrap {
     }
   }
 
-  private async computeCharacterMetrics(snapshotDate: Date): Promise<AnalyticsMetric[]> {
+  private async computeCharacterMetrics(snapshotDate: Date): Promise<number> {
     const logTag = 'computeCharacterMetrics';
-    const metrics: AnalyticsMetric[] = [];
+    let savedCount = 0;
+    const startTime = Date.now();
 
     try {
       // Total count
@@ -174,12 +163,15 @@ export class AnalyticsService implements OnApplicationBootstrap {
       });
       const notInGuildsCount = totalCount - inGuildsCount;
 
-      metrics.push({
-        category: 'characters',
-        metricType: 'total',
+      const characterTotalMetric = this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.CHARACTERS,
+        metricType: AnalyticsMetricType.TOTAL,
         value: { count: totalCount, inGuilds: inGuildsCount, notInGuilds: notInGuildsCount },
         snapshotDate,
       });
+      await this.analyticsMetricRepository.save(characterTotalMetric);
+      this.logMetricInsert(logTag, characterTotalMetric);
+      savedCount++;
 
       // By Faction (global)
       const byFaction = await this.charactersRepository
@@ -198,12 +190,19 @@ export class AnalyticsService implements OnApplicationBootstrap {
         {} as Record<string, number>,
       );
 
-      metrics.push({
-        category: 'characters',
-        metricType: 'byFaction',
+      const characterByFactionMetric = this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.CHARACTERS,
+        metricType: AnalyticsMetricType.BY_FACTION,
         value: factionMap,
         snapshotDate,
       });
+      await this.analyticsMetricRepository.save(characterByFactionMetric);
+      this.logger.debug({
+        logTag,
+        message: 'Inserted metric',
+        metric: { category: characterByFactionMetric.category, metricType: characterByFactionMetric.metricType, realmId: characterByFactionMetric.realmId, value: characterByFactionMetric.value },
+      });
+      savedCount++;
 
       // By Class (global)
       const byClass = await this.charactersRepository
@@ -222,12 +221,19 @@ export class AnalyticsService implements OnApplicationBootstrap {
         {} as Record<string, number>,
       );
 
-      metrics.push({
-        category: 'characters',
-        metricType: 'byClass',
+      const characterByClassMetric = this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.CHARACTERS,
+        metricType: AnalyticsMetricType.BY_CLASS,
         value: classMap,
         snapshotDate,
       });
+      await this.analyticsMetricRepository.save(characterByClassMetric);
+      this.logger.debug({
+        logTag,
+        message: 'Inserted metric',
+        metric: { category: characterByClassMetric.category, metricType: characterByClassMetric.metricType, realmId: characterByClassMetric.realmId, value: characterByClassMetric.value },
+      });
+      savedCount++;
 
       // By Race (global)
       const byRace = await this.charactersRepository
@@ -246,12 +252,19 @@ export class AnalyticsService implements OnApplicationBootstrap {
         {} as Record<string, number>,
       );
 
-      metrics.push({
-        category: 'characters',
-        metricType: 'byRace',
+      const characterByRaceMetric = this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.CHARACTERS,
+        metricType: AnalyticsMetricType.BY_RACE,
         value: raceMap,
         snapshotDate,
       });
+      await this.analyticsMetricRepository.save(characterByRaceMetric);
+      this.logger.debug({
+        logTag,
+        message: 'Inserted metric',
+        metric: { category: characterByRaceMetric.category, metricType: characterByRaceMetric.metricType, realmId: characterByRaceMetric.realmId, value: characterByRaceMetric.value },
+      });
+      savedCount++;
 
       // By Level (global)
       const byLevel = await this.charactersRepository
@@ -270,12 +283,15 @@ export class AnalyticsService implements OnApplicationBootstrap {
         {} as Record<string, number>,
       );
 
-      metrics.push({
-        category: 'characters',
-        metricType: 'byLevel',
+      const characterByLevelMetric = this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.CHARACTERS,
+        metricType: AnalyticsMetricType.BY_LEVEL,
         value: levelMap,
         snapshotDate,
       });
+      await this.analyticsMetricRepository.save(characterByLevelMetric);
+      this.logMetricInsert(logTag, characterByLevelMetric);
+      savedCount++;
 
       // By Realm (with guild counts)
       const byRealm = await this.charactersRepository
@@ -290,9 +306,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         .getRawMany<CharacterRealmAggregation>();
 
       for (const realmData of byRealm) {
-        metrics.push({
-          category: 'characters',
-          metricType: 'total',
+        const characterRealmTotalMetric = this.analyticsMetricRepository.create({
+          category: AnalyticsMetricCategory.CHARACTERS,
+          metricType: AnalyticsMetricType.TOTAL,
           realmId: realmData.realm_id,
           value: {
             count: parseInt(realmData.total, 10),
@@ -301,6 +317,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
           },
           snapshotDate,
         });
+        await this.analyticsMetricRepository.save(characterRealmTotalMetric);
+        this.logMetricInsert(logTag, characterRealmTotalMetric);
+        savedCount++;
       }
 
       // By Realm + Faction
@@ -323,13 +342,16 @@ export class AnalyticsService implements OnApplicationBootstrap {
       );
 
       for (const [realmId, factionCounts] of Object.entries(byRealmFactionMap)) {
-        metrics.push({
-          category: 'characters',
-          metricType: 'byFaction',
+        const characterRealmFactionMetric = this.analyticsMetricRepository.create({
+          category: AnalyticsMetricCategory.CHARACTERS,
+          metricType: AnalyticsMetricType.BY_FACTION,
           realmId: parseInt(realmId, 10),
           value: factionCounts,
           snapshotDate,
         });
+        await this.analyticsMetricRepository.save(characterRealmFactionMetric);
+        this.logMetricInsert(logTag, characterRealmFactionMetric);
+        savedCount++;
       }
 
       // By Realm + Class
@@ -352,13 +374,16 @@ export class AnalyticsService implements OnApplicationBootstrap {
       );
 
       for (const [realmId, classCounts] of Object.entries(byRealmClassMap)) {
-        metrics.push({
-          category: 'characters',
-          metricType: 'byClass',
+        const characterRealmClassMetric = this.analyticsMetricRepository.create({
+          category: AnalyticsMetricCategory.CHARACTERS,
+          metricType: AnalyticsMetricType.BY_CLASS,
           realmId: parseInt(realmId, 10),
           value: classCounts,
           snapshotDate,
         });
+        await this.analyticsMetricRepository.save(characterRealmClassMetric);
+        this.logMetricInsert(logTag, characterRealmClassMetric);
+        savedCount++;
       }
 
       // Extremes (global)
@@ -434,12 +459,15 @@ export class AnalyticsService implements OnApplicationBootstrap {
         extremesValue.maxItemLevel = maxItemLevel;
       }
 
-      metrics.push({
-        category: 'characters',
-        metricType: 'extremes',
+      const characterExtremesMetric = this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.CHARACTERS,
+        metricType: AnalyticsMetricType.EXTREMES,
         value: extremesValue,
         snapshotDate,
       });
+      await this.analyticsMetricRepository.save(characterExtremesMetric);
+      this.logMetricInsert(logTag, characterExtremesMetric);
+      savedCount++;
 
       // Averages (global)
       const averages = await this.charactersRepository
@@ -451,9 +479,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         .where('c.achievement_points > 0')
         .getRawOne<CharacterAverages>();
 
-      metrics.push({
-        category: 'characters',
-        metricType: 'averages',
+      const characterAveragesMetric = this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.CHARACTERS,
+        metricType: AnalyticsMetricType.AVERAGES,
         value: {
           achievementPoints: averages ? parseFloat(averages.avg_achievement || '0') : 0,
           mounts: averages ? parseFloat(averages.avg_mounts || '0') : 0,
@@ -462,27 +490,35 @@ export class AnalyticsService implements OnApplicationBootstrap {
         },
         snapshotDate,
       });
+      await this.analyticsMetricRepository.save(characterAveragesMetric);
+      this.logMetricInsert(logTag, characterAveragesMetric);
+      savedCount++;
 
+      const duration = Date.now() - startTime;
       this.logger.debug({
         logTag,
         message: 'Character metrics computed',
-        metricsCount: metrics.length,
+        metricsCount: savedCount,
+        durationMs: duration,
       });
     } catch (errorOrException) {
+      const duration = Date.now() - startTime;
       this.logger.error({
         logTag,
         message: 'Error computing character metrics',
         errorOrException,
+        durationMs: duration,
       });
       throw errorOrException;
     }
 
-    return metrics;
+    return savedCount;
   }
 
-  private async computeGuildMetrics(snapshotDate: Date): Promise<AnalyticsMetric[]> {
+  private async computeGuildMetrics(snapshotDate: Date): Promise<number> {
     const logTag = 'computeGuildMetrics';
-    const metrics: AnalyticsMetric[] = [];
+    let savedCount = 0;
+    const startTime = Date.now();
 
     try {
       // Total count
@@ -494,9 +530,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
 
       const avgMembers = totalCount > 0 ? parseInt(totalMembers?.sum || '0', 10) / totalCount : 0;
 
-      metrics.push({
-        category: 'guilds',
-        metricType: 'total',
+      const guildTotalMetric = this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.GUILDS,
+        metricType: AnalyticsMetricType.TOTAL,
         value: {
           count: totalCount,
           totalMembers: parseInt(totalMembers?.sum || '0', 10),
@@ -504,6 +540,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         },
         snapshotDate,
       });
+      await this.analyticsMetricRepository.save(guildTotalMetric);
+      this.logMetricInsert(logTag, guildTotalMetric);
+      savedCount++;
 
       // By Faction (global)
       const byFaction = await this.guildsRepository
@@ -522,12 +561,15 @@ export class AnalyticsService implements OnApplicationBootstrap {
         {} as Record<string, number>,
       );
 
-      metrics.push({
-        category: 'guilds',
-        metricType: 'byFaction',
+      const guildByFactionMetric = this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.GUILDS,
+        metricType: AnalyticsMetricType.BY_FACTION,
         value: factionMap,
         snapshotDate,
       });
+      await this.analyticsMetricRepository.save(guildByFactionMetric);
+      this.logMetricInsert(logTag, guildByFactionMetric);
+      savedCount++;
 
       // By Realm (with member counts)
       const byRealm = await this.guildsRepository
@@ -539,9 +581,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         .getRawMany<GuildRealmAggregation>();
 
       for (const realmData of byRealm) {
-        metrics.push({
-          category: 'guilds',
-          metricType: 'total',
+        const guildRealmTotalMetric = this.analyticsMetricRepository.create({
+          category: AnalyticsMetricCategory.GUILDS,
+          metricType: AnalyticsMetricType.TOTAL,
           realmId: realmData.realm_id,
           value: {
             count: parseInt(realmData.count, 10),
@@ -549,6 +591,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
           },
           snapshotDate,
         });
+        await this.analyticsMetricRepository.save(guildRealmTotalMetric);
+        this.logMetricInsert(logTag, guildRealmTotalMetric);
+        savedCount++;
       }
 
       // By Realm + Faction
@@ -571,13 +616,16 @@ export class AnalyticsService implements OnApplicationBootstrap {
       );
 
       for (const [realmId, factionCounts] of Object.entries(byRealmFactionMap)) {
-        metrics.push({
-          category: 'guilds',
-          metricType: 'byFaction',
+        const guildRealmFactionMetric = this.analyticsMetricRepository.create({
+          category: AnalyticsMetricCategory.GUILDS,
+          metricType: AnalyticsMetricType.BY_FACTION,
           realmId: parseInt(realmId, 10),
           value: factionCounts,
           snapshotDate,
         });
+        await this.analyticsMetricRepository.save(guildRealmFactionMetric);
+        this.logMetricInsert(logTag, guildRealmFactionMetric);
+        savedCount++;
       }
 
       // Size distribution
@@ -602,9 +650,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         .addSelect(`SUM(CASE WHEN g.members_count > 300 THEN 1 ELSE 0 END)`, 'massive')
         .getRawOne<GuildSizeDistribution>();
 
-      metrics.push({
-        category: 'guilds',
-        metricType: 'sizeDistribution',
+      const guildSizeDistributionMetric = this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.GUILDS,
+        metricType: AnalyticsMetricType.SIZE_DISTRIBUTION,
         value: {
           tiny: parseInt(sizeDistribution?.tiny || '0', 10),
           small: parseInt(sizeDistribution?.small || '0', 10),
@@ -614,6 +662,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         },
         snapshotDate,
       });
+      await this.analyticsMetricRepository.save(guildSizeDistributionMetric);
+      this.logMetricInsert(logTag, guildSizeDistributionMetric);
+      savedCount++;
 
       // Top guilds by members
       const topByMembers = await this.guildsRepository
@@ -626,12 +677,15 @@ export class AnalyticsService implements OnApplicationBootstrap {
         .limit(10)
         .getRawMany<GuildTopByMembers>();
 
-      metrics.push({
-        category: 'guilds',
-        metricType: 'topByMembers',
+      const guildTopByMembersMetric = this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.GUILDS,
+        metricType: AnalyticsMetricType.TOP_BY_MEMBERS,
         value: topByMembers,
         snapshotDate,
       });
+      await this.analyticsMetricRepository.save(guildTopByMembersMetric);
+      this.logMetricInsert(logTag, guildTopByMembersMetric);
+      savedCount++;
 
       // Top guilds by achievements
       const topByAchievements = await this.guildsRepository
@@ -645,33 +699,41 @@ export class AnalyticsService implements OnApplicationBootstrap {
         .limit(10)
         .getRawMany<GuildTopByMembers>();
 
-      metrics.push({
-        category: 'guilds',
-        metricType: 'topByAchievements',
+      const guildTopByAchievementsMetric = this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.GUILDS,
+        metricType: AnalyticsMetricType.TOP_BY_ACHIEVEMENTS,
         value: topByAchievements,
         snapshotDate,
       });
+      await this.analyticsMetricRepository.save(guildTopByAchievementsMetric);
+      this.logMetricInsert(logTag, guildTopByAchievementsMetric);
+      savedCount++;
 
+      const duration = Date.now() - startTime;
       this.logger.debug({
         logTag,
         message: 'Guild metrics computed',
-        metricsCount: metrics.length,
+        metricsCount: savedCount,
+        durationMs: duration,
       });
     } catch (errorOrException) {
+      const duration = Date.now() - startTime;
       this.logger.error({
         logTag,
         message: 'Error computing guild metrics',
         errorOrException,
+        durationMs: duration,
       });
       throw errorOrException;
     }
 
-    return metrics;
+    return savedCount;
   }
 
-  private async computeMarketMetrics(snapshotDate: Date): Promise<AnalyticsMetric[]> {
+  private async computeMarketMetrics(snapshotDate: Date): Promise<number> {
     const logTag = 'computeMarketMetrics';
-    const metrics: AnalyticsMetric[] = [];
+    let savedCount = 0;
+    const startTime = Date.now();
 
     try {
       // Calculate 24h threshold
@@ -708,9 +770,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         .where('m.timestamp > :threshold', { threshold: threshold24h })
         .getRawOne<MarketAggregatePrice>();
 
-      metrics.push({
-        category: 'market',
-        metricType: 'total',
+      const marketTotalMetric = this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.MARKET,
+        metricType: AnalyticsMetricType.TOTAL,
         value: {
           auctions: totalCount,
           volume: parseFloat(totalVolume?.sum || '0'),
@@ -720,6 +782,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         },
         snapshotDate,
       });
+      await this.analyticsMetricRepository.save(marketTotalMetric);
+      this.logMetricInsert(logTag, marketTotalMetric);
+      savedCount++;
 
       // By Connected Realm
       const byConnectedRealm = await this.marketRepository
@@ -734,9 +799,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         .getRawMany<MarketByConnectedRealm>();
 
       for (const realm of byConnectedRealm) {
-        metrics.push({
-          category: 'market',
-          metricType: 'byConnectedRealm',
+        const marketByConnectedRealmMetric = this.analyticsMetricRepository.create({
+          category: AnalyticsMetricCategory.MARKET,
+          metricType: AnalyticsMetricType.BY_CONNECTED_REALM,
           realmId: realm.connected_realm_id,
           value: {
             auctions: parseInt(realm.auctions, 10),
@@ -746,6 +811,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
           },
           snapshotDate,
         });
+        await this.analyticsMetricRepository.save(marketByConnectedRealmMetric);
+        this.logMetricInsert(logTag, marketByConnectedRealmMetric);
+        savedCount++;
       }
 
       // By Faction (global)
@@ -771,12 +839,15 @@ export class AnalyticsService implements OnApplicationBootstrap {
         {} as Record<string, { auctions: number; volume: number }>,
       );
 
-      metrics.push({
-        category: 'market',
-        metricType: 'byFaction',
+      const marketByFactionMetric = this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.MARKET,
+        metricType: AnalyticsMetricType.BY_FACTION,
         value: factionMap,
         snapshotDate,
       });
+      await this.analyticsMetricRepository.save(marketByFactionMetric);
+      this.logMetricInsert(logTag, marketByFactionMetric);
+      savedCount++;
 
       // Price ranges
       const priceRanges = await this.marketRepository
@@ -798,9 +869,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         .where('m.timestamp > :threshold', { threshold: threshold24h })
         .getRawOne<MarketPriceRanges>();
 
-      metrics.push({
-        category: 'market',
-        metricType: 'priceRanges',
+      const marketPriceRangesMetric = this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.MARKET,
+        metricType: AnalyticsMetricType.PRICE_RANGES,
         value: {
           under1k: parseInt(priceRanges?.under1k || '0', 10),
           '1k-10k': parseInt(priceRanges?.range1k10k || '0', 10),
@@ -810,6 +881,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         },
         snapshotDate,
       });
+      await this.analyticsMetricRepository.save(marketPriceRangesMetric);
+      this.logMetricInsert(logTag, marketPriceRangesMetric);
+      savedCount++;
 
       // Top items by volume
       const topByVolume = await this.marketRepository
@@ -823,9 +897,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         .limit(10)
         .getRawMany<MarketTopByVolume>();
 
-      metrics.push({
-        category: 'market',
-        metricType: 'topByVolume',
+      const marketTopByVolumeMetric = this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.MARKET,
+        metricType: AnalyticsMetricType.TOP_BY_VOLUME,
         value: topByVolume.map((item) => ({
           itemId: item.item_id,
           volume: parseFloat(item.volume),
@@ -833,6 +907,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         })),
         snapshotDate,
       });
+      await this.analyticsMetricRepository.save(marketTopByVolumeMetric);
+      this.logMetricInsert(logTag, marketTopByVolumeMetric);
+      savedCount++;
 
       // Top items by auction count
       const topByAuctions = await this.marketRepository
@@ -845,36 +922,44 @@ export class AnalyticsService implements OnApplicationBootstrap {
         .limit(10)
         .getRawMany<MarketTopByAuctions>();
 
-      metrics.push({
-        category: 'market',
-        metricType: 'topByAuctions',
+      const marketTopByAuctionsMetric = this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.MARKET,
+        metricType: AnalyticsMetricType.TOP_BY_AUCTIONS,
         value: topByAuctions.map((item) => ({
           itemId: item.item_id,
           auctions: parseInt(item.auctions, 10),
         })),
         snapshotDate,
       });
+      await this.analyticsMetricRepository.save(marketTopByAuctionsMetric);
+      this.logMetricInsert(logTag, marketTopByAuctionsMetric);
+      savedCount++;
 
+      const duration = Date.now() - startTime;
       this.logger.debug({
         logTag,
         message: 'Market metrics computed',
-        metricsCount: metrics.length,
+        metricsCount: savedCount,
+        durationMs: duration,
       });
     } catch (errorOrException) {
+      const duration = Date.now() - startTime;
       this.logger.error({
         logTag,
         message: 'Error computing market metrics',
         errorOrException,
+        durationMs: duration,
       });
       throw errorOrException;
     }
 
-    return metrics;
+    return savedCount;
   }
 
-  private async computeContractMetrics(snapshotDate: Date): Promise<AnalyticsMetric[]> {
+  private async computeContractMetrics(snapshotDate: Date): Promise<number> {
     const logTag = 'computeContractMetrics';
-    const metrics: AnalyticsMetric[] = [];
+    let savedCount = 0;
+    const startTime = Date.now();
 
     try {
       // Calculate 24h threshold
@@ -893,9 +978,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         .where('c.timestamp > :threshold', { threshold: threshold24h })
         .getRawOne<ContractTotalMetrics>();
 
-      metrics.push({
-        category: 'contracts',
-        metricType: 'total',
+      const contractTotalMetric = this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.CONTRACTS,
+        metricType: AnalyticsMetricType.TOTAL,
         value: {
           count: totalCount,
           totalQuantity: parseInt(totals?.total_quantity || '0', 10),
@@ -904,6 +989,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         },
         snapshotDate,
       });
+      await this.analyticsMetricRepository.save(contractTotalMetric);
+      this.logMetricInsert(logTag, contractTotalMetric);
+      savedCount++;
 
       // Commodities (connectedRealmId = 1)
       const commoditiesData = await this.contractRepository
@@ -916,9 +1004,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         })
         .getRawOne<ContractCommoditiesData>();
 
-      metrics.push({
-        category: 'contracts',
-        metricType: 'byCommodities',
+      const contractByCommoditiesMetric = this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.CONTRACTS,
+        metricType: AnalyticsMetricType.BY_COMMODITIES,
         value: {
           count: parseInt(commoditiesData?.count || '0', 10),
           totalQuantity: parseInt(commoditiesData?.total_quantity || '0', 10),
@@ -926,6 +1014,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         },
         snapshotDate,
       });
+      await this.analyticsMetricRepository.save(contractByCommoditiesMetric);
+      this.logMetricInsert(logTag, contractByCommoditiesMetric);
+      savedCount++;
 
       // By Connected Realm
       const byConnectedRealm = await this.contractRepository
@@ -939,9 +1030,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         .getRawMany<ContractByConnectedRealm>();
 
       for (const realm of byConnectedRealm) {
-        metrics.push({
-          category: 'contracts',
-          metricType: 'byConnectedRealm',
+        const contractByConnectedRealmMetric = this.analyticsMetricRepository.create({
+          category: AnalyticsMetricCategory.CONTRACTS,
+          metricType: AnalyticsMetricType.BY_CONNECTED_REALM,
           realmId: realm.connected_realm_id,
           value: {
             count: parseInt(realm.count, 10),
@@ -950,6 +1041,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
           },
           snapshotDate,
         });
+        await this.analyticsMetricRepository.save(contractByConnectedRealmMetric);
+        this.logMetricInsert(logTag, contractByConnectedRealmMetric);
+        savedCount++;
       }
 
       // Top items by quantity
@@ -964,9 +1058,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         .limit(10)
         .getRawMany<ContractTopByQuantity>();
 
-      metrics.push({
-        category: 'contracts',
-        metricType: 'topByQuantity',
+      const contractTopByQuantityMetric = this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.CONTRACTS,
+        metricType: AnalyticsMetricType.TOP_BY_QUANTITY,
         value: topByQuantity.map((item) => ({
           itemId: item.item_id,
           quantity: parseInt(item.quantity, 10),
@@ -974,6 +1068,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         })),
         snapshotDate,
       });
+      await this.analyticsMetricRepository.save(contractTopByQuantityMetric);
+      this.logMetricInsert(logTag, contractTopByQuantityMetric);
+      savedCount++;
 
       // Top items by open interest
       const topByOpenInterest = await this.contractRepository
@@ -987,9 +1084,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         .limit(10)
         .getRawMany<ContractTopByOpenInterest>();
 
-      metrics.push({
-        category: 'contracts',
-        metricType: 'topByOpenInterest',
+      const contractTopByOpenInterestMetric = this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.CONTRACTS,
+        metricType: AnalyticsMetricType.TOP_BY_OPEN_INTEREST,
         value: topByOpenInterest.map((item) => ({
           itemId: item.item_id,
           openInterest: parseFloat(item.open_interest),
@@ -997,6 +1094,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         })),
         snapshotDate,
       });
+      await this.analyticsMetricRepository.save(contractTopByOpenInterestMetric);
+      this.logMetricInsert(logTag, contractTopByOpenInterestMetric);
+      savedCount++;
 
       // Price volatility
       const volatility = await this.contractRepository
@@ -1011,9 +1111,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         .limit(10)
         .getRawMany<ContractPriceVolatility>();
 
-      metrics.push({
-        category: 'contracts',
-        metricType: 'priceVolatility',
+      const contractPriceVolatilityMetric = this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.CONTRACTS,
+        metricType: AnalyticsMetricType.PRICE_VOLATILITY,
         value: volatility.map((item) => ({
           itemId: item.item_id,
           stdDev: parseFloat(item.std_dev || '0'),
@@ -1021,92 +1121,42 @@ export class AnalyticsService implements OnApplicationBootstrap {
         })),
         snapshotDate,
       });
+      await this.analyticsMetricRepository.save(contractPriceVolatilityMetric);
+      this.logMetricInsert(logTag, contractPriceVolatilityMetric);
+      savedCount++;
 
+      const duration = Date.now() - startTime;
       this.logger.debug({
         logTag,
         message: 'Contract metrics computed',
-        metricsCount: metrics.length,
+        metricsCount: savedCount,
+        durationMs: duration,
       });
     } catch (errorOrException) {
+      const duration = Date.now() - startTime;
       this.logger.error({
         logTag,
         message: 'Error computing contract metrics',
         errorOrException,
+        durationMs: duration,
       });
       throw errorOrException;
     }
 
-    return metrics;
+    return savedCount;
   }
 
-  private async saveMetrics(metrics: AnalyticsMetric[]): Promise<void> {
-    const logTag = 'saveMetrics';
-    try {
-      const entitiesToSave = metrics.map((metric) =>
-        this.analyticsMetricRepository.create({
-          category: metric.category,
-          metricType: metric.metricType,
-          realmId: metric.realmId,
-          value: metric.value,
-          snapshotDate: metric.snapshotDate,
-        }),
-      );
-
-      await this.analyticsMetricRepository.upsert(entitiesToSave, [
-        'category',
-        'metricType',
-        'realmId',
-        'snapshotDate',
-      ]);
-
-      this.logger.log({
-        logTag,
-        message: 'Metrics saved to database',
-        metricsCount: entitiesToSave.length,
-      });
-    } catch (errorOrException) {
-      this.logger.error({
-        logTag,
-        message: 'Error saving metrics to database',
-        errorOrException,
-      });
-      throw errorOrException;
-    }
-  }
-
-  private async cacheSnapshot(metrics: AnalyticsMetric[]): Promise<void> {
-    const logTag = 'cacheSnapshot';
-    try {
-      const groupedByCategory = metrics.reduce(
-        (acc, metric) => {
-          if (!acc[metric.category]) {
-            acc[metric.category] = [];
-          }
-          acc[metric.category].push(metric);
-          return acc;
-        },
-        {} as Record<string, AnalyticsMetric[]>,
-      );
-
-      const ttl = 25 * 60 * 60; // 25 hours
-
-      for (const [category, categoryMetrics] of Object.entries(groupedByCategory)) {
-        const key = `analytics:latest:${category}`;
-        await this.redis.setex(key, ttl, JSON.stringify(categoryMetrics));
-      }
-
-      this.logger.log({
-        logTag,
-        message: 'Metrics cached to Redis',
-        categories: Object.keys(groupedByCategory).length,
-      });
-    } catch (errorOrException) {
-      this.logger.warn({
-        logTag,
-        message: 'Failed to cache metrics to Redis (non-critical)',
-        errorOrException,
-      });
-    }
+  private logMetricInsert(logTag: string, metric: AnalyticsEntity): void {
+    this.logger.debug({
+      logTag,
+      message: 'Inserted metric to database',
+      category: metric.category,
+      metricType: metric.metricType,
+      realmId: metric.realmId,
+      valueSize: JSON.stringify(metric.value).length,
+      value: metric.value,
+      snapshotDate: metric.snapshotDate?.toISOString(),
+    });
   }
 
   async getLatestMetric(
@@ -1157,3 +1207,4 @@ export class AnalyticsService implements OnApplicationBootstrap {
     return query.orderBy('snapshot_date', 'ASC').getMany();
   }
 }
+

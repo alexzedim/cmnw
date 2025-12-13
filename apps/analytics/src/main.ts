@@ -4,12 +4,11 @@ dotenv.config({ quiet: true });
 import { NestFactory } from '@nestjs/core';
 import { AnalyticsModule } from './analytics.module';
 import { LoggerService } from '@app/logger';
+import { APP_LABELS } from '@app/resources';
 
 async function bootstrap() {
   const app = await NestFactory.create(AnalyticsModule);
-  app.useLogger(new LoggerService('ANALYTICS'));
-  const port = process.env.PORT || 3010;
-  await app.listen(port);
-  console.log(`Analytics service listening on port ${port}`);
+  app.useLogger(new LoggerService(APP_LABELS.A));
+  await app.listen(3001);
 }
 bootstrap();
