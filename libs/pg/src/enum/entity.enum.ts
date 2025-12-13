@@ -1,4 +1,5 @@
 export enum CMNW_ENTITY_ENUM {
+  ANALYTICS_METRICS = 'analytics_metrics',
   CHARACTERS = 'characters',
   CHARACTERS_GUILDS_LOGS = 'characters_guilds_logs',
   CHARACTERS_GUILDS_MEMBERS = 'characters_guild_members',

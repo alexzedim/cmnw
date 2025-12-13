@@ -53,6 +53,7 @@ RUN npx playwright install chromium
 RUN nest build characters \
   && nest build guilds \
   && nest build osint \
+  && nest build analytics \
   && nest build wow-progress \
   && nest build warcraft-logs
 
