@@ -5,6 +5,7 @@ import {
   GLOBAL_OSINT_KEY,
   OSINT_CHARACTER_LIMIT,
   OSINT_SOURCE,
+  CharacterJobQueueDto,
 } from '@app/resources';
 
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
@@ -111,21 +112,16 @@ export class CharactersService implements OnApplicationBootstrap {
             const { client, secret, token } =
               this.keyEntities[characterIteration % length];
 
-            const characterJobArgs = {
+            const dto = CharacterJobQueueDto.fromCharacterIndex({
               ...character,
-              region: <RegionIdOrName>'eu',
+              iteration: characterIteration,
               clientId: client,
               clientSecret: secret,
               accessToken: token,
-              createdBy: OSINT_SOURCE.CHARACTER_INDEX,
-              updatedBy: OSINT_SOURCE.CHARACTER_INDEX,
-              createOnlyUnique: false,
-              forceUpdate: ms('12h'),
-              iteration: characterIteration,
-            };
+            });
 
-            await this.queue.add(character.guid, characterJobArgs, {
-              jobId: character.guid,
+            await this.queue.add(dto.guid, dto, {
+              jobId: dto.guid,
               priority: 5,
             });
 
@@ -228,19 +224,14 @@ export class CharactersService implements OnApplicationBootstrap {
         const { client, secret, token } =
           this.keyEntities[characterIteration % length];
 
-        await this.queue.add(character.guid, {
+        const dto = CharacterJobQueueDto.fromMigrationFile({
           guid: character.guid,
-          name: nameSlug,
-          realm: realmSlug,
-          region: <RegionIdOrName>'eu',
           clientId: client,
           clientSecret: secret,
           accessToken: token,
-          createdBy: OSINT_SOURCE.OSINT_MIGRATION,
-          updatedBy: OSINT_SOURCE.OSINT_MIGRATION,
-          createOnlyUnique: true,
-          forceUpdate: ms('12h'),
         });
+
+        await this.queue.add(dto.guid, dto);
 
         characterIteration = characterIteration + 1;
       }

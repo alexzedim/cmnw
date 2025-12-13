@@ -28,6 +28,7 @@ import {
   apiConstParams,
   API_HEADERS_ENUM,
   toGuid,
+  CharacterJobQueueDto,
 } from '@app/resources';
 
 @Injectable()
@@ -90,25 +91,25 @@ export class LadderService implements OnApplicationBootstrap {
 
           console.log(rr);
 
-          const characterJobs = rr.entries.map((player) => ({
-            name: toGuid(player.character.name, player.character.realm.slug),
-            data: {
-              guid: toGuid(player.character.name, player.character.realm.slug),
+          const characterJobs = rr.entries.map((player) => {
+            const dto = CharacterJobQueueDto.fromPvPLadder({
               name: player.character.name,
               realm: player.character.realm.slug,
-              forceUpdate: ms('4h'),
-              region: 'eu',
-              createdBy: OSINT_SOURCE.PVP_LADDER,
-              updatedBy: OSINT_SOURCE.PVP_LADDER,
               faction: player.faction.type === 'HORDE' ? FACTION.H : FACTION.A,
-              iteration: player.rank,
-              createOnlyUnique: false,
-            },
-            opts: {
-              jobId: toGuid(player.character.name, player.character.realm.slug),
-              priority: 2,
-            },
-          }));
+              rank: player.rank,
+              clientId: key.client,
+              clientSecret: key.secret,
+              accessToken: key.token,
+            });
+            return {
+              name: dto.guid,
+              data: dto,
+              opts: {
+                jobId: dto.guid,
+                priority: 2,
+              },
+            };
+          });
 
           // await this.queueCharacters.addBulk(characterJobs);
 
@@ -210,25 +211,25 @@ export class LadderService implements OnApplicationBootstrap {
             if (isSafe) continue;
 
             for (const group of leading_groups) {
-              const characterJobMembers = group.members.map((member) => ({
-                name: toGuid(member.profile.name, member.profile.realm.slug),
-                data: {
-                  guid: toGuid(member.profile.name, member.profile.realm.slug),
+              const characterJobMembers = group.members.map((member) => {
+                const dto = CharacterJobQueueDto.fromMythicPlusLadder({
                   name: member.profile.name,
                   realm: member.profile.realm.slug,
-                  forceUpdate: ms('4h'),
-                  region: 'eu',
-                  createdBy: OSINT_SOURCE.MYTHIC_PLUS,
-                  updatedBy: OSINT_SOURCE.MYTHIC_PLUS,
                   faction:
                     member.faction.type === 'HORDE' ? FACTION.H : FACTION.A,
-                  createOnlyUnique: false,
-                },
-                opts: {
-                  jobId: toGuid(member.profile.name, member.profile.realm.slug),
-                  priority: 3,
-                },
-              }));
+                  clientId: key.client,
+                  clientSecret: key.secret,
+                  accessToken: key.token,
+                });
+                return {
+                  name: dto.guid,
+                  data: dto,
+                  opts: {
+                    jobId: dto.guid,
+                    priority: 3,
+                  },
+                };
+              });
 
               await this.queueCharacters.addBulk(characterJobMembers);
 

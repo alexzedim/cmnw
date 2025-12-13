@@ -25,6 +25,7 @@ import {
   profileQueue,
   toGuid,
   toSlug,
+  CharacterJobQueueDto,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
 
@@ -234,6 +235,16 @@ export class WowProgressLfgService {
 
       const key = getRandomElement(keysEntity);
 
+      const dto = CharacterJobQueueDto.fromWowProgressLfg({
+        name: characterQueue.name,
+        realm: realmEntity.slug,
+        realmId: realmEntity.id,
+        realmName: realmEntity.name,
+        clientId: key.client,
+        clientSecret: key.secret,
+        accessToken: key.token,
+      });
+
       await Promise.allSettled([
         this.queueProfile.add(characterQueue.guid, {
           guid: characterQueue.guid,
@@ -244,28 +255,10 @@ export class WowProgressLfgService {
           updateWCL: true,
           updateWP: true,
         }),
-        await this.queueCharacters.add(
-          characterQueue.guid,
-          {
-            guid: characterQueue.guid,
-            name: characterQueue.name,
-            realm: realmEntity.slug,
-            realmId: realmEntity.id,
-            realmName: realmEntity.name,
-            region: 'eu',
-            clientId: key.client,
-            clientSecret: key.secret,
-            accessToken: key.token,
-            createdBy: OSINT_SOURCE.WOW_PROGRESS_LFG,
-            updatedBy: OSINT_SOURCE.WOW_PROGRESS_LFG,
-            createOnlyUnique: false,
-            forceUpdate: 1000 * 60 * 30,
-          },
-          {
-            jobId: characterQueue.guid,
-            priority: 2,
-          },
-        ),
+        this.queueCharacters.add(dto.guid, dto, {
+          jobId: dto.guid,
+          priority: 2,
+        }),
       ]);
 
       this.stats.charactersQueued++;
