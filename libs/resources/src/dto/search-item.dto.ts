@@ -9,6 +9,7 @@ import {
   Max,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
+import { transformSearchQuery } from '@app/resources';
 
 export class SearchItemDto {
   @ApiProperty({
@@ -19,7 +20,7 @@ export class SearchItemDto {
   @IsNotEmpty({ message: 'Search query is required' })
   @IsString()
   @MinLength(2, { message: 'Search query must be at least 2 characters long' })
-  @Transform(({ value }) => value?.trim())
+  @Transform(transformSearchQuery, { toClassOnly: true })
   readonly q: string;
 
   @ApiProperty({

@@ -1,6 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { IsNotEmpty, IsString } from 'class-validator';
 import { Transform } from 'class-transformer';
+import { transformToLowerCase } from '@app/resources';
 
 export class ItemRealmDto {
   @ApiProperty({
@@ -10,6 +11,6 @@ export class ItemRealmDto {
   })
   @IsNotEmpty({ message: 'id is required' })
   @IsString()
-  @Transform(({ value: id }) => id.toLowerCase())
+  @Transform(transformToLowerCase, { toClassOnly: true })
   readonly id: string;
 }

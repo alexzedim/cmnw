@@ -8,7 +8,7 @@ import {
 } from '@app/resources/swagger/osint.swagger';
 import { Transform } from 'class-transformer';
 import { IsNumber, IsString } from 'class-validator';
-import { capitalize } from '@app/resources/utils';
+import { capitalize, transformToLowerCase } from '@app/resources';
 
 export class RealmDto {
   @IsNumber()
@@ -17,12 +17,12 @@ export class RealmDto {
 
   @ApiProperty(SWAGGER_REALM_REGION)
   @IsString()
-  @Transform(({ value: region }) => capitalize(region))
+  @Transform(({ value: region }) => capitalize(region), { toClassOnly: true })
   readonly region: string;
 
   @ApiProperty(SWAGGER_REALM_SLUG)
   @IsString()
-  @Transform(({ value: slug }) => slug.toLowerCase())
+  @Transform(transformToLowerCase, { toClassOnly: true })
   readonly slug: string;
 
   @IsString()
