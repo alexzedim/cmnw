@@ -293,7 +293,6 @@ export function transformToLowerCase(
 export function transformSearchQuery(
   params: TransformFnParams,
 ): string | undefined {
-  console.log(params);
   const { value } = params;
 
   if (!value) {
