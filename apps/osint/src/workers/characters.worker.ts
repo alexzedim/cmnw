@@ -45,7 +45,7 @@ export class CharactersWorker extends WorkerHost {
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
-    private readonly blizzardApiService: CharacterService,
+    private readonly characterService: CharacterService,
     private readonly lifecycleService: CharacterLifecycleService,
     private readonly collectionSyncService: CharacterCollectionService,
   ) {
@@ -84,7 +84,7 @@ export class CharactersWorker extends WorkerHost {
 
       this.BNet = await this.initializeApiClient(args);
 
-      const status = await this.blizzardApiService.getStatus(
+      const status = await this.characterService.getStatus(
         nameSlug,
         characterEntity.realm,
         this.BNet,
@@ -245,14 +245,14 @@ export class CharactersWorker extends WorkerHost {
   ): Promise<void> {
     const [summary, petsCollection, mountsCollection, media] =
       await Promise.allSettled([
-        this.blizzardApiService.getSummary(
+        this.characterService.getSummary(
           nameSlug,
           characterEntity.realm,
           this.BNet,
         ),
         this.fetchAndSyncPets(nameSlug, characterEntity.realm),
         this.fetchAndSyncMounts(nameSlug, characterEntity.realm),
-        this.blizzardApiService.getMedia(
+        this.characterService.getMedia(
           nameSlug,
           characterEntity.realm,
           this.BNet,
@@ -291,7 +291,7 @@ export class CharactersWorker extends WorkerHost {
       hashB: string;
     }>
   > {
-    const petsResponse = await this.blizzardApiService.getPetsCollection(
+    const petsResponse = await this.characterService.getPetsCollection(
       nameSlug,
       realmSlug,
       this.BNet,
@@ -314,7 +314,7 @@ export class CharactersWorker extends WorkerHost {
     nameSlug: string,
     realmSlug: string,
   ): Promise<Partial<{ mountsNumber: number; statusCode: number }>> {
-    const mountsResponse = await this.blizzardApiService.getMountsCollection(
+    const mountsResponse = await this.characterService.getMountsCollection(
       nameSlug,
       realmSlug,
       this.BNet,

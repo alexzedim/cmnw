@@ -506,7 +506,7 @@ export class OsintService {
         message: `Performing universal search: ${input.searchQuery}`,
       });
 
-      const searchPattern = `%${input.searchQuery}%`;
+      const searchPattern = `${input.searchQuery}%`;
 
       const [characters, guilds, items] = await Promise.all([
         this.charactersRepository.find({

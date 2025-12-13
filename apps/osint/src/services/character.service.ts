@@ -23,7 +23,7 @@ import {
   Media,
   toDate,
   toGuid,
-  IBlizzardStatusResponse,
+  IBlizzardStatusResponse, BlizzardApiMountsCollection,
 } from '@app/resources';
 import { KeysEntity } from '@app/pg';
 
@@ -219,7 +219,7 @@ export class CharacterService {
     nameSlug: string,
     realmSlug: string,
     BNet: BlizzAPI,
-  ): Promise<any> {
+  ): Promise<BlizzardApiMountsCollection> {
     try {
       const response = await BNet.query(
         `/profile/wow/character/${realmSlug}/${nameSlug}/collections/mounts`,
