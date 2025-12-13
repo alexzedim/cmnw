@@ -8,7 +8,7 @@ import {
 } from '@app/resources/swagger/osint.swagger';
 import { Transform } from 'class-transformer';
 import { IsNumber, IsString } from 'class-validator';
-import { capitalize, transformToLowerCase } from '@app/resources';
+import { capitalize, transformToLowerCase } from '@app/resources/transformers';
 
 export class RealmDto {
   @IsNumber()

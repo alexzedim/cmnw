@@ -11,7 +11,7 @@ import {
   ReqGetItemDto,
   valuationsQueue,
   WOW_TOKEN_ITEM_ID,
-  WowtokenDto,
+  WowTokenDto,
 } from '@app/resources';
 import { ItemRealmDto } from '@app/resources';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -499,7 +499,7 @@ export class DmaService {
     }
   }
 
-  async getWowToken(input: WowtokenDto) {
+  async getWowToken(input: WowTokenDto) {
     return this.marketRepository.find({
       where: {
         itemId: WOW_TOKEN_ITEM_ID,

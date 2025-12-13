@@ -7,7 +7,7 @@ import {
   transformToLowerCase,
 } from '@app/resources';
 
-export class WowtokenDto {
+export class WowTokenDto {
   @ApiProperty(SWAGGER_WOWTOKEN_REGION)
   @IsString()
   @Transform(transformToLowerCase, { toClassOnly: true })

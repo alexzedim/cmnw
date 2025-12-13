@@ -9,7 +9,7 @@ import {
   Max,
 } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
-import { transformSearchQuery } from '@app/resources';
+import { transformSearchQuery } from '@app/resources/transformers';
 
 export class SearchItemDto {
   @ApiProperty({

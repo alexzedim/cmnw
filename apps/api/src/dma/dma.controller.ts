@@ -27,7 +27,7 @@ import {
   ItemQuotesDto,
   ItemValuationsDto,
   ReqGetItemDto,
-  WowtokenDto,
+  WowTokenDto,
   SearchItemDto,
   SearchItemResponseDto,
 } from '@app/resources';
@@ -77,7 +77,7 @@ export class DmaController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
   @Get('/token')
-  async getWowToken(@Query() input: WowtokenDto): Promise<MarketEntity[]> {
+  async getWowToken(@Query() input: WowTokenDto): Promise<MarketEntity[]> {
     return this.dmaService.getWowToken(input);
   }
 
