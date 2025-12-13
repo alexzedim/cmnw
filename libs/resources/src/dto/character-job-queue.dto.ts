@@ -76,7 +76,7 @@ export class CharacterJobQueueDto {
   readonly clientId?: string;
   readonly clientSecret?: string;
   readonly accessToken?: string;
-  readonly region?: 'eu' | 'us' | 'kr' | 'tw';
+  readonly region: 'eu';
   readonly createdAt?: Date;
   readonly updatedAt?: Date;
   readonly lastModified?: Date;
