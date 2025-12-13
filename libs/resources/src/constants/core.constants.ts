@@ -1,4 +1,5 @@
 export enum APP_LABELS {
+  A = 'analytics',
   C = 'core',
   CH = 'characters',
   CMNW = 'cmnw',
