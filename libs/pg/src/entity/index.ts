@@ -30,3 +30,6 @@ export * from './pricing.entity';
 export * from './skill-line.entity';
 export * from './spell-effect.entity';
 export * from './spell-reagents.entity';
+
+/** ANALYTICS ENTITY */
+export * from './analytics-metric.entity';
