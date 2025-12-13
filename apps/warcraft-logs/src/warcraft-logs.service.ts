@@ -13,7 +13,6 @@ import {
   RaidCharacter,
   toGuid,
   KEY_LOCK,
-  CharacterJobQueue,
   toSlug,
   AdaptiveRateLimiter,
   FightsAPIResponse,
@@ -73,7 +72,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectQueue(charactersQueue.name)
-    private readonly characterQueue: Queue<CharacterJobQueue, number>,
+    private readonly characterQueue: Queue<CharacterJobQueueDto, number>,
   ) {
     // Initialize headers on service creation
     this.refreshHeaders();
