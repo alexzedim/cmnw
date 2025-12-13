@@ -27,19 +27,19 @@ export interface CharacterLevelAggregation {
 }
 
 export interface CharacterRealmAggregation {
-  realmId: number;
+  realm_id: number;
   total: string;
-  inGuilds: string;
+  in_guilds: string;
 }
 
 export interface CharacterRealmFactionAggregation {
-  realmId: number;
+  realm_id: number;
   faction: string;
   count: string;
 }
 
 export interface CharacterRealmClassAggregation {
-  realmId: number;
+  realm_id: number;
   class: string;
   count: string;
 }
@@ -52,10 +52,10 @@ export interface CharacterExtreme {
 }
 
 export interface CharacterAverages {
-  avgAchievement: string;
-  avgMounts: string;
-  avgPets: string;
-  avgItemLevel: string;
+  avg_achievement: string;
+  avg_mounts: string;
+  avg_pets: string;
+  avg_item_level: string;
 }
 
 export interface GuildTotalMetrics {
@@ -68,13 +68,13 @@ export interface GuildCountAggregation {
 }
 
 export interface GuildRealmAggregation {
-  realmId: number;
+  realm_id: number;
   count: string;
-  totalMembers: string;
+  total_members: string;
 }
 
 export interface GuildRealmFactionAggregation {
-  realmId: number;
+  realm_id: number;
   faction: string;
   count: string;
 }
@@ -107,11 +107,11 @@ export interface MarketAggregatePrice {
 }
 
 export interface MarketByConnectedRealm {
-  connectedRealmId: number;
+  connected_realm_id: number;
   auctions: string;
   volume: string;
-  uniqueItems: string;
-  avgPrice: string;
+  unique_items: string;
+  avg_price: string;
 }
 
 export interface MarketByFaction {
@@ -129,49 +129,49 @@ export interface MarketPriceRanges {
 }
 
 export interface MarketTopByVolume {
-  itemId: number;
+  item_id: number;
   volume: string;
   auctions: string;
 }
 
 export interface MarketTopByAuctions {
-  itemId: number;
+  item_id: number;
   auctions: string;
 }
 
 export interface ContractTotalMetrics {
-  totalQuantity: string;
-  totalOpenInterest: string;
-  uniqueItems: string;
+  total_quantity: string;
+  total_open_interest: string;
+  unique_items: string;
 }
 
 export interface ContractCommoditiesData {
   count: string;
-  totalQuantity: string;
-  totalOpenInterest: string;
+  total_quantity: string;
+  total_open_interest: string;
 }
 
 export interface ContractByConnectedRealm {
-  connectedRealmId: number;
+  connected_realm_id: number;
   count: string;
-  totalQuantity: string;
-  totalOpenInterest: string;
+  total_quantity: string;
+  total_open_interest: string;
 }
 
 export interface ContractTopByQuantity {
-  itemId: number;
+  item_id: number;
   quantity: string;
-  openInterest: string;
+  open_interest: string;
 }
 
 export interface ContractTopByOpenInterest {
-  itemId: number;
-  openInterest: string;
+  item_id: number;
+  open_interest: string;
   quantity: string;
 }
 
 export interface ContractPriceVolatility {
-  itemId: number;
-  stdDev: string;
-  avgPrice: string;
+  item_id: number;
+  std_dev: string;
+  avg_price: string;
 }
