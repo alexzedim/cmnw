@@ -184,7 +184,7 @@ export class AnalyticsService implements OnApplicationBootstrap {
       // By Faction (global)
       const byFaction = await this.charactersRepository
         .createQueryBuilder('c')
-        .select('c.faction', 'faction')
+        .select('c.faction')
         .addSelect('COUNT(*)', 'count')
         .where('c.faction IS NOT NULL')
         .groupBy('c.faction')
@@ -208,7 +208,7 @@ export class AnalyticsService implements OnApplicationBootstrap {
       // By Class (global)
       const byClass = await this.charactersRepository
         .createQueryBuilder('c')
-        .select('c.class', 'class')
+        .select('c.class')
         .addSelect('COUNT(*)', 'count')
         .where('c.class IS NOT NULL')
         .groupBy('c.class')
@@ -232,7 +232,7 @@ export class AnalyticsService implements OnApplicationBootstrap {
       // By Race (global)
       const byRace = await this.charactersRepository
         .createQueryBuilder('c')
-        .select('c.race', 'race')
+        .select('c.race')
         .addSelect('COUNT(*)', 'count')
         .where('c.race IS NOT NULL')
         .groupBy('c.race')
@@ -280,11 +280,11 @@ export class AnalyticsService implements OnApplicationBootstrap {
       // By Realm (with guild counts)
       const byRealm = await this.charactersRepository
         .createQueryBuilder('c')
-        .select('c.realm_id', 'realmId')
+        .select('c.realm_id')
         .addSelect('COUNT(*)', 'total')
         .addSelect(
           `SUM(CASE WHEN c.guild_guid IS NOT NULL THEN 1 ELSE 0 END)`,
-          'inGuilds',
+          'in_guilds',
         )
         .groupBy('c.realm_id')
         .getRawMany<CharacterRealmAggregation>();
@@ -293,11 +293,11 @@ export class AnalyticsService implements OnApplicationBootstrap {
         metrics.push({
           category: 'characters',
           metricType: 'total',
-          realmId: realmData.realmId,
+          realmId: realmData.realm_id,
           value: {
             count: parseInt(realmData.total, 10),
-            inGuilds: parseInt(realmData.inGuilds || '0', 10),
-            notInGuilds: parseInt(realmData.total, 10) - parseInt(realmData.inGuilds || '0', 10),
+            inGuilds: parseInt(realmData.in_guilds || '0', 10),
+            notInGuilds: parseInt(realmData.total, 10) - parseInt(realmData.in_guilds || '0', 10),
           },
           snapshotDate,
         });
@@ -306,8 +306,8 @@ export class AnalyticsService implements OnApplicationBootstrap {
       // By Realm + Faction
       const byRealmFaction = await this.charactersRepository
         .createQueryBuilder('c')
-        .select('c.realm_id', 'realmId')
-        .addSelect('c.faction', 'faction')
+        .select('c.realm_id')
+        .addSelect('c.faction')
         .addSelect('COUNT(*)', 'count')
         .where('c.faction IS NOT NULL')
         .groupBy('c.realm_id, c.faction')
@@ -315,8 +315,8 @@ export class AnalyticsService implements OnApplicationBootstrap {
 
       const byRealmFactionMap = byRealmFaction.reduce(
         (acc, row) => {
-          if (!acc[row.realmId]) acc[row.realmId] = {};
-          acc[row.realmId][row.faction] = parseInt(row.count, 10);
+          if (!acc[row.realm_id]) acc[row.realm_id] = {};
+          acc[row.realm_id][row.faction] = parseInt(row.count, 10);
           return acc;
         },
         {} as Record<number, Record<string, number>>,
@@ -335,8 +335,8 @@ export class AnalyticsService implements OnApplicationBootstrap {
       // By Realm + Class
       const byRealmClass = await this.charactersRepository
         .createQueryBuilder('c')
-        .select('c.realm_id', 'realmId')
-        .addSelect('c.class', 'class')
+        .select('c.realm_id')
+        .addSelect('c.class')
         .addSelect('COUNT(*)', 'count')
         .where('c.class IS NOT NULL')
         .groupBy('c.realm_id, c.class')
@@ -344,8 +344,8 @@ export class AnalyticsService implements OnApplicationBootstrap {
 
       const byRealmClassMap = byRealmClass.reduce(
         (acc, row) => {
-          if (!acc[row.realmId]) acc[row.realmId] = {};
-          acc[row.realmId][row.class] = parseInt(row.count, 10);
+          if (!acc[row.realm_id]) acc[row.realm_id] = {};
+          acc[row.realm_id][row.class] = parseInt(row.count, 10);
           return acc;
         },
         {} as Record<number, Record<string, number>>,
@@ -444,10 +444,10 @@ export class AnalyticsService implements OnApplicationBootstrap {
       // Averages (global)
       const averages = await this.charactersRepository
         .createQueryBuilder('c')
-        .select('AVG(c.achievement_points)', 'avgAchievement')
-        .addSelect('AVG(c.mounts_number)', 'avgMounts')
-        .addSelect('AVG(c.pets_number)', 'avgPets')
-        .addSelect('AVG(c.avg_item_level)', 'avgItemLevel')
+        .select('AVG(c.achievement_points)', 'avg_achievement')
+        .addSelect('AVG(c.mounts_number)', 'avg_mounts')
+        .addSelect('AVG(c.pets_number)', 'avg_pets')
+        .addSelect('AVG(c.avg_item_level)', 'avg_item_level')
         .where('c.achievement_points > 0')
         .getRawOne<CharacterAverages>();
 
@@ -455,10 +455,10 @@ export class AnalyticsService implements OnApplicationBootstrap {
         category: 'characters',
         metricType: 'averages',
         value: {
-          achievementPoints: averages ? parseFloat(averages.avgAchievement || '0') : 0,
-          mounts: averages ? parseFloat(averages.avgMounts || '0') : 0,
-          pets: averages ? parseFloat(averages.avgPets || '0') : 0,
-          itemLevel: averages ? parseFloat(averages.avgItemLevel || '0') : 0,
+          achievementPoints: averages ? parseFloat(averages.avg_achievement || '0') : 0,
+          mounts: averages ? parseFloat(averages.avg_mounts || '0') : 0,
+          pets: averages ? parseFloat(averages.avg_pets || '0') : 0,
+          itemLevel: averages ? parseFloat(averages.avg_item_level || '0') : 0,
         },
         snapshotDate,
       });
@@ -508,7 +508,7 @@ export class AnalyticsService implements OnApplicationBootstrap {
       // By Faction (global)
       const byFaction = await this.guildsRepository
         .createQueryBuilder('g')
-        .select('g.faction', 'faction')
+        .select('g.faction')
         .addSelect('COUNT(*)', 'count')
         .where('g.faction IS NOT NULL')
         .groupBy('g.faction')
@@ -532,9 +532,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
       // By Realm (with member counts)
       const byRealm = await this.guildsRepository
         .createQueryBuilder('g')
-        .select('g.realm_id', 'realmId')
+        .select('g.realm_id')
         .addSelect('COUNT(*)', 'count')
-        .addSelect('SUM(g.members_count)', 'totalMembers')
+        .addSelect('SUM(g.members_count)', 'total_members')
         .groupBy('g.realm_id')
         .getRawMany<GuildRealmAggregation>();
 
@@ -542,10 +542,10 @@ export class AnalyticsService implements OnApplicationBootstrap {
         metrics.push({
           category: 'guilds',
           metricType: 'total',
-          realmId: realmData.realmId,
+          realmId: realmData.realm_id,
           value: {
             count: parseInt(realmData.count, 10),
-            totalMembers: parseInt(realmData.totalMembers || '0', 10),
+            totalMembers: parseInt(realmData.total_members || '0', 10),
           },
           snapshotDate,
         });
@@ -554,8 +554,8 @@ export class AnalyticsService implements OnApplicationBootstrap {
       // By Realm + Faction
       const byRealmFaction = await this.guildsRepository
         .createQueryBuilder('g')
-        .select('g.realm_id', 'realmId')
-        .addSelect('g.faction', 'faction')
+        .select('g.realm_id')
+        .addSelect('g.faction')
         .addSelect('COUNT(*)', 'count')
         .where('g.faction IS NOT NULL')
         .groupBy('g.realm_id, g.faction')
@@ -563,8 +563,8 @@ export class AnalyticsService implements OnApplicationBootstrap {
 
       const byRealmFactionMap = byRealmFaction.reduce(
         (acc, row) => {
-          if (!acc[row.realmId]) acc[row.realmId] = {};
-          acc[row.realmId][row.faction] = parseInt(row.count, 10);
+          if (!acc[row.realm_id]) acc[row.realm_id] = {};
+          acc[row.realm_id][row.faction] = parseInt(row.count, 10);
           return acc;
         },
         {} as Record<number, Record<string, number>>,
@@ -724,11 +724,11 @@ export class AnalyticsService implements OnApplicationBootstrap {
       // By Connected Realm
       const byConnectedRealm = await this.marketRepository
         .createQueryBuilder('m')
-        .select('m.connected_realm_id', 'connectedRealmId')
+        .select('m.connected_realm_id')
         .addSelect('COUNT(*)', 'auctions')
         .addSelect('SUM(m.value)', 'volume')
-        .addSelect('COUNT(DISTINCT m.item_id)', 'uniqueItems')
-        .addSelect('AVG(m.price)', 'avgPrice')
+        .addSelect('COUNT(DISTINCT m.item_id)', 'unique_items')
+        .addSelect('AVG(m.price)', 'avg_price')
         .where('m.timestamp > :threshold', { threshold: threshold24h })
         .groupBy('m.connected_realm_id')
         .getRawMany<MarketByConnectedRealm>();
@@ -737,12 +737,12 @@ export class AnalyticsService implements OnApplicationBootstrap {
         metrics.push({
           category: 'market',
           metricType: 'byConnectedRealm',
-          realmId: realm.connectedRealmId,
+          realmId: realm.connected_realm_id,
           value: {
             auctions: parseInt(realm.auctions, 10),
             volume: parseFloat(realm.volume || '0'),
-            uniqueItems: parseInt(realm.uniqueItems, 10),
-            avgPrice: parseFloat(realm.avgPrice || '0'),
+            uniqueItems: parseInt(realm.unique_items, 10),
+            avgPrice: parseFloat(realm.avg_price || '0'),
           },
           snapshotDate,
         });
@@ -814,7 +814,7 @@ export class AnalyticsService implements OnApplicationBootstrap {
       // Top items by volume
       const topByVolume = await this.marketRepository
         .createQueryBuilder('m')
-        .select('m.item_id', 'itemId')
+        .select('m.item_id')
         .addSelect('SUM(m.value)', 'volume')
         .addSelect('COUNT(*)', 'auctions')
         .where('m.timestamp > :threshold', { threshold: threshold24h })
@@ -827,7 +827,7 @@ export class AnalyticsService implements OnApplicationBootstrap {
         category: 'market',
         metricType: 'topByVolume',
         value: topByVolume.map((item) => ({
-          itemId: item.itemId,
+          itemId: item.item_id,
           volume: parseFloat(item.volume),
           auctions: parseInt(item.auctions, 10),
         })),
@@ -837,7 +837,7 @@ export class AnalyticsService implements OnApplicationBootstrap {
       // Top items by auction count
       const topByAuctions = await this.marketRepository
         .createQueryBuilder('m')
-        .select('m.item_id', 'itemId')
+        .select('m.item_id')
         .addSelect('COUNT(*)', 'auctions')
         .where('m.timestamp > :threshold', { threshold: threshold24h })
         .groupBy('m.item_id')
@@ -849,7 +849,7 @@ export class AnalyticsService implements OnApplicationBootstrap {
         category: 'market',
         metricType: 'topByAuctions',
         value: topByAuctions.map((item) => ({
-          itemId: item.itemId,
+          itemId: item.item_id,
           auctions: parseInt(item.auctions, 10),
         })),
         snapshotDate,
@@ -887,9 +887,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
 
       const totals = await this.contractRepository
         .createQueryBuilder('c')
-        .select('SUM(c.quantity)', 'totalQuantity')
-        .addSelect('SUM(c.oi)', 'totalOpenInterest')
-        .addSelect('COUNT(DISTINCT c.item_id)', 'uniqueItems')
+        .select('SUM(c.quantity)', 'total_quantity')
+        .addSelect('SUM(c.oi)', 'total_open_interest')
+        .addSelect('COUNT(DISTINCT c.item_id)', 'unique_items')
         .where('c.timestamp > :threshold', { threshold: threshold24h })
         .getRawOne<ContractTotalMetrics>();
 
@@ -898,9 +898,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         metricType: 'total',
         value: {
           count: totalCount,
-          totalQuantity: parseInt(totals?.totalQuantity || '0', 10),
-          totalOpenInterest: parseFloat(totals?.totalOpenInterest || '0'),
-          uniqueItems: parseInt(totals?.uniqueItems || '0', 10),
+          totalQuantity: parseInt(totals?.total_quantity || '0', 10),
+          totalOpenInterest: parseFloat(totals?.total_open_interest || '0'),
+          uniqueItems: parseInt(totals?.unique_items || '0', 10),
         },
         snapshotDate,
       });
@@ -909,8 +909,8 @@ export class AnalyticsService implements OnApplicationBootstrap {
       const commoditiesData = await this.contractRepository
         .createQueryBuilder('c')
         .select('COUNT(*)', 'count')
-        .addSelect('SUM(c.quantity)', 'totalQuantity')
-        .addSelect('SUM(c.oi)', 'totalOpenInterest')
+        .addSelect('SUM(c.quantity)', 'total_quantity')
+        .addSelect('SUM(c.oi)', 'total_open_interest')
         .where('c.timestamp > :threshold AND c.connected_realm_id = 1', {
           threshold: threshold24h,
         })
@@ -921,8 +921,8 @@ export class AnalyticsService implements OnApplicationBootstrap {
         metricType: 'byCommodities',
         value: {
           count: parseInt(commoditiesData?.count || '0', 10),
-          totalQuantity: parseInt(commoditiesData?.totalQuantity || '0', 10),
-          totalOpenInterest: parseFloat(commoditiesData?.totalOpenInterest || '0'),
+          totalQuantity: parseInt(commoditiesData?.total_quantity || '0', 10),
+          totalOpenInterest: parseFloat(commoditiesData?.total_open_interest || '0'),
         },
         snapshotDate,
       });
@@ -930,10 +930,10 @@ export class AnalyticsService implements OnApplicationBootstrap {
       // By Connected Realm
       const byConnectedRealm = await this.contractRepository
         .createQueryBuilder('c')
-        .select('c.connected_realm_id', 'connectedRealmId')
+        .select('c.connected_realm_id')
         .addSelect('COUNT(*)', 'count')
-        .addSelect('SUM(c.quantity)', 'totalQuantity')
-        .addSelect('SUM(c.oi)', 'totalOpenInterest')
+        .addSelect('SUM(c.quantity)', 'total_quantity')
+        .addSelect('SUM(c.openInterest)', 'total_open_interest')
         .where('c.timestamp > :threshold', { threshold: threshold24h })
         .groupBy('c.connected_realm_id')
         .getRawMany<ContractByConnectedRealm>();
@@ -942,11 +942,11 @@ export class AnalyticsService implements OnApplicationBootstrap {
         metrics.push({
           category: 'contracts',
           metricType: 'byConnectedRealm',
-          realmId: realm.connectedRealmId,
+          realmId: realm.connected_realm_id,
           value: {
             count: parseInt(realm.count, 10),
-            totalQuantity: parseInt(realm.totalQuantity || '0', 10),
-            totalOpenInterest: parseFloat(realm.totalOpenInterest || '0'),
+            totalQuantity: parseInt(realm.total_quantity || '0', 10),
+            totalOpenInterest: parseFloat(realm.total_open_interest || '0'),
           },
           snapshotDate,
         });
@@ -955,9 +955,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
       // Top items by quantity
       const topByQuantity = await this.contractRepository
         .createQueryBuilder('c')
-        .select('c.item_id', 'itemId')
+        .select('c.item_id')
         .addSelect('SUM(c.quantity)', 'quantity')
-        .addSelect('SUM(c.oi)', 'openInterest')
+        .addSelect('SUM(c.oi)', 'open_interest')
         .where('c.timestamp > :threshold', { threshold: threshold24h })
         .groupBy('c.item_id')
         .orderBy('quantity', 'DESC')
@@ -968,9 +968,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         category: 'contracts',
         metricType: 'topByQuantity',
         value: topByQuantity.map((item) => ({
-          itemId: item.itemId,
+          itemId: item.item_id,
           quantity: parseInt(item.quantity, 10),
-          openInterest: parseFloat(item.openInterest),
+          openInterest: parseFloat(item.open_interest),
         })),
         snapshotDate,
       });
@@ -978,12 +978,12 @@ export class AnalyticsService implements OnApplicationBootstrap {
       // Top items by open interest
       const topByOpenInterest = await this.contractRepository
         .createQueryBuilder('c')
-        .select('c.item_id', 'itemId')
-        .addSelect('SUM(c.oi)', 'openInterest')
+        .select('c.item_id')
+        .addSelect('SUM(c.oi)', 'open_interest')
         .addSelect('SUM(c.quantity)', 'quantity')
         .where('c.timestamp > :threshold', { threshold: threshold24h })
         .groupBy('c.item_id')
-        .orderBy('openInterest', 'DESC')
+        .orderBy('open_interest', 'DESC')
         .limit(10)
         .getRawMany<ContractTopByOpenInterest>();
 
@@ -991,8 +991,8 @@ export class AnalyticsService implements OnApplicationBootstrap {
         category: 'contracts',
         metricType: 'topByOpenInterest',
         value: topByOpenInterest.map((item) => ({
-          itemId: item.itemId,
-          openInterest: parseFloat(item.openInterest),
+          itemId: item.item_id,
+          openInterest: parseFloat(item.open_interest),
           quantity: parseInt(item.quantity, 10),
         })),
         snapshotDate,
@@ -1001,13 +1001,13 @@ export class AnalyticsService implements OnApplicationBootstrap {
       // Price volatility
       const volatility = await this.contractRepository
         .createQueryBuilder('c')
-        .select('c.item_id', 'itemId')
-        .addSelect('STDDEV(c.price)', 'stdDev')
-        .addSelect('AVG(c.price)', 'avgPrice')
+        .select('c.item_id')
+        .addSelect('STDDEV(c.price)', 'std_dev')
+        .addSelect('AVG(c.price)', 'avg_price')
         .where('c.timestamp > :threshold', { threshold: threshold24h })
         .groupBy('c.item_id')
         .having('COUNT(*) > :count', { count: 10 })
-        .orderBy('stdDev', 'DESC')
+        .orderBy('std_dev', 'DESC')
         .limit(10)
         .getRawMany<ContractPriceVolatility>();
 
@@ -1015,9 +1015,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
         category: 'contracts',
         metricType: 'priceVolatility',
         value: volatility.map((item) => ({
-          itemId: item.itemId,
-          stdDev: parseFloat(item.stdDev || '0'),
-          avgPrice: parseFloat(item.avgPrice || '0'),
+          itemId: item.item_id,
+          stdDev: parseFloat(item.std_dev || '0'),
+          avgPrice: parseFloat(item.avg_price || '0'),
         })),
         snapshotDate,
       });
