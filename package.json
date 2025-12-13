@@ -25,6 +25,7 @@
   "scripts": {
     "prebuild": "rimraf dist",
     "build": "nest build",
+    "build:all": "nest build analytics && nest build api && nest build characters && nest build core && nest build dma && nest build guilds && nest build ladder && nest build market && nest build osint && nest build tests && nest build valuations && nest build warcraft-logs && nest build wow-progress",
     "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
     "start": "nest start",
     "start:dev": "rimraf dist && nest start --watch",
