@@ -53,7 +53,6 @@ export class DmaController {
     description: 'Server is under maintenance or overloaded',
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/item')
   async getItem(
@@ -76,7 +75,6 @@ export class DmaController {
     description: 'Server is under maintenance or overloaded',
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/token')
   async getWowToken(@Query() input: WowtokenDto): Promise<MarketEntity[]> {
@@ -97,7 +95,6 @@ export class DmaController {
     description: 'Server is under maintenance or overloaded',
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/item/valuations')
   getItemValuations(@Query() input: ItemRealmDto): Promise<ItemValuationsDto> {
@@ -118,7 +115,6 @@ export class DmaController {
     description: 'Server is under maintenance or overloaded',
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/commodity/chart')
   async getCommodityChart(
@@ -141,7 +137,6 @@ export class DmaController {
     description: 'Server is under maintenance or overloaded',
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/gold/chart')
   async getGoldChart(@Query() input: ReqGetItemDto): Promise<ItemChartDto> {
@@ -162,7 +157,6 @@ export class DmaController {
     description: 'Server is under maintenance or overloaded',
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/item/quotes')
   async getAssetQuotes(@Query() input: ItemRealmDto): Promise<ItemQuotesDto> {
@@ -183,7 +177,6 @@ export class DmaController {
     description: 'Server is under maintenance or overloaded',
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/item/feed')
   async getItemFeed(@Query() input: ItemRealmDto): Promise<ItemFeedDto> {
@@ -210,7 +203,6 @@ export class DmaController {
     description: 'Server is under maintenance or overloaded',
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/item/search')
   async searchItems(

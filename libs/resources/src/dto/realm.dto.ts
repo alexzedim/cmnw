@@ -17,7 +17,7 @@ export class RealmDto {
 
   @ApiProperty(SWAGGER_REALM_REGION)
   @IsString()
-  @Transform(({ value: region }) => capitalize(region), { toClassOnly: true })
+  @Transform(({ value }) => capitalize(value), { toClassOnly: true })
   readonly region: string;
 
   @ApiProperty(SWAGGER_REALM_SLUG)

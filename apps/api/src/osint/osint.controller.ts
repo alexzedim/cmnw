@@ -55,7 +55,6 @@ export class OsintController {
     description: 'Commonwealth API is not available at the moment',
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/character')
   async getCharacter(
@@ -79,7 +78,6 @@ export class OsintController {
     description: 'Commonwealth API is not available at the moment',
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/character/lfg')
   async getCharactersLfg(
@@ -100,7 +98,6 @@ export class OsintController {
     description: 'Commonwealth API is not available at the moment',
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/character/hash')
   async getCharactersByHash(
@@ -121,7 +118,6 @@ export class OsintController {
     description: 'Commonwealth API is not available at the moment',
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/character/logs')
   async getCharacterLogs(
@@ -142,7 +138,6 @@ export class OsintController {
     description: 'Commonwealth API is not available at the moment',
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/guild')
   async getGuild(
@@ -164,7 +159,6 @@ export class OsintController {
     description: 'Commonwealth API is not available at the moment',
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/guild/logs')
   async getGuildLogs(
@@ -195,7 +189,6 @@ export class OsintController {
     description: 'Commonwealth API is not available at the moment',
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/realms')
   async getRealms(
@@ -221,7 +214,6 @@ export class OsintController {
     description: 'Commonwealth API is not available at the moment',
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @UsePipes(new ValidationPipe({ transform: true }))
   @HttpCode(HttpStatus.OK)
   @Get('/search')
   async indexSearch(
