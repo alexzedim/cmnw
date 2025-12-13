@@ -14,6 +14,7 @@ export * from './discord-uid-subscription.dto';
 export * from './realm.dto';
 export * from './character.dto';
 export * from './character-job-queue.dto';
+export * from './guild-job-queue.dto';
 export * from './req-get-item.dto';
 export * from './auth-response.dto';
 export * from './item-realm.dto';

@@ -17,6 +17,7 @@ import {
   getKeys,
   GLOBAL_OSINT_KEY,
   GuildJobQueue,
+  GuildJobQueueDto,
   IHallOfFame,
   isEuRegion,
   isHallOfFame,
@@ -101,33 +102,25 @@ export class GuildsService implements OnApplicationBootstrap {
           this.keyEntities[guildJobsItx % length];
 
         const [name, realm] = guild.guildGuid.split('@');
-        const guildGuid = guild.guildGuid;
 
-        const guildJobData = {
-          name: guildGuid,
-          data: {
-            clientId: client,
-            clientSecret: secret,
-            accessToken: token,
-            guid: guildGuid,
-            name: name,
-            realm: realm,
-            createdBy: OSINT_SOURCE.GUILD_CHARACTERS_UNIQUE,
-            updatedBy: OSINT_SOURCE.GUILD_CHARACTERS_UNIQUE,
-            region: <RegionIdOrName>'eu',
-            forceUpdate: ms('4h'),
-            guildIteration: guildJobsItx,
-            createOnlyUnique: false,
-          },
-          opts: {
-            jobId: guildGuid,
-            priority: 1,
-          },
-        };
+        const dto = GuildJobQueueDto.fromGuildCharactersUnique({
+          name,
+          realm,
+          clientId: client,
+          clientSecret: secret,
+          accessToken: token,
+        });
 
         guildJobsItx = guildJobsItx + 1;
 
-        return guildJobData;
+        return {
+          name: dto.guid,
+          data: dto,
+          opts: {
+            jobId: dto.guid,
+            priority: 1,
+          },
+        };
       });
 
       this.logger.log({
@@ -243,21 +236,19 @@ export class GuildsService implements OnApplicationBootstrap {
             const { client, secret, token } =
               this.keyEntities[guildIteration % length];
 
-            const guildJobData = {
-              ...guild,
-              region: <RegionIdOrName>'eu',
+            const dto = GuildJobQueueDto.fromGuildIndex({
+              guid: guild.guid,
+              name: guild.name,
+              realm: guild.realm,
+              iteration: guildIteration,
               clientId: client,
               clientSecret: secret,
               accessToken: token,
-              createdBy: OSINT_SOURCE.GUILD_INDEX,
-              updatedBy: OSINT_SOURCE.GUILD_INDEX,
-              createOnlyUnique: false,
-              forceUpdate: ms('4h'),
-              iteration: guildIteration,
-            };
+              ...guild,
+            });
 
-            await this.queueGuilds.add(guild.guid, guildJobData, {
-              jobId: guild.guid,
+            await this.queueGuilds.add(dto.guid, dto, {
+              jobId: dto.guid,
               priority: 5,
             });
 
@@ -330,36 +321,24 @@ export class GuildsService implements OnApplicationBootstrap {
                 return null;
               }
 
+              const dto = GuildJobQueueDto.fromHallOfFame({
+                name: guildEntry.guild.name,
+                realm: guildEntry.guild.realm.slug,
+                realmId: guildEntry.guild.realm.id,
+                realmName: guildEntry.guild.realm.name,
+                faction: faction,
+                rank: guildEntry.rank,
+                region: <RegionIdOrName>guildEntry.region,
+                clientId: client,
+                clientSecret: secret,
+                accessToken: token,
+              });
+
               return {
-                name: toGuid(
-                  guildEntry.guild.name,
-                  guildEntry.guild.realm.slug,
-                ),
-                data: {
-                  clientId: client,
-                  clientSecret: secret,
-                  accessToken: token,
-                  guid: toGuid(
-                    guildEntry.guild.name,
-                    guildEntry.guild.realm.slug,
-                  ),
-                  name: guildEntry.guild.name,
-                  realm: guildEntry.guild.realm.slug,
-                  realmId: guildEntry.guild.realm.id,
-                  realmName: guildEntry.guild.realm.name,
-                  faction: faction,
-                  createdBy: OSINT_SOURCE.TOP100,
-                  updatedBy: OSINT_SOURCE.TOP100,
-                  region: <RegionIdOrName>guildEntry.region,
-                  forceUpdate: ms('1h'),
-                  iteration: guildEntry.rank,
-                  createOnlyUnique: false,
-                },
+                name: dto.guid,
+                data: dto,
                 opts: {
-                  jobId: toGuid(
-                    guildEntry.guild.name,
-                    guildEntry.guild.realm.slug,
-                  ),
+                  jobId: dto.guid,
                   priority: 2,
                 },
               };
