@@ -71,7 +71,7 @@ export class GuildJobQueueDto {
   readonly clientId?: string;
   readonly clientSecret?: string;
   readonly accessToken?: string;
-  readonly region?: 'eu' | 'us' | 'kr' | 'tw';
+  readonly region: 'eu';
   readonly createdAt?: Date;
   readonly updatedAt?: Date;
 
@@ -169,6 +169,7 @@ export class GuildJobQueueDto {
   /**
    * Create from Hall of Fame (Blizzard leaderboards)
    * Pattern: GuildsService.indexHallOfFame
+   * Note: Only EU region is supported - any other region will be ignored and defaulted to EU
    */
   static fromHallOfFame(params: {
     name: string;
@@ -177,12 +178,21 @@ export class GuildJobQueueDto {
     realmName: string;
     faction: string;
     rank: number;
-    region: 'eu' | 'us' | 'kr' | 'tw';
+    region?: 'eu' | 'us' | 'kr' | 'tw';
     clientId: string;
     clientSecret: string;
     accessToken: string;
   }): GuildJobQueueDto {
     const guid = toGuid(params.name, params.realm);
+    // Log warning if non-EU region was provided
+    if (params.region && params.region !== 'eu') {
+      GuildJobQueueDto.logger.warn({
+        logTag: 'GuildJobQueueDto.fromHallOfFame',
+        message: `Non-EU region '${params.region}' provided but only EU is supported. Defaulting to 'eu'.`,
+        guid,
+        providedRegion: params.region,
+      });
+    }
     const dto = new GuildJobQueueDto({
       guid,
       name: params.name,
@@ -192,7 +202,7 @@ export class GuildJobQueueDto {
       faction: params.faction,
       iteration: params.rank,
       forceUpdate: 3600000, // 1 hour
-      region: params.region,
+      region: 'eu', // Always use EU
       createdBy: OSINT_SOURCE.TOP100,
       updatedBy: OSINT_SOURCE.TOP100,
       createOnlyUnique: false,

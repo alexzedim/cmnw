@@ -2,7 +2,7 @@ import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RealmsEntity } from '@app/pg';
-import { toSlug } from '../utils';
+import { toSlug } from '../transformers';
 
 /**
  * In-memory cache service for realm lookups.

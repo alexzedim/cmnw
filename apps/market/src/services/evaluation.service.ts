@@ -69,7 +69,7 @@ export class EvaluationService implements OnApplicationBootstrap {
         throw new Error(`Item ${itemId} not found`);
       }
 
-      const assetClass = item.assetClass || [];
+      const assetClass = (item.assetClass as VALUATION_TYPE[]) || [];
 
       // Gather all pricing methods
       const methods: PricingMethod[] = [];
@@ -1135,7 +1135,7 @@ export class EvaluationService implements OnApplicationBootstrap {
           recipeRank: craft.bestRecipe?.rank,
           profession: craftingMethod?.metadata?.profession,
           expansion: craftingMethod?.metadata?.expansion,
-          assetClass: item?.assetClass,
+          assetClass: (item?.assetClass as VALUATION_TYPE[]) || [],
           recommendations: fullEval.recommendations,
           confidence: craftingMethod?.confidence || 0,
           marketVolume: fullEval.marketVolume,
