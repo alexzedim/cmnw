@@ -8,7 +8,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-@Index('ix__characters__guid', ['guid'], {})
+@Index('ix__characters__guid', ['guid'], { unique: true })
 @Index('ix__characters__guild_guild', ['guildGuid'], {})
 @Index('ix__characters__hash_a', ['hashA'], {})
 @Index('ix__characters__hash_b', ['hashB'], {})
@@ -18,7 +18,6 @@ export class CharactersEntity {
   readonly uuid: string;
 
   @Column({
-    // TODO default value function,
     nullable: false,
     type: 'varchar',
   })
