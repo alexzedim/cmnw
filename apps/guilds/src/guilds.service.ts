@@ -328,7 +328,7 @@ export class GuildsService implements OnApplicationBootstrap {
                 realmName: guildEntry.guild.realm.name,
                 faction: faction,
                 rank: guildEntry.rank,
-                region: <RegionIdOrName>guildEntry.region,
+                region: 'eu',
                 clientId: client,
                 clientSecret: secret,
                 accessToken: token,
