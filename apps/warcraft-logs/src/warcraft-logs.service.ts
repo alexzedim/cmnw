@@ -17,6 +17,7 @@ import {
   toSlug,
   AdaptiveRateLimiter,
   FightsAPIResponse,
+  CharacterJobQueueDto,
 } from '@app/resources';
 
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -697,24 +698,20 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         itx++;
         if (itx >= keys.length) itx = 0;
 
+        const dto = CharacterJobQueueDto.fromWarcraftLogs({
+          name: raidCharacter.name,
+          realm: raidCharacter.realm,
+          timestamp: raidCharacter.timestamp,
+          clientId: keys[itx].client,
+          clientSecret: keys[itx].secret,
+          accessToken: keys[itx].token,
+        });
+
         return {
-          name: raidCharacter.guid,
-          data: {
-            guid: raidCharacter.guid,
-            name: raidCharacter.name,
-            realm: raidCharacter.realm,
-            updatedAt: new Date(raidCharacter.timestamp),
-            createdBy: OSINT_SOURCE.WARCRAFT_LOGS,
-            updatedBy: OSINT_SOURCE.WARCRAFT_LOGS,
-            region: <RegionIdOrName>'eu',
-            clientId: keys[itx].client,
-            clientSecret: keys[itx].secret,
-            accessToken: keys[itx].token,
-            forceUpdate: ms('1m'),
-            createOnlyUnique: false,
-          },
+          name: dto.guid,
+          data: dto,
           opts: {
-            jobId: raidCharacter.guid,
+            jobId: dto.guid,
             priority: 2,
           },
         };

@@ -26,6 +26,7 @@ import {
   STATUS_CODES,
   toGuid,
   toSlug,
+  CharacterJobQueueDto,
 } from '@app/resources';
 import { CharactersEntity, GuildsEntity, KeysEntity } from '@app/pg';
 
@@ -159,34 +160,25 @@ export class GuildRosterService {
     characterClass: string | null,
     BNet: BlizzAPI,
   ): Promise<void> {
-    await this.characterQueue.add(
-      guid,
-      {
-        guid,
-        name: member.character.name,
-        realm: realmSlug,
-        guild: guildEntity.name,
-        guildGuid: toGuid(guildNameSlug, guildEntity.realm),
-        guildId: guildEntity.id,
-        class: characterClass,
-        faction: guildEntity.faction,
-        level,
-        lastModified: guildEntity.lastModified,
-        updatedBy: OSINT_SOURCE.GUILD_ROSTER,
-        createdBy: OSINT_SOURCE.GUILD_ROSTER,
-        accessToken: BNet.accessTokenObject.access_token,
-        clientId: BNet.clientId,
-        clientSecret: BNet.clientSecret,
-        createOnlyUnique: false,
-        forceUpdate: 1,
-        guildRank: 0,
-        region: 'eu',
-      },
-      {
-        jobId: guid,
-        priority: GUILD_WORKER_CONSTANTS.QUEUE_PRIORITY.GUILD_MASTER,
-      },
-    );
+    const dto = CharacterJobQueueDto.fromGuildMaster({
+      name: member.character.name,
+      realm: realmSlug,
+      guild: guildEntity.name,
+      guildNameSlug,
+      guildId: guildEntity.id,
+      class: characterClass,
+      faction: guildEntity.faction,
+      level,
+      lastModified: guildEntity.lastModified,
+      clientId: BNet.clientId,
+      clientSecret: BNet.clientSecret,
+      accessToken: BNet.accessTokenObject.access_token,
+    });
+
+    await this.characterQueue.add(dto.guid, dto, {
+      jobId: dto.guid,
+      priority: GUILD_WORKER_CONSTANTS.QUEUE_PRIORITY.GUILD_MASTER,
+    });
   }
 
   private async saveCharacterAsGuildMember(
