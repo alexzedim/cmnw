@@ -1,7 +1,7 @@
 import { IsNotEmpty, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { transformSearchQuery } from '@app/resources';
+import { transformSearchQuery } from '@app/resources/transformers';
 
 export class SearchQueryDto {
   @ApiProperty({
