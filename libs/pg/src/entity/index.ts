@@ -32,4 +32,4 @@ export * from './spell-effect.entity';
 export * from './spell-reagents.entity';
 
 /** ANALYTICS ENTITY */
-export * from './analytics-metric.entity';
+export * from './analytics.entity';

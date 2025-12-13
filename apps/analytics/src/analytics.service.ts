@@ -1,18 +1,10 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, IsNull, MoreThan } from 'typeorm';
+import { Repository, MoreThan } from 'typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { Redis } from 'ioredis';
 import { DateTime } from 'luxon';
-import {
-  AnalyticsMetricEntity,
-  CharactersEntity,
-  GuildsEntity,
-  MarketEntity,
-  ContractEntity,
-  RealmsEntity,
-} from '@app/pg';
 import {
   AnalyticsMetric,
   CharacterFactionAggregation,
@@ -46,6 +38,15 @@ import {
   ContractPriceVolatility,
 } from '@app/resources/types';
 
+import {
+  AnalyticsEntity,
+  CharactersEntity,
+  GuildsEntity,
+  MarketEntity,
+  ContractEntity,
+  RealmsEntity,
+} from '@app/pg';
+
 @Injectable()
 export class AnalyticsService implements OnApplicationBootstrap {
   private readonly logger = new Logger(AnalyticsService.name, {
@@ -53,8 +54,8 @@ export class AnalyticsService implements OnApplicationBootstrap {
   });
 
   constructor(
-    @InjectRepository(AnalyticsMetricEntity)
-    private readonly analyticsMetricRepository: Repository<AnalyticsMetricEntity>,
+    @InjectRepository(AnalyticsEntity)
+    private readonly analyticsMetricRepository: Repository<AnalyticsEntity>,
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
     @InjectRepository(GuildsEntity)
@@ -1112,7 +1113,7 @@ export class AnalyticsService implements OnApplicationBootstrap {
     category: string,
     metricType: string,
     realmId?: number,
-  ): Promise<AnalyticsMetricEntity | null> {
+  ): Promise<AnalyticsEntity | null> {
     const query = this.analyticsMetricRepository
       .createQueryBuilder()
       .where('category = :category', { category })
@@ -1133,7 +1134,7 @@ export class AnalyticsService implements OnApplicationBootstrap {
     realmId?: number,
     fromDate?: Date,
     toDate?: Date,
-  ): Promise<AnalyticsMetricEntity[]> {
+  ): Promise<AnalyticsEntity[]> {
     const query = this.analyticsMetricRepository
       .createQueryBuilder()
       .where('category = :category', { category })

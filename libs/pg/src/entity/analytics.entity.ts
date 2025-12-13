@@ -11,8 +11,8 @@ import {
 @Index('ix__analytics__date', ['snapshotDate'])
 @Index('ix__analytics__realm_date', ['realmId', 'snapshotDate'])
 @Index('ix__analytics__category_date', ['category', 'snapshotDate'])
-@Entity({ name: CMNW_ENTITY_ENUM.ANALYTICS_METRICS })
-export class AnalyticsMetricEntity {
+@Entity({ name: CMNW_ENTITY_ENUM.ANALYTICS })
+export class AnalyticsEntity {
   @PrimaryGeneratedColumn('uuid')
   readonly id: string;
 
