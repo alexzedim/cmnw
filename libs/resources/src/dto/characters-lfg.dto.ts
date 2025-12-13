@@ -24,6 +24,7 @@ export class CharactersLfgDto {
     Array.isArray(realmsId) && realmsId
       ? realmsId.map((realmId) => Number(realmId))
       : [realmsId],
+    { toClassOnly: true },
   )
   readonly realmsId: number[];
 
@@ -34,6 +35,7 @@ export class CharactersLfgDto {
     Array.isArray(languages) && languages
       ? languages.map((l) => l.toLowerCase())
       : [languages],
+    { toClassOnly: true },
   )
   readonly languages: string[];
 

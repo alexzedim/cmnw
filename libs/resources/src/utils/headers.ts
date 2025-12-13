@@ -1,4 +1,4 @@
-import { USER_AGENTS, ACCEPT_LANGUAGES } from '../constants/http.constants';
+import { USER_AGENTS, ACCEPT_LANGUAGES } from '@app/resources/constants';
 import type { RandomizedHeadersOptions } from '../types';
 
 /**
