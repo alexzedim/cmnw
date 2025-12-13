@@ -4,13 +4,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { postgresConfig, redisConfig } from '@app/configuration';
 import {
-  AnalyticsMetricEntity,
+  AnalyticsEntity,
   CharactersEntity,
   GuildsEntity,
   MarketEntity,
   ContractEntity,
   RealmsEntity,
 } from '@app/pg';
+
 import { AnalyticsService } from './analytics.service';
 
 @Module({
@@ -18,7 +19,7 @@ import { AnalyticsService } from './analytics.service';
     ScheduleModule.forRoot(),
     TypeOrmModule.forRoot(postgresConfig),
     TypeOrmModule.forFeature([
-      AnalyticsMetricEntity,
+      AnalyticsEntity,
       CharactersEntity,
       GuildsEntity,
       MarketEntity,
