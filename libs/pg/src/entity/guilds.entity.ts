@@ -8,7 +8,7 @@ import {
   UpdateDateColumn,
 } from 'typeorm';
 
-@Index('ix__guilds__guid', ['guid'], {})
+@Index('ix__guilds__guid', ['guid'], { unique: true })
 @Entity({ name: CMNW_ENTITY_ENUM.GUILDS })
 export class GuildsEntity {
   @PrimaryGeneratedColumn('uuid')
