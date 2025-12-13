@@ -2,6 +2,7 @@ import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { readFileSync } from 'fs';
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 import {
+  AnalyticsEntity,
   CharactersEntity,
   CharactersGuildsMembersEntity,
   CharactersMountsEntity,
@@ -23,7 +24,6 @@ import {
   SkillLineEntity,
   SpellEffectEntity,
   SpellReagentsEntity,
-  UsersEntity,
 } from '@app/pg';
 
 export const postgresConfig: TypeOrmModuleOptions = {
@@ -35,6 +35,7 @@ export const postgresConfig: TypeOrmModuleOptions = {
   database: process.env.POSTGRES_DB,
   logging: false,
   entities: [
+    AnalyticsEntity,
     CharactersEntity,
     CharactersGuildsMembersEntity,
     CharactersMountsEntity,
@@ -56,7 +57,6 @@ export const postgresConfig: TypeOrmModuleOptions = {
     SkillLineEntity,
     SpellEffectEntity,
     SpellReagentsEntity,
-    UsersEntity,
   ],
   synchronize: true,
   namingStrategy: new SnakeNamingStrategy(),
