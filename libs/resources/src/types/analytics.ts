@@ -12,7 +12,7 @@ export interface CharacterFactionAggregation {
 }
 
 export interface CharacterClassAggregation {
-  class: string;
+  character_class: string;
   count: string;
 }
 
@@ -40,7 +40,7 @@ export interface CharacterRealmFactionAggregation {
 
 export interface CharacterRealmClassAggregation {
   realm_id: number;
-  class: string;
+  character_class: string;
   count: string;
 }
 

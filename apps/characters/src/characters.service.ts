@@ -1,10 +1,8 @@
 import {
-  CharacterJobQueue,
   charactersQueue,
   getKeys,
   GLOBAL_OSINT_KEY,
   OSINT_CHARACTER_LIMIT,
-  OSINT_SOURCE,
   CharacterJobQueueDto,
 } from '@app/resources';
 
@@ -15,10 +13,8 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { CharactersEntity, KeysEntity } from '@app/pg';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { RegionIdOrName } from '@alexzedim/blizzapi';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import { S3Service } from '@app/s3';
-import ms from 'ms';
 import { osintConfig } from '@app/configuration';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
