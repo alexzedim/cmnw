@@ -134,12 +134,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
       const totalMetrics = charCount + guildCount + marketCount + contractCount;
 
       const duration = Date.now() - startTime;
-      this.logger.log({
-        logTag,
-        message: 'Daily analytics computation completed',
-        metricsCount: totalMetrics,
-        durationMs: duration,
-      });
+      this.logger.log(
+        `Daily analytics computation completed - metricsCount: ${totalMetrics}, durationMs: ${duration}`,
+      );
     } catch (errorOrException) {
       this.logger.error({
         logTag,
@@ -176,7 +173,7 @@ export class AnalyticsService implements OnApplicationBootstrap {
       // By Faction (global)
       const byFaction = await this.charactersRepository
         .createQueryBuilder('c')
-        .select('c.faction')
+        .select('c.faction', 'faction')
         .addSelect('COUNT(*)', 'count')
         .where('c.faction IS NOT NULL')
         .groupBy('c.faction')
@@ -207,7 +204,7 @@ export class AnalyticsService implements OnApplicationBootstrap {
       // By Class (global)
       const byClass = await this.charactersRepository
         .createQueryBuilder('c')
-        .select('c.class')
+        .select('c.class', 'character_class')
         .addSelect('COUNT(*)', 'count')
         .where('c.class IS NOT NULL')
         .groupBy('c.class')
@@ -215,7 +212,7 @@ export class AnalyticsService implements OnApplicationBootstrap {
 
       const classMap = byClass.reduce(
         (acc, row) => {
-          acc[row.class] = parseInt(row.count, 10);
+          acc[row.character_class] = parseInt(row.count, 10);
           return acc;
         },
         {} as Record<string, number>,
@@ -326,7 +323,7 @@ export class AnalyticsService implements OnApplicationBootstrap {
       const byRealmFaction = await this.charactersRepository
         .createQueryBuilder('c')
         .select('c.realm_id')
-        .addSelect('c.faction')
+        .addSelect('c.faction', 'faction')
         .addSelect('COUNT(*)', 'count')
         .where('c.faction IS NOT NULL')
         .groupBy('c.realm_id, c.faction')
@@ -358,7 +355,7 @@ export class AnalyticsService implements OnApplicationBootstrap {
       const byRealmClass = await this.charactersRepository
         .createQueryBuilder('c')
         .select('c.realm_id')
-        .addSelect('c.class')
+        .addSelect('c.class', 'character_class')
         .addSelect('COUNT(*)', 'count')
         .where('c.class IS NOT NULL')
         .groupBy('c.realm_id, c.class')
@@ -367,7 +364,7 @@ export class AnalyticsService implements OnApplicationBootstrap {
       const byRealmClassMap = byRealmClass.reduce(
         (acc, row) => {
           if (!acc[row.realm_id]) acc[row.realm_id] = {};
-          acc[row.realm_id][row.class] = parseInt(row.count, 10);
+          acc[row.realm_id][row.character_class] = parseInt(row.count, 10);
           return acc;
         },
         {} as Record<number, Record<string, number>>,
@@ -495,12 +492,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
       savedCount++;
 
       const duration = Date.now() - startTime;
-      this.logger.debug({
-        logTag,
-        message: 'Character metrics computed',
-        metricsCount: savedCount,
-        durationMs: duration,
-      });
+      this.logger.log(
+        `Character metrics computed - metricsCount: ${savedCount}, durationMs: ${duration}`,
+      );
     } catch (errorOrException) {
       const duration = Date.now() - startTime;
       this.logger.error({
@@ -547,7 +541,7 @@ export class AnalyticsService implements OnApplicationBootstrap {
       // By Faction (global)
       const byFaction = await this.guildsRepository
         .createQueryBuilder('g')
-        .select('g.faction')
+        .select('g.faction', 'faction')
         .addSelect('COUNT(*)', 'count')
         .where('g.faction IS NOT NULL')
         .groupBy('g.faction')
@@ -600,7 +594,7 @@ export class AnalyticsService implements OnApplicationBootstrap {
       const byRealmFaction = await this.guildsRepository
         .createQueryBuilder('g')
         .select('g.realm_id')
-        .addSelect('g.faction')
+        .addSelect('g.faction', 'faction')
         .addSelect('COUNT(*)', 'count')
         .where('g.faction IS NOT NULL')
         .groupBy('g.realm_id, g.faction')
@@ -710,12 +704,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
       savedCount++;
 
       const duration = Date.now() - startTime;
-      this.logger.debug({
-        logTag,
-        message: 'Guild metrics computed',
-        metricsCount: savedCount,
-        durationMs: duration,
-      });
+      this.logger.log(
+        `Guild metrics computed - metricsCount: ${savedCount}, durationMs: ${duration}`,
+      );
     } catch (errorOrException) {
       const duration = Date.now() - startTime;
       this.logger.error({
@@ -936,12 +927,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
       savedCount++;
 
       const duration = Date.now() - startTime;
-      this.logger.debug({
-        logTag,
-        message: 'Market metrics computed',
-        metricsCount: savedCount,
-        durationMs: duration,
-      });
+      this.logger.log(
+        `Market metrics computed - metricsCount: ${savedCount}, durationMs: ${duration}`,
+      );
     } catch (errorOrException) {
       const duration = Date.now() - startTime;
       this.logger.error({
@@ -1126,12 +1114,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
       savedCount++;
 
       const duration = Date.now() - startTime;
-      this.logger.debug({
-        logTag,
-        message: 'Contract metrics computed',
-        metricsCount: savedCount,
-        durationMs: duration,
-      });
+      this.logger.log(
+        `Contract metrics computed - metricsCount: ${savedCount}, durationMs: ${duration}`,
+      );
     } catch (errorOrException) {
       const duration = Date.now() - startTime;
       this.logger.error({

@@ -250,6 +250,19 @@ export class LoggerService extends ConsoleLogger {
    * @returns Formatted string for console
    */
   private formatForConsole(errorInfo: StandardizedErrorInfo): string {
+    // For object types, return the full JSON representation
+    if (errorInfo.errorType === 'object' || errorInfo.errorType === 'unknown') {
+      try {
+        // Create a clean copy without internal fields
+        const { errorType, originalError, originalInput, timestamp, level, ...cleanInfo } = errorInfo;
+        return JSON.stringify(cleanInfo, null, 2);
+      } catch (error) {
+        // Fallback if JSON.stringify fails
+        return `[${errorInfo.logTag}] ${errorInfo.message}`;
+      }
+    }
+
+    // For other types (string, axios, standard errors), use formatted output
     const parts = [];
 
     if (errorInfo.logTag) {
@@ -263,23 +276,6 @@ export class LoggerService extends ConsoleLogger {
       parts.push(`HTTP ${errorInfo.status}`);
       if (errorInfo.method && errorInfo.url) {
         parts.push(`${errorInfo.method} ${errorInfo.url}`);
-      }
-    } else if (errorInfo.errorType === 'object' && errorInfo.originalError) {
-      // For objects, show key properties in console for better readability
-      const obj = errorInfo.originalError as Record<string, any>;
-      const relevantKeys = [
-        'id',
-        'code',
-        'type',
-        'status',
-        'error',
-        'details',
-      ].filter((key) => obj[key] !== undefined);
-      if (relevantKeys.length > 0) {
-        const contextInfo = relevantKeys
-          .map((key) => `${key}: ${String(obj[key])}`)
-          .join(', ');
-        parts.push(`{${contextInfo}}`);
       }
     }
 
