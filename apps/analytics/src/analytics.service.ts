@@ -167,7 +167,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
         snapshotDate,
       });
       await this.analyticsMetricRepository.save(characterTotalMetric);
-      this.logMetricInsert(logTag, characterTotalMetric);
       savedCount++;
 
       // By Faction (global)
@@ -287,7 +286,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
         snapshotDate,
       });
       await this.analyticsMetricRepository.save(characterByLevelMetric);
-      this.logMetricInsert(logTag, characterByLevelMetric);
       savedCount++;
 
       // By Realm (with guild counts)
@@ -315,7 +313,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
           snapshotDate,
         });
         await this.analyticsMetricRepository.save(characterRealmTotalMetric);
-        this.logMetricInsert(logTag, characterRealmTotalMetric);
         savedCount++;
       }
 
@@ -347,7 +344,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
           snapshotDate,
         });
         await this.analyticsMetricRepository.save(characterRealmFactionMetric);
-        this.logMetricInsert(logTag, characterRealmFactionMetric);
         savedCount++;
       }
 
@@ -379,7 +375,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
           snapshotDate,
         });
         await this.analyticsMetricRepository.save(characterRealmClassMetric);
-        this.logMetricInsert(logTag, characterRealmClassMetric);
         savedCount++;
       }
 
@@ -463,7 +458,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
         snapshotDate,
       });
       await this.analyticsMetricRepository.save(characterExtremesMetric);
-      this.logMetricInsert(logTag, characterExtremesMetric);
       savedCount++;
 
       // Averages (global)
@@ -488,7 +482,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
         snapshotDate,
       });
       await this.analyticsMetricRepository.save(characterAveragesMetric);
-      this.logMetricInsert(logTag, characterAveragesMetric);
       savedCount++;
 
       const duration = Date.now() - startTime;
@@ -535,7 +528,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
         snapshotDate,
       });
       await this.analyticsMetricRepository.save(guildTotalMetric);
-      this.logMetricInsert(logTag, guildTotalMetric);
       savedCount++;
 
       // By Faction (global)
@@ -562,7 +554,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
         snapshotDate,
       });
       await this.analyticsMetricRepository.save(guildByFactionMetric);
-      this.logMetricInsert(logTag, guildByFactionMetric);
       savedCount++;
 
       // By Realm (with member counts)
@@ -586,7 +577,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
           snapshotDate,
         });
         await this.analyticsMetricRepository.save(guildRealmTotalMetric);
-        this.logMetricInsert(logTag, guildRealmTotalMetric);
         savedCount++;
       }
 
@@ -618,7 +608,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
           snapshotDate,
         });
         await this.analyticsMetricRepository.save(guildRealmFactionMetric);
-        this.logMetricInsert(logTag, guildRealmFactionMetric);
         savedCount++;
       }
 
@@ -657,7 +646,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
         snapshotDate,
       });
       await this.analyticsMetricRepository.save(guildSizeDistributionMetric);
-      this.logMetricInsert(logTag, guildSizeDistributionMetric);
       savedCount++;
 
       // Top guilds by members
@@ -678,7 +666,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
         snapshotDate,
       });
       await this.analyticsMetricRepository.save(guildTopByMembersMetric);
-      this.logMetricInsert(logTag, guildTopByMembersMetric);
       savedCount++;
 
       // Top guilds by achievements
@@ -700,7 +687,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
         snapshotDate,
       });
       await this.analyticsMetricRepository.save(guildTopByAchievementsMetric);
-      this.logMetricInsert(logTag, guildTopByAchievementsMetric);
       savedCount++;
 
       const duration = Date.now() - startTime;
@@ -774,7 +760,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
         snapshotDate,
       });
       await this.analyticsMetricRepository.save(marketTotalMetric);
-      this.logMetricInsert(logTag, marketTotalMetric);
       savedCount++;
 
       // By Connected Realm
@@ -803,7 +788,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
           snapshotDate,
         });
         await this.analyticsMetricRepository.save(marketByConnectedRealmMetric);
-        this.logMetricInsert(logTag, marketByConnectedRealmMetric);
         savedCount++;
       }
 
@@ -837,7 +821,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
         snapshotDate,
       });
       await this.analyticsMetricRepository.save(marketByFactionMetric);
-      this.logMetricInsert(logTag, marketByFactionMetric);
       savedCount++;
 
       // Price ranges
@@ -873,7 +856,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
         snapshotDate,
       });
       await this.analyticsMetricRepository.save(marketPriceRangesMetric);
-      this.logMetricInsert(logTag, marketPriceRangesMetric);
       savedCount++;
 
       // Top items by volume
@@ -899,7 +881,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
         snapshotDate,
       });
       await this.analyticsMetricRepository.save(marketTopByVolumeMetric);
-      this.logMetricInsert(logTag, marketTopByVolumeMetric);
       savedCount++;
 
       // Top items by auction count
@@ -923,7 +904,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
         snapshotDate,
       });
       await this.analyticsMetricRepository.save(marketTopByAuctionsMetric);
-      this.logMetricInsert(logTag, marketTopByAuctionsMetric);
       savedCount++;
 
       const duration = Date.now() - startTime;
@@ -978,7 +958,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
         snapshotDate,
       });
       await this.analyticsMetricRepository.save(contractTotalMetric);
-      this.logMetricInsert(logTag, contractTotalMetric);
       savedCount++;
 
       // Commodities (connectedRealmId = 1)
@@ -1003,7 +982,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
         snapshotDate,
       });
       await this.analyticsMetricRepository.save(contractByCommoditiesMetric);
-      this.logMetricInsert(logTag, contractByCommoditiesMetric);
       savedCount++;
 
       // By Connected Realm
@@ -1030,7 +1008,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
           snapshotDate,
         });
         await this.analyticsMetricRepository.save(contractByConnectedRealmMetric);
-        this.logMetricInsert(logTag, contractByConnectedRealmMetric);
         savedCount++;
       }
 
@@ -1057,7 +1034,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
         snapshotDate,
       });
       await this.analyticsMetricRepository.save(contractTopByQuantityMetric);
-      this.logMetricInsert(logTag, contractTopByQuantityMetric);
       savedCount++;
 
       // Top items by open interest
@@ -1083,7 +1059,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
         snapshotDate,
       });
       await this.analyticsMetricRepository.save(contractTopByOpenInterestMetric);
-      this.logMetricInsert(logTag, contractTopByOpenInterestMetric);
       savedCount++;
 
       // Price volatility
@@ -1110,7 +1085,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
         snapshotDate,
       });
       await this.analyticsMetricRepository.save(contractPriceVolatilityMetric);
-      this.logMetricInsert(logTag, contractPriceVolatilityMetric);
       savedCount++;
 
       const duration = Date.now() - startTime;
@@ -1129,19 +1103,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
     }
 
     return savedCount;
-  }
-
-  private logMetricInsert(logTag: string, metric: AnalyticsEntity): void {
-    this.logger.debug({
-      logTag,
-      message: 'Inserted metric to database',
-      category: metric.category,
-      metricType: metric.metricType,
-      realmId: metric.realmId,
-      valueSize: JSON.stringify(metric.value).length,
-      value: metric.value,
-      snapshotDate: metric.snapshotDate?.toISOString(),
-    });
   }
 
   async getLatestMetric(
