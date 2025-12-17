@@ -331,6 +331,57 @@ export class CharacterJobQueueDto {
   }
 
   /**
+   * Create from Guild Member (non-guild master)
+   * Pattern: GuildRosterService.saveCharacterAsGuildMember
+   */
+  static fromGuildMember(params: {
+    name: string;
+    realm: string;
+    realmId: number;
+    realmName: string;
+    guild: string;
+    guildGuid: string;
+    guildId: number;
+    guildRank: number;
+    class: string | null;
+    faction: string;
+    level: number | null;
+    lastModified: Date;
+    clientId: string;
+    clientSecret: string;
+    accessToken: string;
+    id?: number;
+  }): CharacterJobQueueDto {
+    const guid = toGuid(params.name, params.realm);
+    const dto = new CharacterJobQueueDto({
+      guid,
+      id: params.id,
+      name: params.name,
+      realm: params.realm,
+      realmId: params.realmId,
+      realmName: params.realmName,
+      guild: params.guild,
+      guildGuid: params.guildGuid,
+      guildId: params.guildId,
+      guildRank: params.guildRank,
+      class: params.class || undefined,
+      faction: params.faction,
+      level: params.level || undefined,
+      lastModified: params.lastModified,
+      forceUpdate: 604800000, // 7 days - very conservative, guild members are low priority
+      region: 'eu',
+      createdBy: OSINT_SOURCE.GUILD_ROSTER,
+      updatedBy: OSINT_SOURCE.GUILD_ROSTER,
+      createOnlyUnique: false,
+      clientId: params.clientId,
+      clientSecret: params.clientSecret,
+      accessToken: params.accessToken,
+    });
+    dto.validate(false, 'CharacterJobQueueDto.fromGuildMember');
+    return dto;
+  }
+
+  /**
    * Create from S3 migration file
    * Pattern: CharactersService.indexFromFile
    */
