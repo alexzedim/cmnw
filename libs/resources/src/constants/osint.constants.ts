@@ -88,8 +88,8 @@ export const CHARACTER_SUMMARY_FIELD_MAPPING = new Map<string, string>([
 
 export const CHARACTER_MEDIA_FIELD_MAPPING = new Map<string, string>([
   ['avatar', 'avatarImage'],
-  ['main-raw', 'insetImage'],
-  ['inset', 'mainImage'],
+  ['main-raw', 'mainImage'],
+  ['inset', 'insetImage'],
 ]);
 
 export const CHARACTER_RAID_DIFFICULTY = new Map<string, IWarcraftLogsMap>([
