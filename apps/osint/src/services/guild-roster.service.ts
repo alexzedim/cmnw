@@ -11,24 +11,21 @@ import { get } from 'lodash';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
-  characterAsGuildMember,
   CharacterJobQueue,
   charactersQueue,
   GUILD_WORKER_CONSTANTS,
-  ICharacterGuildMember,
   IGuildRoster,
   incErrorCount,
   IRGuildRoster,
   isGuildRoster,
   OSINT_GM_RANK,
-  OSINT_SOURCE,
   PLAYABLE_CLASS,
   STATUS_CODES,
   toGuid,
   toSlug,
   CharacterJobQueueDto,
 } from '@app/resources';
-import { CharactersEntity, GuildsEntity, KeysEntity } from '@app/pg';
+import { GuildsEntity, KeysEntity } from '@app/pg';
 
 @Injectable()
 export class GuildRosterService {
@@ -39,8 +36,6 @@ export class GuildRosterService {
   constructor(
     @InjectQueue(charactersQueue.name)
     private readonly characterQueue: Queue<CharacterJobQueue, number>,
-    @InjectRepository(CharactersEntity)
-    private readonly charactersRepository: Repository<CharactersEntity>,
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
   ) {}
@@ -123,16 +118,19 @@ export class GuildRosterService {
           characterClass,
           BNet,
         );
+      } else {
+        // Queue non-GM guild members for processing by CharactersWorker
+        await this.queueGuildMemberUpdate(
+          member,
+          guildEntity,
+          guildNameSlug,
+          guid,
+          realmSlug,
+          level,
+          characterClass,
+          BNet,
+        );
       }
-
-      await this.saveCharacterAsGuildMember(
-        member,
-        guildEntity,
-        guildNameSlug,
-        guid,
-        level,
-        characterClass,
-      );
 
       roster.members.push({
         guid,
@@ -181,29 +179,40 @@ export class GuildRosterService {
     });
   }
 
-  private async saveCharacterAsGuildMember(
+  private async queueGuildMemberUpdate(
     member: any,
     guildEntity: GuildsEntity,
     guildNameSlug: string,
     guid: string,
+    realmSlug: string,
     level: number | null,
     characterClass: string | null,
+    BNet: BlizzAPI,
   ): Promise<void> {
-    const guildMember: ICharacterGuildMember = {
-      guid,
+    const dto = CharacterJobQueueDto.fromGuildMember({
       id: member.character.id,
       name: member.character.name,
-      guildNameSlug,
-      rank: Number(member.rank),
-      level,
+      realm: realmSlug,
+      realmId: guildEntity.realmId,
+      realmName: guildEntity.realmName,
+      guild: guildEntity.name,
+      guildGuid: toGuid(guildNameSlug, guildEntity.realm),
+      guildId: guildEntity.id,
+      guildRank: Number(member.rank),
       class: characterClass,
-    };
+      faction: guildEntity.faction,
+      level,
+      lastModified: guildEntity.lastModified,
+      clientId: BNet.clientId,
+      clientSecret: BNet.clientSecret,
+      accessToken: BNet.accessTokenObject.access_token,
+    });
 
-    await characterAsGuildMember(
-      this.charactersRepository,
-      guildEntity,
-      guildMember,
-    );
+    // Low priority: 10 (lower than guild master priority of 2)
+    await this.characterQueue.add(dto.guid, dto, {
+      jobId: dto.guid,
+      priority: 10,
+    });
   }
 
   private handleRosterError(
