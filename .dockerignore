@@ -1,11 +1,12 @@
 .git*
 .github
+.gitignore
 .idea
 .images
+.vscode
+.editorconfig
 
 dist
-docker
-files
 node_modules
 volumes
 
@@ -14,6 +15,15 @@ config/local.yml
 config/test.yml
 
 docker-compose*
+*.lock
 
 .env
 .env.docker
+.env.*.local
+
+files
+coverage
+.next
+build
+.DS_Store
+Thumbs.db
