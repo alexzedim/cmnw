@@ -30,7 +30,6 @@ import {
   CharacterHashFieldType,
   CharacterIdDto,
   CharacterJobQueue,
-  CharacterJobQueueDto,
   CharacterResponseDto,
   CharactersLfgDto,
   charactersQueue,
@@ -45,6 +44,7 @@ import {
   RealmDto,
   SearchQueryDto,
   toGuid,
+  findRealm,
 } from '@app/resources';
 
 @Injectable()

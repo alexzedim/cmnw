@@ -1,6 +1,6 @@
 import { Repository } from 'typeorm';
 import { RealmsEntity } from '@app/pg';
-import { toSlug } from '@app/resources';
+import { toSlug } from '@app/resources/transformers';
 
 export const findRealm = async (
   repository: Repository<RealmsEntity>,
