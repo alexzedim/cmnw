@@ -40,10 +40,3 @@ services:
     command: [ 'node', 'dist/apps/warcraft-logs/main.js' ]
     env_file:
       - stack.env
-
-  analytics:
-    image: ghcr.io/alexzedim/analytics:latest
-    restart: always
-    command: [ 'node', 'dist/apps/analytics/main.js' ]
-    env_file:
-      - stack.env
