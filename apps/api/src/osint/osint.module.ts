@@ -6,6 +6,7 @@ import { OsintService } from './osint.service';
 import { charactersQueue, guildsQueue } from '@app/resources';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
+  AnalyticsEntity,
   CharactersEntity,
   CharactersGuildsMembersEntity,
   CharactersMountsEntity,
@@ -26,6 +27,7 @@ import {
   imports: [
     TypeOrmModule.forRoot(postgresConfig),
     TypeOrmModule.forFeature([
+      AnalyticsEntity,
       CharactersEntity,
       CharactersGuildsMembersEntity,
       CharactersMountsEntity,

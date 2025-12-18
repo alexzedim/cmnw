@@ -31,8 +31,10 @@ import {
   CharacterIdDto,
   CharacterJobQueue,
   CharacterJobQueueDto,
+  CharacterResponseDto,
   CharactersLfgDto,
   charactersQueue,
+  calculateCharacterPercentiles,
   getKeys,
   GLOBAL_OSINT_KEY,
   GuildIdDto,
@@ -177,18 +179,7 @@ export class OsintService {
     }
   }
 
-  private calculatePercentile(
-    value: number | undefined,
-    extremes: Record<string, any>,
-  ): number | null {
-    if (value === null || value === undefined) return null;
-    if (!extremes.max || extremes.max <= 0) return null;
-
-    const percentile = (value / extremes.max) * 100;
-    return Math.min(100, Math.round(percentile * 100) / 100);
-  }
-
-  async getCharacter(input: CharacterIdDto) {
+  async getCharacter(input: CharacterIdDto): Promise<CharacterResponseDto> {
     const logTag = 'getCharacter';
     try {
       this.logger.log({
@@ -271,31 +262,19 @@ export class OsintService {
       }
 
       // Calculate percentiles
-      const characterResponse = {
-        ...character,
-        percentiles: {
-          global: {
-            achievementPoints: this.calculatePercentile(
-              character.achievementPoints,
-              globalAnalytics?.value?.achievementPoints || {},
-            ),
-            averageItemLevel: this.calculatePercentile(
-              character.averageItemLevel,
-              globalAnalytics?.value?.averageItemLevel || {},
-            ),
-          },
-          realm: {
-            achievementPoints: this.calculatePercentile(
-              character.achievementPoints,
-              realmAnalytics?.value?.achievementPoints || {},
-            ),
-            averageItemLevel: this.calculatePercentile(
-              character.averageItemLevel,
-              realmAnalytics?.value?.averageItemLevel || {},
-            ),
-          },
+      const percentiles = calculateCharacterPercentiles(
+        {
+          achievementPoints: character.achievementPoints,
+          averageItemLevel: character.averageItemLevel,
         },
-      };
+        globalAnalytics,
+        realmAnalytics,
+      );
+
+      const characterResponse: CharacterResponseDto = {
+        ...character,
+        percentiles,
+      } as CharacterResponseDto;
 
       this.logger.log({
         logTag,
