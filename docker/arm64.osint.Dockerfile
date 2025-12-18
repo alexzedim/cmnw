@@ -25,10 +25,9 @@ LABEL org.opencontainers.image.base.name="arm64v8/node:lts"
 
 WORKDIR /usr/src/app
 
-# Install system dependencies for Playwright
+# Install Playwright system dependencies only
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-    chromium-browser \
     fonts-liberation \
     && rm -rf /var/lib/apt/lists/*
 
