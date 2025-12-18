@@ -56,7 +56,10 @@ jobs:
             org.opencontainers.image.vendor=cmnw
             org.opencontainers.image.url=https://raw.githubusercontent.com/alexzedim/cmnw-next/master/public/static/cmnw.png
             org.opencontainers.image.source=https://github.com/alexzedim/cmnw
+            org.opencontainers.image.documentation=https://github.com/alexzedim/cmnw/blob/master/README.md
             org.opencontainers.image.description=Intelligence-always-wins
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
 
       - name: Login to Github Packages
         uses: docker/login-action@v2.1.0
