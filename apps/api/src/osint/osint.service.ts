@@ -85,7 +85,14 @@ export class OsintService {
         guildGuid: input.guid,
         message: `Fetching guild: ${input.guid}`,
       });
-      const [nameSlug, realmSlug] = input.guid.split('@');
+      const decodedGuid = decodeURIComponent(input.guid);
+      const [nameSlug, realmSlug] = decodedGuid.split('@');
+
+      if (!realmSlug) {
+        throw new BadRequestException(
+          `Invalid guild GUID format: ${input.guid}. Expected format: name@realm`,
+        );
+      }
 
       const realmEntity = await findRealm(this.realmsRepository, realmSlug);
 
