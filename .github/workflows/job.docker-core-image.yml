@@ -46,7 +46,8 @@ jobs:
           images: |
             ghcr.io/alexzedim/core
           tags: |
-            type=semver,pattern={{version}},value=${{ env.TAG_NAME }}
+            type=ref,event=tag,value=${{ env.TAG_NAME }}
+            type=raw,value=latest
           labels: |
             maintainer=alexzedim
             org.opencontainers.image.title=CORE
@@ -72,7 +73,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
 
       - name: Image digest
         run: |
