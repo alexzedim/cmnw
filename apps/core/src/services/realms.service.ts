@@ -1,5 +1,5 @@
 import {
-  Injectable,
+  Injectable, Logger,
   NotFoundException,
   OnApplicationBootstrap,
 } from '@nestjs/common';
@@ -13,7 +13,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { KeysEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { lastValueFrom, mergeMap, range } from 'rxjs';
-import { LoggerService } from '@app/logger';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
@@ -30,7 +29,7 @@ import { findRealm } from '@app/resources/dao/realms.dao';
 
 @Injectable()
 export class RealmsService implements OnApplicationBootstrap {
-  private readonly logger = new LoggerService(RealmsService.name);
+  private readonly logger = new Logger(RealmsService.name);
 
   private BNet: BlizzAPI;
 
