@@ -19,13 +19,13 @@ import {
   ItemsEntity,
   KeysEntity,
   CharactersGuildsLogsEntity,
-  RealmsEntity,
+  RealmsEntity, AnalyticsEntity,
 } from '@app/pg';
 
 import { FindOptionsWhere, ILike, In, MoreThanOrEqual, Repository } from 'typeorm';
 
 import {
-  CHARACTER_HASH_FIELDS,
+  CHARACTER_HASH_FIELDS, CharacterExtreme,
   CharacterHashDto,
   CharacterHashFieldType,
   CharacterIdDto,
@@ -46,6 +46,7 @@ import {
   toGuid,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
+import { isNull } from 'lodash';
 
 @Injectable()
 export class OsintService {
@@ -53,6 +54,8 @@ export class OsintService {
   private clearance: string = GLOBAL_OSINT_KEY;
 
   constructor(
+    @InjectRepository(AnalyticsEntity)
+    private readonly analyticsRepository: Repository<AnalyticsEntity>,
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(GuildsEntity)
@@ -174,6 +177,17 @@ export class OsintService {
     }
   }
 
+  private calculatePercentile(
+    value: number | undefined,
+    extremes: Record<string, any>,
+  ): number | null {
+    if (value === null || value === undefined) return null;
+    if (!extremes.max || extremes.max <= 0) return null;
+
+    const percentile = (value / extremes.max) * 100;
+    return Math.min(100, Math.round(percentile * 100) / 100);
+  }
+
   async getCharacter(input: CharacterIdDto) {
     const logTag = 'getCharacter';
     try {
@@ -193,9 +207,29 @@ export class OsintService {
       }
 
       const guid = toGuid(nameSlug, realmEntity.slug);
-      // TODO join models
+
       const character = await this.charactersRepository.findOneBy({
         guid,
+      });
+
+      // Fetch global analytics
+      const globalAnalytics = await this.analyticsRepository.findOne({
+        where: {
+          category: 'characters',
+          metricType: 'extremes',
+          realmId: null,
+        },
+        order: { createdAt: 'DESC' },
+      });
+
+      // Fetch realm-specific analytics
+      const realmAnalytics = await this.analyticsRepository.findOne({
+        where: {
+          category: 'characters',
+          metricType: 'extremes',
+          realmId: character?.realmId,
+        },
+        order: { createdAt: 'DESC' },
       });
 
       const [keyEntity] = await getKeys(
@@ -236,12 +270,39 @@ export class OsintService {
         );
       }
 
+      // Calculate percentiles
+      const characterResponse = {
+        ...character,
+        percentiles: {
+          global: {
+            achievementPoints: this.calculatePercentile(
+              character.achievementPoints,
+              globalAnalytics?.value?.achievementPoints || {},
+            ),
+            averageItemLevel: this.calculatePercentile(
+              character.averageItemLevel,
+              globalAnalytics?.value?.averageItemLevel || {},
+            ),
+          },
+          realm: {
+            achievementPoints: this.calculatePercentile(
+              character.achievementPoints,
+              realmAnalytics?.value?.achievementPoints || {},
+            ),
+            averageItemLevel: this.calculatePercentile(
+              character.averageItemLevel,
+              realmAnalytics?.value?.averageItemLevel || {},
+            ),
+          },
+        },
+      };
+
       this.logger.log({
         logTag,
         characterGuid: guid,
         message: `Successfully fetched character: ${guid}`,
       });
-      return character;
+      return characterResponse;
     } catch (errorOrException) {
       if (
         errorOrException instanceof BadRequestException ||
