@@ -75,8 +75,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=registry,ref=ghcr.io/alexzedim/core:buildcache
-          cache-to: type=registry,ref=ghcr.io/alexzedim/core:buildcache,mode=max
 
       - name: Image digest
         run: |
