@@ -2,3 +2,4 @@
 // Import directly from './dao/realms.dao' if needed.
 export * from './market.dao';
 export * from './keys.dao';
+export * from './realms.dao';
