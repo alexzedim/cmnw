@@ -12,7 +12,6 @@ export * from './characters-lfg.dto';
 export * from './discord-subscription.dto';
 export * from './discord-uid-subscription.dto';
 export * from './realm.dto';
-export * from './character.dto';
 export * from './character-response.dto';
 export * from './character-job-queue.dto';
 export * from './guild-job-queue.dto';

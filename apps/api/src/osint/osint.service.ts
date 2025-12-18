@@ -34,7 +34,6 @@ import {
   CharacterResponseDto,
   CharactersLfgDto,
   charactersQueue,
-  calculateCharacterPercentiles,
   getKeys,
   GLOBAL_OSINT_KEY,
   GuildIdDto,
@@ -47,8 +46,6 @@ import {
   SearchQueryDto,
   toGuid,
 } from '@app/resources';
-import { findRealm } from '@app/resources/dao/realms.dao';
-import { isNull } from 'lodash';
 
 @Injectable()
 export class OsintService {
@@ -261,20 +258,12 @@ export class OsintService {
         );
       }
 
-      // Calculate percentiles
-      const percentiles = calculateCharacterPercentiles(
-        {
-          achievementPoints: character.achievementPoints,
-          averageItemLevel: character.averageItemLevel,
-        },
+      // Create response with percentiles
+      const characterResponse = CharacterResponseDto.fromCharacter(
+        character,
         globalAnalytics,
         realmAnalytics,
       );
-
-      const characterResponse: CharacterResponseDto = {
-        ...character,
-        percentiles,
-      } as CharacterResponseDto;
 
       this.logger.log({
         logTag,
