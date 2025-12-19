@@ -127,7 +127,6 @@ export const CHARACTER_HASH_FIELDS = new Map<
 >([
   ['a', 'hashA'],
   ['b', 'hashB'],
-  ['f', 'hashF'],
 ]);
 
 export const REALM_TICKER = new Map<string, string>([

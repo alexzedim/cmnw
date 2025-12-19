@@ -55,7 +55,7 @@ export type RaiderIoCharacterMappingField = keyof Pick<
 
 export type CharactersHashType = keyof Pick<
   CharactersEntity,
-  'hashA' | 'hashB' | 'hashF'
+  'hashA' | 'hashB'
 >;
 
-export type CharacterHashFieldType = 'a' | 'b' | 'f';
+export type CharacterHashFieldType = 'a' | 'b';
