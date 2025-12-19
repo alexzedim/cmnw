@@ -17,7 +17,7 @@ export function calculatePercentile(
 
 /**
  * Calculate percentiles for character stats
- * @param stats Object with achievementPoints and averageItemLevel
+ * @param stats Object with achievementPoints, averageItemLevel, mountsNumber, and petsNumber
  * @param globalAnalytics Global analytics data
  * @param realmAnalytics Realm-specific analytics data
  * @returns Object with global and realm percentiles
@@ -26,6 +26,8 @@ export function calculateCharacterPercentiles(
   stats: {
     achievementPoints?: number;
     averageItemLevel?: number;
+    mountsNumber?: number;
+    petsNumber?: number;
   },
   globalAnalytics?: { value?: Record<string, any> },
   realmAnalytics?: { value?: Record<string, any> },
@@ -40,6 +42,14 @@ export function calculateCharacterPercentiles(
         stats.averageItemLevel,
         globalAnalytics?.value?.averageItemLevel || {},
       ),
+      mountsNumber: calculatePercentile(
+        stats.mountsNumber,
+        globalAnalytics?.value?.mountsNumber || {},
+      ),
+      petsNumber: calculatePercentile(
+        stats.petsNumber,
+        globalAnalytics?.value?.petsNumber || {},
+      ),
     },
     realm: {
       achievementPoints: calculatePercentile(
@@ -49,6 +59,14 @@ export function calculateCharacterPercentiles(
       averageItemLevel: calculatePercentile(
         stats.averageItemLevel,
         realmAnalytics?.value?.averageItemLevel || {},
+      ),
+      mountsNumber: calculatePercentile(
+        stats.mountsNumber,
+        realmAnalytics?.value?.mountsNumber || {},
+      ),
+      petsNumber: calculatePercentile(
+        stats.petsNumber,
+        realmAnalytics?.value?.petsNumber || {},
       ),
     },
   };
