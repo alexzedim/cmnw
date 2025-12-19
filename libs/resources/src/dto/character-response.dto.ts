@@ -18,6 +18,22 @@ class PercentileStats {
     example: 82.3,
   })
   readonly averageItemLevel: number | null;
+
+  @ApiProperty({
+    type: 'number',
+    nullable: true,
+    description: 'Mounts count percentile rank',
+    example: 68.5,
+  })
+  readonly mountsNumber: number | null;
+
+  @ApiProperty({
+    type: 'number',
+    nullable: true,
+    description: 'Pets count percentile rank',
+    example: 71.2,
+  })
+  readonly petsNumber: number | null;
 }
 
 class CharacterPercentiles {
@@ -309,6 +325,8 @@ export class CharacterResponseDto extends CharactersEntity {
       {
         achievementPoints: character.achievementPoints,
         averageItemLevel: character.averageItemLevel,
+        mountsNumber: character.mountsNumber,
+        petsNumber: character.petsNumber,
       },
       globalAnalytics,
       realmAnalytics,
