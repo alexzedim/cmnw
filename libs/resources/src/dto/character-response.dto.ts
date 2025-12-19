@@ -131,13 +131,6 @@ export class CharacterResponseDto extends CharactersEntity {
   @ApiProperty({
     type: 'string',
     nullable: true,
-    description: 'Hash F for data integrity',
-  })
-  readonly hashF?: string;
-
-  @ApiProperty({
-    type: 'string',
-    nullable: true,
     description: 'Character race',
     example: 'Orc',
   })
