@@ -108,14 +108,6 @@ export class CharactersEntity {
     default: null,
     nullable: true,
     type: 'varchar',
-    name: 'hash_f',
-  })
-  hashF?: string;
-
-  @Column({
-    default: null,
-    nullable: true,
-    type: 'varchar',
   })
   race?: string;
 
