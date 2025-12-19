@@ -2,8 +2,6 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
-import { InjectRedis } from '@nestjs-modules/ioredis';
-import { Redis } from 'ioredis';
 import { DateTime } from 'luxon';
 import { AnalyticsMetricCategory, AnalyticsMetricType } from '@app/resources';
 import {
@@ -44,7 +42,6 @@ import {
   GuildsEntity,
   MarketEntity,
   ContractEntity,
-  RealmsEntity,
 } from '@app/pg';
 
 @Injectable()
@@ -64,10 +61,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
     private readonly marketRepository: Repository<MarketEntity>,
     @InjectRepository(ContractEntity)
     private readonly contractRepository: Repository<ContractEntity>,
-    @InjectRepository(RealmsEntity)
-    private readonly realmsRepository: Repository<RealmsEntity>,
-    @InjectRedis()
-    private readonly redis: Redis,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
