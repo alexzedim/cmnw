@@ -4,21 +4,16 @@ import {
   CreateDateColumn,
   Entity,
   Index,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm';
 
-@Index('ix__characters__guid', ['guid'], { unique: true })
 @Index('ix__characters__guild_guild', ['guildGuid'], {})
 @Index('ix__characters__hash_a', ['hashA'], {})
 @Index('ix__characters__hash_b', ['hashB'], {})
 @Entity({ name: CMNW_ENTITY_ENUM.CHARACTERS })
 export class CharactersEntity {
-  @PrimaryGeneratedColumn('uuid')
-  readonly uuid: string;
-
-  @Column({
-    nullable: false,
+  @PrimaryColumn({
     type: 'varchar',
   })
   guid: string;

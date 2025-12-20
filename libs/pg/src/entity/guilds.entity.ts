@@ -4,18 +4,13 @@ import {
   CreateDateColumn,
   Entity,
   Index,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm';
 
-@Index('ix__guilds__guid', ['guid'], { unique: true })
 @Entity({ name: CMNW_ENTITY_ENUM.GUILDS })
 export class GuildsEntity {
-  @PrimaryGeneratedColumn('uuid')
-  readonly uuid: string;
-
-  @Column({
-    nullable: false,
+  @PrimaryColumn({
     type: 'varchar',
   })
   guid: string;
