@@ -23,9 +23,9 @@ import {
   STATUS_CODES,
   toGuid,
   toSlug,
-  CharacterJobQueueDto,
+  CharacterJobQueueDto, characterAsGuildMember, ICharacterGuildMember,
 } from '@app/resources';
-import { GuildsEntity, KeysEntity } from '@app/pg';
+import { CharactersEntity, GuildsEntity, KeysEntity } from '@app/pg';
 
 @Injectable()
 export class GuildRosterService {
@@ -38,6 +38,8 @@ export class GuildRosterService {
     private readonly characterQueue: Queue<CharacterJobQueue, number>,
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
+    @InjectRepository(CharactersEntity)
+    private readonly charactersRepository: Repository<CharactersEntity>,
   ) {}
 
   async fetchRoster(
@@ -120,15 +122,13 @@ export class GuildRosterService {
         );
       } else {
         // Queue non-GM guild members for processing by CharactersWorker
-        await this.queueGuildMemberUpdate(
+        await this.saveCharacterAsGuildMember(
           member,
           guildEntity,
           guildNameSlug,
           guid,
-          realmSlug,
           level,
           characterClass,
-          BNet,
         );
       }
 
@@ -179,40 +179,29 @@ export class GuildRosterService {
     });
   }
 
-  private async queueGuildMemberUpdate(
+  private async saveCharacterAsGuildMember(
     member: any,
     guildEntity: GuildsEntity,
     guildNameSlug: string,
     guid: string,
-    realmSlug: string,
     level: number | null,
     characterClass: string | null,
-    BNet: BlizzAPI,
   ): Promise<void> {
-    const dto = CharacterJobQueueDto.fromGuildMember({
+    const guildMember: ICharacterGuildMember = {
+      guid,
       id: member.character.id,
       name: member.character.name,
-      realm: realmSlug,
-      realmId: guildEntity.realmId,
-      realmName: guildEntity.realmName,
-      guild: guildEntity.name,
-      guildGuid: toGuid(guildNameSlug, guildEntity.realm),
-      guildId: guildEntity.id,
-      guildRank: Number(member.rank),
-      class: characterClass,
-      faction: guildEntity.faction,
+      guildNameSlug,
+      rank: Number(member.rank),
       level,
-      lastModified: guildEntity.lastModified,
-      clientId: BNet.clientId,
-      clientSecret: BNet.clientSecret,
-      accessToken: BNet.accessTokenObject.access_token,
-    });
+      class: characterClass,
+    };
 
-    // Low priority: 10 (lower than guild master priority of 2)
-    await this.characterQueue.add(dto.guid, dto, {
-      jobId: dto.guid,
-      priority: 10,
-    });
+    await characterAsGuildMember(
+      this.charactersRepository,
+      guildEntity,
+      guildMember,
+    );
   }
 
   private handleRosterError(
