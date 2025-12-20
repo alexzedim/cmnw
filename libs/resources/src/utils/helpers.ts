@@ -34,3 +34,16 @@ export const formatBytes = (bytes: number): string => {
 
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 };
+
+/**
+ * @description Check if guild entity was modified more recently than character entity
+ * @param guildLastModified {Date | null | undefined}
+ * @param characterLastModified {Date | null | undefined}
+ */
+export const isGuildUpdateMoreRecent = (
+  guildLastModified: Date | null | undefined,
+  characterLastModified: Date | null | undefined,
+): boolean =>
+  guildLastModified != null &&
+  characterLastModified != null &&
+  guildLastModified.getTime() > characterLastModified.getTime();
