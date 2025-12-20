@@ -4,7 +4,7 @@ import {
   CreateDateColumn,
   Entity,
   Index,
-  PrimaryGeneratedColumn,
+  PrimaryColumn,
 } from 'typeorm';
 
 @Index('ix__characters_guilds_members__guild_guid', ['guildGuid'], {})
@@ -12,8 +12,26 @@ import {
 @Index('ix__characters_guilds_members__realm', ['realm'], {})
 @Entity({ name: CMNW_ENTITY_ENUM.CHARACTERS_GUILDS_MEMBERS })
 export class CharactersGuildsMembersEntity {
-  @PrimaryGeneratedColumn('uuid')
-  readonly uuid: string;
+  @PrimaryColumn({
+    nullable: false,
+    type: 'int',
+    name: 'guild_id',
+  })
+  guildId: number;
+
+  @PrimaryColumn({
+    nullable: false,
+    type: 'int',
+    name: 'character_id',
+  })
+  characterId: number;
+
+  @PrimaryColumn({
+    nullable: false,
+    type: 'int',
+    name: 'realm_id',
+  })
+  realmId: number;
 
   @Column({
     nullable: false,
@@ -23,33 +41,11 @@ export class CharactersGuildsMembersEntity {
   guildGuid: string;
 
   @Column({
-    nullable: true,
-    default: null,
-    type: 'int',
-    name: 'guild_id',
-  })
-  guildId: number;
-
-  @Column({
-    nullable: false,
-    type: 'int',
-    name: 'character_id',
-  })
-  characterId: number;
-
-  @Column({
     nullable: false,
     type: 'varchar',
     name: 'character_guid',
   })
   characterGuid: string;
-
-  @Column({
-    nullable: false,
-    type: 'int',
-    name: 'realm_id',
-  })
-  realmId: number;
 
   @Column({
     nullable: false,
