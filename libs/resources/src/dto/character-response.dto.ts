@@ -331,6 +331,7 @@ export class CharacterResponseDto extends CharactersEntity {
       globalAnalytics,
       realmAnalytics,
     );
+    console.log('percentiles', percentiles)
 
     return {
       ...character,
