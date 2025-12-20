@@ -25,7 +25,7 @@ import {
 import { FindOptionsWhere, ILike, In, MoreThanOrEqual, Repository } from 'typeorm';
 
 import {
-  CHARACTER_HASH_FIELDS, CharacterExtreme,
+  CHARACTER_HASH_FIELDS,
   CharacterHashDto,
   CharacterHashFieldType,
   CharacterIdDto,
@@ -108,7 +108,7 @@ export class OsintService {
         this.guildsRepository.findOneBy({ guid }),
         this.charactersGuildMembersRepository.find({
           where: { guildGuid: guid },
-          take: 250,
+          take: 1_000,
         }),
       ]);
 
@@ -116,6 +116,7 @@ export class OsintService {
         name: nameSlug,
         realm: realmEntity.slug,
       });
+
       await this.queueGuild.add(dto.guid, dto);
 
       if (!guild) {
@@ -124,6 +125,7 @@ export class OsintService {
           guildGuid: guid,
           message: `Guild not found but queued for indexing: ${guid}`,
         });
+
         throw new NotFoundException(
           `Guild: ${guid} not found, but will be added to OSINT-DB on existence shortly`,
         );
@@ -157,6 +159,7 @@ export class OsintService {
         memberCount: members.length,
         message: `Successfully fetched guild: ${guid} with ${members.length} members`,
       });
+
       return {
         guild,
         members,
