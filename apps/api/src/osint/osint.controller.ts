@@ -97,6 +97,26 @@ export class OsintController {
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
+  @Get('/character/hash/:hashType/:hashQuery/:hashQueryB')
+  async getCharactersByHashCombined(
+    @Param() input: CharacterHashDto,
+  ): Promise<{ characters: CharactersEntity[] }> {
+    const characters = await this.osintService.getCharactersByHash(input);
+    return { characters };
+  }
+
+  @ApiOperation({ description: 'Returns requested account characters' })
+  @ApiOkResponse({ description: 'Request characters with selected hash' })
+  @ApiUnauthorizedResponse({
+    description: 'You need authenticate yourself before request',
+  })
+  @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
+  @ApiBadRequestResponse({ description: 'Invalid request body' })
+  @ApiServiceUnavailableResponse({
+    description: 'Commonwealth API is not available at the moment',
+  })
+  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
+  @HttpCode(HttpStatus.OK)
   @Get('/character/hash/:hashType/:hashQuery')
   async getCharactersByHash(
     @Param() input: CharacterHashDto,
