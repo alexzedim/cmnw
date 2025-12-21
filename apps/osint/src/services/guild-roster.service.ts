@@ -25,7 +25,7 @@ import {
   toSlug,
   CharacterJobQueueDto, characterAsGuildMember, ICharacterGuildMember,
 } from '@app/resources';
-import { CharactersEntity, GuildsEntity, KeysEntity } from '@app/pg';
+import { CharactersEntity, GuildsEntity, KeysEntity, RealmsEntity } from '@app/pg';
 
 @Injectable()
 export class GuildRosterService {
@@ -38,6 +38,8 @@ export class GuildRosterService {
     private readonly characterQueue: Queue<CharacterJobQueue, number>,
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
+    @InjectRepository(RealmsEntity)
+    private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
   ) {}
@@ -55,6 +57,7 @@ export class GuildRosterService {
         apiConstParams(API_HEADERS_ENUM.PROFILE),
       );
 
+      // @todo better validation for guildMembers, realmSlug required
       if (!isGuildRoster(response)) {
         return roster;
       }
@@ -127,6 +130,7 @@ export class GuildRosterService {
           guildEntity,
           guildNameSlug,
           guid,
+          realmSlug,
           level,
           characterClass,
         );
@@ -184,6 +188,7 @@ export class GuildRosterService {
     guildEntity: GuildsEntity,
     guildNameSlug: string,
     guid: string,
+    realmSlug: string,
     level: number | null,
     characterClass: string | null,
   ): Promise<void> {
@@ -192,6 +197,7 @@ export class GuildRosterService {
       id: member.character.id,
       name: member.character.name,
       guildNameSlug,
+      realmSlug,
       rank: Number(member.rank),
       level,
       class: characterClass,
@@ -199,6 +205,7 @@ export class GuildRosterService {
 
     await characterAsGuildMember(
       this.charactersRepository,
+      this.realmsRepository,
       guildEntity,
       guildMember,
     );
