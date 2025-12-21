@@ -22,7 +22,7 @@ import {
   RealmsEntity, AnalyticsEntity,
 } from '@app/pg';
 
-import { FindOptionsWhere, ILike, In, MoreThanOrEqual, Repository } from 'typeorm';
+import { FindOptionsWhere, ILike, In, MoreThanOrEqual, Repository, Or } from 'typeorm';
 
 import {
   CHARACTER_HASH_FIELDS,
@@ -312,26 +312,39 @@ export class OsintService {
         hashQuery: input.hashQuery,
         message: `Fetching characters by hash: ${hashLabel}`,
       });
-      const isHashField = CHARACTER_HASH_FIELDS.has(
-        <CharacterHashFieldType>input.hashType,
-      );
-      if (!isHashField) {
+
+      // Validate hash type
+      if (!/^[ab]{1,2}$/.test(input.hashType)) {
         throw new BadRequestException(
-          `Hash type ${input.hashType} is not supported`,
+          `Hash type ${input.hashType} is not supported. Must be 'a', 'b', or 'ab'`,
         );
       }
 
-      const hashType = CHARACTER_HASH_FIELDS.get(
-        <CharacterHashFieldType>input.hashType,
-      );
-      const whereQuery: FindOptionsWhere<CharactersEntity> = {
-        [hashType]: input.hashQuery,
-      };
+      let characters: CharactersEntity[];
 
-      const characters = await this.charactersRepository.find({
-        where: whereQuery,
-        take: 100,
-      });
+      if (input.hashType === 'ab') {
+        // Combined search using query builder with OR operator
+        characters = await this.charactersRepository
+          .createQueryBuilder('c')
+          .where('c.hashA = :hashQuery OR c.hashB = :hashQuery', {
+            hashQuery: input.hashQuery,
+          })
+          .take(100)
+          .getMany();
+      } else {
+        // Single hash type search
+        const hashType = CHARACTER_HASH_FIELDS.get(
+          <CharacterHashFieldType>input.hashType,
+        );
+        const whereQuery: FindOptionsWhere<CharactersEntity> = {
+          [hashType]: input.hashQuery,
+        };
+
+        characters = await this.charactersRepository.find({
+          where: whereQuery,
+          take: 100,
+        });
+      }
 
       this.logger.log({
         logTag,

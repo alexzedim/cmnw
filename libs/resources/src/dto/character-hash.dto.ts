@@ -8,7 +8,7 @@ export class CharacterHashDto {
   @ApiProperty(SWAGGER_CHARACTER_HASH_TYPE)
   @IsNotEmpty({ message: 'Hash type is required' })
   @IsString()
-  @Matches(/^[ab]$/, { message: 'Hash type must be either a or b' })
+  @Matches(/^[ab]{1,2}$/, { message: 'Hash type must be a, b, or ab' })
   @Transform(transformToLowerCase, { toClassOnly: true })
   readonly hashType: string;
 
