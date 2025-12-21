@@ -26,10 +26,11 @@ import {
   realmsQueue,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
+import { LoggerService } from '@app/logger';
 
 @Injectable()
 export class RealmsService implements OnApplicationBootstrap {
-  private readonly logger = new Logger(RealmsService.name);
+  private readonly logger = new LoggerService(RealmsService.name);
 
   private BNet: BlizzAPI;
 
