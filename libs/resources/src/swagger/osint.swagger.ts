@@ -124,7 +124,7 @@ export const SWAGGER_CHARACTER_REALMS_ID: ApiPropertyOptions = {
 
 export const SWAGGER_CHARACTER_HASH_TYPE: ApiPropertyOptions = {
   name: 'hashType',
-  description: 'Character hash type: a (hashA only), b (hashB only), or ab (both - OR logic)',
+  description: 'Character hash type: a (hashA only), b (hashB only), or ab (both with separate values)',
   type: String,
   required: true,
   nullable: false,
@@ -134,11 +134,20 @@ export const SWAGGER_CHARACTER_HASH_TYPE: ApiPropertyOptions = {
 
 export const SWAGGER_CHARACTER_HASH_QUERY: ApiPropertyOptions = {
   name: 'hashQuery',
-  description: 'Character hash value to query',
+  description: 'Character hashA value. For hash type ab, this is hashA value',
   type: String,
   required: true,
   nullable: false,
   example: 'a99becec48b29ff',
+};
+
+export const SWAGGER_CHARACTER_HASH_QUERY_B: ApiPropertyOptions = {
+  name: 'hashQueryB',
+  description: 'Character hashB value. Only used when hash type is ab. Returns characters where hashA AND hashB match',
+  type: String,
+  required: false,
+  nullable: true,
+  example: 'b7c31f2a9e4d6a',
 };
 
 export const SWAGGER_GUILD_GUID: ApiPropertyOptions = {

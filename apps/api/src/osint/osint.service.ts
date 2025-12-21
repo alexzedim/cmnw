@@ -305,14 +305,6 @@ export class OsintService {
   async getCharactersByHash(input: CharacterHashDto) {
     const logTag = 'getCharactersByHash';
     try {
-      const hashLabel = `${input.hashType}/${input.hashQuery}`;
-      this.logger.log({
-        logTag,
-        hashType: input.hashType,
-        hashQuery: input.hashQuery,
-        message: `Fetching characters by hash: ${hashLabel}`,
-      });
-
       // Validate hash type
       if (!/^[ab]{1,2}$/.test(input.hashType)) {
         throw new BadRequestException(
@@ -320,19 +312,53 @@ export class OsintService {
         );
       }
 
+      // Validate that hashQueryB is provided only when hashType is 'ab'
+      if (input.hashType !== 'ab' && input.hashQueryB) {
+        throw new BadRequestException(
+          `Hash query B is only allowed when hash type is 'ab'`,
+        );
+      }
+
       let characters: CharactersEntity[];
 
-      if (input.hashType === 'ab') {
-        // Combined search using query builder with OR operator
+      if (input.hashType === 'ab' && input.hashQueryB) {
+        // Combined search with both hash values using AND logic
+        const hashLabel = `ab/${input.hashQuery}/${input.hashQueryB}`;
+        this.logger.log({
+          logTag,
+          hashType: input.hashType,
+          hashQueryA: input.hashQuery,
+          hashQueryB: input.hashQueryB,
+          message: `Fetching characters by hash: ${hashLabel}`,
+        });
+
         characters = await this.charactersRepository
           .createQueryBuilder('c')
-          .where('c.hashA = :hashQuery OR c.hashB = :hashQuery', {
-            hashQuery: input.hashQuery,
+          .where('c.hashA = :hashQueryA AND c.hashB = :hashQueryB', {
+            hashQueryA: input.hashQuery,
+            hashQueryB: input.hashQueryB,
           })
           .take(100)
           .getMany();
+
+        this.logger.log({
+          logTag,
+          hashType: input.hashType,
+          hashQueryA: input.hashQuery,
+          hashQueryB: input.hashQueryB,
+          characterCount: characters.length,
+          message: `Found ${characters.length} characters by hash: ${hashLabel}`,
+        });
       } else {
         // Single hash type search
+        const hashLabel = `${input.hashType}/${input.hashQuery}`;
+        this.logger.log({
+          logTag,
+          hashType: input.hashType,
+          hashQuery: input.hashQuery,
+          message: `Fetching characters by hash: ${hashLabel}`,
+        });
+
         const hashType = CHARACTER_HASH_FIELDS.get(
           <CharacterHashFieldType>input.hashType,
         );
@@ -344,15 +370,16 @@ export class OsintService {
           where: whereQuery,
           take: 100,
         });
+
+        this.logger.log({
+          logTag,
+          hashType: input.hashType,
+          hashQuery: input.hashQuery,
+          characterCount: characters.length,
+          message: `Found ${characters.length} characters by hash: ${hashLabel}`,
+        });
       }
 
-      this.logger.log({
-        logTag,
-        hashType: input.hashType,
-        hashQuery: input.hashQuery,
-        characterCount: characters.length,
-        message: `Found ${characters.length} characters by hash: ${hashLabel}`,
-      });
       return characters;
     } catch (errorOrException) {
       if (errorOrException instanceof BadRequestException) {
@@ -363,12 +390,13 @@ export class OsintService {
         logTag,
         hashType: input.hashType,
         hashQuery: input.hashQuery,
+        hashQueryB: input.hashQueryB,
         errorOrException,
-        message: `Error fetching characters by hash: ${input.hashType}/${input.hashQuery}`,
+        message: `Error fetching characters by hash: ${input.hashType}/${input.hashQuery}${input.hashQueryB ? '/' + input.hashQueryB : ''}`,
       });
 
       throw new ServiceUnavailableException(
-        `Error processing hash query: ${input.hashType}/${input.hashQuery}`,
+        `Error processing hash query: ${input.hashType}/${input.hashQuery}${input.hashQueryB ? '/' + input.hashQueryB : ''}`,
       );
     }
   }
