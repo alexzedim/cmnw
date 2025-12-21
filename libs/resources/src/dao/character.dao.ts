@@ -1,14 +1,15 @@
 import { Repository } from 'typeorm';
-import { CharactersEntity, GuildsEntity } from '@app/pg';
-import { OSINT_SOURCE, toGuid, ICharacterGuildMember } from '@app/resources';
+import { CharactersEntity, GuildsEntity, RealmsEntity } from '@app/pg';
+import { OSINT_SOURCE, toGuid, ICharacterGuildMember, findRealm } from '@app/resources';
 import { isGuildUpdateMoreRecent } from '../utils/helpers';
 
 export const characterAsGuildMember = async (
-  repository: Repository<CharactersEntity>,
+  charactersRepository: Repository<CharactersEntity>,
+  realmsRepository: Repository<RealmsEntity>,
   guildEntity: GuildsEntity,
   guildMember: ICharacterGuildMember,
 ) => {
-  let characterEntity = await repository.findOneBy({
+  let characterEntity = await charactersRepository.findOneBy({
     guid: guildMember.guid,
   });
 
@@ -19,34 +20,41 @@ export const characterAsGuildMember = async (
     );
 
     if (isUpdateByGuild) {
-      characterEntity.realm = guildEntity.realm;
-      characterEntity.realmId = guildEntity.realmId;
-      characterEntity.realmName = guildEntity.realmName;
       characterEntity.guildGuid = guildEntity.guid;
       characterEntity.guild = guildEntity.name;
       characterEntity.guildId = guildEntity.id;
       characterEntity.guildRank = guildMember.rank;
-      if (guildEntity.faction) characterEntity.faction = guildEntity.faction;
       if (guildMember.level) characterEntity.level = guildMember.level;
       if (guildMember.class) characterEntity.class = guildMember.class;
       characterEntity.lastModified = guildEntity.lastModified;
       characterEntity.updatedBy = OSINT_SOURCE.GUILD_ROSTER;
-      await repository.save(characterEntity);
+      await charactersRepository.save(characterEntity);
     } else if (guildEntity.guid === characterEntity.guildGuid) {
       characterEntity.guildRank = guildMember.rank;
       characterEntity.updatedBy = OSINT_SOURCE.GUILD_ROSTER;
-      await repository.save(characterEntity);
+      await charactersRepository.save(characterEntity);
     }
   }
 
   if (!characterEntity) {
-    characterEntity = repository.create({
+    const realmEntity = await findRealm(realmsRepository, guildMember.realmSlug);
+
+    if (!realmEntity) {
+      // @todo add somekind of logging here
+      return;
+    }
+
+    const realmId = realmEntity.id;
+    const realm = realmEntity.name;
+    const realmName = realmEntity.localeName;
+
+    characterEntity = charactersRepository.create({
       id: guildMember.id,
       guid: guildMember.guid,
       name: guildMember.name,
-      realm: guildEntity.realm,
-      realmId: guildEntity.realmId,
-      realmName: guildEntity.realmName,
+      realm: realm,
+      realmId: realmId,
+      realmName: realmName,
       guildGuid: toGuid(guildMember.guildNameSlug, guildEntity.realm),
       guild: guildEntity.name,
       guildRank: guildMember.rank,
@@ -59,6 +67,6 @@ export const characterAsGuildMember = async (
       createdBy: OSINT_SOURCE.GUILD_ROSTER,
     });
 
-    await repository.save(characterEntity);
+    await charactersRepository.save(characterEntity);
   }
 };
