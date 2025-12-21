@@ -502,6 +502,7 @@ export interface ICharacterGuildMember {
   id: number;
   name: string;
   guildNameSlug: string;
+  realmSlug: string;
   rank: number;
   level: number | null;
   class: string | null;
