@@ -97,9 +97,9 @@ export class OsintController {
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
-  @Get('/character/hash')
+  @Get('/character/hash/:hashType/:hashQuery')
   async getCharactersByHash(
-    @Query() input: CharacterHashDto,
+    @Param() input: CharacterHashDto,
   ): Promise<{ characters: CharactersEntity[] }> {
     const characters = await this.osintService.getCharactersByHash(input);
     return { characters };
