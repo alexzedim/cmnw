@@ -305,22 +305,27 @@ export class OsintService {
   async getCharactersByHash(input: CharacterHashDto) {
     const logTag = 'getCharactersByHash';
     try {
+      const hashLabel = `${input.hashType}/${input.hashQuery}`;
       this.logger.log({
         logTag,
-        hash: input.hash,
-        message: `Fetching characters by hash: ${input.hash}`,
+        hashType: input.hashType,
+        hashQuery: input.hashQuery,
+        message: `Fetching characters by hash: ${hashLabel}`,
       });
-      const [type, hash] = input.hash.split('@');
       const isHashField = CHARACTER_HASH_FIELDS.has(
-        <CharacterHashFieldType>type,
+        <CharacterHashFieldType>input.hashType,
       );
       if (!isHashField) {
-        throw new BadRequestException(`Hash type ${type} is not supported`);
+        throw new BadRequestException(
+          `Hash type ${input.hashType} is not supported`,
+        );
       }
 
-      const hashType = CHARACTER_HASH_FIELDS.get(<CharacterHashFieldType>type);
+      const hashType = CHARACTER_HASH_FIELDS.get(
+        <CharacterHashFieldType>input.hashType,
+      );
       const whereQuery: FindOptionsWhere<CharactersEntity> = {
-        [hashType]: hash,
+        [hashType]: input.hashQuery,
       };
 
       const characters = await this.charactersRepository.find({
@@ -330,9 +335,10 @@ export class OsintService {
 
       this.logger.log({
         logTag,
-        hash: input.hash,
+        hashType: input.hashType,
+        hashQuery: input.hashQuery,
         characterCount: characters.length,
-        message: `Found ${characters.length} characters by hash: ${input.hash}`,
+        message: `Found ${characters.length} characters by hash: ${hashLabel}`,
       });
       return characters;
     } catch (errorOrException) {
@@ -342,13 +348,14 @@ export class OsintService {
 
       this.logger.error({
         logTag,
-        hash: input.hash,
+        hashType: input.hashType,
+        hashQuery: input.hashQuery,
         errorOrException,
-        message: `Error fetching characters by hash: ${input.hash}`,
+        message: `Error fetching characters by hash: ${input.hashType}/${input.hashQuery}`,
       });
 
       throw new ServiceUnavailableException(
-        `Error processing hash query: ${input.hash}`,
+        `Error processing hash query: ${input.hashType}/${input.hashQuery}`,
       );
     }
   }
