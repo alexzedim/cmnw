@@ -1,14 +1,20 @@
-import { IsNotEmpty, IsString, Validate } from 'class-validator';
+import { IsNotEmpty, IsString, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
-import { AtSignExists, SWAGGER_CHARACTER_HASH } from '@app/resources';
+import { SWAGGER_CHARACTER_HASH_TYPE, SWAGGER_CHARACTER_HASH_QUERY } from '@app/resources';
 import { Transform } from 'class-transformer';
 import { transformToLowerCase } from '@app/resources/transformers';
 
 export class CharacterHashDto {
-  @ApiProperty(SWAGGER_CHARACTER_HASH)
-  @IsNotEmpty({ message: 'Hash is required' })
+  @ApiProperty(SWAGGER_CHARACTER_HASH_TYPE)
+  @IsNotEmpty({ message: 'Hash type is required' })
   @IsString()
-  @Validate(AtSignExists)
+  @Matches(/^[ab]$/, { message: 'Hash type must be either a or b' })
   @Transform(transformToLowerCase, { toClassOnly: true })
-  readonly hash: string;
+  readonly hashType: string;
+
+  @ApiProperty(SWAGGER_CHARACTER_HASH_QUERY)
+  @IsNotEmpty({ message: 'Hash query is required' })
+  @IsString()
+  @Transform(transformToLowerCase, { toClassOnly: true })
+  readonly hashQuery: string;
 }
