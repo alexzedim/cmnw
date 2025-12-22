@@ -122,13 +122,22 @@ export const SWAGGER_CHARACTER_REALMS_ID: ApiPropertyOptions = {
   example: [1602, 1615],
 };
 
-export const SWAGGER_CHARACTER_HASH: ApiPropertyOptions = {
-  name: 'hash',
-  description: 'Character hash in hashtype@hash',
+export const SWAGGER_CHARACTER_HASH_TYPE: ApiPropertyOptions = {
+  name: 'hashType',
+  description: 'Character hash type: a or b',
   type: String,
   required: true,
   nullable: false,
-  example: 'a@a99becec48b29ff',
+  example: 'a',
+};
+
+export const SWAGGER_CHARACTER_HASH_QUERY: ApiPropertyOptions = {
+  name: 'hashQuery',
+  description: 'Character hash value to query',
+  type: String,
+  required: true,
+  nullable: false,
+  example: 'a99becec48b29ff',
 };
 
 export const SWAGGER_GUILD_GUID: ApiPropertyOptions = {
