@@ -97,12 +97,11 @@ export class OsintController {
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
-  @Get('/character/hash/:hashType/:hashQuery/:hashQuery2')
+  @Get('/character/hash/:hashQuery/:hashQuery2')
   async getCharactersByHashCombined(
     @Param() input: CharacterHashDto,
-    @Param('hashType') hashType: string,
   ): Promise<{ characters: CharactersEntity[] }> {
-    const characters = await this.osintService.getCharactersByHash(input, hashType);
+    const characters = await this.osintService.getCharactersByHash(input);
     return { characters };
   }
 
@@ -118,12 +117,11 @@ export class OsintController {
   })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
-  @Get('/character/hash/:hashType/:hashQuery')
+  @Get('/character/hash/:hashQuery')
   async getCharactersByHash(
     @Param() input: CharacterHashDto,
-    @Param('hashType') hashType: string,
   ): Promise<{ characters: CharactersEntity[] }> {
-    const characters = await this.osintService.getCharactersByHash(input, hashType);
+    const characters = await this.osintService.getCharactersByHash(input);
     return { characters };
   }
 
