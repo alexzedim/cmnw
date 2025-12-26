@@ -382,12 +382,6 @@ export class OsintService {
 
         this.logger.log({
           logTag,
-          hashType1,
-          hashFieldType1,
-          hashValue1,
-          hashType2,
-          hashFieldType2,
-          hashValue2,
           characterCount: characters.length,
           message: `Found ${characters.length} characters by combined hash: ${hashLabel}`,
         });
