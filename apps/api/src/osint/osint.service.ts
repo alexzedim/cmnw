@@ -344,20 +344,36 @@ export class OsintService {
           );
         }
 
+        // Get the field names for each hash type
+        const hashFieldType1 = CHARACTER_HASH_FIELDS.get(
+          <CharacterHashFieldType>hashType1,
+        );
+        const hashFieldType2 = CHARACTER_HASH_FIELDS.get(
+          <CharacterHashFieldType>hashType2,
+        );
+
+        if (!hashFieldType1 || !hashFieldType2) {
+          throw new BadRequestException(
+            `Could not determine hash fields for types '${hashType1}' and '${hashType2}'`,
+          );
+        }
+
         // Combined search with both hash values using AND logic
         const hashLabel = `${input.hashQuery}/${input.hashQuery2}`;
         this.logger.log({
           logTag,
           hashType1,
+          hashFieldType1,
           hashValue1,
           hashType2,
+          hashFieldType2,
           hashValue2,
           message: `Fetching characters by combined hash: ${hashLabel}`,
         });
 
         characters = await this.charactersRepository
           .createQueryBuilder('c')
-          .where('c.hashA = :hashValue1 AND c.hashB = :hashValue2', {
+          .where(`c.${hashFieldType1} = :hashValue1 AND c.${hashFieldType2} = :hashValue2`, {
             hashValue1,
             hashValue2,
           })
@@ -367,8 +383,10 @@ export class OsintService {
         this.logger.log({
           logTag,
           hashType1,
+          hashFieldType1,
           hashValue1,
           hashType2,
+          hashFieldType2,
           hashValue2,
           characterCount: characters.length,
           message: `Found ${characters.length} characters by combined hash: ${hashLabel}`,
