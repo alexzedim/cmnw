@@ -302,68 +302,68 @@ export class OsintService {
     }
   }
 
-  async getCharactersByHash(input: CharacterHashDto) {
+  async getCharactersByHash(input: CharacterHashDto, hashType: string) {
     const logTag = 'getCharactersByHash';
     try {
       // Validate hash type
-      if (!/^[ab]{1,2}$/.test(input.hashType)) {
+      if (!/^[ab]{1,2}$/.test(hashType)) {
         throw new BadRequestException(
-          `Hash type ${input.hashType} is not supported. Must be 'a', 'b', or 'ab'`,
+          `Hash type ${hashType} is not supported. Must be 'a', 'b', or 'ab'`,
         );
       }
 
-      // Validate that hashQueryB is provided only when hashType is 'ab'
-      if (input.hashType !== 'ab' && input.hashQueryB) {
+      // Validate that hashQuery2 is provided only when hashType is 'ab'
+      if (hashType !== 'ab' && input.hashQuery2) {
         throw new BadRequestException(
-          `Hash query B is only allowed when hash type is 'ab'`,
+          `Hash query 2 is only allowed when hash type is 'ab'`,
         );
       }
 
       let characters: CharactersEntity[];
 
-      if (input.hashType === 'ab' && input.hashQueryB) {
+      if (hashType === 'ab' && input.hashQuery2) {
         // Combined search with both hash values using AND logic
-        const hashLabel = `ab/${input.hashQuery}/${input.hashQueryB}`;
+        const hashLabel = `ab/${input.hashQuery}/${input.hashQuery2}`;
         this.logger.log({
           logTag,
-          hashType: input.hashType,
-          hashQueryA: input.hashQuery,
-          hashQueryB: input.hashQueryB,
+          hashType,
+          hashQuery: input.hashQuery,
+          hashQuery2: input.hashQuery2,
           message: `Fetching characters by hash: ${hashLabel}`,
         });
 
         characters = await this.charactersRepository
           .createQueryBuilder('c')
-          .where('c.hashA = :hashQueryA AND c.hashB = :hashQueryB', {
-            hashQueryA: input.hashQuery,
-            hashQueryB: input.hashQueryB,
+          .where('c.hashA = :hashQuery AND c.hashB = :hashQuery2', {
+            hashQuery: input.hashQuery,
+            hashQuery2: input.hashQuery2,
           })
           .take(100)
           .getMany();
 
         this.logger.log({
           logTag,
-          hashType: input.hashType,
-          hashQueryA: input.hashQuery,
-          hashQueryB: input.hashQueryB,
+          hashType,
+          hashQuery: input.hashQuery,
+          hashQuery2: input.hashQuery2,
           characterCount: characters.length,
           message: `Found ${characters.length} characters by hash: ${hashLabel}`,
         });
       } else {
         // Single hash type search
-        const hashLabel = `${input.hashType}/${input.hashQuery}`;
+        const hashLabel = `${hashType}/${input.hashQuery}`;
         this.logger.log({
           logTag,
-          hashType: input.hashType,
+          hashType,
           hashQuery: input.hashQuery,
           message: `Fetching characters by hash: ${hashLabel}`,
         });
 
-        const hashType = CHARACTER_HASH_FIELDS.get(
-          <CharacterHashFieldType>input.hashType,
+        const hashFieldType = CHARACTER_HASH_FIELDS.get(
+          <CharacterHashFieldType>hashType,
         );
         const whereQuery: FindOptionsWhere<CharactersEntity> = {
-          [hashType]: input.hashQuery,
+          [hashFieldType]: input.hashQuery,
         };
 
         characters = await this.charactersRepository.find({
@@ -373,7 +373,7 @@ export class OsintService {
 
         this.logger.log({
           logTag,
-          hashType: input.hashType,
+          hashType,
           hashQuery: input.hashQuery,
           characterCount: characters.length,
           message: `Found ${characters.length} characters by hash: ${hashLabel}`,
@@ -388,15 +388,15 @@ export class OsintService {
 
       this.logger.error({
         logTag,
-        hashType: input.hashType,
+        hashType,
         hashQuery: input.hashQuery,
-        hashQueryB: input.hashQueryB,
+        hashQuery2: input.hashQuery2,
         errorOrException,
-        message: `Error fetching characters by hash: ${input.hashType}/${input.hashQuery}${input.hashQueryB ? '/' + input.hashQueryB : ''}`,
+        message: `Error fetching characters by hash: ${hashType}/${input.hashQuery}${input.hashQuery2 ? '/' + input.hashQuery2 : ''}`,
       });
 
       throw new ServiceUnavailableException(
-        `Error processing hash query: ${input.hashType}/${input.hashQuery}${input.hashQueryB ? '/' + input.hashQueryB : ''}`,
+        `Error processing hash query: ${hashType}/${input.hashQuery}${input.hashQuery2 ? '/' + input.hashQuery2 : ''}`,
       );
     }
   }
