@@ -305,42 +305,61 @@ export class OsintService {
   async getCharactersByHash(input: CharacterHashDto) {
     const logTag = 'getCharactersByHash';
     try {
-      // Extract hash type from first character of hash values
-      const hashType1 = input.hashQuery.charAt(0).toLowerCase();
-      const hashType2 = input.hashQuery2 ? input.hashQuery2.charAt(0).toLowerCase() : null;
+      // Validate hash inputs are not empty
+      if (!input.hashQuery || input.hashQuery.length < 2) {
+        throw new BadRequestException(
+          `Hash value must be at least 2 characters (type + hash)`,
+        );
+      }
 
-      // Validate hash types
+      // Split first hash: extract type and hash value
+      const hashType1 = input.hashQuery.charAt(0).toLowerCase();
+      const hashValue1 = input.hashQuery.slice(1);
+
+      // Validate hash type
       if (!/^[ab]$/.test(hashType1)) {
         throw new BadRequestException(
           `Hash value must start with 'a' or 'b', got '${hashType1}'`,
         );
       }
 
-      if (input.hashQuery2 && !/^[ab]$/.test(hashType2)) {
-        throw new BadRequestException(
-          `Hash value 2 must start with 'a' or 'b', got '${hashType2}'`,
-        );
-      }
-
       let characters: CharactersEntity[];
 
-      if (input.hashQuery2 && hashType2) {
+      if (input.hashQuery2) {
+        // Validate second hash input
+        if (input.hashQuery2.length < 2) {
+          throw new BadRequestException(
+            `Hash value 2 must be at least 2 characters (type + hash)`,
+          );
+        }
+
+        // Split second hash: extract type and hash value
+        const hashType2 = input.hashQuery2.charAt(0).toLowerCase();
+        const hashValue2 = input.hashQuery2.slice(1);
+
+        // Validate second hash type
+        if (!/^[ab]$/.test(hashType2)) {
+          throw new BadRequestException(
+            `Hash value 2 must start with 'a' or 'b', got '${hashType2}'`,
+          );
+        }
+
         // Combined search with both hash values using AND logic
         const hashLabel = `${input.hashQuery}/${input.hashQuery2}`;
         this.logger.log({
           logTag,
           hashType1,
+          hashValue1,
           hashType2,
-          hashQuery: input.hashQuery,
-          hashQuery2: input.hashQuery2,
+          hashValue2,
           message: `Fetching characters by combined hash: ${hashLabel}`,
         });
 
         characters = await this.charactersRepository
           .createQueryBuilder('c')
-          .where('c.hashA = :hashQuery AND c.hashB = :hashQuery2', {
-            hashQuery: input.hashQuery,
-            hashQuery2: input.hashQuery2,
+          .where('c.hashA = :hashValue1 AND c.hashB = :hashValue2', {
+            hashValue1,
+            hashValue2,
           })
           .take(100)
           .getMany();
@@ -348,9 +367,9 @@ export class OsintService {
         this.logger.log({
           logTag,
           hashType1,
+          hashValue1,
           hashType2,
-          hashQuery: input.hashQuery,
-          hashQuery2: input.hashQuery2,
+          hashValue2,
           characterCount: characters.length,
           message: `Found ${characters.length} characters by combined hash: ${hashLabel}`,
         });
@@ -370,12 +389,12 @@ export class OsintService {
         this.logger.log({
           logTag,
           hashType: hashType1,
-          hashQuery: input.hashQuery,
+          hashValue: hashValue1,
           message: `Fetching characters by hash: ${hashLabel}`,
         });
 
         const whereQuery: FindOptionsWhere<CharactersEntity> = {
-          [hashFieldType]: input.hashQuery,
+          [hashFieldType]: hashValue1,
         };
 
         characters = await this.charactersRepository.find({
@@ -386,7 +405,7 @@ export class OsintService {
         this.logger.log({
           logTag,
           hashType: hashType1,
-          hashQuery: input.hashQuery,
+          hashValue: hashValue1,
           characterCount: characters.length,
           message: `Found ${characters.length} characters by hash: ${hashLabel}`,
         });
