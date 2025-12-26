@@ -141,15 +141,6 @@ export const SWAGGER_CHARACTER_HASH_QUERY: ApiPropertyOptions = {
   example: 'a99becec48b29ff',
 };
 
-export const SWAGGER_CHARACTER_HASH_QUERY_B: ApiPropertyOptions = {
-  name: 'hashQueryB',
-  description: 'Character hashB value. Only used when hash type is ab. Returns characters where hashA AND hashB match',
-  type: String,
-  required: false,
-  nullable: true,
-  example: 'b7c31f2a9e4d6a',
-};
-
 export const SWAGGER_GUILD_GUID: ApiPropertyOptions = {
   name: 'guid',
   description: 'Guild GUID in nameSlug@realmSlug',
