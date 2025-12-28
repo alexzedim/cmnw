@@ -101,6 +101,26 @@ export class DmaController {
     return this.dmaService.getItemValuations(input);
   }
 
+  @ApiOperation({ description: 'Returns chart data for item (commodity or gold)' })
+  @ApiOkResponse({ description: 'Request item chart with selected id' })
+  @ApiUnauthorizedResponse({
+    description: 'You need authenticate yourself before request',
+  })
+  @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
+  @ApiBadRequestResponse({
+    description:
+      'The server could not understand the request due to invalid syntax',
+  })
+  @ApiServiceUnavailableResponse({
+    description: 'Server is under maintenance or overloaded',
+  })
+  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
+  @HttpCode(HttpStatus.OK)
+  @Get('/item/chart')
+  async getItemChart(@Query() input: ReqGetItemDto): Promise<any> {
+    return this.dmaService.getItemChart(input);
+  }
+
   @ApiOperation({ description: 'Returns requested commodity item chart' })
   @ApiOkResponse({ description: 'Request commodity chart with selected _id' })
   @ApiUnauthorizedResponse({
