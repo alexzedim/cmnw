@@ -162,6 +162,45 @@ export class DmaService {
     return { yAxis: yPriceAxis, xAxis: timestampValues, dataset };
   }
 
+  /**
+   * Unified method to get chart data for both commodity and gold items
+   * Transforms the raw chart data to match frontend expectations
+   */
+  async getItemChart(input: ReqGetItemDto): Promise<any> {
+    const item = await this.queryItem(input.id);
+
+    // Check if item is gold
+    const isGold = item.id === 1;
+
+    // Get raw chart data
+    let chartData: ItemChartDto;
+    if (isGold) {
+      chartData = await this.getGoldChart(input);
+    } else {
+      chartData = await this.getChart(input);
+    }
+
+    // Transform yAxis from numbers to formatted strings
+    const formattedYAxis = chartData.yAxis.map((price) =>
+      typeof price === 'number' ? price.toFixed(4) : String(price),
+    );
+
+    // Transform dataset to match frontend HeatmapDataPoint interface
+    const transformedDataset = chartData.dataset.map((point) => ({
+      x: point.x,
+      y: point.y,
+      value: point.value,
+      orders: point.orders,
+      oi: point.oi,
+    }));
+
+    return {
+      yAxis: formattedYAxis,
+      xAxis: chartData.xAxis,
+      dataset: transformedDataset,
+    };
+  }
+
   private async yPriceRange(itemId: number, blocks: number) {
     const marketQuotes = await this.marketRepository
       .createQueryBuilder('markets')

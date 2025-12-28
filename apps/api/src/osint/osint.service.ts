@@ -638,6 +638,10 @@ export class OsintService {
       const hashTypeChar = input.searchQuery.charAt(0).toLowerCase();
       const isHashQuery = /^[ab]$/.test(hashTypeChar) && input.searchQuery.length > 1;
       const hashValue = isHashQuery ? input.searchQuery.slice(1) : null;
+      
+      // Parse search query as item ID if it's numeric
+      const isNumericQuery = /^\d+$/.test(input.searchQuery);
+      const itemIdQuery = isNumericQuery ? parseInt(input.searchQuery, 10) : null;
 
       const [characters, guilds, items, hashMatches] = await Promise.all([
         this.charactersRepository.find({
@@ -661,7 +665,7 @@ export class OsintService {
             "LOWER(items.names::text) LIKE LOWER(:searchPattern)",
             { searchPattern },
           )
-          .orWhere('items.item_id = :searchQuery', { searchQuery: input.searchQuery })
+          .orWhere('items.id = :searchQuery', { searchQuery: itemIdQuery })
           .take(100)
           .getMany(),
         isHashQuery
