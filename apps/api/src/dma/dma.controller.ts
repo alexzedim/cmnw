@@ -4,8 +4,6 @@ import {
   HttpCode,
   HttpStatus,
   Query,
-  UsePipes,
-  ValidationPipe,
 } from '@nestjs/common';
 
 import {
@@ -117,7 +115,8 @@ export class DmaController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
   @Get('/item/chart')
-  async getItemChart(@Query() input: ReqGetItemDto): Promise<any> {
+  async getItemChart(@Query() input: ReqGetItemDto) {
+    console.log(input)
     return this.dmaService.getItemChart(input);
   }
 
@@ -159,8 +158,8 @@ export class DmaController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
   @Get('/item/quotes')
-  async getAssetQuotes(@Query() input: ItemRealmDto): Promise<ItemQuotesDto> {
-    return this.dmaService.getAssetQuotes(input);
+  async getItemQuotes(@Query() input: ItemRealmDto): Promise<ItemQuotesDto> {
+    return this.dmaService.getItemQuotes(input);
   }
 
   @ApiOperation({ description: 'Returns requested item feed' })
