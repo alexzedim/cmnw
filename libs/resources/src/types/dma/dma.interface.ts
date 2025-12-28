@@ -235,10 +235,9 @@ export interface IChartOrder {
 }
 
 export interface IOrderQuotes {
-  readonly id: number;
   readonly price: number;
   readonly quantity: number;
-  readonly open_interest: number;
+  readonly openInterest: number;
   readonly size: number;
 }
 
