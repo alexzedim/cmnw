@@ -613,10 +613,73 @@ export class DmaService {
    * Search for items by ID OR name field OR any localized name in JSONB names field
    * Returns a list of matching items for autocomplete
    */
+  async getContracts(
+    itemId: number,
+    period: string,
+  ) {
+    // Validate item exists and has contracts
+    const item = await this.itemsRepository.findOneBy({ id: itemId });
+
+    if (!item) {
+      throw new BadRequestException(`Item with ID ${itemId} not found`);
+    }
+
+    if (!item.hasContracts) {
+      throw new BadRequestException(
+        `Item with ID ${itemId} does not have contract data`,
+      );
+    }
+
+    // Calculate time range based on period using luxon
+    const now = DateTime.now();
+    let startTime: DateTime;
+
+    switch (period) {
+      case '1m':
+        startTime = now.minus({ months: 1 });
+        break;
+      case '1w':
+        startTime = now.minus({ weeks: 1 });
+        break;
+      case '30d':
+        startTime = now.minus({ days: 30 });
+        break;
+      case '1d':
+        startTime = now.minus({ days: 1 });
+        break;
+      case '24h':
+        startTime = now.minus({ hours: 24 });
+        break;
+      default:
+        throw new BadRequestException(
+          'Invalid period. Use: 1m, 1w, 30d, 1d, or 24h',
+        );
+    }
+
+    const startTimestamp = startTime.toMillis();
+    const endTimestamp = now.toMillis();
+
+    // Query contracts for the specified period
+    const contracts = await this.contractRepository.find({
+      where: {
+        itemId,
+      },
+      order: { timestamp: 'DESC' },
+    });
+
+    // Filter by timestamp range
+    const filtered = contracts.filter(
+      (contract) =>
+        contract.timestamp >= startTimestamp && contract.timestamp <= endTimestamp,
+    );
+
+    return { contracts: filtered };
+  }
+
   async searchItems(
     query: string,
     limit: number = 25,
-  ): Promise<Array<{ id: number; name: string; quality?: number }>> {
+  ) {
     const normalizedQuery = query.toLowerCase().trim();
 
     if (normalizedQuery.length < 1) {
