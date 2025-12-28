@@ -284,29 +284,6 @@ export class TestsBench implements OnApplicationBootstrap {
       .getRawMany<any>();
   }
 
-  private async getPriceRangeByItem(itemId: number, blocks: number) {
-    const marketQuotes = await this.marketRepository
-      .createQueryBuilder('markets')
-      .where({ itemId: itemId }) // TODO itemId if GOLD add realmId
-      .distinctOn(['markets.price'])
-      .getMany();
-
-    const quotes = marketQuotes.map((q) => q.price);
-
-    if (!quotes.length) return [];
-
-    const length = quotes.length > 3 ? quotes.length - 3 : quotes.length;
-    const start = length === 1 ? 0 : 1;
-
-    const cap = Math.round(quotes[Math.floor(length * 0.9)]);
-    const floor = Math.round(quotes[start]);
-    const priceRange = cap - floor;
-    /** Step represents 5% for each cluster */
-    const tick = priceRange / blocks;
-    return Array(Math.ceil((cap + tick - floor) / tick))
-      .fill(floor)
-      .map((x, y) => parseFloat((x + y * tick).toFixed(4)));
-  }
 
   async test(
     priceRangeArray: number[],
