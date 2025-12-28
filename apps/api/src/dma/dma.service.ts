@@ -6,6 +6,7 @@ import {
   ItemChartDto,
   ItemFeedDto,
   ItemQuotesDto,
+  ItemQuotesResponseDto,
   MARKET_TYPE,
   REALM_ENTITY_ANY,
   ReqGetItemDto,
@@ -49,7 +50,7 @@ export class DmaService {
       );
     }
 
-    const id = parseInt(input.id);
+    const id = typeof input.id === 'number' ? input.id : parseInt(input.id);
 
     const item = await this.itemsRepository.findOneBy({ id });
 
@@ -83,6 +84,7 @@ export class DmaService {
   async getLatestTimestampCommodity(itemId: number) {
     const commodityTimestampKeys =
       await this.redisService.keys('COMMODITY:TS:*');
+
     const commodityTimestamp = await this.redisService.mget(
       commodityTimestampKeys,
     );
@@ -101,19 +103,19 @@ export class DmaService {
   }
 
   async getChart(input: ReqGetItemDto): Promise<ItemChartDto> {
-    const item = await this.queryItem(input.id);
+    const item = await this.queryItem(String(input.id));
 
     const { timestamps, key } = await this.getLatestTimestampCommodity(item.id);
 
     // --- return cached chart from redis on exist -- //
-    const getCacheItemChart = await this.redisService.get(key);
+/*    const getCacheItemChart = await this.redisService.get(key);
     if (getCacheItemChart) {
+      console.log('from cache');
       return JSON.parse(getCacheItemChart) as ItemChartDto;
-    }
+    }*/
 
     const yPriceAxis = await this.priceAxisCommodity({
       itemId: item.id,
-      isGold: false,
     });
 
     const { dataset } = await this.buildChartDataset(
@@ -121,6 +123,7 @@ export class DmaService {
       timestamps,
       item.id,
     );
+    console.log({ yAxis: yPriceAxis, xAxis: timestamps, dataset })
 
     const chart = JSON.stringify({
       yAxis: yPriceAxis,
@@ -150,7 +153,6 @@ export class DmaService {
 
     const yPriceAxis = await this.priceAxisCommodity({
       itemId: goldItemId,
-      isGold: true,
     });
 
     const { dataset } = await this.buildChartDataset(
@@ -166,12 +168,11 @@ export class DmaService {
    * Unified method to get chart data for both commodity and gold items
    * Transforms the raw chart data to match frontend expectations
    */
-  async getItemChart(input: ReqGetItemDto): Promise<any> {
-    const item = await this.queryItem(input.id);
+  async getItemChart(input: ReqGetItemDto) {
+    const item = await this.queryItem(String(input.id));
 
     // Check if item is gold
     const isGold = item.id === 1;
-
     // Get raw chart data
     let chartData: ItemChartDto;
     if (isGold) {
@@ -201,21 +202,36 @@ export class DmaService {
     };
   }
 
-  private async yPriceRange(itemId: number, blocks: number) {
-    const marketQuotes = await this.marketRepository
-      .createQueryBuilder('markets')
-      .where({ itemId }) // TODO itemId if GOLD add realmId
-      .distinctOn(['markets.price'])
-      .getMany();
+  private async getPriceRangeByItem(
+    itemId: number,
+    blocks: number,
+    isGold: boolean = false,
+  ) {
+    const now = Date.now();
+    const last24Hours = now - 24 * 60 * 60 * 1000;
 
-    const quotes = marketQuotes.map((q) => q.price);
+    const query = this.marketRepository
+      .createQueryBuilder('markets')
+      .where({ itemId })
+      .andWhere('markets.timestamp >= :last24Hours', { last24Hours });
+
+    if (isGold) {
+      // For gold we might want to filter by something else if needed,
+      // but for now let's just keep it simple as per the TODO
+    }
+
+    const marketQuotes = await query.distinctOn(['markets.price']).getMany();
+
+    const quotes = marketQuotes.map((q) => q.price).sort((a, b) => a - b);
+    console.log(quotes);
 
     if (!quotes.length) return [];
     const length = quotes.length > 3 ? quotes.length - 3 : quotes.length;
     const start = length === 1 ? 0 : 1;
 
-    const cap = Math.round(quotes[Math.floor(length * 0.9)]);
-    const floor = Math.round(quotes[start]);
+    // Keep decimal precision - use actual min/max values without rounding
+    const cap = quotes[Math.floor(length * 0.9)];
+    const floor = quotes[start];
     const priceRange = cap - floor;
     // --- Step represents 5% for each cluster --- //
     const tick = priceRange / blocks;
@@ -226,11 +242,30 @@ export class DmaService {
   }
 
   async priceAxisCommodity(args: IBuildYAxis): Promise<number[]> {
-    const { itemId, isGold: _isGold } = args;
+    const { itemId } = args;
 
     const blocks = 20;
 
-    return this.yPriceRange(itemId, blocks);
+    return this.getPriceRangeByItem(itemId, blocks);
+  }
+
+  /**
+   * Helper method to find the correct bucket index for a given price
+   */
+  private findPriceBucketIndex(price: number, yPriceAxis: number[]): number {
+    // For each price, find the bucket where: bucketFloor <= price < bucketCeiling
+    for (let i = 0; i < yPriceAxis.length; i++) {
+      const bucketFloor = yPriceAxis[i];
+      const bucketCeiling = yPriceAxis[i + 1] ?? Infinity;
+      
+      // Price belongs to this bucket if it's >= floor and < ceiling
+      if (price >= bucketFloor && price < bucketCeiling) {
+        return i;
+      }
+    }
+    
+    // Fallback: if price is above all buckets, return last index
+    return yPriceAxis.length - 1;
   }
 
   /**
@@ -263,25 +298,20 @@ export class DmaService {
         value: 0,
       }));
 
-      let priceItx = 0;
-
       // Process market orders for this timestamp
+      // Find the correct bucket for each order based on its actual price
       for (const order of marketOrders) {
-        const isPriceItxUp =
-          order.price >= priceLevelDataset[priceItx].lt &&
-          Boolean(priceLevelDataset[priceItx + 1]);
+        const bucketIndex = this.findPriceBucketIndex(order.price, yPriceAxis);
 
-        if (isPriceItxUp) priceItx = priceItx + 1;
-
-        priceLevelDataset[priceItx].orders =
-          priceLevelDataset[priceItx].orders + 1;
-        priceLevelDataset[priceItx].oi =
-          priceLevelDataset[priceItx].oi + (order.value ?? 0);
-        priceLevelDataset[priceItx].value =
-          priceLevelDataset[priceItx].value + (order.quantity ?? 0);
-        priceLevelDataset[priceItx].price =
-          priceLevelDataset[priceItx].value > 0
-            ? priceLevelDataset[priceItx].oi / priceLevelDataset[priceItx].value
+        priceLevelDataset[bucketIndex].orders =
+          priceLevelDataset[bucketIndex].orders + 1;
+        priceLevelDataset[bucketIndex].oi =
+          priceLevelDataset[bucketIndex].oi + (order.value ?? 0);
+        priceLevelDataset[bucketIndex].value =
+          priceLevelDataset[bucketIndex].value + (order.quantity ?? 0);
+        priceLevelDataset[bucketIndex].price =
+          priceLevelDataset[bucketIndex].value > 0
+            ? priceLevelDataset[bucketIndex].oi / priceLevelDataset[bucketIndex].value
             : 0;
       }
 
@@ -371,11 +401,11 @@ export class DmaService {
     return { feed };
   }
 
-  async getAssetQuotes(input: ItemRealmDto): Promise<ItemQuotesDto> {
+  async getItemQuotes(input: ItemRealmDto): Promise<ItemQuotesDto> {
     const item = await this.queryItem(input.id);
 
     // Get aggregated market data for quotes
-    const quotes = await this.marketRepository
+    const rawQuotes = await this.marketRepository
       .createQueryBuilder('market')
       .select([
         'market.price as price',
@@ -389,27 +419,28 @@ export class DmaService {
       .limit(100)
       .getRawMany();
 
+    const quotes = ItemQuotesResponseDto.remapQuotes(rawQuotes);
+
     return { quotes };
   }
 
   async queryItem(input: string): Promise<ItemsEntity> {
-    // Parse id format: "itemId" or "itemId@realmSlug" or "itemName@realmSlug"
-    const [itemQuery] = input.split('@');
-    const trimmedQuery = itemQuery.trim();
+    const trimmedQuery = input.trim();
 
     if (!trimmedQuery) {
       throw new BadRequestException('Item query cannot be empty');
     }
 
-    // Check if input is a numeric ID
-    const isNumeric =
-      !isNaN(Number(trimmedQuery)) && Number.isInteger(Number(trimmedQuery));
+    // Parse as numeric ID only
+    const itemId = parseInt(trimmedQuery, 10);
 
-    if (isNumeric) {
-      return await this.findItemById(parseInt(trimmedQuery));
-    } else {
-      return await this.findItemByName(trimmedQuery);
+    if (isNaN(itemId)) {
+      throw new BadRequestException(
+        'Please provide a valid numeric item ID',
+      );
     }
+
+    return await this.findItemById(itemId);
   }
 
   /**
@@ -449,7 +480,7 @@ export class DmaService {
             -- Exact match on name field
             LOWER(item.name) = :exactQuery
             OR
-            -- Partial match on name field  
+            -- Partial match on name field
             LOWER(item.name) LIKE :likeQuery
             OR
             -- Full-text search on name field
@@ -476,7 +507,7 @@ export class DmaService {
             -- Full-text search in JSONB names field
             (
               item.names IS NOT NULL AND
-              to_tsvector('english', 
+              to_tsvector('english',
                 COALESCE(item.names->>'en_US', '') || ' ' ||
                 COALESCE(item.names->>'en_GB', '') || ' ' ||
                 COALESCE(item.names->>'de_DE', '') || ' ' ||
@@ -492,7 +523,7 @@ export class DmaService {
         )
         // Order by relevance: exact matches first, then partial matches
         .orderBy(
-          `CASE 
+          `CASE
             WHEN LOWER(item.name) = :exactQuery THEN 1
             WHEN LOWER(item.name) LIKE :startQuery THEN 2
             WHEN LOWER(item.name) LIKE :likeQuery THEN 3
@@ -601,7 +632,7 @@ export class DmaService {
           },
         )
         .orderBy(
-          `CASE 
+          `CASE
             ${isNumericId ? 'WHEN item.id = :itemId THEN 0' : ''}
             WHEN LOWER(item.name) = :exactQuery THEN 1
             WHEN LOWER(item.name) LIKE :startQuery THEN 2
