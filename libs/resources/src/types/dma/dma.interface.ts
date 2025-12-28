@@ -376,7 +376,6 @@ export class IReagentItem {
 
 export interface IBuildYAxis {
   readonly itemId: number;
-  readonly isGold: boolean;
 }
 
 export interface IGetCommdtyOrders {

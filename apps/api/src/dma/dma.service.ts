@@ -202,11 +202,15 @@ export class DmaService {
     };
   }
 
-  private async getPriceRangeByItem(
+  /**
+   * Build decimal bins for accurate price assignment
+   * Does not round - preserves full decimal precision
+   */
+  private async buildDecimalPriceBins(
     itemId: number,
     blocks: number,
     isGold: boolean = false,
-  ) {
+  ): Promise<number[]> {
     const now = Date.now();
     const last24Hours = now - 24 * 60 * 60 * 1000;
 
@@ -215,15 +219,9 @@ export class DmaService {
       .where({ itemId })
       .andWhere('markets.timestamp >= :last24Hours', { last24Hours });
 
-    if (isGold) {
-      // For gold we might want to filter by something else if needed,
-      // but for now let's just keep it simple as per the TODO
-    }
-
     const marketQuotes = await query.distinctOn(['markets.price']).getMany();
 
     const quotes = marketQuotes.map((q) => q.price).sort((a, b) => a - b);
-    console.log(quotes);
 
     if (!quotes.length) return [];
     const length = quotes.length > 3 ? quotes.length - 3 : quotes.length;
@@ -241,6 +239,26 @@ export class DmaService {
       .map((x, y) => parseFloat((x + y * tick).toFixed(4)));
   }
 
+  /**
+   * Rebuild decimal bins for use in processTimestampData
+   * Used internally for accurate price binning
+   */
+  private async rebuildDecimalBins(itemId: number): Promise<number[]> {
+    return this.buildDecimalPriceBins(itemId, 20);
+  }
+
+  private async getPriceRangeByItem(
+    itemId: number,
+    blocks: number,
+    isGold: boolean = false,
+  ) {
+    const decimalBins = await this.buildDecimalPriceBins(itemId, blocks, isGold);
+    console.log('Decimal bins:', decimalBins);
+
+    // Round the bins for display in yAxis
+    return decimalBins.map((price) => parseFloat(Math.round(price).toFixed(4)));
+  }
+
   async priceAxisCommodity(args: IBuildYAxis): Promise<number[]> {
     const { itemId } = args;
 
@@ -251,12 +269,13 @@ export class DmaService {
 
   /**
    * Helper method to find the correct bucket index for a given price
+   * Uses decimal bins for accurate price assignment
    */
-  private findPriceBucketIndex(price: number, yPriceAxis: number[]): number {
+  private findPriceBucketIndex(price: number, decimalBins: number[]): number {
     // For each price, find the bucket where: bucketFloor <= price < bucketCeiling
-    for (let i = 0; i < yPriceAxis.length; i++) {
-      const bucketFloor = yPriceAxis[i];
-      const bucketCeiling = yPriceAxis[i + 1] ?? Infinity;
+    for (let i = 0; i < decimalBins.length; i++) {
+      const bucketFloor = decimalBins[i];
+      const bucketCeiling = decimalBins[i + 1] ?? Infinity;
       
       // Price belongs to this bucket if it's >= floor and < ceiling
       if (price >= bucketFloor && price < bucketCeiling) {
@@ -265,7 +284,7 @@ export class DmaService {
     }
     
     // Fallback: if price is above all buckets, return last index
-    return yPriceAxis.length - 1;
+    return decimalBins.length - 1;
   }
 
   /**
@@ -275,6 +294,7 @@ export class DmaService {
     timestamp: number,
     itx: number,
     yPriceAxis: number[],
+    decimalBins: number[],
     itemId: number,
   ): Promise<IChartOrder[]> {
     try {
@@ -299,9 +319,9 @@ export class DmaService {
       }));
 
       // Process market orders for this timestamp
-      // Find the correct bucket for each order based on its actual price
+      // Find the correct bucket for each order based on its actual price using decimal bins
       for (const order of marketOrders) {
-        const bucketIndex = this.findPriceBucketIndex(order.price, yPriceAxis);
+        const bucketIndex = this.findPriceBucketIndex(order.price, decimalBins);
 
         priceLevelDataset[bucketIndex].orders =
           priceLevelDataset[bucketIndex].orders + 1;
@@ -346,6 +366,10 @@ export class DmaService {
     if (!yPriceAxis.length) return { dataset: [] };
 
     try {
+      // yPriceAxis contains rounded values for display
+      // We need decimal precision for binning, so reconstruct them
+      const decimalBins = await this.rebuildDecimalBins(itemId);
+      
       // Process each timestamp and return the aggregated results
       const dataset = await lastValueFrom(
         from(xTimestampAxis).pipe(
@@ -354,6 +378,7 @@ export class DmaService {
               timestamp,
               itx,
               yPriceAxis,
+              decimalBins,
               itemId,
             );
           }),
