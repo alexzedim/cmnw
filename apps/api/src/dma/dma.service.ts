@@ -126,7 +126,6 @@ export class DmaService {
       timestamps,
       item.id,
     );
-    console.log({ yAxis: yPriceAxis, xAxis: timestamps, dataset })
 
     const chart = JSON.stringify({
       yAxis: yPriceAxis,
@@ -212,7 +211,6 @@ export class DmaService {
   private async buildDecimalPriceBins(
     itemId: number,
     blocks: number,
-    isGold: boolean = false,
   ): Promise<number[]> {
     const now = Date.now();
     const last24Hours = now - 24 * 60 * 60 * 1000;
@@ -253,10 +251,8 @@ export class DmaService {
   private async getPriceRangeByItem(
     itemId: number,
     blocks: number,
-    isGold: boolean = false,
   ) {
-    const decimalBins = await this.buildDecimalPriceBins(itemId, blocks, isGold);
-    console.log('Decimal bins:', decimalBins);
+    const decimalBins = await this.buildDecimalPriceBins(itemId, blocks);
 
     // Round the bins for display in yAxis
     return decimalBins.map((price) => parseFloat(Math.round(price).toFixed(4)));
@@ -279,13 +275,13 @@ export class DmaService {
     for (let i = 0; i < decimalBins.length; i++) {
       const bucketFloor = decimalBins[i];
       const bucketCeiling = decimalBins[i + 1] ?? Infinity;
-      
+
       // Price belongs to this bucket if it's >= floor and < ceiling
       if (price >= bucketFloor && price < bucketCeiling) {
         return i;
       }
     }
-    
+
     // Fallback: if price is above all buckets, return last index
     return decimalBins.length - 1;
   }
@@ -372,7 +368,7 @@ export class DmaService {
       // yPriceAxis contains rounded values for display
       // We need decimal precision for binning, so reconstruct them
       const decimalBins = await this.rebuildDecimalBins(itemId);
-      
+
       // Process each timestamp and return the aggregated results
       const dataset = await lastValueFrom(
         from(xTimestampAxis).pipe(
