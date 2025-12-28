@@ -4,6 +4,8 @@ import {
   HttpCode,
   HttpStatus,
   Query,
+  Param,
+  BadRequestException,
 } from '@nestjs/common';
 
 import {
@@ -28,8 +30,9 @@ import {
   WowTokenDto,
   SearchItemDto,
   SearchItemResponseDto,
+  ContractsPeriodDto,
 } from '@app/resources';
-import { ItemsEntity, MarketEntity } from '@app/pg';
+import { MarketEntity } from '@app/pg';
 import { ItemRealmDto } from '@app/resources';
 
 @ApiTags('dma')
@@ -212,5 +215,28 @@ export class DmaController {
       input.limit || 25,
     );
     return { results };
+  }
+
+  @ApiOperation({ description: 'Returns contract data for an item' })
+  @ApiOkResponse({ description: 'Contract data for the specified item' })
+  @ApiUnauthorizedResponse({
+    description: 'You need authenticate yourself before request',
+  })
+  @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
+  @ApiBadRequestResponse({
+    description:
+      'The server could not understand the request due to invalid syntax',
+  })
+  @ApiServiceUnavailableResponse({
+    description: 'Server is under maintenance or overloaded',
+  })
+  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
+  @HttpCode(HttpStatus.OK)
+  @Get('/contracts')
+  async getContracts(
+    @Query() input: ContractsPeriodDto,
+  ) {
+    console.log(input);
+    return this.dmaService.getContracts(input.itemId, input.period);
   }
 }
