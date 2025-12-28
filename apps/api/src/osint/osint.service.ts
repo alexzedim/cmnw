@@ -634,7 +634,12 @@ export class OsintService {
 
       const searchPattern = `${input.searchQuery}%`;
 
-      const [characters, guilds, items] = await Promise.all([
+      // Check if search query starts with hash type indicator
+      const hashTypeChar = input.searchQuery.charAt(0).toLowerCase();
+      const isHashQuery = /^[ab]$/.test(hashTypeChar) && input.searchQuery.length > 1;
+      const hashValue = isHashQuery ? input.searchQuery.slice(1) : null;
+
+      const [characters, guilds, items, hashMatches] = await Promise.all([
         this.charactersRepository.find({
           where: {
             guid: ILike(searchPattern),
@@ -656,8 +661,21 @@ export class OsintService {
             "LOWER(items.names::text) LIKE LOWER(:searchPattern)",
             { searchPattern },
           )
+          .orWhere('items.item_id = :searchQuery', { searchQuery: input.searchQuery })
           .take(100)
           .getMany(),
+        isHashQuery
+          ? this.charactersRepository
+              .createQueryBuilder('c')
+              .select('COUNT(*) as count')
+              .where(
+                hashTypeChar === 'a'
+                  ? 'c.hashA = :hashValue'
+                  : 'c.hashB = :hashValue',
+                { hashValue },
+              )
+              .getRawOne()
+          : Promise.resolve({ count: 0 }),
       ]);
 
       this.logger.log({
@@ -666,13 +684,17 @@ export class OsintService {
         characterCount: characters.length,
         guildCount: guilds.length,
         itemCount: items.length,
-        message: `Search completed: ${characters.length} characters, ${guilds.length} guilds, ${items.length} items`,
+        hashMatchCount: hashMatches?.count || 0,
+        message: `Search completed: ${characters.length} characters, ${guilds.length} guilds, ${items.length} items, ${hashMatches?.count || 0} hash matches`,
       });
 
       return {
         characters,
         guilds,
         items,
+        hashMatches: {
+          count: hashMatches?.count || 0,
+        },
       };
     } catch (errorOrException) {
       this.logger.error({
