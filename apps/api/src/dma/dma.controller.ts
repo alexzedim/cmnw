@@ -58,7 +58,7 @@ export class DmaController {
   @Get('/item')
   async getItem(
     @Query() input: ReqGetItemDto,
-  ): Promise<{ item: ItemsEntity; realm: any[] }> {
+  ) {
     return this.dmaService.getItem(input);
   }
 
@@ -119,7 +119,6 @@ export class DmaController {
   @HttpCode(HttpStatus.OK)
   @Get('/item/chart')
   async getItemChart(@Query() input: ReqGetItemDto) {
-    console.log(input)
     return this.dmaService.getItemChart(input);
   }
 
