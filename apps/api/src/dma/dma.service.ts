@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
+import { DateTime } from 'luxon';
 import {
   IBuildYAxis,
   IChartOrder,
@@ -20,7 +21,7 @@ import { Queue } from 'bullmq';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { from, lastValueFrom, mergeMap, reduce } from 'rxjs';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ItemsEntity, KeysEntity, MarketEntity } from '@app/pg';
+import { ContractEntity, ItemsEntity, KeysEntity, MarketEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import Redis from 'ioredis';
 
@@ -37,12 +38,14 @@ export class DmaService {
     private readonly itemsRepository: Repository<ItemsEntity>,
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
+    @InjectRepository(ContractEntity)
+    private readonly contractRepository: Repository<ContractEntity>,
     @InjectQueue(valuationsQueue.name)
     private readonly _queueValuations: Queue<IQItemValuation, number>,
   ) {}
 
   // TODO validation on DTO level
-  async getItem(input: ReqGetItemDto): Promise<any> {
+  async getItem(input: ReqGetItemDto) {
     const isNotNumber = isNaN(Number(input.id));
     if (isNotNumber) {
       throw new BadRequestException(

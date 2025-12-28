@@ -6,12 +6,12 @@ import { DmaService } from './dma.service';
 import { valuationsQueue } from '@app/resources';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ItemsEntity, KeysEntity, MarketEntity } from '@app/pg';
+import { ItemsEntity, KeysEntity, MarketEntity, ContractEntity } from '@app/pg';
 
 @Module({
   imports: [
     TypeOrmModule.forRoot(postgresConfig),
-    TypeOrmModule.forFeature([ItemsEntity, KeysEntity, MarketEntity]),
+    TypeOrmModule.forFeature([ItemsEntity, KeysEntity, MarketEntity, ContractEntity]),
     RedisModule.forRoot({
       type: 'single',
       options: {
