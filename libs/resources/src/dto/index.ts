@@ -22,3 +22,5 @@ export * from './auth-response.dto';
 export * from './item-realm.dto';
 export * from './search-item.dto';
 export * from './search-query.dto';
+export * from './contracts-period.dto';
+export * from './contracts-response.dto';
