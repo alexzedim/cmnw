@@ -106,11 +106,6 @@ export class TestsBench implements OnApplicationBootstrap {
       .getRawOne<any>();
 
     console.log(contractData);
-
-    const t = await this.getPriceRangeByItem(itemId, 20);
-    console.log(t);
-    const z = await this.test(t, [1745606710000], itemId);
-    console.log(z);
   }
 
   /**
@@ -198,7 +193,7 @@ export class TestsBench implements OnApplicationBootstrap {
     p90_cont: number;
   }> {
     let query = `
-      SELECT 
+      SELECT
         PERCENTILE_CONT(0.05) WITHIN GROUP (ORDER BY price) as p5_cont,
         PERCENTILE_DISC(0.05) WITHIN GROUP (ORDER BY price) as p5_disc,
         PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY price) as p50_cont,
