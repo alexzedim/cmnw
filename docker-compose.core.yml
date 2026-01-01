@@ -9,7 +9,6 @@ services:
       - stack.env
     networks:
       - default
-      - traefik
 
   api:
     container_name: cmnw-api
