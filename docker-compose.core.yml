@@ -9,6 +9,7 @@ services:
       - stack.env
     networks:
       - default
+      - traefik
 
   api:
     container_name: cmnw-api
@@ -21,8 +22,25 @@ services:
       - stack.env
     networks:
       - default
+      - traefik
+
+  next:
+    container_name: cmnw-next
+    image: ghcr.io/alexzedim/cmnw-next:latest
+    restart: always
+    ports:
+      - '8081:8081'
+    env_file:
+      - stack.env
+    environment:
+      - PORT=8081
+    networks:
+      - default
+      - traefik
 
 networks:
   default:
     name: cmnw_default
     driver: bridge
+  traefik:
+    external: true
