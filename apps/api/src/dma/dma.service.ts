@@ -185,7 +185,7 @@ export class DmaService {
 
     // Transform yAxis from numbers to formatted strings
     const formattedYAxis = chartData.yAxis.map((price) =>
-      typeof price === 'number' ? price.toFixed(4) : String(price),
+      typeof price === 'number' ? price.toFixed(2) : String(price),
     );
 
     // Transform dataset to match frontend HeatmapDataPoint interface
@@ -193,6 +193,7 @@ export class DmaService {
       x: point.x,
       y: point.y,
       value: point.value,
+      price: point.price,
       orders: point.orders,
       oi: point.oi,
     }));
@@ -205,34 +206,107 @@ export class DmaService {
   }
 
   /**
+   * Calculate price range based on quantity distribution using percentile filtering
+   * Filters out price tails with minimal liquidity to create representative bins
+   * @param prices sorted array of unique prices
+   * @param marketData market orders with price and quantity
+   * @param lowerPercentile lower quantile threshold (default 0.05 = 5%)
+   * @param upperPercentile upper quantile threshold (default 0.95 = 95%)
+   * @returns { floor, cap } representing the quantity-filtered price range
+   */
+  private calculateQuantileFilteredRange(
+    prices: number[],
+    marketData: { price: number; quantity?: number }[],
+    lowerPercentile: number = 0.05,
+    upperPercentile: number = 0.85,
+  ): { floor: number; cap: number } {
+    // Aggregate quantity by price
+    const quantityByPrice = new Map<number, number>();
+    for (const order of marketData) {
+      const currentQty = quantityByPrice.get(order.price) ?? 0;
+      quantityByPrice.set(order.price, currentQty + (order.quantity ?? 1));
+    }
+
+    // Calculate total quantity
+    const totalQuantity = Array.from(quantityByPrice.values()).reduce(
+      (sum, qty) => sum + qty,
+      0,
+    );
+
+    if (totalQuantity === 0) {
+      // Fallback to price-based filtering if no quantity data
+      return {
+        floor: prices[0],
+        cap: prices[Math.floor(prices.length * 0.9)],
+      };
+    }
+
+    // Build cumulative quantity distribution
+    let cumulativeQty = 0;
+    let lowerBoundPrice = prices[0];
+    let upperBoundPrice = prices[prices.length - 1];
+
+    for (const price of prices) {
+      const qtyAtPrice = quantityByPrice.get(price) ?? 0;
+      cumulativeQty += qtyAtPrice;
+      const percentile = cumulativeQty / totalQuantity;
+
+      // Set lower bound at lower percentile threshold
+      if (percentile >= lowerPercentile && lowerBoundPrice === prices[0]) {
+        lowerBoundPrice = price;
+      }
+
+      // Set upper bound at upper percentile threshold
+      if (percentile >= upperPercentile) {
+        upperBoundPrice = price;
+        break; // Found our upper bound
+      }
+    }
+
+    return {
+      floor: lowerBoundPrice,
+      cap: upperBoundPrice,
+    };
+  }
+
+  /**
    * Build decimal bins for accurate price assignment
-   * Does not round - preserves full decimal precision
+   * Uses quantity-weighted distribution to create representative bins
+   * Filters out price tails with minimal liquidity (default 5%-95% percentile)
    */
   private async buildDecimalPriceBins(
     itemId: number,
     blocks: number,
   ): Promise<number[]> {
     const now = Date.now();
-    const last24Hours = now - 24 * 60 * 60 * 1000;
 
-    const query = this.marketRepository
-      .createQueryBuilder('markets')
-      .where({ itemId })
-      .andWhere('markets.timestamp >= :last24Hours', { last24Hours });
+    // Fetch price and quantity data (not just distinct prices)
+    const marketData = await this.marketRepository.find({
+      where: {
+        itemId,
+      },
+      select: ['price', 'quantity'],
+    });
 
-    const marketQuotes = await query.distinctOn(['markets.price']).getMany();
+    if (!marketData.length) return [];
 
-    const quotes = marketQuotes.map((q) => q.price).sort((a, b) => a - b);
+    // Get unique sorted prices
+    const uniquePrices = Array.from(
+      new Set(marketData.map((m) => m.price)),
+    ).sort((a, b) => a - b);
 
-    if (!quotes.length) return [];
-    const length = quotes.length > 3 ? quotes.length - 3 : quotes.length;
-    const start = length === 1 ? 0 : 1;
+    if (uniquePrices.length === 0) return [];
 
-    // Keep decimal precision - use actual min/max values without rounding
-    const cap = quotes[Math.floor(length * 0.9)];
-    const floor = quotes[start];
+    // Calculate quantity-filtered range
+    const { floor, cap } = this.calculateQuantileFilteredRange(
+      uniquePrices,
+      marketData,
+      0.05, // lower percentile (5%)
+      0.90, // upper percentile (85%)
+    );
+
     const priceRange = cap - floor;
-    // --- Step represents 5% for each cluster --- //
+    // --- Step represents equal division for each cluster --- //
     const tick = priceRange / blocks;
 
     return Array(Math.ceil((cap + tick - floor) / tick))
@@ -248,14 +322,72 @@ export class DmaService {
     return this.buildDecimalPriceBins(itemId, 20);
   }
 
+  /**
+   * Detect the appropriate price rounding increment based on price intervals
+   * Finds the best-fit increment that is a multiple of 5
+   * Examples: 0.05, 0.5, 5, 50, 500, etc.
+   */
+  private detectPriceRoundingIncrement(prices: number[]): number {
+    if (prices.length < 2) return 0.05; // default to smallest increment
+
+    // Calculate intervals between consecutive prices
+    const intervals: number[] = [];
+    for (let i = 1; i < prices.length; i++) {
+      const interval = prices[i] - prices[i - 1];
+      if (interval > 0) {
+        intervals.push(interval);
+      }
+    }
+
+    if (intervals.length === 0) return 0.05;
+
+    // Calculate median interval to handle outliers
+    const sortedIntervals = [...intervals].sort((a, b) => a - b);
+    const medianInterval =
+      sortedIntervals[Math.floor(sortedIntervals.length / 2)];
+
+    // Find appropriate power of 10 scale based on interval magnitude
+    const magnitude = Math.floor(Math.log10(medianInterval));
+    const scale = Math.pow(10, magnitude);
+
+    // Try multiples of 5 at different scales: 0.5x, 5x of the base scale
+    // E.g., if scale=1: try 0.5, 5; if scale=0.1: try 0.05, 0.5; if scale=10: try 5, 50
+    const candidateIncrements = [scale * 0.5, scale * 5];
+
+    // Find the first increment where median fits within 1-4 increments
+    for (const increment of candidateIncrements) {
+      if (
+        medianInterval >= increment * 0.8 &&
+        medianInterval <= increment * 4
+      ) {
+        return increment;
+      }
+    }
+
+    // Fallback: use 5x of scale
+    return scale * 5;
+  }
+
+  /**
+   * Round a price to the nearest increment (0.05, 0.25, 0.5, or 5)
+   */
+  private roundToIncrement(price: number, increment: number): number {
+    return Math.round(price / increment) * increment;
+  }
+
   private async getPriceRangeByItem(
     itemId: number,
     blocks: number,
   ) {
     const decimalBins = await this.buildDecimalPriceBins(itemId, blocks);
 
-    // Round the bins for display in yAxis
-    return decimalBins.map((price) => parseFloat(Math.round(price).toFixed(4)));
+    // Detect appropriate rounding increment based on price intervals
+    const roundingIncrement = this.detectPriceRoundingIncrement(decimalBins);
+
+    // Round the bins using the detected increment
+    return decimalBins.map((price) =>
+      parseFloat(this.roundToIncrement(price, roundingIncrement).toFixed(2)),
+    );
   }
 
   async priceAxisCommodity(args: IBuildYAxis): Promise<number[]> {
