@@ -37,7 +37,7 @@ services:
       - default
       - cmnw
 
-  characters:
+  analytics:
     image: ghcr.io/alexzedim/core:latest
     restart: always
     command: [ 'node', 'dist/apps/analytics/main.js' ]
