@@ -8,3 +8,4 @@ export * from './worker';
 export * from './http';
 export * from './evaluation';
 export * from './analytics';
+export * from './app';

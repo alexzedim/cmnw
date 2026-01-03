@@ -16,13 +16,12 @@ import {
   CharactersGuildsMembersEntity,
   CharactersProfileEntity,
   GuildsEntity,
-  ItemsEntity,
   KeysEntity,
   CharactersGuildsLogsEntity,
   RealmsEntity, AnalyticsEntity,
 } from '@app/pg';
 
-import { FindOptionsWhere, ILike, In, MoreThanOrEqual, Repository, Or } from 'typeorm';
+import { FindOptionsWhere, In, MoreThanOrEqual, Repository } from 'typeorm';
 
 import {
   CHARACTER_HASH_FIELDS,
@@ -42,7 +41,6 @@ import {
   LFG_STATUS,
   OSINT_SOURCE,
   RealmDto,
-  SearchQueryDto,
   toGuid,
   findRealm,
 } from '@app/resources';
@@ -65,8 +63,6 @@ export class OsintService {
     private readonly charactersGuildMembersRepository: Repository<CharactersGuildsMembersEntity>,
     @InjectRepository(CharactersProfileEntity)
     private readonly charactersProfileRepository: Repository<CharactersProfileEntity>,
-    @InjectRepository(ItemsEntity)
-    private readonly itemsRepository: Repository<ItemsEntity>,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(CharactersGuildsLogsEntity)
@@ -620,97 +616,6 @@ export class OsintService {
       });
 
       throw new ServiceUnavailableException('Error fetching realms data');
-    }
-  }
-
-  async indexSearch(input: SearchQueryDto) {
-    const logTag = 'indexSearch';
-    try {
-      this.logger.log({
-        logTag,
-        searchQuery: input.searchQuery,
-        message: `Performing universal search: ${input.searchQuery}`,
-      });
-
-      const searchPattern = `${input.searchQuery}%`;
-
-      // Check if search query starts with hash type indicator
-      const hashTypeChar = input.searchQuery.charAt(0).toLowerCase();
-      const isHashQuery = /^[ab]$/.test(hashTypeChar) && input.searchQuery.length > 1;
-      const hashValue = isHashQuery ? input.searchQuery.slice(1) : null;
-      
-      // Parse search query as item ID if it's numeric
-      const isNumericQuery = /^\d+$/.test(input.searchQuery);
-      const itemIdQuery = isNumericQuery ? parseInt(input.searchQuery, 10) : null;
-
-      const [characters, guilds, items, hashMatches] = await Promise.all([
-        this.charactersRepository.find({
-          where: {
-            guid: ILike(searchPattern),
-          },
-          take: 100,
-        }),
-        this.guildsRepository.find({
-          where: {
-            guid: ILike(searchPattern),
-          },
-          take: 100,
-        }),
-        this.itemsRepository
-          .createQueryBuilder('items')
-          .where('LOWER(items.name) LIKE LOWER(:searchPattern)', {
-            searchPattern,
-          })
-          .orWhere(
-            "LOWER(items.names::text) LIKE LOWER(:searchPattern)",
-            { searchPattern },
-          )
-          .orWhere('items.id = :searchQuery', { searchQuery: itemIdQuery })
-          .take(100)
-          .getMany(),
-        isHashQuery
-          ? this.charactersRepository
-              .createQueryBuilder('c')
-              .select('COUNT(*) as count')
-              .where(
-                hashTypeChar === 'a'
-                  ? 'c.hashA = :hashValue'
-                  : 'c.hashB = :hashValue',
-                { hashValue },
-              )
-              .getRawOne()
-          : Promise.resolve({ count: 0 }),
-      ]);
-
-      this.logger.log({
-        logTag,
-        searchQuery: input.searchQuery,
-        characterCount: characters.length,
-        guildCount: guilds.length,
-        itemCount: items.length,
-        hashMatchCount: hashMatches?.count || 0,
-        message: `Search completed: ${characters.length} characters, ${guilds.length} guilds, ${items.length} items, ${hashMatches?.count || 0} hash matches`,
-      });
-
-      return {
-        characters,
-        guilds,
-        items,
-        hashMatches: {
-          count: hashMatches?.count || 0,
-        },
-      };
-    } catch (errorOrException) {
-      this.logger.error({
-        logTag,
-        searchQuery: input.searchQuery,
-        errorOrException,
-        message: `Error performing universal search: ${input.searchQuery}`,
-      });
-
-      throw new ServiceUnavailableException(
-        `Error performing search for ${input.searchQuery}`,
-      );
     }
   }
 }

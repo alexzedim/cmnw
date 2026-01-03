@@ -26,14 +26,12 @@ import {
   CharactersLfgDto,
   GuildIdDto,
   RealmDto,
-  SearchQueryDto,
 } from '@app/resources';
 import {
   CharactersEntity,
   CharactersGuildsLogsEntity,
   CharactersProfileEntity,
   GuildsEntity,
-  ItemsEntity,
   RealmsEntity,
 } from '@app/pg';
 
@@ -214,33 +212,5 @@ export class OsintController {
   ): Promise<{ realms: RealmsEntity[] }> {
     const realms = await this.osintService.getRealms(input);
     return { realms };
-  }
-
-  @ApiOperation({
-    description: 'Universal search across characters, guilds, and items',
-  })
-  @ApiOkResponse({
-    description:
-      'Search results containing matching characters, guilds, and items',
-  })
-  @ApiUnauthorizedResponse({
-    description: 'You need authenticate yourself before request',
-  })
-  @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
-  @ApiBadRequestResponse({ description: 'Invalid request body' })
-  @ApiServiceUnavailableResponse({
-    description: 'Commonwealth API is not available at the moment',
-  })
-  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @HttpCode(HttpStatus.OK)
-  @Get('/search')
-  async indexSearch(
-    @Query() input: SearchQueryDto,
-  ): Promise<{
-    characters: CharactersEntity[];
-    guilds: GuildsEntity[];
-    items: ItemsEntity[];
-  }> {
-    return this.osintService.indexSearch(input);
   }
 }
