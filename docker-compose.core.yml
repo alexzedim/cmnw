@@ -37,6 +37,13 @@ services:
       - default
       - cmnw
 
+  characters:
+    image: ghcr.io/alexzedim/core:latest
+    restart: always
+    command: [ 'node', 'dist/apps/analytics/main.js' ]
+    env_file:
+      - stack.env
+
 networks:
   default:
     name: cmnw_default

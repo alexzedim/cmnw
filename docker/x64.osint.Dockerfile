@@ -14,7 +14,6 @@ COPY . .
 
 RUN nest build osint && \
     nest build characters && \
-    nest build analytics && \
     nest build guilds && \
     nest build wow-progress
 

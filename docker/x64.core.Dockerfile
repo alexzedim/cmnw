@@ -13,6 +13,7 @@ RUN npm install -g @nestjs/cli
 COPY . .
 
 RUN nest build core && \
+    nest build analytics && \
     nest build api
 
 FROM node:lts
