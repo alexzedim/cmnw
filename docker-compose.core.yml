@@ -21,7 +21,7 @@ services:
       - stack.env
     networks:
       - default
-      - traefik
+      - cmnw
 
   next:
     container_name: cmnw-next
@@ -35,11 +35,11 @@ services:
       - PORT=8081
     networks:
       - default
-      - traefik
+      - cmnw
 
 networks:
   default:
     name: cmnw_default
     driver: bridge
-  traefik:
+  cmnw:
     external: true
