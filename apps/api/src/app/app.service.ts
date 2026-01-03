@@ -3,8 +3,20 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike } from 'typeorm';
-import { CharactersEntity, GuildsEntity, ItemsEntity } from '@app/pg';
-import { AppHealthPayload, SearchQueryDto } from '@app/resources';
+import {
+  AnalyticsEntity,
+  CharactersEntity,
+  GuildsEntity,
+  ItemsEntity,
+  MarketEntity,
+} from '@app/pg';
+import {
+  AnalyticsMetricCategory,
+  AnalyticsMetricType,
+  AppHealthMetricSnapshot,
+  AppHealthPayload,
+  SearchQueryDto,
+} from '@app/resources';
 
 @Injectable()
 export class AppService {
@@ -18,17 +30,49 @@ export class AppService {
     private readonly guildsRepository: Repository<GuildsEntity>,
     @InjectRepository(ItemsEntity)
     private readonly itemsRepository: Repository<ItemsEntity>,
+    @InjectRepository(AnalyticsEntity)
+    private readonly analyticsRepository: Repository<AnalyticsEntity>,
+    @InjectRepository(MarketEntity)
+    private readonly marketRepository: Repository<MarketEntity>,
   ) {
     this.version = this.loadVersion();
   }
 
-  getHealth(): AppHealthPayload {
-    return {
-      status: 'ok',
-      version: this.version,
-      timestamp: new Date().toISOString(),
-      uptime: Math.round(process.uptime()),
-    };
+  async getMetrics(): Promise<AppHealthPayload> {
+    const logTag = 'getMetrics';
+
+    try {
+      const [characters, guilds, market, latestMarketTimestamp] =
+        await Promise.all([
+          this.getLatestTotalMetricSnapshot(AnalyticsMetricCategory.CHARACTERS),
+          this.getLatestTotalMetricSnapshot(AnalyticsMetricCategory.GUILDS),
+          this.getLatestTotalMetricSnapshot(AnalyticsMetricCategory.MARKET),
+          this.getLatestCommodityTimestamp(),
+        ]);
+
+      const uptimeSeconds = Math.round(process.uptime());
+      const uptime = this.formatUptime(uptimeSeconds);
+
+      return {
+        status: 'ok',
+        version: this.version,
+        uptime,
+        metrics: {
+          characters: characters ?? null,
+          guilds: guilds ?? null,
+          market: market ?? null,
+          latestMarketTimestamp,
+        },
+      };
+    } catch (errorOrException) {
+      this.logger.error({
+        logTag,
+        message: 'Failed to load application metrics',
+        errorOrException,
+      });
+
+      throw new ServiceUnavailableException('Unable to load application metrics');
+    }
   }
 
   async indexSearch(input: SearchQueryDto): Promise<{
@@ -133,5 +177,67 @@ export class AppService {
     } catch (error) {
       return 'unknown';
     }
+  }
+
+  private async getLatestTotalMetricSnapshot(
+    category: AnalyticsMetricCategory,
+  ): Promise<AppHealthMetricSnapshot | null> {
+    const metric = await this.analyticsRepository
+      .createQueryBuilder('analytics')
+      .where('analytics.category = :category', { category })
+      .andWhere('analytics.metric_type = :metricType', {
+        metricType: AnalyticsMetricType.TOTAL,
+      })
+      .andWhere('analytics.realm_id IS NULL')
+      .orderBy('analytics.snapshot_date', 'DESC')
+      .limit(1)
+      .getOne();
+
+    if (!metric) {
+      return null;
+    }
+
+    return {
+      snapshotDate: metric.snapshotDate.toISOString(),
+      value: metric.value,
+    };
+  }
+
+  private async getLatestCommodityTimestamp(): Promise<number | null> {
+    const latestCommodity = await this.marketRepository
+      .createQueryBuilder('market')
+      .select('market.timestamp', 'timestamp')
+      .where('market.type = :type', { type: 'COMMDTY' })
+      .andWhere('market.timestamp IS NOT NULL')
+      .orderBy('market.timestamp', 'DESC')
+      .limit(1)
+      .getRawOne<{ timestamp: string | number | null }>();
+
+    if (!latestCommodity?.timestamp) {
+      return null;
+    }
+
+    const numericTimestamp =
+      typeof latestCommodity.timestamp === 'string'
+        ? parseInt(latestCommodity.timestamp, 10)
+        : Number(latestCommodity.timestamp);
+
+    return Number.isFinite(numericTimestamp) ? numericTimestamp : null;
+  }
+
+  private formatUptime(totalSeconds: number): string {
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    const parts: string[] = [];
+    if (days) parts.push(`${days}d`);
+    if (hours) parts.push(`${hours}h`);
+    if (minutes) parts.push(`${minutes}m`);
+    parts.push(`${seconds}s`);
+
+    const humanReadable = parts.join(' ');
+    return `${totalSeconds}s (${humanReadable})`;
   }
 }

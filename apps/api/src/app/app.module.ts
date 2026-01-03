@@ -2,11 +2,23 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { CharactersEntity, GuildsEntity, ItemsEntity } from '@app/pg';
+import {
+  AnalyticsEntity,
+  CharactersEntity,
+  GuildsEntity,
+  ItemsEntity,
+  MarketEntity,
+} from '@app/pg';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([CharactersEntity, GuildsEntity, ItemsEntity]),
+    TypeOrmModule.forFeature([
+      AnalyticsEntity,
+      CharactersEntity,
+      GuildsEntity,
+      ItemsEntity,
+      MarketEntity,
+    ]),
   ],
   controllers: [AppController],
   providers: [AppService],
