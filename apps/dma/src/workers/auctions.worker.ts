@@ -30,6 +30,7 @@ import {
   toGold,
   transformPrice,
 } from '@app/resources';
+import { createHash } from 'crypto';
 
 @Processor(auctionsQueue.name, auctionsQueue.workerOptions)
 @Injectable()
@@ -120,13 +121,29 @@ export class AuctionsWorker extends WorkerHost {
       const connectedRealmId = isCommodity
         ? REALM_ENTITY_ANY.id
         : args.connectedRealmId;
+
       const timestamp = DateTime.fromRFC2822(
         marketResponse.lastModified,
       ).toMillis();
 
       const { auctions } = marketResponse;
 
+      const auctionsHash = this.computeAuctionsPayloadHash(auctions);
+      const auctionsHashKey = `DMA:AUCTIONS:HASH:${auctionsHash}`;
+
+      const previouslyPersistedHash = await this.redisService.exists(auctionsHashKey);
+      if (previouslyPersistedHash) {
+        this.stats.notModified++;
+        const duration = Date.now() - startTime;
+        this.logger.warn(
+          `${chalk.yellow('⚠')} ${chalk.yellow('HASH')} [${chalk.bold(this.stats.total)}] realm ${connectedRealmId} ${chalk.dim(`(${duration}ms) Duplicate payload hash ${auctionsHash}`)}`,
+        );
+        await job.updateProgress(100);
+        return 304;
+      }
+
       let iterator = 0;
+      let hasPersistedOrders = false;
 
       // Handle empty auctions array to prevent EmptyError
       if (auctions.length === 0) {
@@ -149,6 +166,11 @@ export class AuctionsWorker extends WorkerHost {
                 );
 
                 await this.marketRepository.save(ordersBulkAuctions);
+
+                if (ordersBulkAuctions.length > 0) {
+                  hasPersistedOrders = true;
+                }
+
                 iterator += ordersBulkAuctions.length;
                 this.logger.log(
                   `${chalk.cyan('→')} realm ${connectedRealmId} ${chalk.dim('|')} ${chalk.bold(iterator)} orders ${chalk.dim('|')} ${timestamp}`,
@@ -162,6 +184,10 @@ export class AuctionsWorker extends WorkerHost {
             }),
           ),
         );
+      }
+
+      if (hasPersistedOrders) {
+        await this.redisService.set(auctionsHashKey, auctionsHash, 'EX', 86400);
       }
 
       if (isCommodity) {
@@ -331,5 +357,13 @@ export class AuctionsWorker extends WorkerHost {
         `${chalk.dim('  Avg Rate:')} ${chalk.bold(avgRate)} realms/sec\n` +
         `${chalk.cyan.bold('═'.repeat(60))}`,
     );
+  }
+
+  private computeAuctionsPayloadHash(
+    auctions: BlizzardApiAuctions['auctions'],
+  ): string {
+    return createHash('sha1')
+      .update(JSON.stringify(auctions))
+      .digest('hex');
   }
 }
