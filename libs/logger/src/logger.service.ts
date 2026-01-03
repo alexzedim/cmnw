@@ -254,7 +254,14 @@ export class LoggerService extends ConsoleLogger {
     if (errorInfo.errorType === 'object' || errorInfo.errorType === 'unknown') {
       try {
         // Create a clean copy without internal fields
-        const { errorType, originalError, originalInput, timestamp, level, ...cleanInfo } = errorInfo;
+        const {
+          errorType,
+          originalError,
+          originalInput,
+          timestamp,
+          level,
+          ...cleanInfo
+        } = errorInfo;
         return JSON.stringify(cleanInfo, null, 2);
       } catch (error) {
         // Fallback if JSON.stringify fails

@@ -279,7 +279,6 @@ export class TestsBench implements OnApplicationBootstrap {
       .getRawMany<any>();
   }
 
-
   async test(
     priceRangeArray: number[],
     timestampArray: number[],

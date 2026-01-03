@@ -124,7 +124,8 @@ export const SWAGGER_CHARACTER_REALMS_ID: ApiPropertyOptions = {
 
 export const SWAGGER_CHARACTER_HASH_TYPE: ApiPropertyOptions = {
   name: 'hashType',
-  description: 'Character hash type: a (hashA only), b (hashB only), or ab (both with separate values)',
+  description:
+    'Character hash type: a (hashA only), b (hashB only), or ab (both with separate values)',
   type: String,
   required: true,
   nullable: false,

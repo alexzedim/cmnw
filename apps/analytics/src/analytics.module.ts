@@ -13,10 +13,10 @@ import {
 } from '@app/pg';
 
 import { AnalyticsService } from './analytics.service';
-import { CharacterMetricsService } from './services/character-metrics.service';
-import { GuildMetricsService } from './services/guild-metrics.service';
-import { MarketMetricsService } from './services/market-metrics.service';
-import { ContractMetricsService } from './services/contract-metrics.service';
+import { CharacterMetricsService } from './services';
+import { GuildMetricsService } from './services';
+import { MarketMetricsService } from './services';
+import { ContractMetricsService } from './services';
 
 @Module({
   imports: [

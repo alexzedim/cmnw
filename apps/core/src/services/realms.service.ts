@@ -1,5 +1,6 @@
 import {
-  Injectable, Logger,
+  Injectable,
+  Logger,
   NotFoundException,
   OnApplicationBootstrap,
 } from '@nestjs/common';

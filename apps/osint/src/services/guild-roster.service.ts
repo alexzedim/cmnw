@@ -23,9 +23,16 @@ import {
   STATUS_CODES,
   toGuid,
   toSlug,
-  CharacterJobQueueDto, characterAsGuildMember, ICharacterGuildMember,
+  CharacterJobQueueDto,
+  characterAsGuildMember,
+  ICharacterGuildMember,
 } from '@app/resources';
-import { CharactersEntity, GuildsEntity, KeysEntity, RealmsEntity } from '@app/pg';
+import {
+  CharactersEntity,
+  GuildsEntity,
+  KeysEntity,
+  RealmsEntity,
+} from '@app/pg';
 
 @Injectable()
 export class GuildRosterService {

@@ -34,40 +34,32 @@ export function calculateCharacterPercentiles(
 ) {
   return {
     global: {
-      achievementPoints: calculatePercentile(
-        stats.achievementPoints,
-        { max: globalAnalytics?.value?.maxAchievementPoints?.value },
-      ),
-      averageItemLevel: calculatePercentile(
-        stats.averageItemLevel,
-        { max: globalAnalytics?.value?.maxItemLevel?.value },
-      ),
-      mountsNumber: calculatePercentile(
-        stats.mountsNumber,
-        { max: globalAnalytics?.value?.maxMounts?.value },
-      ),
-      petsNumber: calculatePercentile(
-        stats.petsNumber,
-        { max: globalAnalytics?.value?.maxPets?.value },
-      ),
+      achievementPoints: calculatePercentile(stats.achievementPoints, {
+        max: globalAnalytics?.value?.maxAchievementPoints?.value,
+      }),
+      averageItemLevel: calculatePercentile(stats.averageItemLevel, {
+        max: globalAnalytics?.value?.maxItemLevel?.value,
+      }),
+      mountsNumber: calculatePercentile(stats.mountsNumber, {
+        max: globalAnalytics?.value?.maxMounts?.value,
+      }),
+      petsNumber: calculatePercentile(stats.petsNumber, {
+        max: globalAnalytics?.value?.maxPets?.value,
+      }),
     },
     realm: {
-      achievementPoints: calculatePercentile(
-        stats.achievementPoints,
-        { max: realmAnalytics?.value?.maxAchievementPoints?.value },
-      ),
-      averageItemLevel: calculatePercentile(
-        stats.averageItemLevel,
-        { max: realmAnalytics?.value?.maxItemLevel?.value },
-      ),
-      mountsNumber: calculatePercentile(
-        stats.mountsNumber,
-        { max: realmAnalytics?.value?.maxMounts?.value },
-      ),
-      petsNumber: calculatePercentile(
-        stats.petsNumber,
-        { max: realmAnalytics?.value?.maxPets?.value },
-      ),
+      achievementPoints: calculatePercentile(stats.achievementPoints, {
+        max: realmAnalytics?.value?.maxAchievementPoints?.value,
+      }),
+      averageItemLevel: calculatePercentile(stats.averageItemLevel, {
+        max: realmAnalytics?.value?.maxItemLevel?.value,
+      }),
+      mountsNumber: calculatePercentile(stats.mountsNumber, {
+        max: realmAnalytics?.value?.maxMounts?.value,
+      }),
+      petsNumber: calculatePercentile(stats.petsNumber, {
+        max: realmAnalytics?.value?.maxPets?.value,
+      }),
     },
   };
 }

@@ -238,7 +238,8 @@ export class CharacterResponseDto extends CharactersEntity {
     type: 'string',
     nullable: true,
     description: 'Avatar image URL',
-    example: 'https://render.worldofwarcraft.com/us/character/area-52/1/12345678/avatar.jpg',
+    example:
+      'https://render.worldofwarcraft.com/us/character/area-52/1/12345678/avatar.jpg',
   })
   readonly avatarImage?: string;
 
@@ -312,7 +313,8 @@ export class CharacterResponseDto extends CharactersEntity {
 
   @ApiProperty({
     type: CharacterPercentiles,
-    description: 'Character percentile statistics for global and realm rankings',
+    description:
+      'Character percentile statistics for global and realm rankings',
   })
   readonly percentiles: CharacterPercentiles;
 
@@ -331,7 +333,7 @@ export class CharacterResponseDto extends CharactersEntity {
       globalAnalytics,
       realmAnalytics,
     );
-    console.log('percentiles', percentiles)
+    console.log('percentiles', percentiles);
 
     return {
       ...character,

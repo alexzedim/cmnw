@@ -415,7 +415,10 @@ export class CharacterJobQueueDto {
    * @param logTag - Optional log tag for warnings (defaults to 'CharacterJobQueueDto.validate')
    * @throws Error if validation fails and strict is true
    */
-  validate(strict: boolean = true, logTag: string = 'CharacterJobQueueDto.validate'): void {
+  validate(
+    strict: boolean = true,
+    logTag: string = 'CharacterJobQueueDto.validate',
+  ): void {
     const requiredFields = [
       'guid',
       'name',
@@ -432,7 +435,11 @@ export class CharacterJobQueueDto {
         if (strict) {
           throw new Error(message);
         } else {
-          CharacterJobQueueDto.logger.warn({ logTag, message, guid: this.guid });
+          CharacterJobQueueDto.logger.warn({
+            logTag,
+            message,
+            guid: this.guid,
+          });
         }
       }
     }

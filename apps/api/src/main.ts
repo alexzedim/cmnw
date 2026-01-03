@@ -1,4 +1,4 @@
- import dotenv from 'dotenv';
+import dotenv from 'dotenv';
 
 // Load environment variables from .env file
 dotenv.config({ quiet: true });
@@ -17,7 +17,8 @@ async function bootstrap() {
 
   app.useLogger(new LoggerService(APP_LABELS.CMNW));
 
-  const corsOrigin = cmnwConfig.cors.origins.length > 0 ? cmnwConfig.cors.origins : true;
+  const corsOrigin =
+    cmnwConfig.cors.origins.length > 0 ? cmnwConfig.cors.origins : true;
 
   app.enableCors({
     origin: corsOrigin,
@@ -35,9 +36,11 @@ async function bootstrap() {
 
   app.setGlobalPrefix('api');
 
-  app.useGlobalPipes(new ValidationPipe({
-    transform: true,
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      transform: true,
+    }),
+  );
 
   const options = new DocumentBuilder()
     .setTitle('CMNW Backend')

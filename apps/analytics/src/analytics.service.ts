@@ -2,7 +2,12 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { Repository, MoreThan } from 'typeorm';
 import { DateTime } from 'luxon';
-import { CharacterMetricsService, ContractMetricsService, GuildMetricsService, MarketMetricsService } from './services';
+import {
+  CharacterMetricsService,
+  ContractMetricsService,
+  GuildMetricsService,
+  MarketMetricsService,
+} from './services';
 import { AnalyticsEntity } from '@app/pg';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -47,7 +52,8 @@ export class AnalyticsService implements OnApplicationBootstrap {
       if (tableRowCount === 0 || !todaySnapshot) {
         this.logger.log({
           logTag,
-          message: 'No snapshot for today detected, running computation immediately',
+          message:
+            'No snapshot for today detected, running computation immediately',
           tableRowCount,
         });
         await this.computeDailySnapshot();
@@ -68,22 +74,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
     const snapshotDate = DateTime.now().startOf('day').toJSDate();
 
     try {
-      // Check if today's snapshot already exists
-      const todaySnapshot = await this.analyticsMetricRepository.findOne({
-        where: {
-          snapshotDate: snapshotDate,
-        },
-      });
-
-      if (todaySnapshot) {
-        this.logger.log({
-          logTag,
-          message: 'Today\'s snapshot already exists, skipping computation',
-          snapshotDate: snapshotDate.toISOString(),
-        });
-        return;
-      }
-
       this.logger.log({
         logTag,
         message: 'Starting daily analytics computation',
@@ -91,12 +81,13 @@ export class AnalyticsService implements OnApplicationBootstrap {
       });
 
       // Compute all metrics in parallel
-      const [charCount, guildCount, marketCount, contractCount] = await Promise.all([
-        this.characterMetricsService.computeCharacterMetrics(snapshotDate),
-        this.guildMetricsService.computeGuildMetrics(snapshotDate),
-        this.marketMetricsService.computeMarketMetrics(snapshotDate),
-        this.contractMetricsService.computeContractMetrics(snapshotDate),
-      ]);
+      const [charCount, guildCount, marketCount, contractCount] =
+        await Promise.all([
+          this.characterMetricsService.computeCharacterMetrics(snapshotDate),
+          this.guildMetricsService.computeGuildMetrics(snapshotDate),
+          this.marketMetricsService.computeMarketMetrics(snapshotDate),
+          this.contractMetricsService.computeContractMetrics(snapshotDate),
+        ]);
 
       const totalMetrics = charCount + guildCount + marketCount + contractCount;
 
@@ -112,6 +103,28 @@ export class AnalyticsService implements OnApplicationBootstrap {
       });
       throw errorOrException;
     }
+  }
+
+  async metricExists(
+    category: string,
+    metricType: string,
+    snapshotDate: Date,
+    realmId?: number,
+  ): Promise<boolean> {
+    const query = this.analyticsMetricRepository
+      .createQueryBuilder()
+      .where('category = :category', { category })
+      .andWhere('metric_type = :metricType', { metricType })
+      .andWhere('snapshot_date = :snapshotDate', { snapshotDate });
+
+    if (realmId === undefined) {
+      query.andWhere('realm_id IS NULL');
+    } else {
+      query.andWhere('realm_id = :realmId', { realmId });
+    }
+
+    const result = await query.getOne();
+    return !!result;
   }
 
   async getLatestMetric(
@@ -162,4 +175,3 @@ export class AnalyticsService implements OnApplicationBootstrap {
     return query.orderBy('snapshot_date', 'ASC').getMany();
   }
 }
-

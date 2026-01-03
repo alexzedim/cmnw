@@ -7,7 +7,11 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
-@Index('ix__analytics__category_type_date', ['category', 'metricType', 'snapshotDate'])
+@Index('ix__analytics__category_type_date', [
+  'category',
+  'metricType',
+  'snapshotDate',
+])
 @Index('ix__analytics__date', ['snapshotDate'])
 @Index('ix__analytics__realm_date', ['realmId', 'snapshotDate'])
 @Index('ix__analytics__category_date', ['category', 'snapshotDate'])
