@@ -44,6 +44,18 @@ export interface CharacterRealmClassAggregation {
   count: string;
 }
 
+export interface CharacterRealmRaceAggregation {
+  realm_id: number;
+  race: string;
+  count: string;
+}
+
+export interface CharacterRealmLevelAggregation {
+  realm_id: number;
+  level: number;
+  count: string;
+}
+
 export interface CharacterExtreme {
   guid: string;
   name: string;
@@ -56,6 +68,26 @@ export interface CharacterAverages {
   avg_mounts: string;
   avg_pets: string;
   avg_item_level: string;
+}
+
+export interface CharacterClassMaxLevelAggregation {
+  character_class: string;
+  count: string;
+}
+
+export interface CharacterFactionMaxLevelAggregation {
+  faction: string;
+  count: string;
+}
+
+export interface CharacterRaceMaxLevelAggregation {
+  race: string;
+  count: string;
+}
+
+export interface CharacterLevelMaxLevelAggregation {
+  level: number;
+  count: string;
 }
 
 export interface GuildTotalMetrics {
@@ -102,16 +134,17 @@ export interface MarketAggregateCount {
   count: string;
 }
 
-export interface MarketAggregatePrice {
-  avg: string;
+export interface MarketAggregateCountByType {
+  count: string;
+  type: string;
 }
 
 export interface MarketByConnectedRealm {
   connected_realm_id: number;
   auctions: string;
   volume: string;
-  unique_items: string;
-  avg_price: string;
+  unique_items_auctions: string;
+  unique_items_commdty: string;
 }
 
 export interface MarketByFaction {

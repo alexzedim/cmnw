@@ -13,6 +13,10 @@ import {
 } from '@app/pg';
 
 import { AnalyticsService } from './analytics.service';
+import { CharacterMetricsService } from './services/character-metrics.service';
+import { GuildMetricsService } from './services/guild-metrics.service';
+import { MarketMetricsService } from './services/market-metrics.service';
+import { ContractMetricsService } from './services/contract-metrics.service';
 
 @Module({
   imports: [
@@ -36,6 +40,12 @@ import { AnalyticsService } from './analytics.service';
     }),
   ],
   controllers: [],
-  providers: [AnalyticsService],
+  providers: [
+    AnalyticsService,
+    CharacterMetricsService,
+    GuildMetricsService,
+    MarketMetricsService,
+    ContractMetricsService,
+  ],
 })
 export class AnalyticsModule {}
