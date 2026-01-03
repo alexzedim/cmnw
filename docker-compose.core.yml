@@ -38,6 +38,7 @@ services:
       - cmnw
 
   analytics:
+    container_name: analytics
     image: ghcr.io/alexzedim/core:latest
     restart: always
     command: [ 'node', 'dist/apps/analytics/main.js' ]
