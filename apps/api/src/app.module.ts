@@ -7,6 +7,7 @@ import { QueueModule } from './queue/queue.module';
 import { AuthModule } from './auth/auth.module';
 import { HttpModule } from '@nestjs/axios';
 import { RedisModule } from '@nestjs-modules/ioredis';
+import { AppInfoModule } from './app/app.module';
 
 @Module({
   imports: [
@@ -30,6 +31,7 @@ import { RedisModule } from '@nestjs-modules/ioredis';
     DmaModule,
     AuthModule,
     QueueModule,
+    AppInfoModule,
   ],
   controllers: [],
   providers: [],
