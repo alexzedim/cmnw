@@ -20,10 +20,11 @@ export class CharactersLfgDto {
   @ApiProperty(SWAGGER_CHARACTER_REALMS_ID)
   @IsOptional()
   @IsArray()
-  @Transform(({ value: realmsId }) =>
-    Array.isArray(realmsId) && realmsId
-      ? realmsId.map((realmId) => Number(realmId))
-      : [realmsId],
+  @Transform(
+    ({ value: realmsId }) =>
+      Array.isArray(realmsId) && realmsId
+        ? realmsId.map((realmId) => Number(realmId))
+        : [realmsId],
     { toClassOnly: true },
   )
   readonly realmsId: number[];
@@ -31,10 +32,11 @@ export class CharactersLfgDto {
   @ApiProperty(SWAGGER_CHARACTER_LANGUAGES)
   @IsOptional()
   @IsArray()
-  @Transform(({ value: languages }) =>
-    Array.isArray(languages) && languages
-      ? languages.map((l) => l.toLowerCase())
-      : [languages],
+  @Transform(
+    ({ value: languages }) =>
+      Array.isArray(languages) && languages
+        ? languages.map((l) => l.toLowerCase())
+        : [languages],
     { toClassOnly: true },
   )
   readonly languages: string[];

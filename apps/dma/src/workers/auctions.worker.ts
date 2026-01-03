@@ -131,7 +131,8 @@ export class AuctionsWorker extends WorkerHost {
       const auctionsHash = this.computeAuctionsPayloadHash(auctions);
       const auctionsHashKey = `DMA:AUCTIONS:HASH:${auctionsHash}`;
 
-      const previouslyPersistedHash = await this.redisService.exists(auctionsHashKey);
+      const previouslyPersistedHash =
+        await this.redisService.exists(auctionsHashKey);
       if (previouslyPersistedHash) {
         this.stats.notModified++;
         const duration = Date.now() - startTime;
@@ -191,7 +192,12 @@ export class AuctionsWorker extends WorkerHost {
       }
 
       if (isCommodity) {
-        await this.redisService.set(`COMMODITY:TS:${timestamp}`, timestamp, 'EX', 86400);
+        await this.redisService.set(
+          `COMMODITY:TS:${timestamp}`,
+          timestamp,
+          'EX',
+          86400,
+        );
         await job.updateProgress(80);
       }
 
@@ -362,8 +368,6 @@ export class AuctionsWorker extends WorkerHost {
   private computeAuctionsPayloadHash(
     auctions: BlizzardApiAuctions['auctions'],
   ): string {
-    return createHash('sha1')
-      .update(JSON.stringify(auctions))
-      .digest('hex');
+    return createHash('sha1').update(JSON.stringify(auctions)).digest('hex');
   }
 }

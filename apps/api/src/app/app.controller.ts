@@ -24,7 +24,9 @@ export class AppController {
     return this.appService.getMetrics();
   }
 
-  @ApiOperation({ description: 'Universal search across characters, guilds, and items' })
+  @ApiOperation({
+    description: 'Universal search across characters, guilds, and items',
+  })
   @ApiOkResponse({
     description:
       'Search results containing matching characters, guilds, and items',
@@ -40,9 +42,7 @@ export class AppController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
   @Get('/search')
-  async indexSearch(
-    @Query() input: SearchQueryDto,
-  ): Promise<{
+  async indexSearch(@Query() input: SearchQueryDto): Promise<{
     characters: CharactersEntity[];
     guilds: GuildsEntity[];
     items: ItemsEntity[];

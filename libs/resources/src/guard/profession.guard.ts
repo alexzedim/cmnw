@@ -69,9 +69,7 @@ export const isBnetProfessionDetailResponse = (
   Array.isArray((response as any).skill_tiers) &&
   (response as any).skill_tiers.length > 0 &&
   typeof (response as any).id === 'number' &&
-  (response as any).skill_tiers.every((tier: any) =>
-    isBnetSkillTier(tier),
-  );
+  (response as any).skill_tiers.every((tier: any) => isBnetSkillTier(tier));
 
 /**
  * Validates if response has skill_tiers (may be undefined in some cases)
@@ -133,9 +131,7 @@ export const isBnetSkillTierDetailResponse = (
   (response as any).categories.length > 0 &&
   typeof (response as any).id === 'number' &&
   typeof (response as any).tier_number === 'number' &&
-  (response as any).categories.every((cat: any) =>
-    isBnetCategory(cat),
-  );
+  (response as any).categories.every((cat: any) => isBnetCategory(cat));
 
 /**
  * Validates if response has categories (may be undefined in some cases)
@@ -163,9 +159,7 @@ export const isBnetCategory = (
   Array.isArray((category as any).recipes) &&
   typeof (category as any).id === 'number' &&
   typeof (category as any).name === 'string' &&
-  (category as any).recipes.every((recipe: any) =>
-    isBnetRecipe(recipe),
-  );
+  (category as any).recipes.every((recipe: any) => isBnetRecipe(recipe));
 
 /**
  * Validates if category has recipes (may be undefined in some cases)

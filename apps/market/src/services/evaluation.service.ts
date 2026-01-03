@@ -76,10 +76,7 @@ export class EvaluationService implements OnApplicationBootstrap {
 
       // Get market price
       if (options.includeVendor !== false) {
-        const marketPrice = await this.getMarketPrice(
-          itemId,
-          connectedRealmId,
-        );
+        const marketPrice = await this.getMarketPrice(itemId, connectedRealmId);
         if (marketPrice) {
           methods.push({
             source: 'market',
@@ -139,10 +136,7 @@ export class EvaluationService implements OnApplicationBootstrap {
         itemId,
         connectedRealmId,
       );
-      const marketVolume = await this.getMarketVolume(
-        itemId,
-        connectedRealmId,
-      );
+      const marketVolume = await this.getMarketVolume(itemId, connectedRealmId);
 
       // Generate recommendations
       const recommendations = this.generateRecommendations(
@@ -191,7 +185,7 @@ export class EvaluationService implements OnApplicationBootstrap {
       // Find all recipes that produce this item
       const pricings = await this.pricingRepository
         .createQueryBuilder('pricing')
-        .where("pricing.derivatives::jsonb @> :itemFilter", {
+        .where('pricing.derivatives::jsonb @> :itemFilter', {
           itemFilter: JSON.stringify([{ itemId }]),
         })
         .andWhere('pricing.type = :type', { type: PRICING_TYPE.PRIMARY })
@@ -241,7 +235,7 @@ export class EvaluationService implements OnApplicationBootstrap {
       // Find all reverse recipes that use this item
       const pricings = await this.pricingRepository
         .createQueryBuilder('pricing')
-        .where("pricing.reagents::jsonb @> :itemFilter", {
+        .where('pricing.reagents::jsonb @> :itemFilter', {
           itemFilter: JSON.stringify([{ itemId }]),
         })
         .andWhere('pricing.type = :type', { type: PRICING_TYPE.REVERSE })
@@ -267,8 +261,7 @@ export class EvaluationService implements OnApplicationBootstrap {
           });
 
           if (reagent) {
-            const quantity =
-              typeof reagent === 'object' ? reagent.quantity : 1;
+            const quantity = typeof reagent === 'object' ? reagent.quantity : 1;
             const valuePerItem = reverseValue.expectedValue / quantity;
 
             methods.push({
@@ -336,8 +329,7 @@ export class EvaluationService implements OnApplicationBootstrap {
       // Calculate cost for each reagent
       for (const reagent of reagentsArray) {
         const itemId = typeof reagent === 'object' ? reagent.itemId : reagent;
-        const quantity =
-          typeof reagent === 'object' ? reagent.quantity : 1;
+        const quantity = typeof reagent === 'object' ? reagent.quantity : 1;
 
         const marketPrice = marketPrices.get(itemId);
 
@@ -442,8 +434,7 @@ export class EvaluationService implements OnApplicationBootstrap {
           typeof derivative === 'object' ? derivative.itemId : derivative;
         const quantity =
           typeof derivative === 'object' ? derivative.quantity : 0;
-        const matRate =
-          typeof derivative === 'object' ? derivative.matRate : 1;
+        const matRate = typeof derivative === 'object' ? derivative.matRate : 1;
 
         const marketPrice = marketPrices.get(itemId);
 
@@ -489,8 +480,7 @@ export class EvaluationService implements OnApplicationBootstrap {
       let totalCost = 0;
       for (const reagent of reagentsArray) {
         const itemId = typeof reagent === 'object' ? reagent.itemId : reagent;
-        const quantity =
-          typeof reagent === 'object' ? reagent.quantity : 1;
+        const quantity = typeof reagent === 'object' ? reagent.quantity : 1;
         const price = reagentPrices.get(itemId) || 0;
         totalCost += price * quantity;
       }
@@ -978,12 +968,17 @@ export class EvaluationService implements OnApplicationBootstrap {
 
       const profit = marketPrice - cheapestCrafting.calculatedValue;
       if (profit > 0) {
-        const margin = ((profit / cheapestCrafting.calculatedValue) * 100).toFixed(1);
+        const margin = (
+          (profit / cheapestCrafting.calculatedValue) *
+          100
+        ).toFixed(1);
         recommendations.push(
           `Crafting is profitable: ${profit.toFixed(0)}g profit (${margin}% margin)`,
         );
       } else {
-        recommendations.push('Crafting is not profitable - buy from AH instead');
+        recommendations.push(
+          'Crafting is not profitable - buy from AH instead',
+        );
       }
     }
 
@@ -1119,7 +1114,9 @@ export class EvaluationService implements OnApplicationBootstrap {
 
         // Find best crafting method details
         const craftingMethod = fullEval.methods.find(
-          (m) => m.source === 'crafting' && m.pricing?.recipeId === craft.bestRecipe?.recipeId,
+          (m) =>
+            m.source === 'crafting' &&
+            m.pricing?.recipeId === craft.bestRecipe?.recipeId,
         );
 
         const evaluation = this.evaluationRepository.create({
@@ -1188,10 +1185,9 @@ export class EvaluationService implements OnApplicationBootstrap {
         .orderBy('evaluation.profit_margin', 'DESC');
 
       if (options?.minProfitMargin) {
-        query = query.andWhere(
-          'evaluation.profit_margin >= :minProfitMargin',
-          { minProfitMargin: options.minProfitMargin },
-        );
+        query = query.andWhere('evaluation.profit_margin >= :minProfitMargin', {
+          minProfitMargin: options.minProfitMargin,
+        });
       }
 
       if (options?.profession) {
@@ -1227,4 +1223,3 @@ export class EvaluationService implements OnApplicationBootstrap {
     }
   }
 }
-

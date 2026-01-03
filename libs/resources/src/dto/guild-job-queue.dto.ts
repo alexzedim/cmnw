@@ -280,7 +280,10 @@ export class GuildJobQueueDto {
    * @param logTag - Optional log tag for warnings (defaults to 'GuildJobQueueDto.validate')
    * @throws Error if validation fails and strict is true
    */
-  validate(strict: boolean = true, logTag: string = 'GuildJobQueueDto.validate'): void {
+  validate(
+    strict: boolean = true,
+    logTag: string = 'GuildJobQueueDto.validate',
+  ): void {
     const requiredFields = [
       'guid',
       'name',

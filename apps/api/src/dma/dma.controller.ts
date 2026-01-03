@@ -56,9 +56,7 @@ export class DmaController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
   @Get('/item')
-  async getItem(
-    @Query() input: ReqGetItemDto,
-  ) {
+  async getItem(@Query() input: ReqGetItemDto) {
     return this.dmaService.getItem(input);
   }
 
@@ -102,7 +100,9 @@ export class DmaController {
     return this.dmaService.getItemValuations(input);
   }
 
-  @ApiOperation({ description: 'Returns chart data for item (commodity or gold)' })
+  @ApiOperation({
+    description: 'Returns chart data for item (commodity or gold)',
+  })
   @ApiOkResponse({ description: 'Request item chart with selected id' })
   @ApiUnauthorizedResponse({
     description: 'You need authenticate yourself before request',
@@ -232,9 +232,7 @@ export class DmaController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
   @Get('/contracts')
-  async getContracts(
-    @Query() input: ContractsPeriodDto,
-  ) {
+  async getContracts(@Query() input: ContractsPeriodDto) {
     console.log(input);
     return this.dmaService.getContracts(input.itemId, input.period);
   }

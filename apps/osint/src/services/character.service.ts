@@ -23,7 +23,8 @@ import {
   Media,
   toDate,
   toGuid,
-  IBlizzardStatusResponse, BlizzardApiMountsCollection,
+  IBlizzardStatusResponse,
+  BlizzardApiMountsCollection,
 } from '@app/resources';
 import { KeysEntity } from '@app/pg';
 

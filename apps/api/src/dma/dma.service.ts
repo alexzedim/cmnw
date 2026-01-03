@@ -111,7 +111,7 @@ export class DmaService {
     const { timestamps, key } = await this.getLatestTimestampCommodity(item.id);
 
     // --- return cached chart from redis on exist -- //
-/*    const getCacheItemChart = await this.redisService.get(key);
+    /*    const getCacheItemChart = await this.redisService.get(key);
     if (getCacheItemChart) {
       console.log('from cache');
       return JSON.parse(getCacheItemChart) as ItemChartDto;
@@ -302,7 +302,7 @@ export class DmaService {
       uniquePrices,
       marketData,
       0.05, // lower percentile (5%)
-      0.90, // upper percentile (85%)
+      0.9, // upper percentile (85%)
     );
 
     const priceRange = cap - floor;
@@ -375,10 +375,7 @@ export class DmaService {
     return Math.round(price / increment) * increment;
   }
 
-  private async getPriceRangeByItem(
-    itemId: number,
-    blocks: number,
-  ) {
+  private async getPriceRangeByItem(itemId: number, blocks: number) {
     const decimalBins = await this.buildDecimalPriceBins(itemId, blocks);
 
     // Detect appropriate rounding increment based on price intervals
@@ -462,7 +459,8 @@ export class DmaService {
           priceLevelDataset[bucketIndex].value + (order.quantity ?? 0);
         priceLevelDataset[bucketIndex].price =
           priceLevelDataset[bucketIndex].value > 0
-            ? priceLevelDataset[bucketIndex].oi / priceLevelDataset[bucketIndex].value
+            ? priceLevelDataset[bucketIndex].oi /
+              priceLevelDataset[bucketIndex].value
             : 0;
       }
 
@@ -591,9 +589,7 @@ export class DmaService {
     const itemId = parseInt(trimmedQuery, 10);
 
     if (isNaN(itemId)) {
-      throw new BadRequestException(
-        'Please provide a valid numeric item ID',
-      );
+      throw new BadRequestException('Please provide a valid numeric item ID');
     }
 
     return await this.findItemById(itemId);
@@ -741,10 +737,7 @@ export class DmaService {
    * Search for items by ID OR name field OR any localized name in JSONB names field
    * Returns a list of matching items for autocomplete
    */
-  async getContracts(
-    itemId: number,
-    period: string,
-  ) {
+  async getContracts(itemId: number, period: string) {
     // Validate item exists and has contracts
     const item = await this.itemsRepository.findOneBy({ id: itemId });
 
@@ -798,16 +791,14 @@ export class DmaService {
     // Filter by timestamp range
     const filtered = contracts.filter(
       (contract) =>
-        contract.timestamp >= startTimestamp && contract.timestamp <= endTimestamp,
+        contract.timestamp >= startTimestamp &&
+        contract.timestamp <= endTimestamp,
     );
 
     return { contracts: filtered };
   }
 
-  async searchItems(
-    query: string,
-    limit: number = 25,
-  ) {
+  async searchItems(query: string, limit: number = 25) {
     const normalizedQuery = query.toLowerCase().trim();
 
     if (normalizedQuery.length < 1) {

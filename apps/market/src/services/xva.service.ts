@@ -207,11 +207,18 @@ export class XvaService implements OnApplicationBootstrap {
     isDisenchant?: boolean;
   }): Promise<void> {
     const logTag = 'libPricing';
-    const { isProspect = false, isMilling = false, isDisenchant = false } = options;
+    const {
+      isProspect = false,
+      isMilling = false,
+      isDisenchant = false,
+    } = options;
 
     try {
       if (!isProspect && !isMilling && !isDisenchant) {
-        this.logger.debug({ logTag, message: 'All lab methods disabled, skipping' });
+        this.logger.debug({
+          logTag,
+          message: 'All lab methods disabled, skipping',
+        });
         return;
       }
 
@@ -245,7 +252,9 @@ export class XvaService implements OnApplicationBootstrap {
   /**
    * Generic method to process any lab pricing method (prospecting, milling, disenchanting)
    */
-  private async processLabPricingMethod(config: LabPricingMethod): Promise<void> {
+  private async processLabPricingMethod(
+    config: LabPricingMethod,
+  ): Promise<void> {
     const logTag = 'processLabPricingMethod';
     try {
       const reversePricingMethod = this.pricingRepository.create({
@@ -598,7 +607,9 @@ export class XvaService implements OnApplicationBootstrap {
     }
 
     try {
-      const spellReagentsCsv = await this.readCsvFile(CsvFileName.SpellReagents);
+      const spellReagentsCsv = await this.readCsvFile(
+        CsvFileName.SpellReagents,
+      );
 
       const isProcessed = await this.isFileProcessed(
         CsvFileName.SpellReagents,
@@ -729,9 +740,7 @@ export class XvaService implements OnApplicationBootstrap {
       return createHash('md5').update(stateData).digest('hex');
     } catch (errorOrException) {
       this.logger.error({ logTag, stage, errorOrException });
-      return createHash('md5')
-        .update(`${stage}:${Date.now()}`)
-        .digest('hex');
+      return createHash('md5').update(`${stage}:${Date.now()}`).digest('hex');
     }
   }
 
@@ -776,10 +785,22 @@ export class XvaService implements OnApplicationBootstrap {
 
     try {
       const stages = [
-        { enabled: args.isByPricing, fn: () => this.buildAssetClassesFromPricing() },
-        { enabled: args.isByAuctions, fn: () => this.buildAssetClassesFromAuctions() },
-        { enabled: args.isByPremium, fn: () => this.buildAssetClassesForPremium() },
-        { enabled: args.isByCurrency, fn: () => this.buildAssetClassesForCurrency() },
+        {
+          enabled: args.isByPricing,
+          fn: () => this.buildAssetClassesFromPricing(),
+        },
+        {
+          enabled: args.isByAuctions,
+          fn: () => this.buildAssetClassesFromAuctions(),
+        },
+        {
+          enabled: args.isByPremium,
+          fn: () => this.buildAssetClassesForPremium(),
+        },
+        {
+          enabled: args.isByCurrency,
+          fn: () => this.buildAssetClassesForCurrency(),
+        },
         { enabled: true, fn: () => this.addToAssetClassVSP() }, // Always run VSP
         { enabled: args.isByTags, fn: () => this.buildTags() },
       ];

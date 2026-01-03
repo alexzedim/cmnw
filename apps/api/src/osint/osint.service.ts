@@ -18,7 +18,8 @@ import {
   GuildsEntity,
   KeysEntity,
   CharactersGuildsLogsEntity,
-  RealmsEntity, AnalyticsEntity,
+  RealmsEntity,
+  AnalyticsEntity,
 } from '@app/pg';
 
 import { FindOptionsWhere, In, MoreThanOrEqual, Repository } from 'typeorm';
@@ -369,10 +370,13 @@ export class OsintService {
 
         characters = await this.charactersRepository
           .createQueryBuilder('c')
-          .where(`c.${hashFieldType1} = :hashValue1 AND c.${hashFieldType2} = :hashValue2`, {
-            hashValue1,
-            hashValue2,
-          })
+          .where(
+            `c.${hashFieldType1} = :hashValue1 AND c.${hashFieldType2} = :hashValue2`,
+            {
+              hashValue1,
+              hashValue2,
+            },
+          )
           .take(100)
           .getMany();
 

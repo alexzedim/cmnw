@@ -11,6 +11,7 @@ import {
   GuildTopByMembers,
 } from '@app/resources/types';
 import { AnalyticsEntity, GuildsEntity } from '@app/pg';
+import { AnalyticsService } from '../analytics.service';
 
 @Injectable()
 export class GuildMetricsService {
@@ -23,6 +24,7 @@ export class GuildMetricsService {
     private readonly analyticsMetricRepository: Repository<AnalyticsEntity>,
     @InjectRepository(GuildsEntity)
     private readonly guildsRepository: Repository<GuildsEntity>,
+    private readonly analyticsService: AnalyticsService,
   ) {}
 
   async computeGuildMetrics(snapshotDate: Date): Promise<number> {
@@ -38,20 +40,32 @@ export class GuildMetricsService {
         .select('SUM(g.members_count)', 'sum')
         .getRawOne<GuildTotalMetrics>();
 
-      const avgMembers = totalCount > 0 ? parseInt(totalMembers?.sum || '0', 10) / totalCount : 0;
+      const avgMembers =
+        totalCount > 0
+          ? parseInt(totalMembers?.sum || '0', 10) / totalCount
+          : 0;
 
-      const guildTotalMetric = this.analyticsMetricRepository.create({
-        category: AnalyticsMetricCategory.GUILDS,
-        metricType: AnalyticsMetricType.TOTAL,
-        value: {
-          count: totalCount,
-          totalMembers: parseInt(totalMembers?.sum || '0', 10),
-          avgMembers: avgMembers,
-        },
-        snapshotDate,
-      });
-      await this.analyticsMetricRepository.save(guildTotalMetric);
-      savedCount++;
+      // Check if total metric exists
+      if (
+        !(await this.analyticsService.metricExists(
+          AnalyticsMetricCategory.GUILDS,
+          AnalyticsMetricType.TOTAL,
+          snapshotDate,
+        ))
+      ) {
+        const guildTotalMetric = this.analyticsMetricRepository.create({
+          category: AnalyticsMetricCategory.GUILDS,
+          metricType: AnalyticsMetricType.TOTAL,
+          value: {
+            count: totalCount,
+            totalMembers: parseInt(totalMembers?.sum || '0', 10),
+            avgMembers: avgMembers,
+          },
+          snapshotDate,
+        });
+        await this.analyticsMetricRepository.save(guildTotalMetric);
+        savedCount++;
+      }
 
       // By Faction (global)
       savedCount += await this.computeGuildByFaction(snapshotDate);
@@ -90,6 +104,17 @@ export class GuildMetricsService {
   }
 
   private async computeGuildByFaction(snapshotDate: Date): Promise<number> {
+    // Check if metric exists
+    const isByFactionExists = await this.analyticsService.metricExists(
+      AnalyticsMetricCategory.GUILDS,
+      AnalyticsMetricType.BY_FACTION,
+      snapshotDate,
+    );
+
+    if (isByFactionExists) {
+      return 0;
+    }
+
     const byFaction = await this.guildsRepository
       .createQueryBuilder('g')
       .select('g.faction', 'faction')
@@ -127,23 +152,35 @@ export class GuildMetricsService {
 
     let savedCount = 0;
     for (const realmData of byRealm) {
-      const guildRealmTotalMetric = this.analyticsMetricRepository.create({
-        category: AnalyticsMetricCategory.GUILDS,
-        metricType: AnalyticsMetricType.TOTAL,
-        realmId: realmData.realm_id,
-        value: {
-          count: parseInt(realmData.count, 10),
-          totalMembers: parseInt(realmData.total_members || '0', 10),
-        },
+      // Check if metric exists
+      const isRealmTotalExists = await this.analyticsService.metricExists(
+        AnalyticsMetricCategory.GUILDS,
+        AnalyticsMetricType.TOTAL,
         snapshotDate,
-      });
-      await this.analyticsMetricRepository.save(guildRealmTotalMetric);
-      savedCount++;
+        realmData.realm_id,
+      );
+
+      if (!isRealmTotalExists) {
+        const guildRealmTotalMetric = this.analyticsMetricRepository.create({
+          category: AnalyticsMetricCategory.GUILDS,
+          metricType: AnalyticsMetricType.TOTAL,
+          realmId: realmData.realm_id,
+          value: {
+            count: parseInt(realmData.count, 10),
+            totalMembers: parseInt(realmData.total_members || '0', 10),
+          },
+          snapshotDate,
+        });
+        await this.analyticsMetricRepository.save(guildRealmTotalMetric);
+        savedCount++;
+      }
     }
     return savedCount;
   }
 
-  private async computeGuildByRealmFaction(snapshotDate: Date): Promise<number> {
+  private async computeGuildByRealmFaction(
+    snapshotDate: Date,
+  ): Promise<number> {
     const byRealmFaction = await this.guildsRepository
       .createQueryBuilder('g')
       .select('g.realm_id')
@@ -164,20 +201,43 @@ export class GuildMetricsService {
 
     let savedCount = 0;
     for (const [realmId, factionCounts] of Object.entries(byRealmFactionMap)) {
-      const guildRealmFactionMetric = this.analyticsMetricRepository.create({
-        category: AnalyticsMetricCategory.GUILDS,
-        metricType: AnalyticsMetricType.BY_FACTION,
-        realmId: parseInt(realmId, 10),
-        value: factionCounts,
+      // Check if metric exists
+      const isRealmFactionExists = await this.analyticsService.metricExists(
+        AnalyticsMetricCategory.GUILDS,
+        AnalyticsMetricType.BY_FACTION,
         snapshotDate,
-      });
-      await this.analyticsMetricRepository.save(guildRealmFactionMetric);
-      savedCount++;
+        parseInt(realmId, 10),
+      );
+
+      if (!isRealmFactionExists) {
+        const guildRealmFactionMetric = this.analyticsMetricRepository.create({
+          category: AnalyticsMetricCategory.GUILDS,
+          metricType: AnalyticsMetricType.BY_FACTION,
+          realmId: parseInt(realmId, 10),
+          value: factionCounts,
+          snapshotDate,
+        });
+        await this.analyticsMetricRepository.save(guildRealmFactionMetric);
+        savedCount++;
+      }
     }
     return savedCount;
   }
 
-  private async computeGuildSizeDistribution(snapshotDate: Date): Promise<number> {
+  private async computeGuildSizeDistribution(
+    snapshotDate: Date,
+  ): Promise<number> {
+    // Check if metric exists
+    const isSizeDistributionExists = await this.analyticsService.metricExists(
+      AnalyticsMetricCategory.GUILDS,
+      AnalyticsMetricType.SIZE_DISTRIBUTION,
+      snapshotDate,
+    );
+
+    if (isSizeDistributionExists) {
+      return 0;
+    }
+
     const sizeDistribution = await this.guildsRepository
       .createQueryBuilder('g')
       .select(
@@ -196,7 +256,10 @@ export class GuildMetricsService {
         `SUM(CASE WHEN g.members_count BETWEEN 101 AND 300 THEN 1 ELSE 0 END)`,
         'large',
       )
-      .addSelect(`SUM(CASE WHEN g.members_count > 300 THEN 1 ELSE 0 END)`, 'massive')
+      .addSelect(
+        `SUM(CASE WHEN g.members_count > 300 THEN 1 ELSE 0 END)`,
+        'massive',
+      )
       .getRawOne<GuildSizeDistribution>();
 
     const guildSizeDistributionMetric = this.analyticsMetricRepository.create({
@@ -216,6 +279,17 @@ export class GuildMetricsService {
   }
 
   private async computeGuildTopByMembers(snapshotDate: Date): Promise<number> {
+    // Check if metric exists
+    const isTopByMembersExists = await this.analyticsService.metricExists(
+      AnalyticsMetricCategory.GUILDS,
+      AnalyticsMetricType.TOP_BY_MEMBERS,
+      snapshotDate,
+    );
+
+    if (isTopByMembersExists) {
+      return 0;
+    }
+
     const topByMembers = await this.guildsRepository
       .createQueryBuilder('g')
       .select('g.guid', 'guid')
@@ -236,7 +310,20 @@ export class GuildMetricsService {
     return 1;
   }
 
-  private async computeGuildTopByAchievements(snapshotDate: Date): Promise<number> {
+  private async computeGuildTopByAchievements(
+    snapshotDate: Date,
+  ): Promise<number> {
+    // Check if metric exists
+    const isTopByAchievementsExists = await this.analyticsService.metricExists(
+      AnalyticsMetricCategory.GUILDS,
+      AnalyticsMetricType.TOP_BY_ACHIEVEMENTS,
+      snapshotDate,
+    );
+
+    if (isTopByAchievementsExists) {
+      return 0;
+    }
+
     const topByAchievements = await this.guildsRepository
       .createQueryBuilder('g')
       .select('g.guid', 'guid')

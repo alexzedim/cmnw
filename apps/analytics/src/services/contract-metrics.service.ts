@@ -12,6 +12,7 @@ import {
   ContractPriceVolatility,
 } from '@app/resources/types';
 import { AnalyticsEntity, ContractEntity } from '@app/pg';
+import { AnalyticsService } from '../analytics.service';
 
 @Injectable()
 export class ContractMetricsService {
@@ -24,6 +25,7 @@ export class ContractMetricsService {
     private readonly analyticsMetricRepository: Repository<AnalyticsEntity>,
     @InjectRepository(ContractEntity)
     private readonly contractRepository: Repository<ContractEntity>,
+    private readonly analyticsService: AnalyticsService,
   ) {}
 
   async computeContractMetrics(snapshotDate: Date): Promise<number> {
@@ -48,34 +50,57 @@ export class ContractMetricsService {
         .where('c.timestamp > :threshold', { threshold: threshold24h })
         .getRawOne<ContractTotalMetrics>();
 
-      const contractTotalMetric = this.analyticsMetricRepository.create({
-        category: AnalyticsMetricCategory.CONTRACTS,
-        metricType: AnalyticsMetricType.TOTAL,
-        value: {
-          count: totalCount,
-          totalQuantity: parseInt(totals?.total_quantity || '0', 10),
-          totalOpenInterest: parseFloat(totals?.total_open_interest || '0'),
-          uniqueItems: parseInt(totals?.unique_items || '0', 10),
-        },
+      const existsTotalMetric = await this.analyticsService.metricExists(
+        AnalyticsMetricCategory.CONTRACTS,
+        AnalyticsMetricType.TOTAL,
         snapshotDate,
-      });
-      await this.analyticsMetricRepository.save(contractTotalMetric);
-      savedCount++;
+      );
+
+      if (!existsTotalMetric) {
+        const contractTotalMetric = this.analyticsMetricRepository.create({
+          category: AnalyticsMetricCategory.CONTRACTS,
+          metricType: AnalyticsMetricType.TOTAL,
+          value: {
+            count: totalCount,
+            totalQuantity: parseInt(totals?.total_quantity || '0', 10),
+            totalOpenInterest: parseFloat(totals?.total_open_interest || '0'),
+            uniqueItems: parseInt(totals?.unique_items || '0', 10),
+          },
+          snapshotDate,
+        });
+        await this.analyticsMetricRepository.save(contractTotalMetric);
+        savedCount++;
+      }
 
       // Commodities (connectedRealmId = 1)
-      savedCount += await this.computeContractByCommodities(snapshotDate, threshold24h);
+      savedCount += await this.computeContractByCommodities(
+        snapshotDate,
+        threshold24h,
+      );
 
       // By Connected Realm
-      savedCount += await this.computeContractByConnectedRealm(snapshotDate, threshold24h);
+      savedCount += await this.computeContractByConnectedRealm(
+        snapshotDate,
+        threshold24h,
+      );
 
       // Top items by quantity
-      savedCount += await this.computeContractTopByQuantity(snapshotDate, threshold24h);
+      savedCount += await this.computeContractTopByQuantity(
+        snapshotDate,
+        threshold24h,
+      );
 
       // Top items by open interest
-      savedCount += await this.computeContractTopByOpenInterest(snapshotDate, threshold24h);
+      savedCount += await this.computeContractTopByOpenInterest(
+        snapshotDate,
+        threshold24h,
+      );
 
       // Price volatility
-      savedCount += await this.computeContractPriceVolatility(snapshotDate, threshold24h);
+      savedCount += await this.computeContractPriceVolatility(
+        snapshotDate,
+        threshold24h,
+      );
 
       const duration = Date.now() - startTime;
       this.logger.log(
@@ -95,7 +120,21 @@ export class ContractMetricsService {
     return savedCount;
   }
 
-  private async computeContractByCommodities(snapshotDate: Date, threshold24h: number): Promise<number> {
+  private async computeContractByCommodities(
+    snapshotDate: Date,
+    threshold24h: number,
+  ): Promise<number> {
+    // Check if metric exists
+    const existsByCommodities = await this.analyticsService.metricExists(
+      AnalyticsMetricCategory.CONTRACTS,
+      AnalyticsMetricType.BY_COMMODITIES,
+      snapshotDate,
+    );
+
+    if (existsByCommodities) {
+      return 0;
+    }
+
     const commoditiesData = await this.contractRepository
       .createQueryBuilder('c')
       .select('COUNT(*)', 'count')
@@ -112,7 +151,9 @@ export class ContractMetricsService {
       value: {
         count: parseInt(commoditiesData?.count || '0', 10),
         totalQuantity: parseInt(commoditiesData?.total_quantity || '0', 10),
-        totalOpenInterest: parseFloat(commoditiesData?.total_open_interest || '0'),
+        totalOpenInterest: parseFloat(
+          commoditiesData?.total_open_interest || '0',
+        ),
       },
       snapshotDate,
     });
@@ -120,7 +161,10 @@ export class ContractMetricsService {
     return 1;
   }
 
-  private async computeContractByConnectedRealm(snapshotDate: Date, threshold24h: number): Promise<number> {
+  private async computeContractByConnectedRealm(
+    snapshotDate: Date,
+    threshold24h: number,
+  ): Promise<number> {
     const byConnectedRealm = await this.contractRepository
       .createQueryBuilder('c')
       .select('c.connected_realm_id')
@@ -133,24 +177,51 @@ export class ContractMetricsService {
 
     let savedCount = 0;
     for (const realm of byConnectedRealm) {
-      const contractByConnectedRealmMetric = this.analyticsMetricRepository.create({
-        category: AnalyticsMetricCategory.CONTRACTS,
-        metricType: AnalyticsMetricType.BY_CONNECTED_REALM,
-        realmId: realm.connected_realm_id,
-        value: {
-          count: parseInt(realm.count, 10),
-          totalQuantity: parseInt(realm.total_quantity || '0', 10),
-          totalOpenInterest: parseFloat(realm.total_open_interest || '0'),
-        },
+      // Check if metric exists
+      const existsByConnectedRealm = await this.analyticsService.metricExists(
+        AnalyticsMetricCategory.CONTRACTS,
+        AnalyticsMetricType.BY_CONNECTED_REALM,
         snapshotDate,
-      });
-      await this.analyticsMetricRepository.save(contractByConnectedRealmMetric);
-      savedCount++;
+        realm.connected_realm_id,
+      );
+
+      if (!existsByConnectedRealm) {
+        const contractByConnectedRealmMetric =
+          this.analyticsMetricRepository.create({
+            category: AnalyticsMetricCategory.CONTRACTS,
+            metricType: AnalyticsMetricType.BY_CONNECTED_REALM,
+            realmId: realm.connected_realm_id,
+            value: {
+              count: parseInt(realm.count, 10),
+              totalQuantity: parseInt(realm.total_quantity || '0', 10),
+              totalOpenInterest: parseFloat(realm.total_open_interest || '0'),
+            },
+            snapshotDate,
+          });
+        await this.analyticsMetricRepository.save(
+          contractByConnectedRealmMetric,
+        );
+        savedCount++;
+      }
     }
     return savedCount;
   }
 
-  private async computeContractTopByQuantity(snapshotDate: Date, threshold24h: number): Promise<number> {
+  private async computeContractTopByQuantity(
+    snapshotDate: Date,
+    threshold24h: number,
+  ): Promise<number> {
+    // Check if metric exists
+    const existsTopByQuantity = await this.analyticsService.metricExists(
+      AnalyticsMetricCategory.CONTRACTS,
+      AnalyticsMetricType.TOP_BY_QUANTITY,
+      snapshotDate,
+    );
+
+    if (existsTopByQuantity) {
+      return 0;
+    }
+
     const topByQuantity = await this.contractRepository
       .createQueryBuilder('c')
       .select('c.item_id')
@@ -176,7 +247,21 @@ export class ContractMetricsService {
     return 1;
   }
 
-  private async computeContractTopByOpenInterest(snapshotDate: Date, threshold24h: number): Promise<number> {
+  private async computeContractTopByOpenInterest(
+    snapshotDate: Date,
+    threshold24h: number,
+  ): Promise<number> {
+    // Check if metric exists
+    const existsTopByOpenInterest = await this.analyticsService.metricExists(
+      AnalyticsMetricCategory.CONTRACTS,
+      AnalyticsMetricType.TOP_BY_OPEN_INTEREST,
+      snapshotDate,
+    );
+
+    if (existsTopByOpenInterest) {
+      return 0;
+    }
+
     const topByOpenInterest = await this.contractRepository
       .createQueryBuilder('c')
       .select('c.item_id')
@@ -188,21 +273,36 @@ export class ContractMetricsService {
       .limit(10)
       .getRawMany<ContractTopByOpenInterest>();
 
-    const contractTopByOpenInterestMetric = this.analyticsMetricRepository.create({
-      category: AnalyticsMetricCategory.CONTRACTS,
-      metricType: AnalyticsMetricType.TOP_BY_OPEN_INTEREST,
-      value: topByOpenInterest.map((item) => ({
-        itemId: item.item_id,
-        openInterest: parseFloat(item.open_interest),
-        quantity: parseInt(item.quantity, 10),
-      })),
-      snapshotDate,
-    });
+    const contractTopByOpenInterestMetric =
+      this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.CONTRACTS,
+        metricType: AnalyticsMetricType.TOP_BY_OPEN_INTEREST,
+        value: topByOpenInterest.map((item) => ({
+          itemId: item.item_id,
+          openInterest: parseFloat(item.open_interest),
+          quantity: parseInt(item.quantity, 10),
+        })),
+        snapshotDate,
+      });
     await this.analyticsMetricRepository.save(contractTopByOpenInterestMetric);
     return 1;
   }
 
-  private async computeContractPriceVolatility(snapshotDate: Date, threshold24h: number): Promise<number> {
+  private async computeContractPriceVolatility(
+    snapshotDate: Date,
+    threshold24h: number,
+  ): Promise<number> {
+    // Check if metric exists
+    const existsPriceVolatility = await this.analyticsService.metricExists(
+      AnalyticsMetricCategory.CONTRACTS,
+      AnalyticsMetricType.PRICE_VOLATILITY,
+      snapshotDate,
+    );
+
+    if (existsPriceVolatility) {
+      return 0;
+    }
+
     const volatility = await this.contractRepository
       .createQueryBuilder('c')
       .select('c.item_id')
@@ -215,16 +315,18 @@ export class ContractMetricsService {
       .limit(10)
       .getRawMany<ContractPriceVolatility>();
 
-    const contractPriceVolatilityMetric = this.analyticsMetricRepository.create({
-      category: AnalyticsMetricCategory.CONTRACTS,
-      metricType: AnalyticsMetricType.PRICE_VOLATILITY,
-      value: volatility.map((item) => ({
-        itemId: item.item_id,
-        stdDev: parseFloat(item.std_dev || '0'),
-        avgPrice: parseFloat(item.avg_price || '0'),
-      })),
-      snapshotDate,
-    });
+    const contractPriceVolatilityMetric = this.analyticsMetricRepository.create(
+      {
+        category: AnalyticsMetricCategory.CONTRACTS,
+        metricType: AnalyticsMetricType.PRICE_VOLATILITY,
+        value: volatility.map((item) => ({
+          itemId: item.item_id,
+          stdDev: parseFloat(item.std_dev || '0'),
+          avgPrice: parseFloat(item.avg_price || '0'),
+        })),
+        snapshotDate,
+      },
+    );
     await this.analyticsMetricRepository.save(contractPriceVolatilityMetric);
     return 1;
   }
