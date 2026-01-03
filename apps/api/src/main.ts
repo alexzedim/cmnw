@@ -1,4 +1,4 @@
-import dotenv from 'dotenv';
+ import dotenv from 'dotenv';
 
 // Load environment variables from .env file
 dotenv.config({ quiet: true });
@@ -17,8 +17,24 @@ async function bootstrap() {
 
   app.useLogger(new LoggerService(APP_LABELS.CMNW));
 
-  app.enableCors();
+  const corsOrigin = cmnwConfig.cors.origins.length > 0 ? cmnwConfig.cors.origins : true;
+
+  app.enableCors({
+    origin: corsOrigin,
+    credentials: cmnwConfig.cors.allowCredentials,
+    methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+    ],
+    exposedHeaders: ['Content-Disposition'],
+  });
+
   app.setGlobalPrefix('api');
+
   app.useGlobalPipes(new ValidationPipe({
     transform: true,
   }));
