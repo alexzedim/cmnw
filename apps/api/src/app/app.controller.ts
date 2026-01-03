@@ -19,9 +19,9 @@ export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @ApiOkResponse({ description: 'Health status and application version.' })
-  @Get('health')
-  getHealth(): AppHealthPayload {
-    return this.appService.getHealth();
+  @Get('metrics')
+  async getMetrics(): Promise<AppHealthPayload> {
+    return this.appService.getMetrics();
   }
 
   @ApiOperation({ description: 'Universal search across characters, guilds, and items' })
