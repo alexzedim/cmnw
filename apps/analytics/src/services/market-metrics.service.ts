@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { DateTime } from 'luxon';
-import { AnalyticsMetricCategory, AnalyticsMetricType } from '@app/resources';
+import { AnalyticsMetricCategory, AnalyticsMetricType, MARKET_TYPE } from '@app/resources';
 import { analyticsMetricExists } from '@app/resources/dao';
 import {
   MarketTotalMetrics,
@@ -68,7 +68,7 @@ export class MarketMetricsService {
         .select('COUNT(DISTINCT m.item_id)', 'count')
         .where('m.timestamp > :threshold AND m.type = :type', {
           threshold: threshold24h,
-          type: 'AUCTIONS',
+          type: MARKET_TYPE.A,
         })
         .getRawOne<MarketAggregateCount>();
 
@@ -77,7 +77,7 @@ export class MarketMetricsService {
         .select('COUNT(DISTINCT m.item_id)', 'count')
         .where('m.timestamp > :threshold AND m.type = :type', {
           threshold: threshold24h,
-          type: 'COMMDTY',
+          type: MARKET_TYPE.C,
         })
         .getRawOne<MarketAggregateCount>();
 
