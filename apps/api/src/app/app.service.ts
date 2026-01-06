@@ -198,7 +198,7 @@ export class AppService {
         metricType: AnalyticsMetricType.TOTAL,
       })
       .andWhere('analytics.realm_id IS NULL')
-      .orderBy('analytics.snapshot_date', 'DESC')
+      .orderBy('analytics.created_at', 'DESC')
       .limit(1)
       .getOne();
 
@@ -206,10 +206,35 @@ export class AppService {
       return null;
     }
 
+    const isoTimestamp = this.normalizeSnapshotDate(
+      metric.createdAt ?? metric.snapshotDate,
+    );
+
     return {
-      snapshotDate: metric.snapshotDate.toISOString(),
+      snapshotDate: isoTimestamp,
       value: metric.value,
     };
+  }
+
+  private normalizeSnapshotDate(date: Date | string): string {
+    if (date instanceof Date) {
+      return date.toISOString();
+    }
+
+    const parsed = new Date(date);
+
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString();
+    }
+
+    this.logger.warn({
+      logTag: 'normalizeSnapshotDate',
+      message:
+        'Unable to normalize analytics snapshot date, falling back to raw value',
+      date,
+    });
+
+    return String(date);
   }
 
   private async getLatestCommodityTimestamp(): Promise<number | null> {
