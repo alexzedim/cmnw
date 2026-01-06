@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Injectable,
   Logger,
   ServiceUnavailableException,
@@ -6,7 +7,7 @@ import {
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike } from 'typeorm';
+import { Repository, ILike, FindOptionsWhere } from 'typeorm';
 import {
   AnalyticsEntity,
   CharactersEntity,
@@ -15,9 +16,11 @@ import {
   MarketEntity,
 } from '@app/pg';
 import {
-  AnalyticsMetricCategory,
+  CHARACTER_HASH_FIELDS,
+  CharacterHashDto,
+  CharacterHashFieldType,
+  AnalyticsMetricSnapshotDto,
   AnalyticsMetricType,
-  AppHealthMetricSnapshot,
   AppHealthPayload,
   SearchQueryDto,
 } from '@app/resources';
@@ -28,14 +31,14 @@ export class AppService {
   private readonly logger = new Logger(AppService.name, { timestamp: true });
 
   constructor(
+    @InjectRepository(AnalyticsEntity)
+    private readonly analyticsRepository: Repository<AnalyticsEntity>,
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
     @InjectRepository(GuildsEntity)
     private readonly guildsRepository: Repository<GuildsEntity>,
     @InjectRepository(ItemsEntity)
     private readonly itemsRepository: Repository<ItemsEntity>,
-    @InjectRepository(AnalyticsEntity)
-    private readonly analyticsRepository: Repository<AnalyticsEntity>,
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
   ) {
@@ -46,14 +49,7 @@ export class AppService {
     const logTag = 'getMetrics';
 
     try {
-      const [characters, guilds, market, latestMarketTimestamp] =
-        await Promise.all([
-          this.getLatestTotalMetricSnapshot(AnalyticsMetricCategory.CHARACTERS),
-          this.getLatestTotalMetricSnapshot(AnalyticsMetricCategory.GUILDS),
-          this.getLatestTotalMetricSnapshot(AnalyticsMetricCategory.MARKET),
-          this.getLatestCommodityTimestamp(),
-        ]);
-
+      const latestMarketTimestamp = await this.getLatestCommodityTimestamp();
       const uptimeSeconds = Math.round(process.uptime());
       const uptime = this.formatUptime(uptimeSeconds);
 
@@ -61,12 +57,7 @@ export class AppService {
         status: 'ok',
         version: this.version,
         uptime,
-        metrics: {
-          characters: characters ?? null,
-          guilds: guilds ?? null,
-          market: market ?? null,
-          latestMarketTimestamp,
-        },
+        latestMarketTimestamp,
       };
     } catch (errorOrException) {
       this.logger.error({
@@ -177,6 +168,50 @@ export class AppService {
     }
   }
 
+  async getLatestMetricSnapshot(
+    snapshotQuery: AnalyticsMetricSnapshotDto,
+  ): Promise<AnalyticsEntity | null> {
+    const logTag = 'getLatestMetricSnapshot';
+    const {
+      category,
+      metricType = AnalyticsMetricType.TOTAL,
+      realmId,
+    } = snapshotQuery;
+
+    try {
+      const query = this.analyticsRepository
+        .createQueryBuilder('analytics')
+        .where('analytics.category = :category', { category })
+        .andWhere('analytics.metric_type = :metricType', { metricType });
+
+      if (realmId === undefined) {
+        query.andWhere('analytics.realm_id IS NULL');
+      } else {
+        query.andWhere('analytics.realm_id = :realmId', { realmId });
+      }
+
+      const metric = await query
+        .orderBy('analytics.snapshot_date', 'DESC')
+        .addOrderBy('analytics.created_at', 'DESC')
+        .getOne();
+
+      return metric ?? null;
+    } catch (errorOrException) {
+      this.logger.error({
+        logTag,
+        category,
+        metricType,
+        realmId,
+        message: 'Failed to load analytics metric snapshot',
+        errorOrException,
+      });
+
+      throw new ServiceUnavailableException(
+        'Unable to load analytics metric snapshot',
+      );
+    }
+  }
+
   private loadVersion(): string {
     try {
       const packageJsonPath = join(process.cwd(), 'package.json');
@@ -186,55 +221,6 @@ export class AppService {
     } catch (error) {
       return 'unknown';
     }
-  }
-
-  private async getLatestTotalMetricSnapshot(
-    category: AnalyticsMetricCategory,
-  ): Promise<AppHealthMetricSnapshot | null> {
-    const metric = await this.analyticsRepository
-      .createQueryBuilder('analytics')
-      .where('analytics.category = :category', { category })
-      .andWhere('analytics.metric_type = :metricType', {
-        metricType: AnalyticsMetricType.TOTAL,
-      })
-      .andWhere('analytics.realm_id IS NULL')
-      .orderBy('analytics.created_at', 'DESC')
-      .limit(1)
-      .getOne();
-
-    if (!metric) {
-      return null;
-    }
-
-    const isoTimestamp = this.normalizeSnapshotDate(
-      metric.createdAt ?? metric.snapshotDate,
-    );
-
-    return {
-      snapshotDate: isoTimestamp,
-      value: metric.value,
-    };
-  }
-
-  private normalizeSnapshotDate(date: Date | string): string {
-    if (date instanceof Date) {
-      return date.toISOString();
-    }
-
-    const parsed = new Date(date);
-
-    if (!Number.isNaN(parsed.getTime())) {
-      return parsed.toISOString();
-    }
-
-    this.logger.warn({
-      logTag: 'normalizeSnapshotDate',
-      message:
-        'Unable to normalize analytics snapshot date, falling back to raw value',
-      date,
-    });
-
-    return String(date);
   }
 
   private async getLatestCommodityTimestamp(): Promise<number | null> {

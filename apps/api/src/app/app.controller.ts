@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode, HttpStatus, Query } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Param, Query } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiForbiddenResponse,
@@ -10,8 +10,13 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AppService } from './app.service';
-import { AppHealthPayload, SearchQueryDto } from '@app/resources';
-import { CharactersEntity, GuildsEntity, ItemsEntity } from '@app/pg';
+import {
+  AnalyticsMetricSnapshotDto,
+  AppHealthPayload,
+  CharacterHashDto,
+  SearchQueryDto,
+} from '@app/resources';
+import { AnalyticsEntity, CharactersEntity, GuildsEntity, ItemsEntity } from '@app/pg';
 
 @ApiTags('app')
 @Controller('app')
@@ -22,6 +27,20 @@ export class AppController {
   @Get('metrics')
   async getMetrics(): Promise<AppHealthPayload> {
     return this.appService.getMetrics();
+  }
+
+  @ApiOperation({
+    description:
+      'Fetch the latest analytics snapshot for a category, metric type, and optional realm.',
+  })
+  @ApiOkResponse({ description: 'Latest analytics metric snapshot.' })
+  @ApiBadRequestResponse({ description: 'Invalid query parameters.' })
+  @ApiServiceUnavailableResponse({ description: 'Analytics data is unavailable.' })
+  @Get('metrics/snapshot')
+  async getLatestAnalyticsMetricSnapshot(
+    @Query() snapshotQuery: AnalyticsMetricSnapshotDto,
+  ): Promise<AnalyticsEntity | null> {
+    return this.appService.getLatestMetricSnapshot(snapshotQuery);
   }
 
   @ApiOperation({
