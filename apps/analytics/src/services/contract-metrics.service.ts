@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { DateTime } from 'luxon';
-import { AnalyticsMetricCategory, AnalyticsMetricType } from '@app/resources';
+import { AnalyticsMetricCategory, AnalyticsMetricType, analyticsMetricExists } from '@app/resources';
 import {
   ContractTotalMetrics,
   ContractCommoditiesData,
@@ -12,7 +12,6 @@ import {
   ContractPriceVolatility,
 } from '@app/resources/types';
 import { AnalyticsEntity, ContractEntity } from '@app/pg';
-import { AnalyticsService } from '../analytics.service';
 
 @Injectable()
 export class ContractMetricsService {
@@ -25,8 +24,21 @@ export class ContractMetricsService {
     private readonly analyticsMetricRepository: Repository<AnalyticsEntity>,
     @InjectRepository(ContractEntity)
     private readonly contractRepository: Repository<ContractEntity>,
-    private readonly analyticsService: AnalyticsService,
   ) {}
+
+  private metricExists(
+    category: AnalyticsMetricCategory,
+    metricType: AnalyticsMetricType,
+    snapshotDate: Date,
+    realmId?: number | null,
+  ): Promise<boolean> {
+    return analyticsMetricExists(this.analyticsMetricRepository, {
+      category,
+      metricType,
+      snapshotDate,
+      realmId: realmId ?? undefined,
+    });
+  }
 
   async computeContractMetrics(snapshotDate: Date): Promise<number> {
     const logTag = 'computeContractMetrics';
@@ -50,7 +62,7 @@ export class ContractMetricsService {
         .where('c.timestamp > :threshold', { threshold: threshold24h })
         .getRawOne<ContractTotalMetrics>();
 
-      const existsTotalMetric = await this.analyticsService.metricExists(
+      const existsTotalMetric = await this.metricExists(
         AnalyticsMetricCategory.CONTRACTS,
         AnalyticsMetricType.TOTAL,
         snapshotDate,
@@ -125,7 +137,7 @@ export class ContractMetricsService {
     threshold24h: number,
   ): Promise<number> {
     // Check if metric exists
-    const existsByCommodities = await this.analyticsService.metricExists(
+    const existsByCommodities = await this.metricExists(
       AnalyticsMetricCategory.CONTRACTS,
       AnalyticsMetricType.BY_COMMODITIES,
       snapshotDate,
@@ -178,7 +190,7 @@ export class ContractMetricsService {
     let savedCount = 0;
     for (const realm of byConnectedRealm) {
       // Check if metric exists
-      const existsByConnectedRealm = await this.analyticsService.metricExists(
+      const existsByConnectedRealm = await this.metricExists(
         AnalyticsMetricCategory.CONTRACTS,
         AnalyticsMetricType.BY_CONNECTED_REALM,
         snapshotDate,
@@ -212,7 +224,7 @@ export class ContractMetricsService {
     threshold24h: number,
   ): Promise<number> {
     // Check if metric exists
-    const existsTopByQuantity = await this.analyticsService.metricExists(
+    const existsTopByQuantity = await this.metricExists(
       AnalyticsMetricCategory.CONTRACTS,
       AnalyticsMetricType.TOP_BY_QUANTITY,
       snapshotDate,
@@ -252,7 +264,7 @@ export class ContractMetricsService {
     threshold24h: number,
   ): Promise<number> {
     // Check if metric exists
-    const existsTopByOpenInterest = await this.analyticsService.metricExists(
+    const existsTopByOpenInterest = await this.metricExists(
       AnalyticsMetricCategory.CONTRACTS,
       AnalyticsMetricType.TOP_BY_OPEN_INTEREST,
       snapshotDate,
@@ -293,7 +305,7 @@ export class ContractMetricsService {
     threshold24h: number,
   ): Promise<number> {
     // Check if metric exists
-    const existsPriceVolatility = await this.analyticsService.metricExists(
+    const existsPriceVolatility = await this.metricExists(
       AnalyticsMetricCategory.CONTRACTS,
       AnalyticsMetricType.PRICE_VOLATILITY,
       snapshotDate,
