@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AnalyticsMetricCategory, AnalyticsMetricType } from '@app/resources';
+import { analyticsMetricExists } from '@app/resources/dao';
 import {
   GuildTotalMetrics,
   GuildCountAggregation,
@@ -11,7 +12,6 @@ import {
   GuildTopByMembers,
 } from '@app/resources/types';
 import { AnalyticsEntity, GuildsEntity } from '@app/pg';
-import { AnalyticsService } from '../analytics.service';
 
 @Injectable()
 export class GuildMetricsService {
@@ -24,8 +24,21 @@ export class GuildMetricsService {
     private readonly analyticsMetricRepository: Repository<AnalyticsEntity>,
     @InjectRepository(GuildsEntity)
     private readonly guildsRepository: Repository<GuildsEntity>,
-    private readonly analyticsService: AnalyticsService,
   ) {}
+
+  private metricExists(
+    category: AnalyticsMetricCategory,
+    metricType: AnalyticsMetricType,
+    snapshotDate: Date,
+    realmId?: number | null,
+  ): Promise<boolean> {
+    return analyticsMetricExists(this.analyticsMetricRepository, {
+      category,
+      metricType,
+      snapshotDate,
+      realmId: realmId ?? undefined,
+    });
+  }
 
   async computeGuildMetrics(snapshotDate: Date): Promise<number> {
     const logTag = 'computeGuildMetrics';
@@ -47,7 +60,7 @@ export class GuildMetricsService {
 
       // Check if total metric exists
       if (
-        !(await this.analyticsService.metricExists(
+        !(await this.metricExists(
           AnalyticsMetricCategory.GUILDS,
           AnalyticsMetricType.TOTAL,
           snapshotDate,
@@ -105,7 +118,7 @@ export class GuildMetricsService {
 
   private async computeGuildByFaction(snapshotDate: Date): Promise<number> {
     // Check if metric exists
-    const isByFactionExists = await this.analyticsService.metricExists(
+    const isByFactionExists = await this.metricExists(
       AnalyticsMetricCategory.GUILDS,
       AnalyticsMetricType.BY_FACTION,
       snapshotDate,
@@ -153,7 +166,7 @@ export class GuildMetricsService {
     let savedCount = 0;
     for (const realmData of byRealm) {
       // Check if metric exists
-      const isRealmTotalExists = await this.analyticsService.metricExists(
+      const isRealmTotalExists = await this.metricExists(
         AnalyticsMetricCategory.GUILDS,
         AnalyticsMetricType.TOTAL,
         snapshotDate,
@@ -202,7 +215,7 @@ export class GuildMetricsService {
     let savedCount = 0;
     for (const [realmId, factionCounts] of Object.entries(byRealmFactionMap)) {
       // Check if metric exists
-      const isRealmFactionExists = await this.analyticsService.metricExists(
+      const isRealmFactionExists = await this.metricExists(
         AnalyticsMetricCategory.GUILDS,
         AnalyticsMetricType.BY_FACTION,
         snapshotDate,
@@ -228,7 +241,7 @@ export class GuildMetricsService {
     snapshotDate: Date,
   ): Promise<number> {
     // Check if metric exists
-    const isSizeDistributionExists = await this.analyticsService.metricExists(
+    const isSizeDistributionExists = await this.metricExists(
       AnalyticsMetricCategory.GUILDS,
       AnalyticsMetricType.SIZE_DISTRIBUTION,
       snapshotDate,
@@ -280,7 +293,7 @@ export class GuildMetricsService {
 
   private async computeGuildTopByMembers(snapshotDate: Date): Promise<number> {
     // Check if metric exists
-    const isTopByMembersExists = await this.analyticsService.metricExists(
+    const isTopByMembersExists = await this.metricExists(
       AnalyticsMetricCategory.GUILDS,
       AnalyticsMetricType.TOP_BY_MEMBERS,
       snapshotDate,
@@ -314,7 +327,7 @@ export class GuildMetricsService {
     snapshotDate: Date,
   ): Promise<number> {
     // Check if metric exists
-    const isTopByAchievementsExists = await this.analyticsService.metricExists(
+    const isTopByAchievementsExists = await this.metricExists(
       AnalyticsMetricCategory.GUILDS,
       AnalyticsMetricType.TOP_BY_ACHIEVEMENTS,
       snapshotDate,

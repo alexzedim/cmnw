@@ -1,4 +1,8 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnApplicationBootstrap,
+} from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { Repository, MoreThan } from 'typeorm';
 import { DateTime } from 'luxon';
@@ -103,28 +107,6 @@ export class AnalyticsService implements OnApplicationBootstrap {
       });
       throw errorOrException;
     }
-  }
-
-  async metricExists(
-    category: string,
-    metricType: string,
-    snapshotDate: Date,
-    realmId?: number,
-  ): Promise<boolean> {
-    const query = this.analyticsMetricRepository
-      .createQueryBuilder()
-      .where('category = :category', { category })
-      .andWhere('metric_type = :metricType', { metricType })
-      .andWhere('snapshot_date = :snapshotDate', { snapshotDate });
-
-    if (realmId === undefined) {
-      query.andWhere('realm_id IS NULL');
-    } else {
-      query.andWhere('realm_id = :realmId', { realmId });
-    }
-
-    const result = await query.getOne();
-    return !!result;
   }
 
   async getLatestMetric(

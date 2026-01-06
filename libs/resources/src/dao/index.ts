@@ -4,3 +4,4 @@ export * from './market.dao';
 export * from './keys.dao';
 export * from './realms.dao';
 export * from './character.dao';
+export * from './analytics.dao';
