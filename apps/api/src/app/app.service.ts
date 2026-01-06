@@ -16,9 +16,6 @@ import {
   MarketEntity,
 } from '@app/pg';
 import {
-  CHARACTER_HASH_FIELDS,
-  CharacterHashDto,
-  CharacterHashFieldType,
   AnalyticsMetricSnapshotDto,
   AnalyticsMetricType,
   AppHealthPayload,

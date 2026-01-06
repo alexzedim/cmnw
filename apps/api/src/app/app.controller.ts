@@ -13,7 +13,6 @@ import { AppService } from './app.service';
 import {
   AnalyticsMetricSnapshotDto,
   AppHealthPayload,
-  CharacterHashDto,
   SearchQueryDto,
 } from '@app/resources';
 import { AnalyticsEntity, CharactersEntity, GuildsEntity, ItemsEntity } from '@app/pg';
