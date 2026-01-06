@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Not, Repository } from 'typeorm';
 import { AnalyticsMetricCategory, AnalyticsMetricType } from '@app/resources';
 import { analyticsMetricExists } from '@app/resources/dao';
 import {
@@ -71,7 +71,7 @@ export class CharacterMetricsService {
       // Total count
       const totalCount = await this.charactersRepository.count();
       const inGuildsCount = await this.charactersRepository.count({
-        where: { guildGuid: 'NOT NULL' },
+        where: { guildGuid: Not(IsNull()) },
       });
       const notInGuildsCount = totalCount - inGuildsCount;
 
