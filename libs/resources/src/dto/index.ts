@@ -4,6 +4,7 @@ export * from './item-chart-response.dto';
 export * from './item-feed.dto';
 export * from './item-quotes.dto';
 export * from './item-quotes-response.dto';
+export * from './analytics-metric-snapshot.dto';
 export * from './wow-token.dto';
 export * from './item-get.dto';
 export * from './item-valuations.dto';
