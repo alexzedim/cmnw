@@ -13,7 +13,7 @@ import {
   objectConnectedRealm,
 } from '../mocks';
 
-describe.skip('OSINT', () => {
+describe('OSINT', () => {
   let testsService: TestsOsint;
 
   beforeAll(async () => {
@@ -41,14 +41,14 @@ describe.skip('OSINT', () => {
 
   describe('summary', () => {
     it('return character summary response', async () => {
-      const response = await testsService.summary('лисаорк', 'howling-fjord');
+      const response = await testsService.summary('инициатива', 'gordunni');
       expect(response).toMatchObject(characterSummary);
     });
   });
 
   describe('mounts', () => {
     it('return character mount collection', async () => {
-      const response = await testsService.mounts('лисаорк', 'howling-fjord');
+      const response = await testsService.mounts('инициатива', 'gordunni');
       expect(response).toHaveProperty('mounts');
       expect(Array.isArray(response.mounts)).toBeTruthy();
       response.mounts.map((mount) => expect(mount).toMatchObject(objectMount));
@@ -57,7 +57,7 @@ describe.skip('OSINT', () => {
 
   describe('pets', () => {
     it('return character pets collection', async () => {
-      const response = await testsService.pets('лисаорк', 'howling-fjord');
+      const response = await testsService.pets('инициатива', 'gordunni');
       expect(response).toHaveProperty('pets');
       expect(Array.isArray(response.pets)).toBeTruthy();
       response.pets.map((pet) => expect(pet).toMatchObject(objectPet));
@@ -66,7 +66,7 @@ describe.skip('OSINT', () => {
 
   describe('status', () => {
     it('return character profile status', async () => {
-      const response = await testsService.status('лисаорк', 'howling-fjord');
+      const response = await testsService.status('инициатива', 'gordunni');
       expect(response).toMatchObject(statusObj);
     });
   });
@@ -74,8 +74,7 @@ describe.skip('OSINT', () => {
   describe('professions', () => {
     it('return character professions summary', async () => {
       const response = await testsService.professions(
-        'лисаорк',
-        'howling-fjord',
+        'инициатива', 'gordunni'
       );
       expect(response).toMatchObject(professionObj);
     });

@@ -429,6 +429,38 @@ export const EXPANSION_LIST_ID = new Map<string, string>([
   ['Shadowlands', 'SHDW'],
 ]);
 
+export const PLAYABLE_RACE = new Map<number, string>([
+  [1, 'Human'],
+  [2, 'Orc'],
+  [3, 'Dwarf'],
+  [4, 'Night Elf'],
+  [5, 'Undead'],
+  [6, 'Tauren'],
+  [7, 'Gnome'],
+  [8, 'Troll'],
+  [9, 'Goblin'],
+  [10, 'Blood Elf'],
+  [11, 'Draenei'],
+  [22, 'Worgen'],
+  [24, 'Pandaren'],
+  [25, 'Pandaren'],
+  [26, 'Pandaren'],
+  [27, 'Nightborne'],
+  [28, 'Highmountain Tauren'],
+  [29, 'Void Elf'],
+  [30, 'Lightforged Draenei'],
+  [31, 'Zandalari Troll'],
+  [32, 'Kul Tiran'],
+  [34, 'Dark Iron Dwarf'],
+  [35, 'Vulpera'],
+  [36, "Mag'har Orc"],
+  [37, 'Mechagnome'],
+  [52, 'Dracthyr'],
+  [70, 'Dracthyr'],
+  [84, 'Earthen'],
+  [85, 'Earthen'],
+]);
+
 export const PLAYABLE_CLASS = new Map<number, string>([
   [1, 'Warrior'],
   [2, 'Paladin'],
