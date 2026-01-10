@@ -25,7 +25,7 @@ import {
   toSlug,
   CharacterJobQueueDto,
   characterAsGuildMember,
-  ICharacterGuildMember,
+  ICharacterGuildMember, PLAYABLE_RACE, isGuildMember,
 } from '@app/resources';
 import {
   CharactersEntity,
@@ -104,7 +104,7 @@ export class GuildRosterService {
     BNet: BlizzAPI,
   ): Promise<void> {
     try {
-      const isMember = 'character' in member && 'rank' in member;
+      const isMember = isGuildMember(member);
       if (!isMember) {
         return;
       }
@@ -118,6 +118,12 @@ export class GuildRosterService {
       )
         ? PLAYABLE_CLASS.get(member.character.playable_class.id)
         : null;
+
+      const characterRace = PLAYABLE_RACE.has(member.character.playable_race.id)
+        ? PLAYABLE_RACE.get(member.character.playable_race.id)
+        : null;
+
+      const faction = get(member, 'character.faction.type', null)
 
       if (isGM) {
         await this.queueGuildMasterUpdate(
