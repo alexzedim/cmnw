@@ -6,6 +6,10 @@ export const keyPropRefLink = {
   key: expect.objectContaining(propRefLink),
 };
 
+export const objectTypeProperty = {
+  type: expect.any(String),
+};
+
 export const objectPropRefId = {
   id: expect.any(Number),
   key: expect.objectContaining(propRefLink),
@@ -118,6 +122,7 @@ export const guildMemberObj = {
     key: expect.objectContaining(propRefLink),
     id: expect.any(Number),
   }),
+  faction: expect.objectContaining(objectTypeProperty),
 };
 
 export const guildMembersRosterObj = {
