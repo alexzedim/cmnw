@@ -10,10 +10,10 @@ import {
   BlizzardApiPetsCollection,
   BlizzardApiResponse,
   BlizzardApiWowToken,
-  GoldApiListing,
+  GoldApiListing, ICharacterGuildMember,
   ICharacterRaiderIo,
   IHallOfFame,
-  IRGuildRoster,
+  IRGuildRoster, IRGuildRosterMember, IRGuildRosterMemberCharacter,
 } from '@app/resources/types';
 
 export const isEuRegion = (region: string | number | undefined): boolean =>
@@ -34,6 +34,23 @@ export const isGuildRoster = (
   'members' in response &&
   Array.isArray(response.members) &&
   Boolean(response.members.length);
+
+export const isGuildMember = (
+  member: unknown,
+): member is Readonly<IRGuildRosterMember> =>
+  typeof member === 'object' &&
+  member !== null &&
+  'character' in member && 'rank' in member;
+
+export const isGuildRosterMember = (
+  member: unknown,
+): member is Readonly<IRGuildRosterMember> =>
+  typeof member === 'object' &&
+  member !== null &&
+  'character' in member &&
+  typeof (member as any).character === 'object' &&
+  'name' in (member as any).character &&
+  'realm' in (member as any).character;
 
 export const isPetsCollection = (
   response: unknown,

@@ -1,11 +1,10 @@
 import { CharactersProfileEntity } from '@app/pg';
 
-export interface IWarcraftLogsToken {
-  token_type: string;
-  expires_in: number;
-  access_token: string;
-}
-
+/**
+ * -----------------------------------------------------------------------------
+ * Shared link & identity helpers
+ * -----------------------------------------------------------------------------
+ */
 export interface ISelfKeyHref {
   href: string;
 }
@@ -25,6 +24,36 @@ export interface ISelfRealm {
   slug: string;
 }
 
+export interface INameWithType {
+  type: string;
+  name: string;
+}
+
+export interface INameWithId {
+  id: number;
+  name: string;
+}
+
+export interface Locales {
+  en_US: string;
+  es_MX: string;
+  pt_BR: string;
+  de_DE: string;
+  en_GB: string;
+  es_ES: string;
+  fr_FR: string;
+  it_IT: string;
+  ru_RU: string;
+  ko_KR: string;
+  zh_TW: string;
+  zh_CN: string;
+}
+
+/**
+ * -----------------------------------------------------------------------------
+ * Guild rosters & hall of fame data
+ * -----------------------------------------------------------------------------
+ */
 export interface IGuildRoster {
   readonly members: IGuildMember[];
   updatedAt?: Date;
@@ -89,51 +118,39 @@ export interface IRGuildRoster {
 
   faction: INameWithType;
 
-  members: Array<{
-    character: {
-      key: ISelfKeyHref;
-
-      name: string;
-      id: number;
-      realm: {
-        key: ISelfKeyHref;
-
-        id: number;
-        slug: string;
-      };
-      level: number;
-      playable_class: {
-        key: ISelfKeyHref;
-
-        id: number;
-      };
-
-      playable_race: {
-        key: ISelfKeyHref;
-
-        id: number;
-      };
-    };
-
-    rank: number;
-  }>;
+  members: Array<IRGuildRosterMember>;
 }
 
-export interface Locales {
-  en_US: string;
-  es_MX: string;
-  pt_BR: string;
-  de_DE: string;
-  en_GB: string;
-  es_ES: string;
-  fr_FR: string;
-  it_IT: string;
-  ru_RU: string;
-  ko_KR: string;
-  zh_TW: string;
-  zh_CN: string;
+export interface IRGuildRosterMemberFaction {
+  type: string;
+  name?: string;
 }
 
+export interface IRGuildRosterMemberCharacter {
+  key: ISelfKeyHref;
+  name: string;
+  id: number;
+  realm: {
+    key: ISelfKeyHref;
+    id: number;
+    slug: string;
+  };
+  level: number;
+  playable_class: ISelfWithId;
+  playable_race: ISelfWithId;
+  faction?: IRGuildRosterMemberFaction;
+}
+
+export interface IRGuildRosterMember {
+  character: IRGuildRosterMemberCharacter;
+  rank: number;
+}
+
+/**
+ * -----------------------------------------------------------------------------
+ * Population & realm metadata
+ * -----------------------------------------------------------------------------
+ */
 export interface IPopulationByClass {
   death_knight: number;
   demon_hunter: number;
@@ -214,6 +231,11 @@ export interface IConnectedRealm {
   };
 }
 
+/**
+ * -----------------------------------------------------------------------------
+ * Character media & collections
+ * -----------------------------------------------------------------------------
+ */
 export interface Media {
   avatarImage: string;
   insetImage: string;
@@ -237,16 +259,6 @@ export interface ICharacterMedia {
 
 export interface IMountsNameWithId {
   mount: INameWithId;
-}
-
-export interface INameWithType {
-  type: string;
-  name: string;
-}
-
-export interface INameWithId {
-  id: number;
-  name: string;
 }
 
 export interface IMounts {
@@ -279,6 +291,11 @@ export interface IPetType {
   level: string | number;
 }
 
+/**
+ * -----------------------------------------------------------------------------
+ * Professions
+ * -----------------------------------------------------------------------------
+ */
 export interface IProfession {
   name: string;
   id: number;
@@ -324,16 +341,11 @@ export interface IBlizzardProfessionsResponse {
   secondaries?: IBlizzardSecondaryProfession[];
 }
 
-export interface IRaidProgressRIO {
-  id: string;
-  progress: string;
-}
-
-export interface IRaiderIO {
-  raidProgress: Array<IRaidProgressRIO>;
-  rioScore: number;
-}
-
+/**
+ * -----------------------------------------------------------------------------
+ * Character summaries & status
+ * -----------------------------------------------------------------------------
+ */
 export interface CharacterSummary {
   guid: string;
   name: string;
@@ -400,24 +412,32 @@ export interface ICharacterSummary {
   };
 }
 
-export interface ICharacterRaiderIo {
-  name: string;
-  race: string;
-  class: string;
-  active_spec_name: string;
-  active_spec_role: string;
-  gender: string;
-  faction: string;
-  achievement_points: number;
-  honorable_kills: number;
-  thumbnail_url: string;
-  region: string;
-  realm: string;
-  last_crawled_at: string;
-  profile_url: string;
-  profile_banner: string;
-  mythic_plus_scores_by_season: Array<IRaiderIoMythicPlus>;
-  raid_progression: IRaiderIORaidProgress;
+export interface ICharacterStatus {
+  id: number;
+  is_valid: boolean;
+  last_modified: Date;
+  status_code: number;
+}
+
+export interface IBlizzardStatusResponse {
+  id: number;
+  is_valid: boolean;
+  last_modified: number;
+}
+
+/**
+ * -----------------------------------------------------------------------------
+ * Raider.IO & Mythic+
+ * -----------------------------------------------------------------------------
+ */
+export interface IRaidProgressRIO {
+  id: string;
+  progress: string;
+}
+
+export interface IRaiderIO {
+  raidProgress: Array<IRaidProgressRIO>;
+  rioScore: number;
 }
 
 export interface IRaiderIoRaid {
@@ -457,25 +477,35 @@ export interface IRaiderIoMythicPlus {
   >;
 }
 
-export interface ICharacterStatus {
-  id: number;
-  is_valid: boolean;
-  last_modified: Date;
-  status_code: number;
+export interface ICharacterRaiderIo {
+  name: string;
+  race: string;
+  class: string;
+  active_spec_name: string;
+  active_spec_role: string;
+  gender: string;
+  faction: string;
+  achievement_points: number;
+  honorable_kills: number;
+  thumbnail_url: string;
+  region: string;
+  realm: string;
+  last_crawled_at: string;
+  profile_url: string;
+  profile_banner: string;
+  mythic_plus_scores_by_season: Array<IRaiderIoMythicPlus>;
+  raid_progression: IRaiderIORaidProgress;
 }
 
-export interface IBlizzardStatusResponse {
-  id: number;
-  is_valid: boolean;
-  last_modified: number;
-}
-
-export interface IWowProgress {
-  battleTag: string;
-  readyToTransfer: boolean;
-  raidDays: string[];
-  playRole: string;
-  languages: string[];
+/**
+ * -----------------------------------------------------------------------------
+ * Warcraft Logs
+ * -----------------------------------------------------------------------------
+ */
+export interface IWarcraftLogsToken {
+  token_type: string;
+  expires_in: number;
+  access_token: string;
 }
 
 export interface IWarcraftLogsMap {
@@ -497,6 +527,11 @@ export interface IWarcraftLogsConfig {
   logs: number;
 }
 
+/**
+ * -----------------------------------------------------------------------------
+ * Guild summaries & queue
+ * -----------------------------------------------------------------------------
+ */
 export interface ICharacterGuildMember {
   guid: string;
   id: number;
@@ -530,6 +565,19 @@ export interface ICharacterQueueWP {
   realm: string;
   itemLevel: string;
   timestamp: string;
+}
+
+/**
+ * -----------------------------------------------------------------------------
+ * WowProgress & downloads
+ * -----------------------------------------------------------------------------
+ */
+export interface IWowProgress {
+  battleTag: string;
+  readyToTransfer: boolean;
+  raidDays: string[];
+  playRole: string;
+  languages: string[];
 }
 
 export interface IExpansionSet {
