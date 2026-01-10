@@ -242,17 +242,21 @@ export class ContractMetricsService {
       .where('c.timestamp > :threshold', { threshold: threshold24h })
       .groupBy('c.item_id')
       .orderBy('quantity', 'DESC')
-      .limit(10)
-      .getRawMany<ContractTopByQuantity>();
+      .limit(1)
+      .getRawOne<ContractTopByQuantity>();
+
+    if (!topByQuantity) {
+      return 0;
+    }
 
     const contractTopByQuantityMetric = this.analyticsMetricRepository.create({
       category: AnalyticsMetricCategory.CONTRACTS,
       metricType: AnalyticsMetricType.TOP_BY_QUANTITY,
-      value: topByQuantity.map((item) => ({
-        itemId: item.item_id,
-        quantity: parseInt(item.quantity, 10),
-        openInterest: parseFloat(item.open_interest),
-      })),
+      value: {
+        itemId: topByQuantity.item_id,
+        quantity: parseInt(topByQuantity.quantity || '0', 10),
+        openInterest: parseFloat(topByQuantity.open_interest || '0'),
+      },
       snapshotDate,
     });
     await this.analyticsMetricRepository.save(contractTopByQuantityMetric);
@@ -282,18 +286,22 @@ export class ContractMetricsService {
       .where('c.timestamp > :threshold', { threshold: threshold24h })
       .groupBy('c.item_id')
       .orderBy('open_interest', 'DESC')
-      .limit(10)
-      .getRawMany<ContractTopByOpenInterest>();
+      .limit(1)
+      .getRawOne<ContractTopByOpenInterest>();
+
+    if (!topByOpenInterest) {
+      return 0;
+    }
 
     const contractTopByOpenInterestMetric =
       this.analyticsMetricRepository.create({
         category: AnalyticsMetricCategory.CONTRACTS,
         metricType: AnalyticsMetricType.TOP_BY_OPEN_INTEREST,
-        value: topByOpenInterest.map((item) => ({
-          itemId: item.item_id,
-          openInterest: parseFloat(item.open_interest),
-          quantity: parseInt(item.quantity, 10),
-        })),
+        value: {
+          itemId: topByOpenInterest.item_id,
+          openInterest: parseFloat(topByOpenInterest.open_interest || '0'),
+          quantity: parseInt(topByOpenInterest.quantity || '0', 10),
+        },
         snapshotDate,
       });
     await this.analyticsMetricRepository.save(contractTopByOpenInterestMetric);
@@ -324,21 +332,24 @@ export class ContractMetricsService {
       .groupBy('c.item_id')
       .having('COUNT(*) > :count', { count: 10 })
       .orderBy('std_dev', 'DESC')
-      .limit(10)
-      .getRawMany<ContractPriceVolatility>();
+      .limit(1)
+      .getRawOne<ContractPriceVolatility>();
 
-    const contractPriceVolatilityMetric = this.analyticsMetricRepository.create(
-      {
+    if (!volatility) {
+      return 0;
+    }
+
+    const contractPriceVolatilityMetric =
+      this.analyticsMetricRepository.create({
         category: AnalyticsMetricCategory.CONTRACTS,
         metricType: AnalyticsMetricType.PRICE_VOLATILITY,
-        value: volatility.map((item) => ({
-          itemId: item.item_id,
-          stdDev: parseFloat(item.std_dev || '0'),
-          avgPrice: parseFloat(item.avg_price || '0'),
-        })),
+        value: {
+          itemId: volatility.item_id,
+          stdDev: parseFloat(volatility.std_dev || '0'),
+          avgPrice: parseFloat(volatility.avg_price || '0'),
+        },
         snapshotDate,
-      },
-    );
+      });
     await this.analyticsMetricRepository.save(contractPriceVolatilityMetric);
     return 1;
   }
