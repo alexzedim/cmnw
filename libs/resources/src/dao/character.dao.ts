@@ -31,11 +31,14 @@ export const characterAsGuildMember = async (
       characterEntity.guildRank = guildMember.rank;
       if (guildMember.level) characterEntity.level = guildMember.level;
       if (guildMember.class) characterEntity.class = guildMember.class;
+      if (guildMember.race) characterEntity.race = guildMember.race;
+      if (guildMember.faction) characterEntity.faction = guildMember.faction;
       characterEntity.lastModified = guildEntity.lastModified;
       characterEntity.updatedBy = OSINT_SOURCE.GUILD_ROSTER;
       await charactersRepository.save(characterEntity);
     } else if (guildEntity.guid === characterEntity.guildGuid) {
       characterEntity.guildRank = guildMember.rank;
+      if (guildMember.faction) characterEntity.faction = guildMember.faction;
       characterEntity.updatedBy = OSINT_SOURCE.GUILD_ROSTER;
       await charactersRepository.save(characterEntity);
     }
@@ -68,7 +71,8 @@ export const characterAsGuildMember = async (
       guildRank: guildMember.rank,
       guildId: guildEntity.id,
       class: guildMember.class,
-      faction: guildEntity.faction,
+      race: guildMember.race ?? null,
+      faction: guildMember.faction ?? guildEntity.faction,
       level: guildMember.level,
       lastModified: guildEntity.lastModified,
       updatedBy: OSINT_SOURCE.GUILD_ROSTER,

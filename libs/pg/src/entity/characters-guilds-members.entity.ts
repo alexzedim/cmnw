@@ -50,13 +50,6 @@ export class CharactersGuildsMembersEntity {
   @Column({
     nullable: false,
     type: 'varchar',
-    name: 'realm_name',
-  })
-  realmName: string;
-
-  @Column({
-    nullable: false,
-    type: 'varchar',
   })
   realm: string;
 

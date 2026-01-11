@@ -265,7 +265,8 @@ export class CharacterJobQueueDto {
     guildNameSlug: string;
     guildId: number;
     class: string | null;
-    faction: string;
+    race?: string | null;
+    faction?: string | null;
     level: number | null;
     lastModified: Date;
     clientId: string;
@@ -274,6 +275,7 @@ export class CharacterJobQueueDto {
   }): CharacterJobQueueDto {
     const guid = toGuid(params.name, params.realm);
     const guildGuid = toGuid(params.guildNameSlug, params.realm);
+    const resolvedFaction = params.faction ?? undefined;
     const dto = new CharacterJobQueueDto({
       guid,
       name: params.name,
@@ -283,7 +285,8 @@ export class CharacterJobQueueDto {
       guildId: params.guildId,
       guildRank: 0, // Guild Master
       class: params.class || undefined,
-      faction: params.faction,
+      race: params.race || undefined,
+      faction: resolvedFaction,
       level: params.level || undefined,
       lastModified: params.lastModified,
       forceUpdate: 1, // Force immediate update
