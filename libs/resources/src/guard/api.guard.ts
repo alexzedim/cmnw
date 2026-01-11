@@ -50,7 +50,10 @@ export const isGuildRosterMember = (
   'character' in member &&
   typeof (member as any).character === 'object' &&
   'name' in (member as any).character &&
-  'realm' in (member as any).character;
+  'realm' in (member as any).character &&
+  'level' in (member as any).character &&
+  'playable_class' in (member as any).character &&
+  'playable_race' in (member as any).character;
 
 export const isPetsCollection = (
   response: unknown,

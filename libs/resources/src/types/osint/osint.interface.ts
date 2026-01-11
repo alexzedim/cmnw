@@ -1,4 +1,4 @@
-import { CharactersProfileEntity } from '@app/pg';
+import { CharactersGuildsMembersEntity, CharactersProfileEntity } from '@app/pg';
 
 /**
  * -----------------------------------------------------------------------------
@@ -64,7 +64,22 @@ export interface IGuildMember {
   guid: string;
   id: number;
   rank: number;
-  level?: number;
+  level: number | null;
+  isGM: boolean;
+  realmId: number;
+  realmSlug: string;
+  class: string | null;
+  race: string | null;
+  faction: string | null;
+}
+
+export interface RosterComparisonResult {
+  originalRoster: Map<number, CharactersGuildsMembersEntity>;
+  updatedRoster: Map<number, IGuildMember>;
+  membersIntersectIds: number[];
+  membersJoinedIds: number[];
+  membersLeaveIds: number[];
+  isFirstTimeRosterIndexed: boolean;
 }
 
 export interface IHallOfFameGuild {
@@ -541,6 +556,8 @@ export interface ICharacterGuildMember {
   rank: number;
   level: number | null;
   class: string | null;
+  race?: string | null;
+  faction?: string | null;
 }
 
 export interface IGuildSummary {

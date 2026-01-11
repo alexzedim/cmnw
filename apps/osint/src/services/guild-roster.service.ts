@@ -13,6 +13,7 @@ import {
   apiConstParams,
   CharacterJobQueue,
   charactersQueue,
+  FACTION,
   GUILD_WORKER_CONSTANTS,
   IGuildRoster,
   incErrorCount,
@@ -25,7 +26,9 @@ import {
   toSlug,
   CharacterJobQueueDto,
   characterAsGuildMember,
-  ICharacterGuildMember, PLAYABLE_RACE, isGuildMember,
+  ICharacterGuildMember,
+  PLAYABLE_RACE,
+  isGuildMember,
 } from '@app/resources';
 import {
   CharactersEntity,
@@ -110,12 +113,14 @@ export class GuildRosterService {
       }
 
       const isGM = member.rank === OSINT_GM_RANK;
-      const realmSlug = member.character.realm.slug ?? guildEntity.realm;
+
+      const realmId = get(member, 'character.realm.id', guildEntity.realmId);
+      const realmSlug = get(member, 'character.realm.slug', guildEntity.realm);
+
       const guid = toGuid(member.character.name, realmSlug);
+
       const level = member.character.level || null;
-      const characterClass = PLAYABLE_CLASS.has(
-        member.character.playable_class.id,
-      )
+      const characterClass = PLAYABLE_CLASS.has(member.character.playable_class.id)
         ? PLAYABLE_CLASS.get(member.character.playable_class.id)
         : null;
 
@@ -123,7 +128,28 @@ export class GuildRosterService {
         ? PLAYABLE_RACE.get(member.character.playable_race.id)
         : null;
 
-      const faction = get(member, 'character.faction.type', null)
+      const factionData = get(member, 'character.faction', null) as
+        | Record<string, any>
+        | null;
+
+      let resolvedFaction = guildEntity.faction ?? null;
+
+      const isFactionObject =
+        factionData !== null && typeof factionData === 'object';
+
+      if (isFactionObject) {
+        const hasFactionTypeWithoutName =
+          factionData.type && factionData.name === null;
+
+        if (hasFactionTypeWithoutName) {
+          const factionTypeStartsWithA = factionData.type
+            .toString()
+            .startsWith('A');
+          resolvedFaction = factionTypeStartsWithA ? FACTION.A : FACTION.H;
+        } else if (factionData.name) {
+          resolvedFaction = factionData.name;
+        }
+      }
 
       if (isGM) {
         await this.queueGuildMasterUpdate(
@@ -134,33 +160,41 @@ export class GuildRosterService {
           realmSlug,
           level,
           characterClass,
+          characterRace,
+          resolvedFaction,
           BNet,
         );
-      } else {
-        // Queue non-GM guild members for processing by CharactersWorker
-        await this.saveCharacterAsGuildMember(
-          member,
-          guildEntity,
-          guildNameSlug,
-          guid,
-          realmSlug,
-          level,
-          characterClass,
-        );
       }
+
+      await this.saveCharacterAsGuildMember(
+        member,
+        guildEntity,
+        guildNameSlug,
+        guid,
+        realmSlug,
+        level,
+        characterClass,
+        characterRace,
+        resolvedFaction,
+      );
 
       roster.members.push({
         guid,
         id: member.character.id,
         rank: member.rank,
         level,
+        isGM,
+        realmId,
+        realmSlug,
+        class: characterClass,
+        race: characterRace,
+        faction: resolvedFaction,
       });
     } catch (errorOrException) {
       this.logger.error({
         logTag: 'processRosterMember',
         member: member.character?.id,
         guildGuid: guildEntity.guid,
-        error: JSON.stringify(errorOrException),
       });
     }
   }
@@ -173,8 +207,11 @@ export class GuildRosterService {
     realmSlug: string,
     level: number | null,
     characterClass: string | null,
+    characterRace: string | null,
+    faction: string | null,
     BNet: BlizzAPI,
   ): Promise<void> {
+    const resolvedFaction = faction ?? guildEntity.faction ?? undefined;
     const dto = CharacterJobQueueDto.fromGuildMaster({
       name: member.character.name,
       realm: realmSlug,
@@ -182,7 +219,8 @@ export class GuildRosterService {
       guildNameSlug,
       guildId: guildEntity.id,
       class: characterClass,
-      faction: guildEntity.faction,
+      race: characterRace,
+      faction: resolvedFaction,
       level,
       lastModified: guildEntity.lastModified,
       clientId: BNet.clientId,
@@ -204,6 +242,8 @@ export class GuildRosterService {
     realmSlug: string,
     level: number | null,
     characterClass: string | null,
+    characterRace: string | null,
+    faction: string | null,
   ): Promise<void> {
     const guildMember: ICharacterGuildMember = {
       guid,
@@ -214,6 +254,8 @@ export class GuildRosterService {
       rank: Number(member.rank),
       level,
       class: characterClass,
+      race: characterRace,
+      faction,
     };
 
     await characterAsGuildMember(
@@ -248,7 +290,6 @@ export class GuildRosterService {
       logTag: 'fetchRoster',
       guildGuid: guildEntity.guid,
       statusCode: roster.statusCode,
-      error: JSON.stringify(errorOrException),
     });
 
     return roster;

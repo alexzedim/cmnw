@@ -7,9 +7,11 @@ import { mergeMap } from 'rxjs/operators';
 
 import {
   ACTION_LOG,
+  IGuildMember,
   IGuildRoster,
   OSINT_GM_RANK,
   OSINT_SOURCE,
+  RosterComparisonResult,
 } from '@app/resources';
 import {
   CharactersEntity,
@@ -17,16 +19,7 @@ import {
   CharactersGuildsLogsEntity,
   GuildsEntity,
 } from '@app/pg';
-import { GUILD_WORKER_CONSTANTS } from '@app/resources';
 
-interface RosterComparisonResult {
-  originalRoster: Map<number, CharactersGuildsMembersEntity>;
-  updatedRoster: Map<number, any>;
-  membersIntersectIds: number[];
-  membersJoinedIds: number[];
-  membersLeaveIds: number[];
-  isFirstTimeRosterIndexed: boolean;
-}
 
 @Injectable()
 export class GuildMemberService {
@@ -81,7 +74,7 @@ export class GuildMemberService {
 
   private async compareRosters(
     guildEntity: GuildsEntity,
-    updatedRosterMembers: any[],
+    updatedRosterMembers: IGuildRoster['members'],
   ): Promise<RosterComparisonResult> {
     const guildsMembersEntities =
       await this.characterGuildsMembersRepository.findBy({
@@ -95,7 +88,7 @@ export class GuildMemberService {
       ]),
     );
 
-    const updatedRoster = new Map(
+    const updatedRoster = new Map<number, IGuildMember>(
       updatedRosterMembers.map((member) => [member.id, member]),
     );
 
@@ -184,7 +177,7 @@ export class GuildMemberService {
     rosterUpdatedAt: Date,
     guildMemberId: number,
     originalRoster: Map<number, CharactersGuildsMembersEntity>,
-    updatedRoster: Map<number, any>,
+    updatedRoster: Map<number, IGuildMember>,
   ): Promise<void> {
     try {
       const guildMemberOriginal = originalRoster.get(guildMemberId);
@@ -251,7 +244,7 @@ export class GuildMemberService {
     guildEntity: GuildsEntity,
     rosterUpdatedAt: Date,
     guildMemberId: number,
-    updatedRoster: Map<number, any>,
+    updatedRoster: Map<number, IGuildMember>,
     isFirstTimeRosterIndexed: boolean = false,
   ): Promise<void> {
     try {
@@ -264,9 +257,8 @@ export class GuildMemberService {
           guildId: guildEntity.id,
           characterId: guildMemberUpdated.id,
           characterGuid: guildMemberUpdated.guid,
-          realmId: guildEntity.realmId,
-          realmName: guildEntity.realmName,
-          realm: guildEntity.realm,
+          realmId: guildMemberUpdated.realmId,
+          realm: guildMemberUpdated.realmSlug,
           rank: guildMemberUpdated.rank,
           createdBy: OSINT_SOURCE.GUILD_ROSTER,
           updatedBy: OSINT_SOURCE.GUILD_ROSTER,

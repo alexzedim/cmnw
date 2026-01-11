@@ -158,7 +158,6 @@ export class GuildSummaryService {
       logTag: 'getSummary',
       guildGuid: `${guildNameSlug}@${realmSlug}`,
       statusCode: summary.statusCode,
-      error: JSON.stringify(errorOrException),
     });
 
     return summary;
