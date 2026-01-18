@@ -1,6 +1,8 @@
 // RabbitMQ Queue Configuration
 // Replaces BullMQ DMA_Valuations queue
 
+import { TIME_MS } from '@app/resources/constants';
+
 export const valuationsQueue = {
   name: 'dma.valuations.queue',
   exchange: 'dma.exchange',
@@ -10,7 +12,7 @@ export const valuationsQueue = {
     durable: true,
     deadLetterExchange: 'dlx.exchange',
     deadLetterRoutingKey: 'dlx.dma.valuations',
-    messageTtl: 86400000, // 24 hours
+    messageTtl: TIME_MS.TWENTY_FOUR_HOURS, // 24 hours
     maxLength: 100000,
     maxPriority: 10,
   },

@@ -4,6 +4,7 @@ import {
 } from '@app/resources/dto/queue';
 
 import { RealmJobQueue } from '@app/resources/types';
+import { TIME_MS } from '@app/resources/constants';
 
 /**
  * Realm Message DTO for RabbitMQ
@@ -71,7 +72,7 @@ export class RealmMessageDto extends RabbitMQMessageDto<RealmJobQueue> {
       source: params.source ?? 'core',
       routingKey: params.routingKey ?? 'core.realms.normal',
       persistent: true,
-      expiration: params.expiration ?? 43200000,
+      expiration: params.expiration ?? TIME_MS.TWELVE_HOURS,
     });
   }
 }

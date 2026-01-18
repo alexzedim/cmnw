@@ -4,6 +4,7 @@ import {
 } from '@app/resources/dto/queue';
 
 import { AuctionJobQueue } from '@app/resources/types';
+import { TIME_MS } from '@app/resources/constants';
 
 /**
  * Auction Message DTO for RabbitMQ
@@ -70,7 +71,7 @@ export class AuctionMessageDto extends RabbitMQMessageDto<AuctionJobQueue> {
       source: params.source ?? 'dma',
       routingKey: params.routingKey ?? 'dma.auctions.normal',
       persistent: true,
-      expiration: params.expiration ?? 43200000,
+      expiration: params.expiration ?? TIME_MS.TWELVE_HOURS,
     });
   }
 }
