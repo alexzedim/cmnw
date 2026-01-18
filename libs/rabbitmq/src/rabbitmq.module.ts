@@ -34,6 +34,7 @@ import { RabbitMQAlertingService } from './alerting.service';
     RabbitMQAlertingService,
   ],
   exports: [
+    GolevelupRabbitMQModule,
     RabbitMQPublisherService,
     RabbitMQMonitorService,
     RabbitMQAlertingService,
@@ -58,7 +59,7 @@ export class RabbitMQModule implements OnModuleInit {
       const channel = this.amqpConnection.managedChannel;
 
       // Create all queues and bind them to exchanges
-      for (const [queueKey, queueConfig] of Object.entries(RABBITMQ_QUEUES)) {
+      for (const [_queueKey, queueConfig] of Object.entries(RABBITMQ_QUEUES)) {
         try {
           // Assert queue with its configuration
           await channel.assertQueue(queueConfig.name, queueConfig.options);
