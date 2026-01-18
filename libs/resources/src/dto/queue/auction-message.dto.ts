@@ -1,10 +1,9 @@
+import { AuctionJobQueue } from '@app/resources/types';
+import { TIME_MS } from '@app/resources/constants';
 import {
   IRabbitMQMessageBase,
   RabbitMQMessageDto,
 } from '@app/resources/dto/queue';
-
-import { AuctionJobQueue } from '@app/resources/types';
-import { TIME_MS } from '@app/resources/constants';
 
 /**
  * Auction Message DTO for RabbitMQ
