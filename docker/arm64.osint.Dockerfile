@@ -16,6 +16,7 @@ RUN nest build osint && \
     nest build characters && \
     nest build analytics && \
     nest build guilds && \
+    nest build warcraft-logs && \
     nest build wow-progress
 
 FROM arm64v8/node:lts
