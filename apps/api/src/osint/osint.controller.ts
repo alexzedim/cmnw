@@ -20,7 +20,7 @@ import {
 import {
   CharacterHashDto,
   CharacterIdDto,
-  CharactersLfgDto,
+  CharacterLfgDto,
   GuildIdDto,
   RealmDto,
 } from '@app/resources';
@@ -76,7 +76,7 @@ export class OsintController {
   @HttpCode(HttpStatus.OK)
   @Get('/character/lfg')
   async getCharactersLfg(
-    @Query() input: CharactersLfgDto,
+    @Query() input: CharacterLfgDto,
   ): Promise<{ characters: CharactersProfileEntity[] }> {
     const characters = await this.characterOsintService.getCharactersLfg(input);
     return { characters };

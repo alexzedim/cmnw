@@ -1,7 +1,10 @@
 import { toGuid } from '../../transformers';
 import { OSINT_SOURCE } from '../../constants';
 import { Logger } from '@nestjs/common';
-import { IRabbitMQMessageBase, RabbitMQMessageDto } from '@app/resources/dto/rabbitmq';
+import {
+  IRabbitMQMessageBase,
+  RabbitMQMessageDto,
+} from '@app/resources/dto/queue';
 
 /**
  * Guild Message DTO for RabbitMQ

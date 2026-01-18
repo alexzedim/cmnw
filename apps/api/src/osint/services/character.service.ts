@@ -27,7 +27,7 @@ import {
   CharacterIdDto,
   CharacterMessageDto,
   CharacterResponseDto,
-  CharactersLfgDto,
+  CharacterLfgDto,
   charactersQueue,
   charactersRequestsQueue,
   getKeys,
@@ -367,7 +367,7 @@ export class CharacterOsintService {
     }
   }
 
-  async getCharactersLfg(input: CharactersLfgDto) {
+  async getCharactersLfg(input: CharacterLfgDto) {
     const logTag = 'getCharactersLfg';
     try {
       this.logger.log({

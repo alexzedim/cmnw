@@ -1,4 +1,8 @@
-import { IRabbitMQMessageBase, RabbitMQMessageDto } from '@app/resources/dto/rabbitmq';
+import {
+  IRabbitMQMessageBase,
+  RabbitMQMessageDto,
+} from '@app/resources/dto/queue';
+
 import { AuctionJobQueue } from '@app/resources/types';
 
 /**
