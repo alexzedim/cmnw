@@ -19,7 +19,6 @@ export class QueueMonitorService {
     'osint.guilds',
     'core.realms',
     'dma.items',
-    'dma.pricing',
     'dma.valuations',
     'osint.profiles',
   ];

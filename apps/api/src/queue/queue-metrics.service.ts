@@ -17,7 +17,6 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
     'osint.guilds',
     'core.realms',
     'dma.items',
-    'dma.pricing',
     'dma.valuations',
     'osint.profiles',
   ];
@@ -47,6 +46,9 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
   async onModuleInit() {
     this.logger.log(
       `QueueMetricsService initialized with worker_id: ${this.workerId}`,
+    );
+    this.logger.debug(
+      `QueueMetricsService monitoring queues: ${this.queueNames.join(', ')}`,
     );
 
     // Initial metrics collection
