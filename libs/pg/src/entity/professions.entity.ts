@@ -5,7 +5,7 @@ import {
   PrimaryColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { CMNW_ENTITY_ENUM } from '@app/pg';
+import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
 
 @Entity({ name: CMNW_ENTITY_ENUM.PROFESSIONS })
 export class ProfessionsEntity {

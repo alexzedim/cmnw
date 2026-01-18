@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { WarcraftLogsService } from './warcraft-logs.service';
-import { postgresConfig, redisConfig } from '@app/configuration';
 import { RabbitMQModule } from '@app/rabbitmq';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CharactersRaidLogsEntity, KeysEntity, RealmsEntity } from '@app/pg';
 import { RedisModule } from '@nestjs-modules/ioredis';
+import { postgresConfig, redisConfig } from '@app/configuration';
 
 @Module({
   imports: [

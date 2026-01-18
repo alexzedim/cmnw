@@ -6,7 +6,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { CMNW_ENTITY_ENUM } from '@app/pg';
+import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
 import { VALUATION_TYPE } from '@app/resources/constants';
 
 @Index('ix__evaluations__item_id', ['itemId'], {})

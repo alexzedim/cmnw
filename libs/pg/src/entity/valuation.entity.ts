@@ -6,7 +6,7 @@ import {
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
-import { CMNW_ENTITY_ENUM } from '@app/pg';
+import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
 
 @Index('ix__valuations__item_id', ['itemId'], {})
 @Index('ix__valuations__connected_realm_id', ['connectedRealmId'], {})

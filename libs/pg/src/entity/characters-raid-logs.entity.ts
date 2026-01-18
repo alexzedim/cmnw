@@ -5,7 +5,7 @@ import {
   Index,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { CMNW_ENTITY_ENUM } from '@app/pg';
+import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
 
 @Index('ix__characters_raid__log_id', ['logId'], {})
 @Entity({ name: CMNW_ENTITY_ENUM.CHARACTERS_RAID_LOGS })

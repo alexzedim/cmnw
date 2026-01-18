@@ -1,4 +1,4 @@
-import { CMNW_ENTITY_ENUM } from '@app/pg';
+import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
 import { ItemNames } from '@app/resources';
 import {
   Column,
