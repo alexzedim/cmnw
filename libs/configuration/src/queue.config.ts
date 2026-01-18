@@ -5,6 +5,7 @@
  * Supports priority queues, TTL, and dead letter exchange routing.
  */
 import { IQueueConfig } from '@app/configuration/interfaces/queue.interface';
+import { TIME_MS } from '@app/resources/constants';
 
 export const RABBITMQ_QUEUES: Record<string, IQueueConfig> = {
   // OSINT Queues
@@ -157,7 +158,7 @@ export const RABBITMQ_QUEUES: Record<string, IQueueConfig> = {
     options: {
       durable: true,
       arguments: {
-        'x-message-ttl': 86400000, // 24 hours
+        'x-message-ttl': TIME_MS.TWENTY_FOUR_HOURS, // 24 hours
       },
     },
   },

@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { OSINT_SOURCE } from '../../constants';
+import { OSINT_SOURCE, TIME_MS } from '../../constants';
 import { toGuid } from '../../transformers';
 import {
   IRabbitMQMessageBase,
@@ -172,7 +172,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       name: params.name,
       realm: params.realm,
       faction: params.faction,
-      forceUpdate: 14400000, // 4 hours
+      forceUpdate: TIME_MS.FOUR_HOURS, // 4 hours
       region: 'eu',
       createdBy: OSINT_SOURCE.MYTHIC_PLUS,
       updatedBy: OSINT_SOURCE.MYTHIC_PLUS,
@@ -186,7 +186,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       source: OSINT_SOURCE.MYTHIC_PLUS,
       routingKey: 'osint.characters.ladder.high',
       persistent: true,
-      expiration: 3600000,
+      expiration: TIME_MS.ONE_HOUR,
     });
     dto.validate(false, 'CharacterMessageDto.fromMythicPlusLadder');
     return dto;
@@ -212,7 +212,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       // @todo parser logic player.faction.type === 'HORDE' ? FACTION.H : FACTION.A
       faction: params.faction,
       iteration: params.rank,
-      forceUpdate: 14400000, // 4 hours
+      forceUpdate: TIME_MS.FOUR_HOURS, // 4 hours
       region: 'eu',
       createdBy: OSINT_SOURCE.PVP_LADDER,
       updatedBy: OSINT_SOURCE.PVP_LADDER,
@@ -226,7 +226,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       source: OSINT_SOURCE.PVP_LADDER,
       routingKey: 'osint.characters.ladder.high',
       persistent: true,
-      expiration: 3600000,
+      expiration: TIME_MS.ONE_HOUR,
     });
     dto.validate(false, 'CharacterMessageDto.fromPvPLadder');
     return dto;
@@ -249,7 +249,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       name: params.name,
       realm: params.realm,
       updatedAt: new Date(params.timestamp),
-      forceUpdate: 60000, // 1 minute
+      forceUpdate: TIME_MS.ONE_MINUTE, // 1 minute
       region: 'eu',
       createdBy: OSINT_SOURCE.WARCRAFT_LOGS,
       updatedBy: OSINT_SOURCE.WARCRAFT_LOGS,
@@ -263,7 +263,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       source: OSINT_SOURCE.WARCRAFT_LOGS,
       routingKey: 'osint.characters.raid.urgent',
       persistent: true,
-      expiration: 600000,
+      expiration: TIME_MS.TEN_MINUTES,
     });
     dto.validate(false, 'CharacterMessageDto.fromWarcraftLogs');
     return dto;
@@ -288,7 +288,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       realm: params.realm,
       realmId: params.realmId,
       realmName: params.realmName,
-      forceUpdate: 1800000, // 30 minutes
+      forceUpdate: TIME_MS.THIRTY_MINUTES, // 30 minutes
       region: 'eu',
       createdBy: OSINT_SOURCE.WOW_PROGRESS_LFG,
       updatedBy: OSINT_SOURCE.WOW_PROGRESS_LFG,
@@ -302,7 +302,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       source: OSINT_SOURCE.WOW_PROGRESS_LFG,
       routingKey: 'osint.characters.lfg.normal',
       persistent: true,
-      expiration: 7200000,
+      expiration: TIME_MS.TWO_HOURS,
     });
     dto.validate(false, 'CharacterMessageDto.fromWowProgressLfg');
     return dto;
@@ -342,7 +342,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       faction: resolvedFaction,
       level: params.level || undefined,
       lastModified: params.lastModified,
-      forceUpdate: 1,
+      forceUpdate: TIME_MS.IMMEDIATE,
       region: 'eu',
       createdBy: OSINT_SOURCE.GUILD_ROSTER,
       updatedBy: OSINT_SOURCE.GUILD_ROSTER,
@@ -356,7 +356,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       source: OSINT_SOURCE.GUILD_ROSTER,
       routingKey: 'osint.characters.guild.urgent',
       persistent: true,
-      expiration: 300000,
+      expiration: TIME_MS.FIVE_MINUTES,
     });
     dto.validate(false, 'CharacterMessageDto.fromGuildMaster');
     return dto;
@@ -380,7 +380,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       ...rest,
       characterId,
       region: 'eu',
-      forceUpdate: 43200000, // 12 hours
+      forceUpdate: TIME_MS.TWELVE_HOURS, // 12 hours
       createdBy: OSINT_SOURCE.CHARACTER_INDEX,
       updatedBy: OSINT_SOURCE.CHARACTER_INDEX,
       createOnlyUnique: false,
@@ -394,7 +394,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       source: OSINT_SOURCE.CHARACTER_INDEX,
       routingKey: 'osint.characters.index.normal',
       persistent: true,
-      expiration: 43200000,
+      expiration: TIME_MS.TWELVE_HOURS,
     });
     dto.validate(false, 'CharacterMessageDto.fromCharacterIndex');
     return dto;
@@ -437,7 +437,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       faction: params.faction,
       level: params.level || undefined,
       lastModified: params.lastModified,
-      forceUpdate: 604800000,
+      forceUpdate: TIME_MS.ONE_WEEK,
       region: 'eu',
       createdBy: OSINT_SOURCE.GUILD_ROSTER,
       updatedBy: OSINT_SOURCE.GUILD_ROSTER,
@@ -451,7 +451,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       source: OSINT_SOURCE.GUILD_ROSTER,
       routingKey: 'osint.characters.guild.low',
       persistent: true,
-      expiration: 86400000,
+      expiration: TIME_MS.TWENTY_FOUR_HOURS,
     });
     dto.validate(false, 'CharacterMessageDto.fromGuildMember');
     return dto;
@@ -472,7 +472,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       name: nameSlug,
       realm: realmSlug,
       region: 'eu',
-      forceUpdate: 43200000,
+      forceUpdate: TIME_MS.TWELVE_HOURS,
       createdBy: OSINT_SOURCE.OSINT_MIGRATION,
       updatedBy: OSINT_SOURCE.OSINT_MIGRATION,
       createOnlyUnique: true,
@@ -485,7 +485,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       source: OSINT_SOURCE.OSINT_MIGRATION,
       routingKey: 'osint.characters.migration.low',
       persistent: true,
-      expiration: 86400000,
+      expiration: TIME_MS.TWENTY_FOUR_HOURS,
     });
     dto.validate(false, 'CharacterMessageDto.fromMigrationFile');
     return dto;
@@ -510,7 +510,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       createdBy: OSINT_SOURCE.CHARACTER_REQUEST,
       updatedBy: OSINT_SOURCE.CHARACTER_REQUEST,
       createOnlyUnique: false,
-      forceUpdate: 1000 * 60 * 60,
+      forceUpdate: TIME_MS.ONE_HOUR,
       priority: 10,
       source: OSINT_SOURCE.CHARACTER_REQUEST,
       routingKey: 'osint.characters.request.high',

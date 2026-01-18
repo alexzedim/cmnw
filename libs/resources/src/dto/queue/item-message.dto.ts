@@ -3,6 +3,7 @@ import {
   RabbitMQMessageDto,
 } from '@app/resources/dto/queue';
 import { ItemJobQueue } from '@app/resources/types';
+import { TIME_MS } from '@app/resources/constants';
 
 /**
  * Item Message DTO for RabbitMQ
@@ -67,7 +68,7 @@ export class ItemMessageDto extends RabbitMQMessageDto<ItemJobQueue> {
       source: params.source ?? 'dma',
       routingKey: params.routingKey ?? 'dma.items.normal',
       persistent: true,
-      expiration: params.expiration ?? 43200000,
+      expiration: params.expiration ?? TIME_MS.TWELVE_HOURS,
     });
   }
 }

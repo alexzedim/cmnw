@@ -6,9 +6,9 @@ import {
   capitalize,
   GuildExistsOrCreate,
   GuildJobQueue,
-  OSINT_4_HOURS_MS,
   OSINT_SOURCE,
   STATUS_CODES,
+  TIME_MS,
   toGuid,
   toSlug,
 } from '@app/resources';
@@ -27,7 +27,7 @@ export class GuildService {
   ) {}
 
   async findOrCreate(guildJob: GuildJobQueue): Promise<GuildExistsOrCreate> {
-    const forceUpdate = guildJob.forceUpdate || OSINT_4_HOURS_MS;
+    const forceUpdate = guildJob.forceUpdate || TIME_MS.FOUR_HOURS;
     const nameSlug = toSlug(guildJob.name);
     const timestampNow = new Date().getTime();
 

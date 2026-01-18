@@ -1,5 +1,5 @@
 import { toGuid } from '../../transformers';
-import { OSINT_SOURCE } from '../../constants';
+import { OSINT_SOURCE, TIME_MS } from '../../constants';
 import { Logger } from '@nestjs/common';
 import {
   IRabbitMQMessageBase,
@@ -176,7 +176,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<any> {
       guid,
       name: params.name,
       realm: params.realm,
-      forceUpdate: 14400000, // 4 hours
+      forceUpdate: TIME_MS.FOUR_HOURS, // 4 hours
       region: 'eu',
       createdBy: OSINT_SOURCE.GUILD_CHARACTERS_UNIQUE,
       updatedBy: OSINT_SOURCE.GUILD_CHARACTERS_UNIQUE,
@@ -190,7 +190,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<any> {
       source: OSINT_SOURCE.GUILD_CHARACTERS_UNIQUE,
       routingKey: 'osint.guilds.roster.high',
       persistent: true,
-      expiration: 3600000, // 1 hour TTL
+      expiration: TIME_MS.ONE_HOUR, // 1 hour TTL
     });
     dto.validate(false, 'GuildMessageDto.fromGuildCharactersUnique');
     return dto;
@@ -214,7 +214,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<any> {
     const dto = new GuildMessageDto({
       ...params,
       region: 'eu',
-      forceUpdate: 14400000, // 4 hours
+      forceUpdate: TIME_MS.FOUR_HOURS, // 4 hours
       createdBy: OSINT_SOURCE.GUILD_INDEX,
       updatedBy: OSINT_SOURCE.GUILD_INDEX,
       createOnlyUnique: false,
@@ -228,7 +228,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<any> {
       source: OSINT_SOURCE.GUILD_INDEX,
       routingKey: 'osint.guilds.index.normal',
       persistent: true,
-      expiration: 43200000, // 12 hours TTL
+      expiration: TIME_MS.TWELVE_HOURS, // 12 hours TTL
     });
     dto.validate(false, 'GuildMessageDto.fromGuildIndex');
     return dto;
@@ -269,7 +269,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<any> {
       realmName: params.realmName,
       faction: params.faction,
       iteration: params.rank,
-      forceUpdate: 3600000, // 1 hour
+      forceUpdate: TIME_MS.ONE_HOUR, // 1 hour
       region: 'eu', // Always use EU
       createdBy: OSINT_SOURCE.TOP100,
       updatedBy: OSINT_SOURCE.TOP100,
@@ -283,7 +283,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<any> {
       source: OSINT_SOURCE.TOP100,
       routingKey: 'osint.guilds.hof.urgent',
       persistent: true,
-      expiration: 600000, // 10 minutes TTL
+      expiration: TIME_MS.TEN_MINUTES, // 10 minutes TTL
     });
     dto.validate(false, 'GuildMessageDto.fromHallOfFame');
     return dto;
@@ -307,7 +307,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<any> {
       name: params.name,
       realm: params.realm,
       iteration: params.iteration,
-      forceUpdate: 43200000, // 12 hours
+      forceUpdate: TIME_MS.TWELVE_HOURS, // 12 hours
       region: 'eu',
       createdBy: OSINT_SOURCE.WOW_PROGRESS,
       updatedBy: OSINT_SOURCE.WOW_PROGRESS,
@@ -321,7 +321,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<any> {
       source: OSINT_SOURCE.WOW_PROGRESS,
       routingKey: 'osint.guilds.wowprogress.normal',
       persistent: true,
-      expiration: 7200000, // 2 hours TTL
+      expiration: TIME_MS.TWO_HOURS, // 2 hours TTL
     });
     dto.validate(false, 'GuildMessageDto.fromWowProgress');
     return dto;
@@ -343,7 +343,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<any> {
       guid,
       name: params.name,
       realm: params.realm,
-      forceUpdate: 86400000, // 24 hours
+      forceUpdate: TIME_MS.TWENTY_FOUR_HOURS, // 24 hours
       region: 'eu',
       createdBy: OSINT_SOURCE.GUILD_REQUEST,
       updatedBy: OSINT_SOURCE.GUILD_REQUEST,
@@ -357,7 +357,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<any> {
       source: OSINT_SOURCE.GUILD_REQUEST,
       routingKey: 'osint.guilds.request.high',
       persistent: true,
-      expiration: 1800000, // 30 minutes TTL
+      expiration: TIME_MS.THIRTY_MINUTES, // 30 minutes TTL
     });
     dto.validate(false, 'GuildMessageDto.fromGuildRequest');
     return dto;

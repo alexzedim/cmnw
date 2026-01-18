@@ -6,9 +6,9 @@ import {
   capitalize,
   CharacterExistsOrCreate,
   CharacterJobQueue,
-  OSINT_1_DAY_MS,
   OSINT_SOURCE,
   STATUS_CODES,
+  TIME_MS,
   toDate,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
@@ -32,7 +32,7 @@ export class CharacterLifecycleService {
   async findOrCreateCharacter(
     character: CharacterJobQueue,
   ): Promise<CharacterExistsOrCreate> {
-    const forceUpdate = character.forceUpdate || OSINT_1_DAY_MS;
+    const forceUpdate = character.forceUpdate || TIME_MS.TWENTY_FOUR_HOURS;
     const timestampNow = new Date().getTime();
 
     const realmEntity = await findRealm(this.realmsRepository, character.realm);

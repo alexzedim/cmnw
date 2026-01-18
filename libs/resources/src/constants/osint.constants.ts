@@ -31,10 +31,6 @@ export const OSINT_LFG_WOW_PROGRESS = [
   'https://www.wowprogress.com/gearscore/char_rating/next/0/lfg.1/sortby.ts',
 ];
 
-export const OSINT_4_HOURS_MS = 1_000 * 60 * 60 * 4;
-
-export const OSINT_1_DAY_MS = 86_400 * 1_000;
-
 export const REALM_LOCALES = ['ru_ru', 'en_gb', 'de_de', 'fr_fr', 'it_it', 'es_es'];
 
 export const BRACKETS = ['2v2', '3v3', 'rbg'];

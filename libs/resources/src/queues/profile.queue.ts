@@ -1,6 +1,8 @@
 // RabbitMQ Queue Configuration
 // Replaces BullMQ OSINT_Profiles queue
 
+import { TIME_MS } from '@app/resources/constants';
+
 export const profileQueue = {
   name: 'osint.profiles.queue',
   exchange: 'osint.exchange',
@@ -10,7 +12,7 @@ export const profileQueue = {
     durable: true,
     deadLetterExchange: 'dlx.exchange',
     deadLetterRoutingKey: 'dlx.osint.profiles',
-    messageTtl: 86400000, // 24 hours
+    messageTtl: TIME_MS.TWENTY_FOUR_HOURS, // 24 hours
     maxLength: 100000,
     maxPriority: 10,
   },
