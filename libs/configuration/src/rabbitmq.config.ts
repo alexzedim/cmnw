@@ -1,9 +1,15 @@
 import { IRabbitMQConfig } from '@app/configuration/interfaces';
 
+const rabbitmqEnv = {
+  user: process.env.RABBITMQ_USER || 'admin',
+  password: process.env.RABBITMQ_PASSWORD || 'password',
+  host: process.env.RABBITMQ_HOST || 'localhost',
+  port: process.env.RABBITMQ_PORT || '5672',
+  vhost: process.env.RABBITMQ_VHOST || 'cmnw',
+};
+
 export const rabbitmqConfig: IRabbitMQConfig = {
-  uri:
-    process.env.RABBITMQ_URI ||
-    `amqp://${process.env.RABBITMQ_USER || 'admin'}:${process.env.RABBITMQ_PASSWORD || 'password'}@${process.env.RABBITMQ_HOST || 'localhost'}:${process.env.RABBITMQ_PORT || '5672'}/${process.env.RABBITMQ_VHOST || 'cmnw'}`,
+  uri: `amqp://${rabbitmqEnv.user}:${rabbitmqEnv.password}@${rabbitmqEnv.host}:${rabbitmqEnv.port}/${rabbitmqEnv.vhost}`,
   exchanges: [
     {
       name: 'osint.exchange',
