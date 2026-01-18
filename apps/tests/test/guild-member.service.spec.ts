@@ -6,7 +6,7 @@ import {
   CharactersGuildsMembersEntity,
   CharactersGuildsLogsEntity,
 } from '@app/pg';
-import { ACTION_LOG, OSINT_GM_RANK, OSINT_SOURCE } from '@app/resources';
+import { ACTION_LOG, OSINT_GM_RANK } from '@app/resources';
 import {
   mockGuildData,
   mockCharacterData,
@@ -441,9 +441,7 @@ describe('GuildMemberService', () => {
 
       await service.updateRoster(mockGuildData as any, roster as any, false);
 
-      expect(
-        mockCharacterGuildsMembersRepository.findBy,
-      ).not.toHaveBeenCalled();
+      expect(mockCharacterGuildsMembersRepository.findBy).not.toHaveBeenCalled();
     });
   });
 });

@@ -9,10 +9,9 @@ import {
   ValuationEntity,
 } from '@app/pg';
 import { In, Repository } from 'typeorm';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Cron } from '@nestjs/schedule';
 import {
   CraftingCost,
-  DisenchantValue,
   EvaluationOptions,
   ItemEvaluation,
   PriceComparison,
@@ -132,10 +131,7 @@ export class EvaluationService implements OnApplicationBootstrap {
       const bestForCrafting = this.findBestForCrafting(rankedMethods);
 
       // Get market data
-      const currentMarketPrice = await this.getMarketPrice(
-        itemId,
-        connectedRealmId,
-      );
+      const currentMarketPrice = await this.getMarketPrice(itemId, connectedRealmId);
       const marketVolume = await this.getMarketVolume(itemId, connectedRealmId);
 
       // Generate recommendations
@@ -359,8 +355,7 @@ export class EvaluationService implements OnApplicationBootstrap {
       for (const derivative of derivativesArray) {
         const itemId =
           typeof derivative === 'object' ? derivative.itemId : derivative;
-        const quantity =
-          typeof derivative === 'object' ? derivative.quantity : 1;
+        const quantity = typeof derivative === 'object' ? derivative.quantity : 1;
 
         if (quantity > 0) {
           costPerUnit[itemId] = totalCost / quantity;
@@ -432,8 +427,7 @@ export class EvaluationService implements OnApplicationBootstrap {
       for (const derivative of derivativesArray) {
         const itemId =
           typeof derivative === 'object' ? derivative.itemId : derivative;
-        const quantity =
-          typeof derivative === 'object' ? derivative.quantity : 0;
+        const quantity = typeof derivative === 'object' ? derivative.quantity : 0;
         const matRate = typeof derivative === 'object' ? derivative.matRate : 1;
 
         const marketPrice = marketPrices.get(itemId);
@@ -448,10 +442,8 @@ export class EvaluationService implements OnApplicationBootstrap {
             quantity,
             matRate,
             value,
-            minAmount:
-              typeof derivative === 'object' ? derivative.minAmount : 0,
-            maxAmount:
-              typeof derivative === 'object' ? derivative.maxAmount : 0,
+            minAmount: typeof derivative === 'object' ? derivative.minAmount : 0,
+            maxAmount: typeof derivative === 'object' ? derivative.maxAmount : 0,
           });
         } else {
           missingCount++;
@@ -460,10 +452,8 @@ export class EvaluationService implements OnApplicationBootstrap {
             quantity,
             matRate,
             value: 0,
-            minAmount:
-              typeof derivative === 'object' ? derivative.minAmount : 0,
-            maxAmount:
-              typeof derivative === 'object' ? derivative.maxAmount : 0,
+            minAmount: typeof derivative === 'object' ? derivative.minAmount : 0,
+            maxAmount: typeof derivative === 'object' ? derivative.maxAmount : 0,
           });
         }
       }
@@ -486,8 +476,7 @@ export class EvaluationService implements OnApplicationBootstrap {
       }
 
       const profitMargin = expectedValue - totalCost;
-      const profitPercentage =
-        totalCost > 0 ? (profitMargin / totalCost) * 100 : 0;
+      const profitPercentage = totalCost > 0 ? (profitMargin / totalCost) * 100 : 0;
 
       // Calculate confidence based on data availability
       const confidence =
@@ -591,10 +580,7 @@ export class EvaluationService implements OnApplicationBootstrap {
             const itemId =
               typeof derivative === 'object' ? derivative.itemId : derivative;
 
-            const marketPrice = await this.getMarketPrice(
-              itemId,
-              connectedRealmId,
-            );
+            const marketPrice = await this.getMarketPrice(itemId, connectedRealmId);
 
             if (!marketPrice) {
               continue;
@@ -611,8 +597,7 @@ export class EvaluationService implements OnApplicationBootstrap {
             // Apply filters
             const meetsMinMargin =
               !options.minMargin || profitMargin >= options.minMargin;
-            const meetsMinProfit =
-              !options.minProfit || profit >= options.minProfit;
+            const meetsMinProfit = !options.minProfit || profit >= options.minProfit;
 
             if (profit > 0 && meetsMinMargin && meetsMinProfit) {
               profitableCrafts.push({
@@ -905,9 +890,7 @@ export class EvaluationService implements OnApplicationBootstrap {
   /**
    * Find best method for buying (lowest cost)
    */
-  private findBestForBuying(
-    methods: PricingMethod[],
-  ): PricingMethod | undefined {
+  private findBestForBuying(methods: PricingMethod[]): PricingMethod | undefined {
     if (methods.length === 0) return undefined;
 
     return methods.reduce((min, method) =>
@@ -918,9 +901,7 @@ export class EvaluationService implements OnApplicationBootstrap {
   /**
    * Find best method for selling (highest value)
    */
-  private findBestForSelling(
-    methods: PricingMethod[],
-  ): PricingMethod | undefined {
+  private findBestForSelling(methods: PricingMethod[]): PricingMethod | undefined {
     if (methods.length === 0) return undefined;
 
     return methods.reduce((max, method) =>
@@ -931,9 +912,7 @@ export class EvaluationService implements OnApplicationBootstrap {
   /**
    * Find best method for crafting (best profit margin)
    */
-  private findBestForCrafting(
-    methods: PricingMethod[],
-  ): PricingMethod | undefined {
+  private findBestForCrafting(methods: PricingMethod[]): PricingMethod | undefined {
     const craftingMethods = methods.filter((m) => m.source === 'crafting');
     if (craftingMethods.length === 0) return undefined;
 
@@ -968,17 +947,14 @@ export class EvaluationService implements OnApplicationBootstrap {
 
       const profit = marketPrice - cheapestCrafting.calculatedValue;
       if (profit > 0) {
-        const margin = (
-          (profit / cheapestCrafting.calculatedValue) *
-          100
-        ).toFixed(1);
+        const margin = ((profit / cheapestCrafting.calculatedValue) * 100).toFixed(
+          1,
+        );
         recommendations.push(
           `Crafting is profitable: ${profit.toFixed(0)}g profit (${margin}% margin)`,
         );
       } else {
-        recommendations.push(
-          'Crafting is not profitable - buy from AH instead',
-        );
+        recommendations.push('Crafting is not profitable - buy from AH instead');
       }
     }
 
@@ -1076,13 +1052,10 @@ export class EvaluationService implements OnApplicationBootstrap {
 
     try {
       // Find all profitable crafts
-      const profitableCrafts = await this.findProfitableCrafts(
-        connectedRealmId,
-        {
-          minMargin: 5, // Minimum 5% profit margin
-          minProfit: 100, // Minimum 100g profit
-        },
-      );
+      const profitableCrafts = await this.findProfitableCrafts(connectedRealmId, {
+        minMargin: 5, // Minimum 5% profit margin
+        minProfit: 100, // Minimum 100g profit
+      });
 
       if (profitableCrafts.length === 0) {
         return 0;

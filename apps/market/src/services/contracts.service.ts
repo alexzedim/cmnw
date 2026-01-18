@@ -1,12 +1,7 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import {
-  ContractEntity,
-  ItemsEntity,
-  MarketEntity,
-  RealmsEntity,
-} from '@app/pg';
+import { ContractEntity, ItemsEntity, MarketEntity, RealmsEntity } from '@app/pg';
 import { LessThan, MoreThan, Not, Repository } from 'typeorm';
 import { DateTime } from 'luxon';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
@@ -146,10 +141,7 @@ export class ContractsService implements OnApplicationBootstrap {
         message: `Processing ${commodityItemsIds.length} items with ${commodityTimestamps.length} timestamps`,
       });
 
-      const isGuard = isContractArraysEmpty(
-        commodityTimestamps,
-        commodityItemsIds,
-      );
+      const isGuard = isContractArraysEmpty(commodityTimestamps, commodityItemsIds);
       if (isGuard) {
         this.logger.warn({
           logTag,
@@ -163,11 +155,7 @@ export class ContractsService implements OnApplicationBootstrap {
           from(commodityTimestamps).pipe(
             mergeMap(
               (timestamp) =>
-                this.getItemContractIntradayData(
-                  commodityItemId,
-                  timestamp,
-                  today,
-                ),
+                this.getItemContractIntradayData(commodityItemId, timestamp, today),
               5,
             ),
           ),

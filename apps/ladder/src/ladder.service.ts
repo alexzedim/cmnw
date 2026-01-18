@@ -1,12 +1,9 @@
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { InjectQueue } from '@nestjs/bullmq';
 import { BlizzAPI } from '@alexzedim/blizzapi';
-import { Queue } from 'bullmq';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { InjectRepository } from '@nestjs/typeorm';
 import { KeysEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
-import ms from 'ms';
 import Redis from 'ioredis';
 import {
   BadGatewayException,
@@ -16,20 +13,18 @@ import {
 } from '@nestjs/common';
 
 import {
+  API_HEADERS_ENUM,
+  apiConstParams,
   BRACKETS,
+  CharacterMessageDto,
   charactersQueue,
   delay,
   FACTION,
-  GLOBAL_OSINT_KEY,
-  CharacterJobQueue,
-  MYTHIC_PLUS_SEASONS,
-  OSINT_SOURCE,
   getKeys,
-  apiConstParams,
-  API_HEADERS_ENUM,
-  toGuid,
-  CharacterJobQueueDto,
+  GLOBAL_OSINT_KEY,
+  MYTHIC_PLUS_SEASONS,
 } from '@app/resources';
+import { RabbitMQPublisherService } from '@app/rabbitmq';
 
 @Injectable()
 export class LadderService implements OnApplicationBootstrap {
@@ -44,8 +39,7 @@ export class LadderService implements OnApplicationBootstrap {
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
-    @InjectQueue(charactersQueue.name)
-    private readonly queueCharacters: Queue<CharacterJobQueue, number>,
+    private readonly publisher: RabbitMQPublisherService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -92,7 +86,7 @@ export class LadderService implements OnApplicationBootstrap {
           console.log(rr);
 
           const characterJobs = rr.entries.map((player) => {
-            const dto = CharacterJobQueueDto.fromPvPLadder({
+            return CharacterMessageDto.fromPvPLadder({
               name: player.character.name,
               realm: player.character.realm.slug,
               faction: player.faction.type === 'HORDE' ? FACTION.H : FACTION.A,
@@ -101,17 +95,9 @@ export class LadderService implements OnApplicationBootstrap {
               clientSecret: key.secret,
               accessToken: key.token,
             });
-            return {
-              name: dto.guid,
-              data: dto,
-              opts: {
-                jobId: dto.guid,
-                priority: 2,
-              },
-            };
           });
 
-          // await this.queueCharacters.addBulk(characterJobs);
+          await this.publisher.publishBulk(charactersQueue.exchange, characterJobs);
 
           this.logger.log({
             logTag,
@@ -212,26 +198,20 @@ export class LadderService implements OnApplicationBootstrap {
 
             for (const group of leading_groups) {
               const characterJobMembers = group.members.map((member) => {
-                const dto = CharacterJobQueueDto.fromMythicPlusLadder({
+                return CharacterMessageDto.fromMythicPlusLadder({
                   name: member.profile.name,
                   realm: member.profile.realm.slug,
-                  faction:
-                    member.faction.type === 'HORDE' ? FACTION.H : FACTION.A,
+                  faction: member.faction.type === 'HORDE' ? FACTION.H : FACTION.A,
                   clientId: key.client,
                   clientSecret: key.secret,
                   accessToken: key.token,
                 });
-                return {
-                  name: dto.guid,
-                  data: dto,
-                  opts: {
-                    jobId: dto.guid,
-                    priority: 3,
-                  },
-                };
               });
 
-              await this.queueCharacters.addBulk(characterJobMembers);
+              await this.publisher.publishBulk(
+                charactersQueue.exchange,
+                characterJobMembers,
+              );
 
               this.logger.log({
                 logTag,

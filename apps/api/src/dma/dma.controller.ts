@@ -1,12 +1,4 @@
-import {
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Query,
-  Param,
-  BadRequestException,
-} from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Query } from '@nestjs/common';
 
 import {
   ApiBadRequestResponse,
@@ -47,8 +39,7 @@ export class DmaController {
   })
   @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
   @ApiBadRequestResponse({
-    description:
-      'The server could not understand the request due to invalid syntax',
+    description: 'The server could not understand the request due to invalid syntax',
   })
   @ApiServiceUnavailableResponse({
     description: 'Server is under maintenance or overloaded',
@@ -67,8 +58,7 @@ export class DmaController {
   })
   @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
   @ApiBadRequestResponse({
-    description:
-      'The server could not understand the request due to invalid syntax',
+    description: 'The server could not understand the request due to invalid syntax',
   })
   @ApiServiceUnavailableResponse({
     description: 'Server is under maintenance or overloaded',
@@ -87,8 +77,7 @@ export class DmaController {
   })
   @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
   @ApiBadRequestResponse({
-    description:
-      'The server could not understand the request due to invalid syntax',
+    description: 'The server could not understand the request due to invalid syntax',
   })
   @ApiServiceUnavailableResponse({
     description: 'Server is under maintenance or overloaded',
@@ -109,8 +98,7 @@ export class DmaController {
   })
   @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
   @ApiBadRequestResponse({
-    description:
-      'The server could not understand the request due to invalid syntax',
+    description: 'The server could not understand the request due to invalid syntax',
   })
   @ApiServiceUnavailableResponse({
     description: 'Server is under maintenance or overloaded',
@@ -129,8 +117,7 @@ export class DmaController {
   })
   @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
   @ApiBadRequestResponse({
-    description:
-      'The server could not understand the request due to invalid syntax',
+    description: 'The server could not understand the request due to invalid syntax',
   })
   @ApiServiceUnavailableResponse({
     description: 'Server is under maintenance or overloaded',
@@ -138,9 +125,7 @@ export class DmaController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
   @Get('/commodity/chart')
-  async getCommodityChart(
-    @Query() input: ReqGetItemDto,
-  ): Promise<ItemChartDto> {
+  async getCommodityChart(@Query() input: ReqGetItemDto): Promise<ItemChartDto> {
     return this.dmaService.getChart(input);
   }
 
@@ -151,8 +136,7 @@ export class DmaController {
   })
   @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
   @ApiBadRequestResponse({
-    description:
-      'The server could not understand the request due to invalid syntax',
+    description: 'The server could not understand the request due to invalid syntax',
   })
   @ApiServiceUnavailableResponse({
     description: 'Server is under maintenance or overloaded',
@@ -171,8 +155,7 @@ export class DmaController {
   })
   @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
   @ApiBadRequestResponse({
-    description:
-      'The server could not understand the request due to invalid syntax',
+    description: 'The server could not understand the request due to invalid syntax',
   })
   @ApiServiceUnavailableResponse({
     description: 'Server is under maintenance or overloaded',
@@ -185,8 +168,7 @@ export class DmaController {
   }
 
   @ApiOperation({
-    description:
-      'Search for items by ID, name, or localized names for autocomplete',
+    description: 'Search for items by ID, name, or localized names for autocomplete',
   })
   @ApiOkResponse({
     description: 'Returns list of matching items',
@@ -197,8 +179,7 @@ export class DmaController {
   })
   @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
   @ApiBadRequestResponse({
-    description:
-      'The server could not understand the request due to invalid syntax',
+    description: 'The server could not understand the request due to invalid syntax',
   })
   @ApiServiceUnavailableResponse({
     description: 'Server is under maintenance or overloaded',
@@ -206,13 +187,8 @@ export class DmaController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
   @Get('/item/search')
-  async searchItems(
-    @Query() input: SearchItemDto,
-  ): Promise<SearchItemResponseDto> {
-    const results = await this.dmaService.searchItems(
-      input.q,
-      input.limit || 25,
-    );
+  async searchItems(@Query() input: SearchItemDto): Promise<SearchItemResponseDto> {
+    const results = await this.dmaService.searchItems(input.q, input.limit || 25);
     return { results };
   }
 
@@ -223,8 +199,7 @@ export class DmaController {
   })
   @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
   @ApiBadRequestResponse({
-    description:
-      'The server could not understand the request due to invalid syntax',
+    description: 'The server could not understand the request due to invalid syntax',
   })
   @ApiServiceUnavailableResponse({
     description: 'Server is under maintenance or overloaded',

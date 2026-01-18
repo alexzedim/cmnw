@@ -1,19 +1,41 @@
-import { JobsOptions } from 'bullmq';
-import { IQueue } from '../../src/types';
+// RabbitMQ Queue Configuration
+// Replaces BullMQ OSINT_Characters queue
 
-const options: JobsOptions = {
-  removeOnComplete: 10,
-  removeOnFail: 10,
+export const charactersQueue = {
+  name: 'osint.characters.queue',
+  exchange: 'osint.exchange',
+  routingKey: 'osint.characters.*',
+  prefetchCount: parseInt(process.env.CHARACTERS_WORKER_CONCURRENCY || '1', 10),
+  queueOptions: {
+    durable: true,
+    deadLetterExchange: 'dlx.exchange',
+    deadLetterRoutingKey: 'dlx.osint.characters',
+    messageTtl: 86400000, // 24 hours
+    maxLength: 100000,
+    maxPriority: 10,
+  },
 };
 
-export const charactersQueue: IQueue = {
-  name: 'OSINT_Characters',
-  workerOptions: {
-    concurrency: parseInt(process.env.CHARACTERS_WORKER_CONCURRENCY || '1', 10),
-    limiter: {
-      max: 75 * 60,
-      duration: 60_000,
-    },
+export const charactersRequestsQueue = {
+  name: 'osint.characters.requests',
+  exchange: 'osint.exchange',
+  routingKey: 'osint.characters.request.*',
+  queueOptions: {
+    durable: true,
+    deadLetterExchange: 'dlx.exchange',
+    deadLetterRoutingKey: 'dlx.characters.requests',
+    maxPriority: 10,
   },
-  defaultJobOptions: options,
+};
+
+export const charactersResponsesQueue = {
+  name: 'osint.characters.responses',
+  exchange: 'osint.exchange',
+  routingKey: 'osint.characters.response.*',
+  queueOptions: {
+    durable: true,
+    deadLetterExchange: 'dlx.exchange',
+    deadLetterRoutingKey: 'dlx.characters.responses',
+    maxPriority: 10,
+  },
 };

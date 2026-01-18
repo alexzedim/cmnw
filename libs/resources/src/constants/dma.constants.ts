@@ -223,10 +223,7 @@ export const SKILL_LINE_KEY_MAPPING = new Map<keyof SkillLineEntity, string>([
   ['greenCraft', 'TrivialSkillLineRankLow'],
 ]);
 
-export const SPELL_EFFECT_KEY_MAPPING = new Map<
-  keyof SpellEffectEntity,
-  string
->([
+export const SPELL_EFFECT_KEY_MAPPING = new Map<keyof SpellEffectEntity, string>([
   ['spellId', 'SpellID'],
   ['effect', 'Effect'],
   ['itemId', 'EffectItemType'],

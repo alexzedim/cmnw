@@ -3,12 +3,10 @@ import {
   getKeys,
   GLOBAL_OSINT_KEY,
   OSINT_CHARACTER_LIMIT,
-  CharacterJobQueueDto,
+  CharacterMessageDto,
 } from '@app/resources';
 
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { CharactersEntity, KeysEntity } from '@app/pg';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -19,6 +17,7 @@ import { osintConfig } from '@app/configuration';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { createHash } from 'crypto';
+import { RabbitMQPublisherService } from '@app/rabbitmq';
 
 @Injectable()
 export class CharactersService implements OnApplicationBootstrap {
@@ -35,8 +34,7 @@ export class CharactersService implements OnApplicationBootstrap {
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
-    @InjectQueue(charactersQueue.name)
-    private readonly queue: Queue<CharacterJobQueueDto, number>,
+    private readonly publisher: RabbitMQPublisherService,
     private readonly s3Service: S3Service,
   ) {}
 
@@ -51,34 +49,8 @@ export class CharactersService implements OnApplicationBootstrap {
   ): Promise<void> {
     const logTag = this.indexCharacters.name;
     try {
-      const jobs = await this.queue.count();
-      if (jobs > 10_000) {
-        this.logger.warn({
-          logTag,
-          jobCount: jobs,
-          message: `${jobs} jobs found, skipping indexing`,
-        });
-        return;
-      }
-
-      const globalConcurrency = await this.queue.getGlobalConcurrency();
-      const updatedConcurrency = await this.queue.setGlobalConcurrency(10);
-
-      this.logger.log({
-        logTag,
-        queueName: charactersQueue.name,
-        globalConcurrency,
-        updatedConcurrency,
-        message: `Queue concurrency updated from ${globalConcurrency} to ${updatedConcurrency}`,
-      });
-
       let characterIteration = 0;
-      this.keyEntities = await getKeys(
-        this.keysRepository,
-        clearance,
-        false,
-        true,
-      );
+      this.keyEntities = await getKeys(this.keysRepository, clearance, false, true);
 
       let length = this.keyEntities.length;
 
@@ -108,7 +80,7 @@ export class CharactersService implements OnApplicationBootstrap {
             const { client, secret, token } =
               this.keyEntities[characterIteration % length];
 
-            const dto = CharacterJobQueueDto.fromCharacterIndex({
+            const dto = CharacterMessageDto.fromCharacterIndex({
               ...character,
               iteration: characterIteration,
               clientId: client,
@@ -116,10 +88,7 @@ export class CharactersService implements OnApplicationBootstrap {
               accessToken: token,
             });
 
-            await this.queue.add(dto.guid, dto, {
-              jobId: dto.guid,
-              priority: 5,
-            });
+            await this.publisher.publishMessage(charactersQueue.exchange, dto);
 
             characterIteration = characterIteration + 1;
             const isKeyRequest = characterIteration % 1000 == 0;
@@ -157,10 +126,7 @@ export class CharactersService implements OnApplicationBootstrap {
       // Load characters from S3 cmnw bucket
       let charactersJson: string;
       try {
-        charactersJson = await this.s3Service.readFile(
-          'characters.json',
-          'cmnw',
-        );
+        charactersJson = await this.s3Service.readFile('characters.json', 'cmnw');
         this.logger.log({
           logTag,
           bucket: 'cmnw',
@@ -179,9 +145,7 @@ export class CharactersService implements OnApplicationBootstrap {
       }
 
       // Calculate file checksum and check if already imported
-      const fileChecksum = createHash('md5')
-        .update(charactersJson)
-        .digest('hex');
+      const fileChecksum = createHash('md5').update(charactersJson).digest('hex');
       const redisKey = `CHARACTERS_FILE_IMPORTED:${fileChecksum}`;
 
       const isAlreadyImported = await this.redisService.exists(redisKey);
@@ -197,14 +161,10 @@ export class CharactersService implements OnApplicationBootstrap {
       const characters: Array<Pick<CharactersEntity, 'guid'>> =
         JSON.parse(charactersJson);
 
-      this.keyEntities = await getKeys(
-        this.keysRepository,
-        GLOBAL_OSINT_KEY,
-        false,
-      );
+      this.keyEntities = await getKeys(this.keysRepository, GLOBAL_OSINT_KEY, false);
 
       let characterIteration = 0;
-      let length = this.keyEntities.length;
+      const length = this.keyEntities.length;
 
       const charactersCount = characters.length;
 
@@ -220,14 +180,14 @@ export class CharactersService implements OnApplicationBootstrap {
         const { client, secret, token } =
           this.keyEntities[characterIteration % length];
 
-        const dto = CharacterJobQueueDto.fromMigrationFile({
+        const dto = CharacterMessageDto.fromMigrationFile({
           guid: character.guid,
           clientId: client,
           clientSecret: secret,
           accessToken: token,
         });
 
-        await this.queue.add(dto.guid, dto);
+        await this.publisher.publishMessage(charactersQueue.exchange, dto);
 
         characterIteration = characterIteration + 1;
       }
@@ -240,12 +200,7 @@ export class CharactersService implements OnApplicationBootstrap {
       });
 
       // Mark file as imported with checksum
-      await this.redisService.set(
-        redisKey,
-        Date.now(),
-        'EX',
-        60 * 60 * 24 * 30,
-      ); // 30 days TTL
+      await this.redisService.set(redisKey, Date.now(), 'EX', 60 * 60 * 24 * 30); // 30 days TTL
       this.logger.log({
         logTag,
         fileChecksum,

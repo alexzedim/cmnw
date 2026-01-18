@@ -1,16 +1,17 @@
-import { JobsOptions } from 'bullmq';
-import { IQueue } from '../../src/types';
+// RabbitMQ Queue Configuration
+// Replaces BullMQ OSINT_Auctions queue
 
-const options: JobsOptions = {
-  removeOnComplete: 10,
-  removeOnFail: 10,
-};
-
-export const auctionsQueue: IQueue = {
-  name: 'OSINT_Auctions',
-  workerOptions: {
-    concurrency: parseInt(process.env.AUCTIONS_WORKER_CONCURRENCY || '1', 10),
-    lockDuration: 600_000,
+export const auctionsQueue = {
+  name: 'dma.auctions.queue',
+  exchange: 'dma.exchange',
+  routingKey: 'dma.auctions.*',
+  prefetchCount: parseInt(process.env.AUCTIONS_WORKER_CONCURRENCY || '1', 10),
+  queueOptions: {
+    durable: true,
+    deadLetterExchange: 'dlx.exchange',
+    deadLetterRoutingKey: 'dlx.dma.auctions',
+    messageTtl: 86400000, // 24 hours
+    maxLength: 100000,
+    maxPriority: 10,
   },
-  defaultJobOptions: options,
 };

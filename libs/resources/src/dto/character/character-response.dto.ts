@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { CharactersEntity, AnalyticsEntity } from '@app/pg/entity';
-import { calculateCharacterPercentiles } from '../utils/percentile';
+import { calculateCharacterPercentiles } from '@app/resources/utils';
 
 class PercentileStats {
   @ApiProperty({
@@ -313,8 +313,7 @@ export class CharacterResponseDto extends CharactersEntity {
 
   @ApiProperty({
     type: CharacterPercentiles,
-    description:
-      'Character percentile statistics for global and realm rankings',
+    description: 'Character percentile statistics for global and realm rankings',
   })
   readonly percentiles: CharacterPercentiles;
 
@@ -333,7 +332,6 @@ export class CharacterResponseDto extends CharactersEntity {
       globalAnalytics,
       realmAnalytics,
     );
-    console.log('percentiles', percentiles);
 
     return {
       ...character,

@@ -67,10 +67,7 @@ export class S3Service implements OnModuleInit {
       this.logger.log(`Bucket '${bucketName}' already exists`);
       return true;
     } catch (error) {
-      if (
-        error.name === 'NoSuchBucket' ||
-        error.$metadata?.httpStatusCode === 404
-      ) {
+      if (error.name === 'NoSuchBucket' || error.$metadata?.httpStatusCode === 404) {
         this.logger.log(`Bucket '${bucketName}' does not exist. Creating...`);
         await this.createBucket(bucketName, config);
         return true;
@@ -192,10 +189,7 @@ export class S3Service implements OnModuleInit {
       );
       return true;
     } catch (error) {
-      if (
-        error.name === 'NotFound' ||
-        error.$metadata?.httpStatusCode === 404
-      ) {
+      if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
         return false;
       }
       this.logger.error(
@@ -228,10 +222,7 @@ export class S3Service implements OnModuleInit {
         metadata: response.Metadata,
       };
     } catch (error) {
-      if (
-        error.name === 'NotFound' ||
-        error.$metadata?.httpStatusCode === 404
-      ) {
+      if (error.name === 'NotFound' || error.$metadata?.httpStatusCode === 404) {
         return {
           exists: false,
         };
@@ -336,10 +327,7 @@ export class S3Service implements OnModuleInit {
       const buffer = Buffer.concat(chunks);
       return buffer.toString(encoding);
     } catch (error) {
-      if (
-        error.name === 'NoSuchKey' ||
-        error.$metadata?.httpStatusCode === 404
-      ) {
+      if (error.name === 'NoSuchKey' || error.$metadata?.httpStatusCode === 404) {
         throw new Error(`File not found: ${key} in bucket '${bucketName}'`);
       }
       this.logger.error(`Failed to read file '${key}' from S3:`, error);

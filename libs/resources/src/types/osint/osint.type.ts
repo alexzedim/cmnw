@@ -1,8 +1,4 @@
-import {
-  CharactersEntity,
-  CharactersProfileEntity,
-  GuildsEntity,
-} from '@app/pg';
+import { CharactersEntity, CharactersProfileEntity, GuildsEntity } from '@app/pg';
 import { ICharacterRaiderIo } from '@app/resources/types';
 
 export type CharacterStatus = {
@@ -53,9 +49,6 @@ export type RaiderIoCharacterMappingField = keyof Pick<
   'name' | 'realm' | 'race' | 'class' | 'gender' | 'activeSpec' | 'activeRole'
 >;
 
-export type CharactersHashType = keyof Pick<
-  CharactersEntity,
-  'hashA' | 'hashB'
->;
+export type CharactersHashType = keyof Pick<CharactersEntity, 'hashA' | 'hashB'>;
 
 export type CharacterHashFieldType = 'a' | 'b';

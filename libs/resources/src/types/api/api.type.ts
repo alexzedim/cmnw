@@ -28,10 +28,7 @@ export type BlizzardApiArrayResponse = Record<string, BlizzardApiArray>;
 
 export type BlizzardApiPetsCollection = Record<'pets', Array<IPetType>>;
 
-export type BlizzardApiMountsCollection = Record<
-  'mounts',
-  Array<IMountsNameWithId>
->;
+export type BlizzardApiMountsCollection = Record<'mounts', Array<IMountsNameWithId>>;
 
 export type BlizzardApiCharacterSummary = Readonly<ICharacterSummary>;
 

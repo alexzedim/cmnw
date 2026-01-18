@@ -5,13 +5,10 @@ import { Model } from 'mongoose';
 import {
   ASSET_EVALUATION_PRIORITY,
   IVAAuctions,
-  IQItemValuation,
   IVARealm,
   VALUATION_TYPE,
-  valuationsQueue,
 } from '@app/resources';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { RabbitMQPublisherService } from '@app/rabbitmq';
 import { valuationsConfig } from '@app/configuration';
 // import { Cron, CronExpression } from '@nestjs/schedule';
 
@@ -30,8 +27,7 @@ export class ValuationsService implements OnApplicationBootstrap {
     private readonly PricingModel: Model<Pricing>,
     @InjectModel(Market.name)
     private readonly AuctionsModel: Model<Market>,
-    @InjectQueue(valuationsQueue.name)
-    private readonly queue: Queue<IQItemValuation, number>,
+    private readonly rabbitMQPublisherService: RabbitMQPublisherService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -83,8 +79,7 @@ export class ValuationsService implements OnApplicationBootstrap {
           .eachAsync(
             async (item) => {
               const _id = `${item._id}@${connected_realm_id}_${timestamp}`;
-              await this.queue.add(
-                _id,
+              await this.rabbitMQPublisherService.publishMessage(
                 {
                   _id: item._id,
                   last_modified: timestamp,
@@ -92,7 +87,6 @@ export class ValuationsService implements OnApplicationBootstrap {
                   iteration: 0,
                 },
                 {
-                  jobId: _id,
                   priority: priority,
                 },
               );
@@ -280,18 +274,15 @@ export class ValuationsService implements OnApplicationBootstrap {
           .cursor()
           .eachAsync(
             async (item: Item) => {
-              if (item.sell_price)
-                item.asset_class.addToSet(VALUATION_TYPE.VSP);
-              if (item.expansion)
-                item.tags.addToSet(item.expansion.toLowerCase());
+              if (item.sell_price) item.asset_class.addToSet(VALUATION_TYPE.VSP);
+              if (item.expansion) item.tags.addToSet(item.expansion.toLowerCase());
               if (item.profession_class)
                 item.tags.addToSet(item.profession_class.toLowerCase());
               if (item.asset_class)
                 item.asset_class.map((asset_class) =>
                   item.tags.addToSet(asset_class.toLowerCase()),
                 );
-              if (item.item_class)
-                item.tags.addToSet(item.item_class.toLowerCase());
+              if (item.item_class) item.tags.addToSet(item.item_class.toLowerCase());
               if (item.item_subclass)
                 item.tags.addToSet(item.item_subclass.toLowerCase());
               if (item.quality) item.tags.addToSet(item.quality.toLowerCase());
@@ -305,9 +296,7 @@ export class ValuationsService implements OnApplicationBootstrap {
                   item.tags.addToSet(t);
                 });
               }
-              this.logger.debug(
-                `item: ${item._id}, tags: ${item.tags.join(', ')}`,
-              );
+              this.logger.debug(`item: ${item._id}, tags: ${item.tags.join(', ')}`);
               await item.save();
             },
             { parallel: 20 },

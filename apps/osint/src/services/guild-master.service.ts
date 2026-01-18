@@ -127,9 +127,7 @@ export class GuildMasterService {
 
     if (areBothGMsFound) {
       const isSameFamily = originalGM.hashA === newGM.hashA;
-      return isSameFamily
-        ? ACTION_LOG.GUILD_INHERIT
-        : ACTION_LOG.GUILD_OWNERSHIP;
+      return isSameFamily ? ACTION_LOG.GUILD_INHERIT : ACTION_LOG.GUILD_OWNERSHIP;
     }
 
     return ACTION_LOG.GUILD_TRANSIT;

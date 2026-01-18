@@ -1,5 +1,4 @@
-import { Queue } from 'bullmq';
-import { InjectQueue } from '@nestjs/bullmq';
+import { RabbitMQPublisherService } from '@app/rabbitmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { KeysEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
@@ -7,7 +6,6 @@ import { chromium } from 'playwright-extra';
 import stealth from 'puppeteer-extra-plugin-stealth';
 import { Browser, Page } from 'playwright';
 import { S3Service } from '@app/s3';
-import ms from 'ms';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { createHash } from 'crypto';
@@ -21,8 +19,7 @@ import chalk from 'chalk';
 
 import {
   delay,
-  GuildJobQueue,
-  GuildJobQueueDto,
+  GuildMessageDto,
   guildsQueue,
   WowProgressLink,
   DownloadSummary,
@@ -31,11 +28,8 @@ import {
   isWowProgressJson,
   extractRealmName,
   WowProgressJson,
-  toGuid,
   getKeys,
   GLOBAL_OSINT_KEY,
-  OSINT_SOURCE,
-  IGuildJob,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
 
@@ -72,16 +66,13 @@ export class WowProgressRanksService
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
-    @InjectQueue(guildsQueue.name)
-    private readonly queueGuilds: Queue<GuildJobQueue, number>,
+    private readonly rabbitMQPublisherService: RabbitMQPublisherService,
   ) {
     chromium.use(stealth());
   }
 
   async onApplicationBootstrap(): Promise<void> {
-    this.logger.log(
-      chalk.cyan('\n🚀 Initializing WoW Progress Ranks Service...'),
-    );
+    this.logger.log(chalk.cyan('\n🚀 Initializing WoW Progress Ranks Service...'));
 
     try {
       await this.initializeBrowser();
@@ -363,9 +354,7 @@ export class WowProgressRanksService
       const linksCount = filesToDownload.length;
 
       this.logger.log(
-        chalk.cyan(
-          `📥 Downloading ${chalk.bold(filesToDownload.length)} files...`,
-        ),
+        chalk.cyan(`📥 Downloading ${chalk.bold(filesToDownload.length)} files...`),
       );
 
       const results: DownloadResult[] = [];
@@ -460,21 +449,14 @@ export class WowProgressRanksService
         ),
       );
 
-      this.keyEntities = await getKeys(
-        this.keysRepository,
-        clearance,
-        false,
-        true,
-      );
+      this.keyEntities = await getKeys(this.keysRepository, clearance, false, true);
 
       for (const fileName of listWowProgressGzipFiles) {
         const realmName = extractRealmName(fileName);
         if (!realmName) {
           this.stats.realmsSkipped++;
           this.logger.warn(
-            chalk.yellow(
-              `⚠ Unable to extract realm from ${chalk.dim(fileName)}`,
-            ),
+            chalk.yellow(`⚠ Unable to extract realm from ${chalk.dim(fileName)}`),
           );
           continue;
         }
@@ -504,9 +486,7 @@ export class WowProgressRanksService
 
         // Calculate file checksum and check if already imported
         const fileContent = JSON.stringify(jsonRankings);
-        const fileChecksum = createHash('md5')
-          .update(fileContent)
-          .digest('hex');
+        const fileChecksum = createHash('md5').update(fileContent).digest('hex');
         const redisKey = `WP_RANKS_FILE_IMPORTED:${fileChecksum}`;
 
         const isAlreadyImported = await this.redisService.exists(redisKey);
@@ -523,19 +503,17 @@ export class WowProgressRanksService
             this.transformWowProgressToGuildJobs(wowProgressGuild, realm.slug),
           );
 
-        await this.queueGuilds.addBulk(guildRankings);
+        await this.rabbitMQPublisherService.publishBulk(
+          guildsQueue.exchange,
+          guildRankings,
+        );
         this.stats.guildsQueued += guildRankings.length;
         this.logger.log(
           `${chalk.green('✓')} Queued ${chalk.bold(guildRankings.length)} guilds from ${chalk.dim(realm.slug)}`,
         );
 
         // Mark file as imported with checksum
-        await this.redisService.set(
-          redisKey,
-          Date.now(),
-          'EX',
-          60 * 60 * 24 * 30,
-        ); // 30 days TTL
+        await this.redisService.set(redisKey, Date.now(), 'EX', 60 * 60 * 24 * 30); // 30 days TTL
       }
 
       const duration = Date.now() - startTime;
@@ -576,11 +554,11 @@ export class WowProgressRanksService
   transformWowProgressToGuildJobs = (
     obj: WowProgressJson,
     realmSlug: string,
-  ): IGuildJob => {
+  ): GuildMessageDto => {
     const { client, secret, token } =
       this.keyEntities[this.guildJobsItx % this.keyEntities.length];
 
-    const dto = GuildJobQueueDto.fromWowProgress({
+    const dto = GuildMessageDto.fromWowProgress({
       name: obj.name,
       realm: realmSlug,
       iteration: this.guildJobsItx,
@@ -591,14 +569,7 @@ export class WowProgressRanksService
 
     this.guildJobsItx = this.guildJobsItx + 1;
 
-    return {
-      name: dto.guid,
-      data: dto,
-      opts: {
-        jobId: dto.guid,
-        priority: 3,
-      },
-    };
+    return dto;
   };
 
   async onApplicationShutdown(): Promise<void> {

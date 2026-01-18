@@ -1,15 +1,17 @@
-import { JobsOptions } from 'bullmq';
-import { IQueue } from '../../src/types';
+// RabbitMQ Queue Configuration
+// Replaces BullMQ OSINT_Realms queue
 
-const queueOptions: JobsOptions = {
-  removeOnComplete: true,
-  removeOnFail: false,
-};
-
-export const realmsQueue: IQueue = {
-  name: 'OSINT_Realms',
-  workerOptions: {
-    concurrency: 1,
+export const realmsQueue = {
+  name: 'osint.realms.queue',
+  exchange: 'osint.exchange',
+  routingKey: 'osint.realms.*',
+  prefetchCount: 1,
+  queueOptions: {
+    durable: true,
+    deadLetterExchange: 'dlx.exchange',
+    deadLetterRoutingKey: 'dlx.osint.realms',
+    messageTtl: 86400000, // 24 hours
+    maxLength: 100000,
+    maxPriority: 10,
   },
-  defaultJobOptions: queueOptions,
 };

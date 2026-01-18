@@ -1,4 +1,4 @@
-import { Controller, Get, HttpCode, HttpStatus, Param, Query } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Query } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
   ApiForbiddenResponse,
@@ -15,7 +15,12 @@ import {
   AppHealthPayload,
   SearchQueryDto,
 } from '@app/resources';
-import { AnalyticsEntity, CharactersEntity, GuildsEntity, ItemsEntity } from '@app/pg';
+import {
+  AnalyticsEntity,
+  CharactersEntity,
+  GuildsEntity,
+  ItemsEntity,
+} from '@app/pg';
 
 @ApiTags('app')
 @Controller('app')
@@ -34,7 +39,9 @@ export class AppController {
   })
   @ApiOkResponse({ description: 'Latest analytics metric snapshot.' })
   @ApiBadRequestResponse({ description: 'Invalid query parameters.' })
-  @ApiServiceUnavailableResponse({ description: 'Analytics data is unavailable.' })
+  @ApiServiceUnavailableResponse({
+    description: 'Analytics data is unavailable.',
+  })
   @Get('metrics/snapshot')
   async getLatestAnalyticsMetricSnapshot(
     @Query() snapshotQuery: AnalyticsMetricSnapshotDto,
@@ -46,8 +53,7 @@ export class AppController {
     description: 'Universal search across characters, guilds, and items',
   })
   @ApiOkResponse({
-    description:
-      'Search results containing matching characters, guilds, and items',
+    description: 'Search results containing matching characters, guilds, and items',
   })
   @ApiUnauthorizedResponse({
     description: 'You need authenticate yourself before request',

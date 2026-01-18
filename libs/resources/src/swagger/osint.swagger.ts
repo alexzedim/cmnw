@@ -45,8 +45,7 @@ export const SWAGGER_CHARACTER_RIO: ApiPropertyOptions = {
 
 export const SWAGGER_CHARACTER_DAYS_FROM: ApiPropertyOptions = {
   name: 'daysFrom',
-  description:
-    'Character looking for guild status, raid time days from available',
+  description: 'Character looking for guild status, raid time days from available',
   type: Number,
   required: false,
   minimum: 1,
@@ -56,8 +55,7 @@ export const SWAGGER_CHARACTER_DAYS_FROM: ApiPropertyOptions = {
 
 export const SWAGGER_CHARACTER_DAYS_TO: ApiPropertyOptions = {
   name: 'daysTo',
-  description:
-    'Character looking for guild status, raid time days to available',
+  description: 'Character looking for guild status, raid time days to available',
   type: Number,
   required: false,
   minimum: 1,
@@ -67,8 +65,7 @@ export const SWAGGER_CHARACTER_DAYS_TO: ApiPropertyOptions = {
 
 export const SWAGGER_MYTHIC_LOGS: ApiPropertyOptions = {
   name: 'mythicLogs',
-  description:
-    'Character Warcraft Logs actual mythic raid performance percentile',
+  description: 'Character Warcraft Logs actual mythic raid performance percentile',
   type: Number,
   required: false,
   minimum: 0,
@@ -78,8 +75,7 @@ export const SWAGGER_MYTHIC_LOGS: ApiPropertyOptions = {
 
 export const SWAGGER_HEROIC_LOGS: ApiPropertyOptions = {
   name: 'heroicLogs',
-  description:
-    'Character Warcraft Logs actual mythic raid performance percentile',
+  description: 'Character Warcraft Logs actual mythic raid performance percentile',
   type: Number,
   required: false,
   minimum: 0,

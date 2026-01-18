@@ -34,20 +34,14 @@ export class TestsOsint implements OnApplicationBootstrap {
     );
   }
 
-  async summary(
-    nameSlug: string,
-    realmSlug: string,
-  ): Promise<BlizzardApiResponse> {
+  async summary(nameSlug: string, realmSlug: string): Promise<BlizzardApiResponse> {
     return this.BNet.query(
       `/profile/wow/character/${realmSlug}/${nameSlug}`,
       apiConstParams(API_HEADERS_ENUM.PROFILE),
     );
   }
 
-  async status(
-    nameSlug: string,
-    realmSlug: string,
-  ): Promise<BlizzardApiResponse> {
+  async status(nameSlug: string, realmSlug: string): Promise<BlizzardApiResponse> {
     return this.BNet.query(
       `/profile/wow/character/${realmSlug}/${nameSlug}/status`,
       apiConstParams(API_HEADERS_ENUM.PROFILE),
@@ -78,10 +72,7 @@ export class TestsOsint implements OnApplicationBootstrap {
     );
   }
 
-  async guild(
-    nameSlug: string,
-    realmSlug: string,
-  ): Promise<BlizzardApiResponse> {
+  async guild(nameSlug: string, realmSlug: string): Promise<BlizzardApiResponse> {
     return this.BNet.query(
       `/data/wow/guild/${realmSlug}/${nameSlug}`,
       apiConstParams(API_HEADERS_ENUM.PROFILE),

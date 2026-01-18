@@ -138,20 +138,12 @@ export class GuildSummaryService {
     realmSlug: string,
     BNet: BlizzAPI,
   ): Promise<Partial<IGuildSummary>> {
-    summary.statusCode = get(
-      errorOrException,
-      'status',
-      STATUS_CODES.ERROR_GUILD,
-    );
+    summary.statusCode = get(errorOrException, 'status', STATUS_CODES.ERROR_GUILD);
 
     const isTooManyRequests =
-      summary.statusCode ===
-      GUILD_WORKER_CONSTANTS.TOO_MANY_REQUESTS_STATUS_CODE;
+      summary.statusCode === GUILD_WORKER_CONSTANTS.TOO_MANY_REQUESTS_STATUS_CODE;
     if (isTooManyRequests) {
-      await incErrorCount(
-        this.keysRepository,
-        BNet.accessTokenObject.access_token,
-      );
+      await incErrorCount(this.keysRepository, BNet.accessTokenObject.access_token);
     }
 
     this.logger.error({

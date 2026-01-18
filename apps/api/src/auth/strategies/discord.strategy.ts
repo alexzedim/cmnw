@@ -40,8 +40,7 @@ export class DiscordStrategy extends PassportStrategy(Strategy, 'discord') {
         locale: profile.locale,
       };
 
-      const authResponse =
-        await this.authService.handleDiscordAuth(discordProfile);
+      const authResponse = await this.authService.handleDiscordAuth(discordProfile);
 
       this.logger.log(
         `Discord OAuth successful for user: ${profile.id}, isNewUser: ${authResponse.isNewUser}`,

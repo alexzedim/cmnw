@@ -59,8 +59,7 @@ export const DISENCHANTING = {
         source: 'Level 16-24 Armor/Weapon',
         target: 'Light Illusion Dust',
       },
-      description:
-        'Disenchant level 16-24 gear → Light Illusion Dust (i:16204)',
+      description: 'Disenchant level 16-24 gear → Light Illusion Dust (i:16204)',
       reagents: [{ itemId: 0, quantity: 1, label: 'Level 16-24 Gear' }],
       derivatives: [
         {
@@ -87,9 +86,7 @@ export const DISENCHANTING = {
       },
       description:
         'Disenchant level 20+ rare/legendary gear → Rich Illusion Dust (i:156930)',
-      reagents: [
-        { itemId: 0, quantity: 1, label: 'Level 20+ Rare/Legendary Gear' },
-      ],
+      reagents: [{ itemId: 0, quantity: 1, label: 'Level 20+ Rare/Legendary Gear' }],
       derivatives: [
         {
           itemId: 156930,
@@ -292,8 +289,7 @@ export const DISENCHANTING = {
         source: 'Dragonflight Level Armor/Weapon/Profession Items',
         target: 'Chromatic Dust',
       },
-      description:
-        'Disenchant Dragonflight level gear → Chromatic Dust (i:194123)',
+      description: 'Disenchant Dragonflight level gear → Chromatic Dust (i:194123)',
       reagents: [{ itemId: 0, quantity: 1, label: 'Dragonflight Level Gear' }],
       derivatives: [
         {
@@ -319,8 +315,7 @@ export const DISENCHANTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_ENCH,
       names: { source: 'Low Level Weapons', target: 'Lesser Magic Essence' },
-      description:
-        'Disenchant low level weapons → Lesser Magic Essence (i:10938)',
+      description: 'Disenchant low level weapons → Lesser Magic Essence (i:10938)',
       reagents: [{ itemId: 0, quantity: 1, label: 'Low Level Weapons' }],
       derivatives: [
         {
@@ -342,8 +337,7 @@ export const DISENCHANTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_ENCH,
       names: { source: 'Mid-Level Weapons', target: 'Greater Magic Essence' },
-      description:
-        'Disenchant mid-level weapons → Greater Magic Essence (i:10939)',
+      description: 'Disenchant mid-level weapons → Greater Magic Essence (i:10939)',
       reagents: [{ itemId: 0, quantity: 1, label: 'Mid-Level Weapons' }],
       derivatives: [
         {
@@ -396,9 +390,7 @@ export const DISENCHANTING = {
       },
       description:
         'Disenchant level 25+ weapons/rare items → Greater Eternal Essence (i:16203)',
-      reagents: [
-        { itemId: 0, quantity: 1, label: 'Level 25+ Weapons/Rare Items' },
-      ],
+      reagents: [{ itemId: 0, quantity: 1, label: 'Level 25+ Weapons/Rare Items' }],
       derivatives: [
         {
           itemId: 16203,
@@ -419,8 +411,7 @@ export const DISENCHANTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_ENCH,
       names: { source: 'TBC Low-Level Gear', target: 'Lesser Planar Essence' },
-      description:
-        'Disenchant TBC low-level gear → Lesser Planar Essence (i:22447)',
+      description: 'Disenchant TBC low-level gear → Lesser Planar Essence (i:22447)',
       reagents: [{ itemId: 0, quantity: 1, label: 'TBC Low-Level Gear' }],
       derivatives: [
         {
@@ -551,9 +542,7 @@ export const DISENCHANTING = {
       },
       description:
         'Disenchant Cataclysm mid-level+ gear → Greater Celestial Essence (i:52719)',
-      reagents: [
-        { itemId: 0, quantity: 1, label: 'Cataclysm Mid-Level+ Gear' },
-      ],
+      reagents: [{ itemId: 0, quantity: 1, label: 'Cataclysm Mid-Level+ Gear' }],
       derivatives: [
         {
           itemId: 52719,
@@ -574,8 +563,7 @@ export const DISENCHANTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_ENCH,
       names: { source: 'Pandaria Level Gear', target: 'Mysterious Essence' },
-      description:
-        'Disenchant Pandaria level gear → Mysterious Essence (i:74250)',
+      description: 'Disenchant Pandaria level gear → Mysterious Essence (i:74250)',
       reagents: [{ itemId: 0, quantity: 1, label: 'Pandaria Level Gear' }],
       derivatives: [
         {
@@ -686,9 +674,7 @@ export const DISENCHANTING = {
       },
       description:
         'Disenchant TBC mid-level+ rare items → Large Prismatic Shard (i:22449)',
-      reagents: [
-        { itemId: 0, quantity: 1, label: 'TBC Mid-Level+ Rare Items' },
-      ],
+      reagents: [{ itemId: 0, quantity: 1, label: 'TBC Mid-Level+ Rare Items' }],
       derivatives: [
         {
           itemId: 22449,
@@ -714,9 +700,7 @@ export const DISENCHANTING = {
       },
       description:
         'Disenchant WotLK low-level rare items → Small Dream Shard (i:34053)',
-      reagents: [
-        { itemId: 0, quantity: 1, label: 'WotLK Low-Level Rare Items' },
-      ],
+      reagents: [{ itemId: 0, quantity: 1, label: 'WotLK Low-Level Rare Items' }],
       derivatives: [
         {
           itemId: 34053,
@@ -737,11 +721,8 @@ export const DISENCHANTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_ENCH,
       names: { source: 'WotLK Mid-Level+ Rare Items', target: 'Dream Shard' },
-      description:
-        'Disenchant WotLK mid-level+ rare items → Dream Shard (i:34052)',
-      reagents: [
-        { itemId: 0, quantity: 1, label: 'WotLK Mid-Level+ Rare Items' },
-      ],
+      description: 'Disenchant WotLK mid-level+ rare items → Dream Shard (i:34052)',
+      reagents: [{ itemId: 0, quantity: 1, label: 'WotLK Mid-Level+ Rare Items' }],
       derivatives: [
         {
           itemId: 34052,
@@ -823,9 +804,7 @@ export const DISENCHANTING = {
       },
       description:
         'Disenchant Pandaria low-level rare items → Small Ethereal Shard (i:74252)',
-      reagents: [
-        { itemId: 0, quantity: 1, label: 'Pandaria Low-Level Rare Items' },
-      ],
+      reagents: [{ itemId: 0, quantity: 1, label: 'Pandaria Low-Level Rare Items' }],
       derivatives: [
         {
           itemId: 74252,
@@ -874,8 +853,7 @@ export const DISENCHANTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_ENCH,
       names: { source: 'Draenor Rare Items', target: 'Small Luminous Shard' },
-      description:
-        'Disenchant Draenor rare items → Small Luminous Shard (i:115502)',
+      description: 'Disenchant Draenor rare items → Small Luminous Shard (i:115502)',
       reagents: [{ itemId: 0, quantity: 1, label: 'Draenor Rare Items' }],
       derivatives: [
         {
@@ -963,8 +941,7 @@ export const DISENCHANTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_ENCH,
       names: { source: 'Shadowlands Rare Items', target: 'Sacred Shard' },
-      description:
-        'Disenchant Shadowlands rare items → Sacred Shard (i:172231)',
+      description: 'Disenchant Shadowlands rare items → Sacred Shard (i:172231)',
       reagents: [{ itemId: 0, quantity: 1, label: 'Shadowlands Rare Items' }],
       derivatives: [
         {
@@ -986,8 +963,7 @@ export const DISENCHANTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_ENCH,
       names: { source: 'Dragonflight Rare Items', target: 'Vibrant Shard' },
-      description:
-        'Disenchant Dragonflight rare items → Vibrant Shard (i:194124)',
+      description: 'Disenchant Dragonflight rare items → Vibrant Shard (i:194124)',
       reagents: [{ itemId: 0, quantity: 1, label: 'Dragonflight Rare Items' }],
       derivatives: [
         {
@@ -1057,8 +1033,7 @@ export const DISENCHANTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_ENCH,
       names: { source: 'Cataclysm Epic Items', target: 'Maelstrom Crystal' },
-      description:
-        'Disenchant Cataclysm epic items → Maelstrom Crystal (i:52722)',
+      description: 'Disenchant Cataclysm epic items → Maelstrom Crystal (i:52722)',
       reagents: [{ itemId: 0, quantity: 1, label: 'Cataclysm Epic Items' }],
       derivatives: [
         {
@@ -1107,9 +1082,7 @@ export const DISENCHANTING = {
       },
       description:
         'Disenchant Draenor rare enchanting items → Fractured Temporal Crystal (i:115504)',
-      reagents: [
-        { itemId: 0, quantity: 1, label: 'Draenor Rare Enchanting Items' },
-      ],
+      reagents: [{ itemId: 0, quantity: 1, label: 'Draenor Rare Enchanting Items' }],
       derivatives: [
         {
           itemId: 115504,
@@ -1130,8 +1103,7 @@ export const DISENCHANTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_ENCH,
       names: { source: 'Draenor Epic Items', target: 'Temporal Crystal' },
-      description:
-        'Disenchant Draenor epic items → Temporal Crystal (i:113588)',
+      description: 'Disenchant Draenor epic items → Temporal Crystal (i:113588)',
       reagents: [{ itemId: 0, quantity: 1, label: 'Draenor Epic Items' }],
       derivatives: [
         {
@@ -1197,8 +1169,7 @@ export const DISENCHANTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_ENCH,
       names: { source: 'Shadowlands Epic Items', target: 'Eternal Crystal' },
-      description:
-        'Disenchant Shadowlands epic items → Eternal Crystal (i:177648)',
+      description: 'Disenchant Shadowlands epic items → Eternal Crystal (i:177648)',
       reagents: [{ itemId: 0, quantity: 1, label: 'Shadowlands Epic Items' }],
       derivatives: [
         {
@@ -1220,8 +1191,7 @@ export const DISENCHANTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_ENCH,
       names: { source: 'Dragonflight Epic Items', target: 'Vibrant Crystal' },
-      description:
-        'Disenchant Dragonflight epic items → Vibrant Crystal (i:204731)',
+      description: 'Disenchant Dragonflight epic items → Vibrant Crystal (i:204731)',
       reagents: [{ itemId: 0, quantity: 1, label: 'Dragonflight Epic Items' }],
       derivatives: [
         {

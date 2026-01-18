@@ -101,21 +101,20 @@ export class KeysService implements OnApplicationBootstrap {
           keyEntity.resetAt = now.plus({ hour: 2 }).toJSDate();
         }
 
-        const { data } =
-          await this.httpService.axiosRef.request<BlizzardApiKeys>({
-            url: 'https://eu.battle.net/oauth/token',
-            method: 'post',
-            headers: {
-              'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            params: {
-              grant_type: 'client_credentials',
-            },
-            auth: {
-              username: keyEntity.client,
-              password: keyEntity.secret,
-            },
-          });
+        const { data } = await this.httpService.axiosRef.request<BlizzardApiKeys>({
+          url: 'https://eu.battle.net/oauth/token',
+          method: 'post',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          params: {
+            grant_type: 'client_credentials',
+          },
+          auth: {
+            username: keyEntity.client,
+            password: keyEntity.secret,
+          },
+        });
 
         keyEntity.token = data.access_token;
         keyEntity.expiredIn = data.expires_in;

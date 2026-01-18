@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuthProvider, UsersEntity } from '@app/pg';
@@ -112,9 +108,7 @@ export class AuthService {
   /**
    * Handle Battle.net OAuth authentication
    */
-  async handleBattleNetAuth(
-    profile: BattleNetProfile,
-  ): Promise<AuthResponseDto> {
+  async handleBattleNetAuth(profile: BattleNetProfile): Promise<AuthResponseDto> {
     const logTag = 'handleBattleNetAuth';
     try {
       this.logger.log({
@@ -185,9 +179,7 @@ export class AuthService {
         message: `Error processing Battle.net OAuth for user: ${profile.id}`,
       });
 
-      throw new InternalServerErrorException(
-        'Battle.net authentication failed',
-      );
+      throw new InternalServerErrorException('Battle.net authentication failed');
     }
   }
 

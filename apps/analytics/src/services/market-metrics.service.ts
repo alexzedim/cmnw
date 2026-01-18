@@ -2,7 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { DateTime } from 'luxon';
-import { AnalyticsMetricCategory, AnalyticsMetricType, MARKET_TYPE } from '@app/resources';
+import {
+  AnalyticsMetricCategory,
+  AnalyticsMetricType,
+  MARKET_TYPE,
+} from '@app/resources';
 import { analyticsMetricExists } from '@app/resources/dao';
 import {
   MarketTotalMetrics,
@@ -95,10 +99,7 @@ export class MarketMetricsService {
           value: {
             auctions: totalCount,
             volume: parseFloat(totalVolume?.sum || '0'),
-            uniqueItemsAuctions: parseInt(
-              uniqueItemsAuctions?.count || '0',
-              10,
-            ),
+            uniqueItemsAuctions: parseInt(uniqueItemsAuctions?.count || '0', 10),
             uniqueItemsCommdty: parseInt(uniqueItemsCommdty?.count || '0', 10),
           },
           snapshotDate,
@@ -114,22 +115,13 @@ export class MarketMetricsService {
       );
 
       // By Faction (global)
-      savedCount += await this.computeMarketByFaction(
-        snapshotDate,
-        threshold24h,
-      );
+      savedCount += await this.computeMarketByFaction(snapshotDate, threshold24h);
 
       // Price ranges
-      savedCount += await this.computeMarketPriceRanges(
-        snapshotDate,
-        threshold24h,
-      );
+      savedCount += await this.computeMarketPriceRanges(snapshotDate, threshold24h);
 
       // Top items by volume
-      savedCount += await this.computeMarketTopByVolume(
-        snapshotDate,
-        threshold24h,
-      );
+      savedCount += await this.computeMarketTopByVolume(snapshotDate, threshold24h);
 
       // Top items by auction count
       savedCount += await this.computeMarketTopByAuctions(
@@ -191,25 +183,18 @@ export class MarketMetricsService {
       );
 
       if (!isByConnectedRealmExists) {
-        const marketByConnectedRealmMetric =
-          this.analyticsMetricRepository.create({
-            category: AnalyticsMetricCategory.MARKET,
-            metricType: AnalyticsMetricType.BY_CONNECTED_REALM,
-            realmId: realm.connected_realm_id,
-            value: {
-              auctions: parseInt(realm.auctions, 10),
-              volume: parseFloat(realm.volume || '0'),
-              uniqueItemsAuctions: parseInt(
-                realm.unique_items_auctions || '0',
-                10,
-              ),
-              uniqueItemsCommdty: parseInt(
-                realm.unique_items_commdty || '0',
-                10,
-              ),
-            },
-            snapshotDate,
-          });
+        const marketByConnectedRealmMetric = this.analyticsMetricRepository.create({
+          category: AnalyticsMetricCategory.MARKET,
+          metricType: AnalyticsMetricType.BY_CONNECTED_REALM,
+          realmId: realm.connected_realm_id,
+          value: {
+            auctions: parseInt(realm.auctions, 10),
+            volume: parseFloat(realm.volume || '0'),
+            uniqueItemsAuctions: parseInt(realm.unique_items_auctions || '0', 10),
+            uniqueItemsCommdty: parseInt(realm.unique_items_commdty || '0', 10),
+          },
+          snapshotDate,
+        });
         await this.analyticsMetricRepository.save(marketByConnectedRealmMetric);
         savedCount++;
       }
@@ -294,10 +279,7 @@ export class MarketMetricsService {
         `SUM(CASE WHEN m.price >= 100000 AND m.price < 1000000 THEN 1 ELSE 0 END)`,
         'range100k1m',
       )
-      .addSelect(
-        `SUM(CASE WHEN m.price >= 1000000 THEN 1 ELSE 0 END)`,
-        'over1m',
-      )
+      .addSelect(`SUM(CASE WHEN m.price >= 1000000 THEN 1 ELSE 0 END)`, 'over1m')
       .where('m.timestamp > :threshold', { threshold: threshold24h })
       .getRawOne<MarketPriceRanges>();
 

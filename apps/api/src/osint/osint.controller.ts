@@ -1,13 +1,10 @@
-import { OsintService } from './osint.service';
-
 import {
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Param,
-  Query,
-} from '@nestjs/common';
+  CharacterOsintService,
+  GuildOsintService,
+  RealmOsintService,
+} from './services';
+
+import { Controller, Get, HttpCode, HttpStatus, Param, Query } from '@nestjs/common';
 
 import {
   ApiOperation,
@@ -38,7 +35,11 @@ import {
 @ApiTags('osint')
 @Controller('osint')
 export class OsintController {
-  constructor(private readonly osintService: OsintService) {}
+  constructor(
+    private readonly characterOsintService: CharacterOsintService,
+    private readonly guildOsintService: GuildOsintService,
+    private readonly realmOsintService: RealmOsintService,
+  ) {}
 
   @ApiOperation({ description: 'Returns requested character' })
   @ApiOkResponse({ description: 'Request character with selected guid' })
@@ -53,10 +54,8 @@ export class OsintController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
   @Get('/character')
-  async getCharacter(
-    @Query() input: CharacterIdDto,
-  ): Promise<CharactersEntity> {
-    return await this.osintService.getCharacter(input);
+  async getCharacter(@Query() input: CharacterIdDto): Promise<CharactersEntity> {
+    return await this.characterOsintService.getCharacter(input);
   }
 
   @ApiOperation({
@@ -79,7 +78,7 @@ export class OsintController {
   async getCharactersLfg(
     @Query() input: CharactersLfgDto,
   ): Promise<{ characters: CharactersProfileEntity[] }> {
-    const characters = await this.osintService.getCharactersLfg(input);
+    const characters = await this.characterOsintService.getCharactersLfg(input);
     return { characters };
   }
 
@@ -99,7 +98,7 @@ export class OsintController {
   async getCharactersByHashCombined(
     @Param() input: CharacterHashDto,
   ): Promise<{ characters: CharactersEntity[] }> {
-    const characters = await this.osintService.getCharactersByHash(input);
+    const characters = await this.characterOsintService.getCharactersByHash(input);
     return { characters };
   }
 
@@ -119,7 +118,7 @@ export class OsintController {
   async getCharactersByHash(
     @Param() input: CharacterHashDto,
   ): Promise<{ characters: CharactersEntity[] }> {
-    const characters = await this.osintService.getCharactersByHash(input);
+    const characters = await this.characterOsintService.getCharactersByHash(input);
     return { characters };
   }
 
@@ -139,7 +138,7 @@ export class OsintController {
   async getCharacterLogs(
     @Query() input: CharacterIdDto,
   ): Promise<{ logs: CharactersGuildsLogsEntity[] }> {
-    const logs = await this.osintService.getCharacterLogs(input);
+    const logs = await this.characterOsintService.getCharacterLogs(input);
     return { logs };
   }
 
@@ -159,7 +158,7 @@ export class OsintController {
   async getGuild(
     @Query() input: GuildIdDto,
   ): Promise<{ guild: GuildsEntity; members: any[]; memberCount: number }> {
-    return this.osintService.getGuild(input);
+    return this.guildOsintService.getGuild(input);
   }
 
   @ApiOperation({ description: 'Returns requested guild logs' })
@@ -180,16 +179,14 @@ export class OsintController {
   async getGuildLogs(
     @Query() input: GuildIdDto,
   ): Promise<{ logs: CharactersGuildsLogsEntity[] }> {
-    const logs = await this.osintService.getGuildLogs(input);
+    const logs = await this.guildOsintService.getGuildLogs(input);
     return { logs };
   }
 
   @HttpCode(HttpStatus.OK)
   @Get('/realm/population/:realmId')
-  async getRealmPopulation(
-    @Param('realmId') realmId: string,
-  ): Promise<string[]> {
-    return this.osintService.getRealmPopulation(realmId);
+  async getRealmPopulation(@Param('realmId') realmId: string): Promise<string[]> {
+    return this.realmOsintService.getRealmPopulation(realmId);
   }
 
   @ApiOperation({ description: 'Returns requested realm' })
@@ -207,10 +204,8 @@ export class OsintController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
   @Get('/realms')
-  async getRealms(
-    @Query() input: RealmDto,
-  ): Promise<{ realms: RealmsEntity[] }> {
-    const realms = await this.osintService.getRealms(input);
+  async getRealms(@Query() input: RealmDto): Promise<{ realms: RealmsEntity[] }> {
+    const realms = await this.realmOsintService.getRealms(input);
     return { realms };
   }
 }

@@ -95,8 +95,7 @@ export const toKey = (s: string): string =>
  * @returns The formatted locale string
  * @example toLocale('enUS') // returns 'en_US'
  */
-export const toLocale = (s: string): string =>
-  s.substr(0, 2) + '_' + s.substr(2);
+export const toLocale = (s: string): string => s.substr(0, 2) + '_' + s.substr(2);
 
 /**
  * Converts various date formats to a JavaScript Date object.
@@ -146,8 +145,7 @@ export const toStringOrNumber = (value: string | number): string | number =>
  * @returns True if the value is not null or undefined
  * @example [1, null, 2, undefined].filter(notNull) // returns [1, 2]
  */
-export const notNull = <T>(value: T | null | undefined): value is T =>
-  value != null;
+export const notNull = <T>(value: T | null | undefined): value is T => value != null;
 
 /**
  * Transforms a named field value or extracts a specific key from an object.
@@ -265,9 +263,7 @@ export const extractRealmName = (filename: string): string | null => {
  * @returns The lowercase string or undefined if value is invalid
  * @example transformToLowerCase({ value: 'HELLO' }) // returns 'hello'
  */
-export function transformToLowerCase(
-  params: TransformFnParams,
-): string | undefined {
+export function transformToLowerCase(params: TransformFnParams): string | undefined {
   const { value } = params;
 
   if (!value) {
@@ -290,9 +286,7 @@ export function transformToLowerCase(
  * @returns The trimmed and lowercase string or undefined if value is invalid
  * @example transformSearchQuery({ value: '  Hello World  ' }) // returns 'hello world'
  */
-export function transformSearchQuery(
-  params: TransformFnParams,
-): string | undefined {
+export function transformSearchQuery(params: TransformFnParams): string | undefined {
   const { value } = params;
 
   if (!value) {

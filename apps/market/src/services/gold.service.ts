@@ -48,8 +48,7 @@ export class GoldService implements OnApplicationBootstrap {
   private async indexGold(): Promise<void> {
     const logTag = this.indexGold.name;
     try {
-      const response =
-        await this.httpService.axiosRef.get<string>(DMA_SOURCE_GOLD);
+      const response = await this.httpService.axiosRef.get<string>(DMA_SOURCE_GOLD);
 
       const exchangeListingPage = cheerio.load(response.data);
       const goldListingMarkup = exchangeListingPage.html('a.tc-item');
@@ -65,18 +64,10 @@ export class GoldService implements OnApplicationBootstrap {
           const orderId = exchangeListingPage(element).attr('href');
           const realm = exchangeListingPage(element).find('.tc-server').text();
           const faction = exchangeListingPage(element).find('.tc-side').text();
-          const status = Boolean(
-            exchangeListingPage(element).attr('data-online'),
-          );
-          const quantity = exchangeListingPage(element)
-            .find('.tc-amount')
-            .text();
-          const owner = exchangeListingPage(element)
-            .find('.media-user-name')
-            .text();
-          const price = exchangeListingPage(element)
-            .find('.tc-price div')
-            .text();
+          const status = Boolean(exchangeListingPage(element).attr('data-online'));
+          const quantity = exchangeListingPage(element).find('.tc-amount').text();
+          const owner = exchangeListingPage(element).find('.media-user-name').text();
+          const price = exchangeListingPage(element).find('.tc-price div').text();
           goldOrders.push({
             realm,
             faction,
@@ -163,9 +154,7 @@ export class GoldService implements OnApplicationBootstrap {
             ? realmEntity.connectedRealmId
             : 0;
 
-      const isValid = Boolean(
-        connectedRealmId && order.price && order.quantity,
-      );
+      const isValid = Boolean(connectedRealmId && order.price && order.quantity);
 
       if (!isValid) {
         this.logger.warn({
@@ -218,9 +207,7 @@ export class GoldService implements OnApplicationBootstrap {
 
       const isOnline = order.status;
       const isHorde = [FACTION.H, 'Орда'].includes(order.faction);
-      const isAlliance = [FACTION.A, 'Альянсa', 'Альянс'].includes(
-        order.faction,
-      );
+      const isAlliance = [FACTION.A, 'Альянсa', 'Альянс'].includes(order.faction);
 
       if (isAlliance) faction = FACTION.A;
       if (isHorde) faction = FACTION.H;

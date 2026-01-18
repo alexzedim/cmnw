@@ -1,21 +1,14 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BlizzAPI } from '@alexzedim/blizzapi';
+import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import chalk from 'chalk';
-import { Job } from 'bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Processor, WorkerHost } from '@nestjs/bullmq';
 
-import {
-  getRandomProxy,
-  GuildJobQueue,
-  guildsQueue,
-  GUILD_WORKER_CONSTANTS,
-  isEuRegion,
-  toSlug,
-} from '@app/resources';
+import { getRandomProxy, isEuRegion, toSlug, GuildMessageDto } from '@app/resources';
 import { KeysEntity } from '@app/pg';
 import { coreConfig } from '@app/configuration';
+import { RabbitMQMonitorService } from '@app/rabbitmq';
 
 import {
   GuildService,
@@ -26,9 +19,8 @@ import {
   GuildMasterService,
 } from '../services';
 
-@Processor(guildsQueue.name, guildsQueue.workerOptions)
 @Injectable()
-export class GuildsWorker extends WorkerHost {
+export class GuildsWorker {
   private readonly logger = new Logger(GuildsWorker.name, { timestamp: true });
 
   private stats = {
@@ -53,16 +45,20 @@ export class GuildsWorker extends WorkerHost {
     private readonly guildMemberService: GuildMemberService,
     private readonly guildLogService: GuildLogService,
     private readonly guildMasterService: GuildMasterService,
-  ) {
-    super();
-  }
+    private readonly rabbitMQMonitorService: RabbitMQMonitorService,
+  ) {}
 
-  public async process(job: Job<GuildJobQueue, number>): Promise<number> {
+  @RabbitSubscribe({
+    exchange: 'osint.exchange',
+    routingKey: 'osint.guilds.*',
+    queue: 'osint.guilds',
+  })
+  public async handleGuildMessage(message: GuildMessageDto): Promise<void> {
     const startTime = Date.now();
     this.stats.total++;
 
     try {
-      const { data: args } = job;
+      const { data: args } = message;
 
       // Step 1: Find or create guild entity
       const { guildEntity, isNew, isNotReadyToUpdate, isCreateOnlyUnique } =
@@ -70,20 +66,18 @@ export class GuildsWorker extends WorkerHost {
 
       if (isNotReadyToUpdate) {
         this.stats.skipped++;
-        await job.updateProgress(GUILD_WORKER_CONSTANTS.PROGRESS.COMPLETE);
         this.logger.warn(
           `${chalk.yellow('⊘')} Skipped [${chalk.bold(this.stats.total)}] ${guildEntity.guid} ${chalk.dim('(not ready)')}`,
         );
-        return guildEntity.statusCode;
+        return;
       }
 
       if (isCreateOnlyUnique) {
         this.stats.skipped++;
-        await job.updateProgress(GUILD_WORKER_CONSTANTS.PROGRESS.COMPLETE);
         this.logger.warn(
           `${chalk.yellow('⊘')} Skipped [${chalk.bold(this.stats.total)}] ${guildEntity.guid} ${chalk.dim('(createOnly)')}`,
         );
-        return guildEntity.statusCode;
+        return;
       }
 
       // Step 2: Create snapshot for comparison
@@ -97,11 +91,8 @@ export class GuildsWorker extends WorkerHost {
         this.logger.warn(
           `${chalk.cyan('ℹ')} Not EU region [${chalk.bold(this.stats.total)}] ${guildEntity.guid}`,
         );
-        await job.updateProgress(GUILD_WORKER_CONSTANTS.PROGRESS.COMPLETE);
-        return GUILD_WORKER_CONSTANTS.NOT_EU_REGION_STATUS_CODE;
+        return;
       }
-
-      await job.updateProgress(GUILD_WORKER_CONSTANTS.PROGRESS.INITIAL);
 
       // Step 4: Initialize Blizzard API client
       this.BNet = new BlizzAPI({
@@ -117,7 +108,6 @@ export class GuildsWorker extends WorkerHost {
       if (args.updatedBy) {
         guildEntity.updatedBy = args.updatedBy;
       }
-      await job.updateProgress(GUILD_WORKER_CONSTANTS.PROGRESS.AFTER_AUTH);
 
       // Step 5: Fetch guild summary from API
       const summary = await this.guildSummaryService.getSummary(
@@ -126,7 +116,6 @@ export class GuildsWorker extends WorkerHost {
         this.BNet,
       );
       Object.assign(guildEntity, summary);
-      await job.updateProgress(GUILD_WORKER_CONSTANTS.PROGRESS.AFTER_SUMMARY);
 
       // Step 6: Fetch and process guild roster
       const roster = await this.guildRosterService.fetchRoster(
@@ -135,7 +124,6 @@ export class GuildsWorker extends WorkerHost {
       );
       roster.updatedAt = guildEntity.updatedAt;
       await this.guildMemberService.updateRoster(guildSnapshot, roster, isNew);
-      await job.updateProgress(GUILD_WORKER_CONSTANTS.PROGRESS.AFTER_ROSTER);
 
       // Step 7: Detect and log changes
       if (isNew) {
@@ -144,56 +132,64 @@ export class GuildsWorker extends WorkerHost {
           guildSnapshot.realm,
         );
         if (guildById) {
-          await this.guildLogService.detectAndLogChanges(
-            guildById,
-            guildEntity,
-          );
+          await this.guildLogService.detectAndLogChanges(guildById, guildEntity);
           await this.guildMasterService.detectAndLogGuildMasterChange(
             guildById,
             roster,
           );
         }
       } else {
-        await this.guildLogService.detectAndLogChanges(
-          guildSnapshot,
-          guildEntity,
-        );
+        await this.guildLogService.detectAndLogChanges(guildSnapshot, guildEntity);
         await this.guildMasterService.detectAndLogGuildMasterChange(
           guildSnapshot,
           roster,
         );
       }
 
-      await job.updateProgress(GUILD_WORKER_CONSTANTS.PROGRESS.AFTER_DIFF);
-
       // Step 8: Save guild entity
       await this.guildService.save(guildEntity);
 
-      await job.updateProgress(GUILD_WORKER_CONSTANTS.PROGRESS.COMPLETE);
-
       const duration = Date.now() - startTime;
       this.logGuildResult(guildEntity, duration);
+
+      this.rabbitMQMonitorService.recordMessageProcessingDuration(
+        'osint.guilds',
+        duration / 1000,
+        'success',
+      );
+      await this.rabbitMQMonitorService.emitMessageCompleted(
+        'osint.guilds',
+        message,
+      );
 
       // Progress report every 25 guilds
       if (this.stats.total % 25 === 0) {
         this.logProgress();
       }
-
-      return guildEntity.statusCode;
     } catch (errorOrException) {
       this.stats.errors++;
       const duration = Date.now() - startTime;
       const guid =
-        job.data?.name && job.data?.realm
-          ? `${job.data.name}@${job.data.realm}`
+        message.data?.name && message.data?.realm
+          ? `${message.data.name}@${message.data.realm}`
           : 'unknown';
 
-      await job.log(errorOrException);
       this.logger.error(
         `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`,
       );
 
-      return GUILD_WORKER_CONSTANTS.ERROR_STATUS_CODE;
+      this.rabbitMQMonitorService.recordMessageProcessingDuration(
+        'osint.guilds',
+        duration / 1000,
+        'failure',
+      );
+      await this.rabbitMQMonitorService.emitMessageFailed(
+        'osint.guilds',
+        message,
+        errorOrException,
+      );
+
+      throw errorOrException;
     }
   }
 
@@ -226,9 +222,7 @@ export class GuildsWorker extends WorkerHost {
   private logProgress(): void {
     const uptime = Date.now() - this.stats.startTime;
     const rate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
-      1,
-    );
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
 
     this.logger.log(
       `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
@@ -248,9 +242,7 @@ export class GuildsWorker extends WorkerHost {
   public logFinalSummary(): void {
     const uptime = Date.now() - this.stats.startTime;
     const avgRate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
-      1,
-    );
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
 
     this.logger.log(
       `\n${chalk.cyan.bold('═'.repeat(60))}\n` +

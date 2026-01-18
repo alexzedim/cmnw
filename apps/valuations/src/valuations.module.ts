@@ -1,13 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ValuationsService } from './valuations.service';
 import { MongooseModule } from '@nestjs/mongoose';
-import {
-  bullConfig,
-  mongoConfig,
-  mongoOptionsConfig,
-} from '@app/configuration';
-import { BullModule } from '@nestjs/bullmq';
-import { valuationsQueue } from '@app/resources';
+import { mongoConfig, mongoOptionsConfig } from '@app/configuration';
+import { RabbitMQModule } from '@app/rabbitmq';
 import { ScheduleModule } from '@nestjs/schedule';
 import {
   Market,
@@ -27,17 +22,7 @@ import {
       { name: Pricing.name, schema: PricingSchema },
       { name: Market.name, schema: AuctionsSchema },
     ]),
-    BullModule.forRoot({
-      connection: {
-        host: bullConfig.host,
-        port: bullConfig.port,
-        password: bullConfig.password,
-      },
-    }),
-    BullModule.registerQueue({
-      name: valuationsQueue.name,
-      defaultJobOptions: valuationsQueue.defaultJobOptions,
-    }),
+    RabbitMQModule,
   ],
   controllers: [],
   providers: [ValuationsService],

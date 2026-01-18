@@ -1,8 +1,7 @@
 import { IOsintConfig } from '@app/configuration/interfaces';
 
 export const osintConfig: IOsintConfig = {
-  isIndexCharactersFromFile:
-    process.env.OSINT_INDEX_CHARACTERS_FROM_FILE === 'true',
+  isIndexCharactersFromFile: process.env.OSINT_INDEX_CHARACTERS_FROM_FILE === 'true',
   isIndexGuildsFromCharacters:
     process.env.OSINT_INDEX_GUILDS_FROM_CHARACTERS === 'true',
 

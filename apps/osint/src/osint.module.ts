@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bullmq';
-import { bullConfig, postgresConfig, redisConfig } from '@app/configuration';
-import { charactersQueue, guildsQueue, profileQueue } from '@app/resources';
+import { RabbitMQModule } from '@app/rabbitmq';
+import { postgresConfig, redisConfig } from '@app/configuration';
 import { HttpModule } from '@nestjs/axios';
 import { CharactersWorker, GuildsWorker, ProfileWorker } from './workers';
 import { WorkerStatsListener } from './listeners';
@@ -62,25 +61,7 @@ import {
         password: redisConfig.password,
       },
     }),
-    BullModule.forRoot({
-      connection: {
-        host: bullConfig.host,
-        port: bullConfig.port,
-        password: bullConfig.password,
-      },
-    }),
-    BullModule.registerQueue({
-      name: guildsQueue.name,
-      defaultJobOptions: guildsQueue.defaultJobOptions,
-    }),
-    BullModule.registerQueue({
-      name: charactersQueue.name,
-      defaultJobOptions: charactersQueue.defaultJobOptions,
-    }),
-    BullModule.registerQueue({
-      name: profileQueue.name,
-      defaultJobOptions: profileQueue.defaultJobOptions,
-    }),
+    RabbitMQModule,
   ],
   controllers: [],
   providers: [

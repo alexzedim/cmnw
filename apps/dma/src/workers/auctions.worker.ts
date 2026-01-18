@@ -1,8 +1,8 @@
 import Redis from 'ioredis';
 import { Injectable, Logger } from '@nestjs/common';
+import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { BlizzAPI } from '@alexzedim/blizzapi';
 import chalk from 'chalk';
-import { Job } from 'bullmq';
 import { bufferCount, concatMap } from 'rxjs/operators';
 import { from, lastValueFrom } from 'rxjs';
 import { DateTime } from 'luxon';
@@ -10,12 +10,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ItemsEntity, MarketEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
-import { Processor, WorkerHost } from '@nestjs/bullmq';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
   AuctionJobQueue,
-  auctionsQueue,
   BlizzardApiAuctions,
   DMA_TIMEOUT_TOLERANCE,
   IAuctionsOrder,
@@ -29,12 +27,13 @@ import {
   REALM_ENTITY_ANY,
   toGold,
   transformPrice,
+  AuctionMessageDto,
 } from '@app/resources';
 import { createHash } from 'crypto';
+import { RabbitMQMonitorService } from '@app/rabbitmq';
 
-@Processor(auctionsQueue.name, auctionsQueue.workerOptions)
 @Injectable()
-export class AuctionsWorker extends WorkerHost {
+export class AuctionsWorker {
   private readonly logger = new Logger(AuctionsWorker.name, {
     timestamp: true,
   });
@@ -60,17 +59,20 @@ export class AuctionsWorker extends WorkerHost {
     private readonly _itemsRepository: Repository<ItemsEntity>,
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
-  ) {
-    super();
-  }
+    private readonly rabbitMQMonitorService: RabbitMQMonitorService,
+  ) {}
 
-  public async process(job: Job<AuctionJobQueue, number>): Promise<number> {
+  @RabbitSubscribe({
+    exchange: 'dma.exchange',
+    routingKey: 'dma.auctions.*',
+    queue: 'dma.auctions',
+  })
+  public async handleAuctionMessage(message: AuctionMessageDto): Promise<void> {
     const startTime = Date.now();
     this.stats.total++;
 
     try {
-      const { data: args } = job;
-      await job.updateProgress(5);
+      const args: AuctionJobQueue = message.payload;
 
       this.BNet = new BlizzAPI({
         region: args.region,
@@ -93,8 +95,6 @@ export class AuctionsWorker extends WorkerHost {
         ? '/data/wow/auctions/commodities'
         : `/data/wow/connected-realm/${args.connectedRealmId}/auctions`;
 
-      await job.updateProgress(10);
-
       const marketResponse = await this.BNet.query<BlizzardApiAuctions>(
         getMarketApiEndpoint,
         apiConstParams(
@@ -109,22 +109,18 @@ export class AuctionsWorker extends WorkerHost {
       if (!isAuctionsValid) {
         this.stats.notModified++;
         const duration = Date.now() - startTime;
-        const realmId = job.data.connectedRealmId;
+        const realmId = args.connectedRealmId;
         this.logger.warn(
           `${chalk.blue('ℹ')} ${chalk.blue('304')} [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms) Not modified`)}`,
         );
-        return 304;
+        return;
       }
-
-      await job.updateProgress(15);
 
       const connectedRealmId = isCommodity
         ? REALM_ENTITY_ANY.id
         : args.connectedRealmId;
 
-      const timestamp = DateTime.fromRFC2822(
-        marketResponse.lastModified,
-      ).toMillis();
+      const timestamp = DateTime.fromRFC2822(marketResponse.lastModified).toMillis();
 
       const { auctions } = marketResponse;
 
@@ -139,8 +135,7 @@ export class AuctionsWorker extends WorkerHost {
         this.logger.warn(
           `${chalk.yellow('⚠')} ${chalk.yellow('HASH')} [${chalk.bold(this.stats.total)}] realm ${connectedRealmId} ${chalk.dim(`(${duration}ms) Duplicate payload hash ${auctionsHash}`)}`,
         );
-        await job.updateProgress(100);
-        return 304;
+        return;
       }
 
       let iterator = 0;
@@ -198,20 +193,16 @@ export class AuctionsWorker extends WorkerHost {
           'EX',
           86400,
         );
-        await job.updateProgress(80);
       }
 
       const updateQuery: Partial<RealmsEntity> = isCommodity
         ? { commoditiesTimestamp: timestamp }
         : { auctionsTimestamp: timestamp };
 
-      await job.updateProgress(90);
       await this.realmsRepository.update(
         { connectedRealmId: connectedRealmId },
         updateQuery,
       );
-
-      await job.updateProgress(100);
 
       const duration = Date.now() - startTime;
       this.stats.success++;
@@ -219,15 +210,24 @@ export class AuctionsWorker extends WorkerHost {
         `${chalk.green('✓')} ${chalk.green('200')} [${chalk.bold(this.stats.total)}] realm ${connectedRealmId} ${chalk.dim(`(${duration}ms)`)} ${chalk.dim(`${iterator} orders`)}`,
       );
 
+      this.rabbitMQMonitorService.recordMessageProcessingDuration(
+        'dma.auctions',
+        duration / 1000,
+        'success',
+      );
+
+      await this.rabbitMQMonitorService.emitMessageCompleted(
+        'dma.auctions',
+        message,
+      );
+
       // Progress report every 10 realms
       if (this.stats.total % 10 === 0) {
         this.logProgress();
       }
-
-      return 200;
     } catch (errorOrException) {
       const duration = Date.now() - startTime;
-      const realmId = job.data.connectedRealmId || 'unknown';
+      const realmId = message.payload?.connectedRealmId || 'unknown';
       const responseError = isResponseError(errorOrException);
 
       if (responseError) {
@@ -243,17 +243,25 @@ export class AuctionsWorker extends WorkerHost {
             `${chalk.blue('ℹ')} ${statusCode} [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.response.statusText}`,
           );
         }
-
-        return Promise.resolve(statusCode);
       } else {
         this.stats.errors++;
-        await job.log(errorOrException);
         this.logger.error(
           `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`,
         );
       }
 
-      return 500;
+      this.rabbitMQMonitorService.recordMessageProcessingDuration(
+        'dma.auctions',
+        duration / 1000,
+        'failure',
+      );
+      await this.rabbitMQMonitorService.emitMessageFailed(
+        'dma.auctions',
+        message,
+        errorOrException,
+      );
+
+      throw errorOrException;
     }
   }
 
@@ -281,8 +289,7 @@ export class AuctionsWorker extends WorkerHost {
 
         const isPetOrder = marketEntity.itemId === 82800;
 
-        const bid =
-          'bid' in order ? toGold((order as IAuctionsOrder).bid) : null;
+        const bid = 'bid' in order ? toGold((order as IAuctionsOrder).bid) : null;
 
         const price = transformPrice(order);
         if (!price) {
@@ -324,9 +331,7 @@ export class AuctionsWorker extends WorkerHost {
   private logProgress(): void {
     const uptime = Date.now() - this.stats.startTime;
     const rate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
-      1,
-    );
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
 
     this.logger.log(
       `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
@@ -345,9 +350,7 @@ export class AuctionsWorker extends WorkerHost {
   public logFinalSummary(): void {
     const uptime = Date.now() - this.stats.startTime;
     const avgRate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
-      1,
-    );
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
 
     this.logger.log(
       `\n${chalk.cyan.bold('═'.repeat(60))}\n` +

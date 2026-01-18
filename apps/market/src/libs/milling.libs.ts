@@ -20,7 +20,6 @@
 import {
   DMA_SOURCE,
   EXPANSION_TICKER,
-  EXPANSION_TICKER_ID,
   PROFESSION_TICKER,
 } from '@app/resources/constants';
 
@@ -212,8 +211,7 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Wild Steelbloom', target: 'Burnt Pigment' },
-      description:
-        'Wild Steelbloom (i:3355) → Burnt Pigment (i:43104) [1 → 0.0545]',
+      description: 'Wild Steelbloom (i:3355) → Burnt Pigment (i:43104) [1 → 0.0545]',
       reagents: [{ itemId: 3355, quantity: 1 }],
       derivatives: [{ itemId: 43104, quantity: 0.0545 }],
     },
@@ -263,8 +261,7 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Wintersbite', target: 'Indigo Pigment' },
-      description:
-        'Wintersbite (i:3819) → Indigo Pigment (i:43105) [1 → 0.1075]',
+      description: 'Wintersbite (i:3819) → Indigo Pigment (i:43105) [1 → 0.1075]',
       reagents: [{ itemId: 3819, quantity: 1 }],
       derivatives: [{ itemId: 43105, quantity: 0.1075 }],
     },
@@ -276,8 +273,7 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Grave Moss', target: 'Golden Pigment' },
-      description:
-        'Grave Moss (i:3369) → Golden Pigment (i:39338) [1 → 0.5765]',
+      description: 'Grave Moss (i:3369) → Golden Pigment (i:39338) [1 → 0.5765]',
       reagents: [{ itemId: 3369, quantity: 1 }],
       derivatives: [{ itemId: 39338, quantity: 0.5765 }],
     },
@@ -427,8 +423,7 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Rising Glory', target: 'Umbral Pigment' },
-      description:
-        'Rising Glory (i:168586) → Umbral Pigment (i:173056) [1 → 0.195]',
+      description: 'Rising Glory (i:168586) → Umbral Pigment (i:173056) [1 → 0.195]',
       reagents: [{ itemId: 168586, quantity: 1 }],
       derivatives: [{ itemId: 173056, quantity: 0.195 }],
     },
@@ -455,8 +450,7 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Death Blossom', target: 'Umbral Pigment' },
-      description:
-        'Death Blossom (i:169701) → Umbral Pigment (i:173056) [1 → 0.15]',
+      description: 'Death Blossom (i:169701) → Umbral Pigment (i:173056) [1 → 0.15]',
       reagents: [{ itemId: 169701, quantity: 1 }],
       derivatives: [{ itemId: 173056, quantity: 0.15 }],
     },
@@ -469,8 +463,7 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Marrowroot', target: 'Umbral Pigment' },
-      description:
-        'Marrowroot (i:168589) → Umbral Pigment (i:173056) [1 → 0.195]',
+      description: 'Marrowroot (i:168589) → Umbral Pigment (i:173056) [1 → 0.195]',
       reagents: [{ itemId: 168589, quantity: 1 }],
       derivatives: [{ itemId: 173056, quantity: 0.195 }],
     },
@@ -483,8 +476,7 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Widowbloom', target: 'Umbral Pigment' },
-      description:
-        'Widowbloom (i:168583) → Umbral Pigment (i:173056) [1 → 0.195]',
+      description: 'Widowbloom (i:168583) → Umbral Pigment (i:173056) [1 → 0.195]',
       reagents: [{ itemId: 168583, quantity: 1 }],
       derivatives: [{ itemId: 173056, quantity: 0.195 }],
     },
@@ -497,8 +489,7 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Nightshade', target: 'Umbral Pigment' },
-      description:
-        'Nightshade (i:171315) → Umbral Pigment (i:173056) [1 → 0.25]',
+      description: 'Nightshade (i:171315) → Umbral Pigment (i:173056) [1 → 0.25]',
       reagents: [{ itemId: 171315, quantity: 1 }],
       derivatives: [{ itemId: 173056, quantity: 0.25 }],
     },
@@ -511,8 +502,7 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'First Flower', target: 'Umbral Pigment' },
-      description:
-        'First Flower (i:187699) → Umbral Pigment (i:173056) [1 → 0.25]',
+      description: 'First Flower (i:187699) → Umbral Pigment (i:173056) [1 → 0.25]',
       reagents: [{ itemId: 187699, quantity: 1 }],
       derivatives: [{ itemId: 173056, quantity: 0.25 }],
     },
@@ -525,8 +515,7 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Widowbloom', target: 'Luminous Pigment' },
-      description:
-        'Widowbloom (i:168583) → Luminous Pigment (i:173057) [1 → 0.105]',
+      description: 'Widowbloom (i:168583) → Luminous Pigment (i:173057) [1 → 0.105]',
       reagents: [{ itemId: 168583, quantity: 1 }],
       derivatives: [{ itemId: 173057, quantity: 0.105 }],
     },
@@ -539,8 +528,7 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Marrowroot', target: 'Luminous Pigment' },
-      description:
-        'Marrowroot (i:168589) → Luminous Pigment (i:173057) [1 → 0.105]',
+      description: 'Marrowroot (i:168589) → Luminous Pigment (i:173057) [1 → 0.105]',
       reagents: [{ itemId: 168589, quantity: 1 }],
       derivatives: [{ itemId: 173057, quantity: 0.105 }],
     },
@@ -595,8 +583,7 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Nightshade', target: 'Luminous Pigment' },
-      description:
-        'Nightshade (i:171315) → Luminous Pigment (i:173057) [1 → 0.25]',
+      description: 'Nightshade (i:171315) → Luminous Pigment (i:173057) [1 → 0.25]',
       reagents: [{ itemId: 171315, quantity: 1 }],
       derivatives: [{ itemId: 173057, quantity: 0.25 }],
     },
@@ -609,8 +596,7 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'First Flower', target: 'Luminous Pigment' },
-      description:
-        'First Flower (i:187699) → Luminous Pigment (i:173057) [1 → 0.5]',
+      description: 'First Flower (i:187699) → Luminous Pigment (i:173057) [1 → 0.5]',
       reagents: [{ itemId: 187699, quantity: 1 }],
       derivatives: [{ itemId: 173057, quantity: 0.5 }],
     },
@@ -982,8 +968,7 @@ export const MILLING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_INSC,
       names: { source: 'Saxifrage *', target: 'Blazing Pigment *' },
-      description:
-        'Saxifrage * (i:191464) → Blazing Pigment * (i:198418) [1 → 0.7]',
+      description: 'Saxifrage * (i:191464) → Blazing Pigment * (i:198418) [1 → 0.7]',
       reagents: [{ itemId: 191464, quantity: 1 }],
       derivatives: [
         { itemId: 198418, quantity: 0.7, targetQuality: 1, sourceQuality: 1 },

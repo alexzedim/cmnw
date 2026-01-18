@@ -54,9 +54,7 @@ export class GuildMetricsService {
         .getRawOne<GuildTotalMetrics>();
 
       const avgMembers =
-        totalCount > 0
-          ? parseInt(totalMembers?.sum || '0', 10) / totalCount
-          : 0;
+        totalCount > 0 ? parseInt(totalMembers?.sum || '0', 10) / totalCount : 0;
 
       // Check if total metric exists
       if (
@@ -191,9 +189,7 @@ export class GuildMetricsService {
     return savedCount;
   }
 
-  private async computeGuildByRealmFaction(
-    snapshotDate: Date,
-  ): Promise<number> {
+  private async computeGuildByRealmFaction(snapshotDate: Date): Promise<number> {
     const byRealmFaction = await this.guildsRepository
       .createQueryBuilder('g')
       .select('g.realm_id')
@@ -237,9 +233,7 @@ export class GuildMetricsService {
     return savedCount;
   }
 
-  private async computeGuildSizeDistribution(
-    snapshotDate: Date,
-  ): Promise<number> {
+  private async computeGuildSizeDistribution(snapshotDate: Date): Promise<number> {
     // Check if metric exists
     const isSizeDistributionExists = await this.metricExists(
       AnalyticsMetricCategory.GUILDS,
@@ -269,10 +263,7 @@ export class GuildMetricsService {
         `SUM(CASE WHEN g.members_count BETWEEN 101 AND 300 THEN 1 ELSE 0 END)`,
         'large',
       )
-      .addSelect(
-        `SUM(CASE WHEN g.members_count > 300 THEN 1 ELSE 0 END)`,
-        'massive',
-      )
+      .addSelect(`SUM(CASE WHEN g.members_count > 300 THEN 1 ELSE 0 END)`, 'massive')
       .getRawOne<GuildSizeDistribution>();
 
     const guildSizeDistributionMetric = this.analyticsMetricRepository.create({
@@ -323,9 +314,7 @@ export class GuildMetricsService {
     return 1;
   }
 
-  private async computeGuildTopByAchievements(
-    snapshotDate: Date,
-  ): Promise<number> {
+  private async computeGuildTopByAchievements(snapshotDate: Date): Promise<number> {
     // Check if metric exists
     const isTopByAchievementsExists = await this.metricExists(
       AnalyticsMetricCategory.GUILDS,
