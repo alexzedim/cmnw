@@ -108,7 +108,7 @@ export class RabbitMQMonitorService {
       const osintQueues = getQueuesByExchange('osint.exchange');
       for (const queueConfig of osintQueues) {
         try {
-          const queueInfo = await channel.assertQueue(queueConfig.name);
+          const queueInfo = await channel.checkQueue(queueConfig.name);
           this.queueDepthGauge.set(
             { queue_name: queueConfig.name, exchange: 'osint.exchange' },
             queueInfo.messageCount,
@@ -123,7 +123,7 @@ export class RabbitMQMonitorService {
       const dmaQueues = getQueuesByExchange('dma.exchange');
       for (const queueConfig of dmaQueues) {
         try {
-          const queueInfo = await channel.assertQueue(queueConfig.name);
+          const queueInfo = await channel.checkQueue(queueConfig.name);
           this.queueDepthGauge.set(
             { queue_name: queueConfig.name, exchange: 'dma.exchange' },
             queueInfo.messageCount,
@@ -137,7 +137,7 @@ export class RabbitMQMonitorService {
       // Monitor DLQ
       try {
         const dlqConfig = RABBITMQ_QUEUES.DLQ;
-        const dlqInfo = await channel.assertQueue(dlqConfig.name);
+        const dlqInfo = await channel.checkQueue(dlqConfig.name);
         this.dlqDepthGauge.set(dlqInfo.messageCount);
       } catch (error) {
         this.logger.warn('Failed to monitor DLQ:', error);
@@ -171,7 +171,7 @@ export class RabbitMQMonitorService {
 
       for (const queueConfig of allQueues) {
         try {
-          const queueInfo = await channel.assertQueue(queueConfig.name);
+          const queueInfo = await channel.checkQueue(queueConfig.name);
           this.consumerCountGauge.set(
             { queue_name: queueConfig.name },
             queueInfo.consumerCount,
@@ -291,7 +291,7 @@ export class RabbitMQMonitorService {
 
       for (const queueConfig of allQueues) {
         try {
-          const queueInfo = await channel.assertQueue(queueConfig.name);
+          const queueInfo = await channel.checkQueue(queueConfig.name);
           queueDepths[queueConfig.name] = queueInfo.messageCount;
           consumerCounts[queueConfig.name] = queueInfo.consumerCount;
         } catch (error) {
@@ -307,7 +307,7 @@ export class RabbitMQMonitorService {
       let dlqDepth = 0;
       try {
         const dlqConfig = RABBITMQ_QUEUES.DLQ;
-        const dlqInfo = await channel.assertQueue(dlqConfig.name);
+        const dlqInfo = await channel.checkQueue(dlqConfig.name);
         dlqDepth = dlqInfo.messageCount;
       } catch (error) {
         this.logger.warn('Failed to get DLQ metrics:', error);
@@ -346,8 +346,13 @@ export class RabbitMQMonitorService {
     activeJobs: any[];
   } | null> {
     try {
+      if (!this.isKnownQueueName(queueName)) {
+        this.logger.warn(`Unknown queue requested for stats: ${queueName}`);
+        return null;
+      }
+
       const channel = this.amqpConnection.channel;
-      const queueInfo = await channel.assertQueue(queueName);
+      const queueInfo = await channel.checkQueue(queueName);
 
       return {
         messageCount: queueInfo.messageCount,
@@ -365,6 +370,10 @@ export class RabbitMQMonitorService {
       this.logger.error(`Error getting stats for queue ${queueName}:`, error);
       return null;
     }
+  }
+
+  private isKnownQueueName(queueName: string): boolean {
+    return Object.values(RABBITMQ_QUEUES).some((queue) => queue.name === queueName);
   }
 
   onQueueDrained(queueName: string, callback: () => Promise<void>): void {

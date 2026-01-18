@@ -120,6 +120,34 @@ export const RABBITMQ_QUEUES: Record<string, IQueueConfig> = {
     },
   },
 
+  PRICING: {
+    name: 'dma.pricing',
+    exchange: 'dma.exchange',
+    routingKeys: ['dma.pricing.*'],
+    options: {
+      durable: true,
+      arguments: {
+        'x-max-priority': 10,
+        'x-dead-letter-exchange': 'dlx.exchange',
+        'x-dead-letter-routing-key': 'dlx.pricing',
+      },
+    },
+  },
+
+  VALUATIONS: {
+    name: 'dma.valuations',
+    exchange: 'dma.exchange',
+    routingKeys: ['dma.valuations.*'],
+    options: {
+      durable: true,
+      arguments: {
+        'x-max-priority': 10,
+        'x-dead-letter-exchange': 'dlx.exchange',
+        'x-dead-letter-routing-key': 'dlx.valuations',
+      },
+    },
+  },
+
   // Core Queues
   REALMS: {
     name: 'core.realms',
