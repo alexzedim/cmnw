@@ -61,6 +61,11 @@ export class RabbitMQModule implements OnModuleInit {
       // Create all queues and bind them to exchanges
       for (const [_queueKey, queueConfig] of Object.entries(RABBITMQ_QUEUES)) {
         try {
+          const deadLetterExchange =
+            queueConfig.options.arguments?.['x-dead-letter-exchange'] ?? null;
+          const deadLetterRoutingKey =
+            queueConfig.options.arguments?.['x-dead-letter-routing-key'] ?? null;
+
           this.logger.debug({
             logTag: 'RabbitMQModule.onModuleInit',
             message: `Asserting queue with config: ${queueConfig.name}`,
@@ -68,6 +73,8 @@ export class RabbitMQModule implements OnModuleInit {
             exchange: queueConfig.exchange,
             routingKeys: queueConfig.routingKeys,
             options: queueConfig.options,
+            deadLetterExchange,
+            deadLetterRoutingKey,
           });
 
           // Assert queue with its configuration
@@ -102,6 +109,11 @@ export class RabbitMQModule implements OnModuleInit {
             logTag: 'RabbitMQModule.onModuleInit',
             message: `Failed to create/bind queue: ${queueConfig.name}`,
             queueName: queueConfig.name,
+            options: queueConfig.options,
+            deadLetterExchange:
+              queueConfig.options.arguments?.['x-dead-letter-exchange'] ?? null,
+            deadLetterRoutingKey:
+              queueConfig.options.arguments?.['x-dead-letter-routing-key'] ?? null,
             error: error.message,
             stack: error.stack,
           });

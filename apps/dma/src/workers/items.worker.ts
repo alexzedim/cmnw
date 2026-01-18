@@ -50,6 +50,14 @@ export class ItemsWorker {
     exchange: 'dma.exchange',
     routingKey: 'dma.items.*',
     queue: 'dma.items',
+    queueOptions: {
+      durable: true,
+      arguments: {
+        'x-max-priority': 10,
+        'x-dead-letter-exchange': 'dlx.exchange',
+        'x-dead-letter-routing-key': 'dlx.items',
+      },
+    },
   })
   public async handleItemMessage(message: ItemMessageDto): Promise<void> {
     const startTime = Date.now();

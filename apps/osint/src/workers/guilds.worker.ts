@@ -52,6 +52,14 @@ export class GuildsWorker {
     exchange: 'osint.exchange',
     routingKey: 'osint.guilds.*',
     queue: 'osint.guilds',
+    queueOptions: {
+      durable: true,
+      arguments: {
+        'x-max-priority': 10,
+        'x-dead-letter-exchange': 'dlx.exchange',
+        'x-dead-letter-routing-key': 'dlx.guilds',
+      },
+    },
   })
   public async handleGuildMessage(message: GuildMessageDto): Promise<void> {
     const startTime = Date.now();

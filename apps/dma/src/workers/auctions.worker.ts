@@ -66,6 +66,14 @@ export class AuctionsWorker {
     exchange: 'dma.exchange',
     routingKey: 'dma.auctions.*',
     queue: 'dma.auctions',
+    queueOptions: {
+      durable: true,
+      arguments: {
+        'x-max-priority': 10,
+        'x-dead-letter-exchange': 'dlx.exchange',
+        'x-dead-letter-routing-key': 'dlx.auctions',
+      },
+    },
   })
   public async handleAuctionMessage(message: AuctionMessageDto): Promise<void> {
     const startTime = Date.now();

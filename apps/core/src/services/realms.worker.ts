@@ -88,6 +88,14 @@ export class RealmsWorker {
     exchange: 'core.exchange',
     routingKey: 'core.realms.*',
     queue: 'core.realms',
+    queueOptions: {
+      durable: true,
+      arguments: {
+        'x-max-priority': 10,
+        'x-dead-letter-exchange': 'dlx.exchange',
+        'x-dead-letter-routing-key': 'dlx.realms',
+      },
+    },
   })
   public async handleRealmMessage(message: RealmMessageDto): Promise<void> {
     try {

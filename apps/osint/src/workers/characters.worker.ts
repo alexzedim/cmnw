@@ -58,6 +58,14 @@ export class CharactersWorker {
     exchange: 'osint.exchange',
     routingKey: 'osint.characters.*',
     queue: 'osint.characters',
+    queueOptions: {
+      durable: true,
+      arguments: {
+        'x-max-priority': 10,
+        'x-dead-letter-exchange': 'dlx.exchange',
+        'x-dead-letter-routing-key': 'dlx.characters',
+      },
+    },
   })
   public async handleCharacterMessage(message: CharacterMessageDto): Promise<void> {
     await this.processCharacterMessage(message);
@@ -67,6 +75,14 @@ export class CharactersWorker {
     exchange: 'osint.exchange',
     routingKey: 'osint.characters.request.*',
     queue: 'osint.characters.requests',
+    queueOptions: {
+      durable: true,
+      arguments: {
+        'x-max-priority': 10,
+        'x-dead-letter-exchange': 'dlx.exchange',
+        'x-dead-letter-routing-key': 'dlx.characters.requests',
+      },
+    },
   })
   public async handleCharacterRequest(
     message: CharacterMessageDto,

@@ -28,6 +28,14 @@ export const rabbitmqConfig: IRabbitMQConfig = {
       },
     },
     {
+      name: 'core.exchange',
+      type: 'topic',
+      options: {
+        durable: true,
+        autoDelete: false,
+      },
+    },
+    {
       name: 'dlx.exchange',
       type: 'topic',
       options: {
