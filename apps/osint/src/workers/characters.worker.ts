@@ -1,17 +1,20 @@
 import { BlizzAPI } from '@alexzedim/blizzapi';
-import { Job } from 'bullmq';
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { RabbitRPC, RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Injectable, Logger } from '@nestjs/common';
 import chalk from 'chalk';
 import { coreConfig } from '@app/configuration';
+import { RabbitMQMonitorService, RabbitMQPublisherService } from '@app/rabbitmq';
 import {
   CHARACTER_SUMMARY_FIELD_MAPPING,
   CharacterJobQueue,
   charactersQueue,
   getRandomProxy,
+  OSINT_SOURCE,
+  RabbitMQMessageDto,
   toSlug,
+  CharacterMessageDto,
 } from '@app/resources';
 
 import { CharactersEntity, KeysEntity } from '@app/pg';
@@ -21,9 +24,8 @@ import {
   CharacterCollectionService,
 } from '../services';
 
-@Processor(charactersQueue.name, charactersQueue.workerOptions)
 @Injectable()
-export class CharactersWorker extends WorkerHost {
+export class CharactersWorker {
   private readonly logger = new Logger(CharactersWorker.name, {
     timestamp: true,
   });
@@ -48,16 +50,40 @@ export class CharactersWorker extends WorkerHost {
     private readonly characterService: CharacterService,
     private readonly lifecycleService: CharacterLifecycleService,
     private readonly collectionSyncService: CharacterCollectionService,
-  ) {
-    super();
+    private readonly rabbitMQMonitorService: RabbitMQMonitorService,
+    private readonly rabbitMQPublisherService: RabbitMQPublisherService,
+  ) {}
+
+  @RabbitSubscribe({
+    exchange: 'osint.exchange',
+    routingKey: 'osint.characters.*',
+    queue: 'osint.characters',
+  })
+  public async handleCharacterMessage(message: CharacterMessageDto): Promise<void> {
+    await this.processCharacterMessage(message);
   }
 
-  public async process(job: Job<CharacterJobQueue, number>): Promise<number> {
+  @RabbitRPC({
+    exchange: 'osint.exchange',
+    routingKey: 'osint.characters.request.*',
+    queue: 'osint.characters.requests',
+  })
+  public async handleCharacterRequest(
+    message: CharacterMessageDto,
+  ): Promise<CharactersEntity> {
+    const characterEntity = await this.processCharacterMessage(message);
+    await this.publishCharacterResponse(characterEntity, message);
+    return characterEntity;
+  }
+
+  private async processCharacterMessage(
+    message: CharacterMessageDto,
+  ): Promise<CharactersEntity> {
     const startTime = Date.now();
     this.stats.total++;
 
     try {
-      const { data: args } = job;
+      const { data: args } = message;
 
       const { characterEntity, isNew, isCreateOnlyUnique, isNotReadyToUpdate } =
         await this.lifecycleService.findOrCreateCharacter(args);
@@ -65,22 +91,17 @@ export class CharactersWorker extends WorkerHost {
       const shouldSkipUpdate = isNotReadyToUpdate || isCreateOnlyUnique;
       if (shouldSkipUpdate) {
         this.stats.skipped++;
-        await job.updateProgress(100);
         this.logger.warn(
           `${chalk.yellow('⊘')} Skipped [${chalk.bold(this.stats.total)}] ${characterEntity.guid} ${chalk.dim('(createOnly or notReady)')}`,
         );
-        return characterEntity.statusCode;
+        return characterEntity;
       }
 
       const characterEntityOriginal =
         this.charactersRepository.create(characterEntity);
       const nameSlug = toSlug(characterEntity.name);
 
-      await job.updateProgress(5);
-
       this.inheritSafeValuesFromArgs(characterEntity, args);
-
-      await job.updateProgress(10);
 
       this.BNet = await this.initializeApiClient(args);
 
@@ -93,14 +114,10 @@ export class CharactersWorker extends WorkerHost {
       const hasStatus = Boolean(status);
       if (hasStatus) Object.assign(characterEntity, status);
 
-      await job.updateProgress(20);
-
       const isValidCharacter = status.isValid;
       if (isValidCharacter) {
-        await this.fetchAndUpdateCharacterData(characterEntity, nameSlug, job);
+        await this.fetchAndUpdateCharacterData(characterEntity, nameSlug);
       }
-
-      await job.updateProgress(50);
 
       const isExistingCharacter = !isNew;
       if (isExistingCharacter) {
@@ -108,41 +125,78 @@ export class CharactersWorker extends WorkerHost {
           characterEntityOriginal,
           characterEntity,
         );
-        await job.updateProgress(90);
       }
 
       await this.charactersRepository.save(characterEntity);
-      await job.updateProgress(100);
 
       const duration = Date.now() - startTime;
       this.logCharacterResult(characterEntity, duration);
+
+      this.rabbitMQMonitorService.recordMessageProcessingDuration(
+        'osint.characters',
+        duration / 1000,
+        'success',
+      );
+      await this.rabbitMQMonitorService.emitMessageCompleted(
+        'osint.characters',
+        message,
+      );
 
       // Progress report every 50 characters
       if (this.stats.total % 50 === 0) {
         this.logProgress();
       }
 
-      return characterEntity.statusCode;
+      return characterEntity;
     } catch (errorOrException) {
       this.stats.errors++;
       const duration = Date.now() - startTime;
       const guid =
-        job.data?.name && job.data?.realm
-          ? `${job.data.name}@${job.data.realm}`
+        message.data?.name && message.data?.realm
+          ? `${message.data.name}@${message.data.realm}`
           : 'unknown';
 
-      await job.log(errorOrException);
       this.logger.error(
         `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`,
       );
-      return 500;
+
+      this.rabbitMQMonitorService.recordMessageProcessingDuration(
+        'osint.characters',
+        duration / 1000,
+        'failure',
+      );
+      await this.rabbitMQMonitorService.emitMessageFailed(
+        'osint.characters',
+        message,
+        errorOrException,
+      );
+      throw errorOrException;
     }
   }
 
-  private logCharacterResult(
-    character: CharactersEntity,
-    duration: number,
-  ): void {
+  private async publishCharacterResponse(
+    characterEntity: CharactersEntity,
+    message: CharacterMessageDto,
+  ): Promise<void> {
+    const responseMessage = RabbitMQMessageDto.create({
+      id: message.id,
+      data: characterEntity,
+      priority: 10,
+      source: OSINT_SOURCE.CHARACTER_REQUEST,
+      routingKey: 'osint.characters.response.high',
+      metadata: {
+        guid: characterEntity.guid,
+        requestId: message.id,
+      },
+    });
+
+    await this.rabbitMQPublisherService.publishMessage(
+      charactersQueue.exchange,
+      responseMessage,
+    );
+  }
+
+  private logCharacterResult(character: CharactersEntity, duration: number): void {
     const statusCode = character.statusCode;
     const guid = character.guid;
 
@@ -171,9 +225,7 @@ export class CharactersWorker extends WorkerHost {
   private logProgress(): void {
     const uptime = Date.now() - this.stats.startTime;
     const rate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
-      1,
-    );
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
 
     this.logger.log(
       `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
@@ -192,9 +244,7 @@ export class CharactersWorker extends WorkerHost {
   public logFinalSummary(): void {
     const uptime = Date.now() - this.stats.startTime;
     const avgRate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
-      1,
-    );
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
 
     this.logger.log(
       `\n${chalk.cyan.bold('═'.repeat(60))}\n` +
@@ -224,9 +274,7 @@ export class CharactersWorker extends WorkerHost {
     }
   }
 
-  private async initializeApiClient(
-    args: CharacterJobQueue,
-  ): Promise<BlizzAPI> {
+  private async initializeApiClient(args: CharacterJobQueue): Promise<BlizzAPI> {
     return new BlizzAPI({
       region: args.region || 'eu',
       clientId: args.clientId,
@@ -241,22 +289,13 @@ export class CharactersWorker extends WorkerHost {
   private async fetchAndUpdateCharacterData(
     characterEntity: CharactersEntity,
     nameSlug: string,
-    job: Job<CharacterJobQueue, number>,
   ): Promise<void> {
     const [summary, petsCollection, mountsCollection, media] =
       await Promise.allSettled([
-        this.characterService.getSummary(
-          nameSlug,
-          characterEntity.realm,
-          this.BNet,
-        ),
+        this.characterService.getSummary(nameSlug, characterEntity.realm, this.BNet),
         this.fetchAndSyncPets(nameSlug, characterEntity.realm),
         this.fetchAndSyncMounts(nameSlug, characterEntity.realm),
-        this.characterService.getMedia(
-          nameSlug,
-          characterEntity.realm,
-          this.BNet,
-        ),
+        this.characterService.getMedia(nameSlug, characterEntity.realm, this.BNet),
       ]);
 
     const isSummaryFulfilled = summary.status === 'fulfilled';

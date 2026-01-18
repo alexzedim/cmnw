@@ -20,7 +20,6 @@ import {
   GuildsEntity,
 } from '@app/pg';
 
-
 @Injectable()
 export class GuildMemberService {
   private readonly logger = new Logger(GuildMemberService.name, {
@@ -45,9 +44,7 @@ export class GuildMemberService {
       const { members: updatedRosterMembers } = roster;
 
       if (!updatedRosterMembers.length) {
-        this.logger.debug(
-          `Guild roster for ${guildEntity.guid} was not found!`,
-        );
+        this.logger.debug(`Guild roster for ${guildEntity.guid} was not found!`);
         return;
       }
 
@@ -76,10 +73,11 @@ export class GuildMemberService {
     guildEntity: GuildsEntity,
     updatedRosterMembers: IGuildRoster['members'],
   ): Promise<RosterComparisonResult> {
-    const guildsMembersEntities =
-      await this.characterGuildsMembersRepository.findBy({
+    const guildsMembersEntities = await this.characterGuildsMembersRepository.findBy(
+      {
         guildGuid: guildEntity.guid,
-      });
+      },
+    );
 
     const originalRoster = new Map(
       guildsMembersEntities.map((guildMember) => [
@@ -98,10 +96,7 @@ export class GuildMemberService {
     return {
       originalRoster,
       updatedRoster,
-      membersIntersectIds: intersection(
-        updatedRosterCharIds,
-        originalRosterCharIds,
-      ),
+      membersIntersectIds: intersection(updatedRosterCharIds, originalRosterCharIds),
       membersJoinedIds: difference(updatedRosterCharIds, originalRosterCharIds),
       membersLeaveIds: difference(originalRosterCharIds, updatedRosterCharIds),
       isFirstTimeRosterIndexed: originalRoster.size === 0,
@@ -182,8 +177,7 @@ export class GuildMemberService {
     try {
       const guildMemberOriginal = originalRoster.get(guildMemberId);
       const guildMemberUpdated = updatedRoster.get(guildMemberId);
-      const isRankChanged =
-        guildMemberUpdated.rank !== guildMemberOriginal.rank;
+      const isRankChanged = guildMemberUpdated.rank !== guildMemberOriginal.rank;
 
       if (!isRankChanged) {
         return;
@@ -200,16 +194,15 @@ export class GuildMemberService {
       const isDemote = guildMemberUpdated.rank > guildMemberOriginal.rank;
       const eventAction = isDemote ? ACTION_LOG.DEMOTE : ACTION_LOG.PROMOTE;
 
-      const logEntityGuildMemberDemote =
-        this.charactersGuildsLogsRepository.create({
-          characterGuid: guildMemberOriginal.characterGuid,
-          guildGuid: guildEntity.guid,
-          original: String(guildMemberOriginal.rank),
-          updated: String(guildMemberUpdated.rank),
-          action: eventAction,
-          scannedAt: guildEntity.updatedAt,
-          createdAt: rosterUpdatedAt,
-        });
+      const logEntityGuildMemberDemote = this.charactersGuildsLogsRepository.create({
+        characterGuid: guildMemberOriginal.characterGuid,
+        guildGuid: guildEntity.guid,
+        original: String(guildMemberOriginal.rank),
+        updated: String(guildMemberUpdated.rank),
+        action: eventAction,
+        scannedAt: guildEntity.updatedAt,
+        createdAt: rosterUpdatedAt,
+      });
 
       await Promise.allSettled([
         this.charactersGuildsLogsRepository.save(logEntityGuildMemberDemote),
@@ -275,25 +268,20 @@ export class GuildMemberService {
        */
       const shouldLogJoin = isNotGuildMaster && !isFirstTimeRosterIndexed;
       if (shouldLogJoin) {
-        const logEntityGuildMemberJoin =
-          this.charactersGuildsLogsRepository.create({
-            characterGuid: guildMemberUpdated.guid,
-            guildGuid: guildEntity.guid,
-            updated: String(guildMemberUpdated.rank),
-            action: ACTION_LOG.JOIN,
-            scannedAt: guildEntity.updatedAt,
-            createdAt: rosterUpdatedAt,
-          });
+        const logEntityGuildMemberJoin = this.charactersGuildsLogsRepository.create({
+          characterGuid: guildMemberUpdated.guid,
+          guildGuid: guildEntity.guid,
+          updated: String(guildMemberUpdated.rank),
+          action: ACTION_LOG.JOIN,
+          scannedAt: guildEntity.updatedAt,
+          createdAt: rosterUpdatedAt,
+        });
 
-        await this.charactersGuildsLogsRepository.save(
-          logEntityGuildMemberJoin,
-        );
+        await this.charactersGuildsLogsRepository.save(logEntityGuildMemberJoin);
       }
 
       await Promise.allSettled([
-        this.characterGuildsMembersRepository.save(
-          charactersGuildsMembersEntity,
-        ),
+        this.characterGuildsMembersRepository.save(charactersGuildsMembersEntity),
         this.charactersRepository.update(
           { guid: guildMemberUpdated.guid, id: guildMemberUpdated.id },
           {
@@ -325,19 +313,18 @@ export class GuildMemberService {
       const isNotGuildMaster = guildMemberOriginal.rank !== OSINT_GM_RANK;
 
       if (isNotGuildMaster) {
-        const logEntityGuildMemberLeave =
-          this.charactersGuildsLogsRepository.create({
+        const logEntityGuildMemberLeave = this.charactersGuildsLogsRepository.create(
+          {
             characterGuid: guildMemberOriginal.characterGuid,
             guildGuid: guildEntity.guid,
             original: String(guildMemberOriginal.rank),
             action: ACTION_LOG.LEAVE,
             scannedAt: guildEntity.updatedAt,
             createdAt: rosterUpdatedAt,
-          });
-
-        await this.charactersGuildsLogsRepository.save(
-          logEntityGuildMemberLeave,
+          },
         );
+
+        await this.charactersGuildsLogsRepository.save(logEntityGuildMemberLeave);
       }
 
       await Promise.allSettled([

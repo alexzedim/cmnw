@@ -1,0 +1,7 @@
+{
+  "name": "@app/rabbitmq",
+  "version": "0.0.1",
+  "description": "RabbitMQ integration library for CMNW",
+  "main": "index.js",
+  "types": "index.d.ts"
+}

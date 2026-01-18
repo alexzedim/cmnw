@@ -67,17 +67,14 @@ export class TestsBench implements OnApplicationBootstrap {
   }
 
   async ipv6(nameSlug: string, realmSlug: string) {
-    const guild = await this.BNet.query(
-      `/data/wow/guild/${realmSlug}/${nameSlug}`,
-      {
-        params: { locale: 'en_GB' },
-        headers: {
-          'Battlenet-Namespace': API_HEADERS_ENUM.PROFILE,
-        },
-        timeout: 100_000,
-        proxy: false,
+    const guild = await this.BNet.query(`/data/wow/guild/${realmSlug}/${nameSlug}`, {
+      params: { locale: 'en_GB' },
+      headers: {
+        'Battlenet-Namespace': API_HEADERS_ENUM.PROFILE,
       },
-    );
+      timeout: 100_000,
+      proxy: false,
+    });
 
     console.log(guild);
   }
@@ -112,10 +109,7 @@ export class TestsBench implements OnApplicationBootstrap {
    * Calculate the 10th percentile using PERCENTILE_CONT
    * This returns an interpolated value
    */
-  async getPercentile95Cont(
-    itemId: number,
-    timestamp: number,
-  ): Promise<number> {
+  async getPercentile95Cont(itemId: number, timestamp: number): Promise<number> {
     // Create query builder
     const queryBuilder = this.marketRepository
       .createQueryBuilder('markets')
@@ -279,11 +273,7 @@ export class TestsBench implements OnApplicationBootstrap {
       .getRawMany<any>();
   }
 
-  async test(
-    priceRangeArray: number[],
-    timestampArray: number[],
-    itemId: number,
-  ) {
+  async test(priceRangeArray: number[], timestampArray: number[], itemId: number) {
     const dataset: IChartOrder[] = [];
     if (!priceRangeArray.length) return { dataset };
     /** Find distinct timestamps for each realm */
@@ -321,8 +311,7 @@ export class TestsBench implements OnApplicationBootstrap {
             if (isPriceItxUp) priceItx = priceItx + 1;
             plDataset[priceItx].orders = plDataset[priceItx].orders + 1;
             plDataset[priceItx].oi = plDataset[priceItx].oi + order.value;
-            plDataset[priceItx].value =
-              plDataset[priceItx].value + order.quantity;
+            plDataset[priceItx].value = plDataset[priceItx].value + order.quantity;
             plDataset[priceItx].price =
               plDataset[priceItx].oi / plDataset[priceItx].value;
           }
@@ -385,9 +374,7 @@ export class TestsBench implements OnApplicationBootstrap {
       const faction = exchangeListingPage(element).find('.tc-side').text();
       const status = Boolean(exchangeListingPage(element).attr('data-online'));
       const quantity = exchangeListingPage(element).find('.tc-amount').text();
-      const owner = exchangeListingPage(element)
-        .find('.media-user-name')
-        .text();
+      const owner = exchangeListingPage(element).find('.media-user-name').text();
       const price = exchangeListingPage(element).find('.tc-price div').text();
 
       goldOrders.push({
@@ -485,8 +472,7 @@ export class TestsBench implements OnApplicationBootstrap {
 
     await Promise.allSettled(
       page(wpPage).map(async (_x, node) => {
-        const isAttributes =
-          'attribs' in node && node.attribs.href.includes('eu_');
+        const isAttributes = 'attribs' in node && node.attribs.href.includes('eu_');
         if (!isAttributes) return;
 
         const url = node.attribs.href;
@@ -495,9 +481,7 @@ export class TestsBench implements OnApplicationBootstrap {
         const downloadLink = encodeURI(
           decodeURI(OSINT_SOURCE_WOW_PROGRESS_RANKS + url),
         );
-        const fileName = decodeURIComponent(
-          url.substr(url.lastIndexOf('/') + 1),
-        );
+        const fileName = decodeURIComponent(url.substr(url.lastIndexOf('/') + 1));
         const realmMatch = fileName.match(/(?<=_)(.*?)(?=_)/g);
         const isMatchExists = realmMatch && realmMatch.length;
 
@@ -534,9 +518,7 @@ export class TestsBench implements OnApplicationBootstrap {
       );
 
       await page.goto(url);
-      const getBestPerfAvg = await page
-        .getByText('Best Perf. Avg')
-        .allInnerTexts();
+      const getBestPerfAvg = await page.getByText('Best Perf. Avg').allInnerTexts();
       const [getBestPerfAvgValue] = getBestPerfAvg;
 
       const [_text, value] = getBestPerfAvgValue.trim().split('\n');
@@ -572,10 +554,7 @@ export class TestsBench implements OnApplicationBootstrap {
 
             const [realmSlug] = realmMatch;
 
-            const realmEntity = await findRealm(
-              this.realmsRepository,
-              realmSlug,
-            );
+            const realmEntity = await findRealm(this.realmsRepository, realmSlug);
 
             if (!realmEntity) {
               throw new NotFoundException(`realm ${realmSlug} not found!`);

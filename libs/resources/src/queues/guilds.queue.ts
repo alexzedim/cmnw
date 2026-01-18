@@ -1,21 +1,17 @@
-import { JobsOptions } from 'bullmq';
-import { IQueue } from '@app/resources';
+// RabbitMQ Queue Configuration
+// Replaces BullMQ OSINT_Guilds queue
 
-const options: JobsOptions = {
-  removeOnComplete: 10,
-  removeOnFail: 10,
-};
-
-export const guildsQueue: IQueue = {
-  name: 'OSINT_Guilds',
-  workerOptions: {
-    concurrency: parseInt(process.env.GUILDS_WORKER_CONCURRENCY || '1', 10),
-    /*
-    limiter: {
-      max: 5,
-      duration: 1000,
-    },
-    */
+export const guildsQueue = {
+  name: 'osint.guilds.queue',
+  exchange: 'osint.exchange',
+  routingKey: 'osint.guilds.*',
+  prefetchCount: parseInt(process.env.GUILDS_WORKER_CONCURRENCY || '1', 10),
+  queueOptions: {
+    durable: true,
+    deadLetterExchange: 'dlx.exchange',
+    deadLetterRoutingKey: 'dlx.osint.guilds',
+    messageTtl: 86400000, // 24 hours
+    maxLength: 100000,
+    maxPriority: 10,
   },
-  defaultJobOptions: options,
 };

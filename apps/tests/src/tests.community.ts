@@ -3,11 +3,7 @@ import { HttpService } from '@nestjs/axios';
 import { get } from 'lodash';
 import cheerio from 'cheerio';
 
-import {
-  isCharacterRaidLogResponse,
-  RaidCharacter,
-  toGuid,
-} from '@app/resources';
+import { isCharacterRaidLogResponse, RaidCharacter, toGuid } from '@app/resources';
 import { IOsintConfig } from '@app/configuration';
 
 @Injectable()

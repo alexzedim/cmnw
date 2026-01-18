@@ -1,8 +1,6 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { S3Service } from '@app/s3';
-import { InjectQueue } from '@nestjs/bullmq';
 import { BlizzAPI } from '@alexzedim/blizzapi';
-import { Queue } from 'bullmq';
 import csv from 'async-csv';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { get } from 'lodash';
@@ -26,8 +24,6 @@ import {
   DMA_SOURCE,
   GLOBAL_DMA_KEY,
   PRICING_TYPE,
-  pricingQueue,
-  IQPricing,
   getKey,
   ItemPricing,
   toStringOrNumber,
@@ -62,8 +58,6 @@ export class XvaService implements OnApplicationBootstrap {
   constructor(
     @InjectRedis()
     private readonly redisService: Redis,
-    @InjectQueue(pricingQueue.name)
-    private readonly queue: Queue<IQPricing, number>,
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(PricingEntity)
@@ -207,11 +201,7 @@ export class XvaService implements OnApplicationBootstrap {
     isDisenchant?: boolean;
   }): Promise<void> {
     const logTag = 'libPricing';
-    const {
-      isProspect = false,
-      isMilling = false,
-      isDisenchant = false,
-    } = options;
+    const { isProspect = false, isMilling = false, isDisenchant = false } = options;
 
     try {
       if (!isProspect && !isMilling && !isDisenchant) {
@@ -252,9 +242,7 @@ export class XvaService implements OnApplicationBootstrap {
   /**
    * Generic method to process any lab pricing method (prospecting, milling, disenchanting)
    */
-  private async processLabPricingMethod(
-    config: LabPricingMethod,
-  ): Promise<void> {
+  private async processLabPricingMethod(config: LabPricingMethod): Promise<void> {
     const logTag = 'processLabPricingMethod';
     try {
       const reversePricingMethod = this.pricingRepository.create({
@@ -354,7 +342,7 @@ export class XvaService implements OnApplicationBootstrap {
 
       const { professions } = professionIndexResponse;
 
-      for (let profession of professions) {
+      for (const profession of professions) {
         const professionDetailResponse =
           await this.BNet.query<BnetProfessionDetailQueryResponse>(
             `/data/wow/profession/${profession.id}`,
@@ -375,7 +363,7 @@ export class XvaService implements OnApplicationBootstrap {
 
         const { skill_tiers } = professionDetailResponse;
 
-        for (let tier of skill_tiers) {
+        for (const tier of skill_tiers) {
           let expansion: string = 'CLSC';
 
           Array.from(EXPANSION_TICKER_MAP.entries()).some(([k, v]) => {
@@ -403,24 +391,27 @@ export class XvaService implements OnApplicationBootstrap {
 
           const { categories } = skillTierDetailResponse;
 
-          for (let category of categories) {
+          for (const category of categories) {
             const { recipes } = category;
             if (!recipes) continue;
 
-            for (let recipe of recipes) {
-              await this.queue.add(
-                `${recipe.id}`,
-                {
+            for (const recipe of recipes) {
+              // @todo request one by one before inserting
+              const pricingExists = await this.pricingRepository.existsBy({
+                recipeId: recipe.id,
+                expansion: expansion,
+                profession: String(profession.id),
+              });
+
+              if (!pricingExists) {
+                const pricingEntity = this.pricingRepository.create({
                   recipeId: recipe.id,
                   expansion: expansion,
-                  profession: profession.id,
-                  region: 'eu',
-                  clientId: key.client,
-                  clientSecret: key.secret,
-                  accessToken: key.token,
-                },
-                { jobId: `R${recipe.id}` },
-              );
+                  profession: String(profession.id),
+                });
+
+                await this.pricingRepository.save(pricingEntity);
+              }
             }
           }
         }
@@ -607,9 +598,7 @@ export class XvaService implements OnApplicationBootstrap {
     }
 
     try {
-      const spellReagentsCsv = await this.readCsvFile(
-        CsvFileName.SpellReagents,
-      );
+      const spellReagentsCsv = await this.readCsvFile(CsvFileName.SpellReagents);
 
       const isProcessed = await this.isFileProcessed(
         CsvFileName.SpellReagents,
@@ -685,10 +674,7 @@ export class XvaService implements OnApplicationBootstrap {
         message: `Saved ${spellReagentsCount} spell reagent entities`,
       });
 
-      await this.markFileAsProcessed(
-        CsvFileName.SpellReagents,
-        spellReagentsCsv,
-      );
+      await this.markFileAsProcessed(CsvFileName.SpellReagents, spellReagentsCsv);
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });
     }
@@ -918,8 +904,7 @@ export class XvaService implements OnApplicationBootstrap {
         .createQueryBuilder()
         .update(ItemsEntity)
         .set({
-          assetClass: () =>
-            `array_append(asset_class, '${VALUATION_TYPE.MARKET}')`,
+          assetClass: () => `array_append(asset_class, '${VALUATION_TYPE.MARKET}')`,
         })
         .where('id = ANY(:ids)', { ids: allItemIds })
         .andWhere('NOT (:market = ANY(asset_class))', {
@@ -962,8 +947,7 @@ export class XvaService implements OnApplicationBootstrap {
         .createQueryBuilder()
         .update(ItemsEntity)
         .set({
-          assetClass: () =>
-            `array_append(asset_class, '${VALUATION_TYPE.COMMDTY}')`,
+          assetClass: () => `array_append(asset_class, '${VALUATION_TYPE.COMMDTY}')`,
         })
         .where('id = ANY(:ids)', { ids: commodityIds })
         .andWhere('NOT (:commdty = ANY(asset_class))', {
@@ -1005,8 +989,7 @@ export class XvaService implements OnApplicationBootstrap {
         .createQueryBuilder()
         .update(ItemsEntity)
         .set({
-          assetClass: () =>
-            `array_append(asset_class, '${VALUATION_TYPE.ITEM}')`,
+          assetClass: () => `array_append(asset_class, '${VALUATION_TYPE.ITEM}')`,
         })
         .where('id = ANY(:ids)', { ids: auctionIds })
         .andWhere('NOT (:item = ANY(asset_class))', {

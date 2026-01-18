@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { bullConfig, redisConfig } from '@app/configuration';
-import { BullModule } from '@nestjs/bullmq';
+import { redisConfig } from '@app/configuration';
+import { RabbitMQModule } from '@app/rabbitmq';
 import { OsintModule } from './osint/osint.module';
 import { DmaModule } from './dma/dma.module';
 import { QueueModule } from './queue/queue.module';
@@ -20,13 +20,7 @@ import { AppInfoModule } from './app/app.module';
         password: redisConfig.password,
       },
     }),
-    BullModule.forRoot({
-      connection: {
-        host: bullConfig.host,
-        port: bullConfig.port,
-        password: bullConfig.password,
-      },
-    }),
+    RabbitMQModule,
     OsintModule,
     DmaModule,
     AuthModule,

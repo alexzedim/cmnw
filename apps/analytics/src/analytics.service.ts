@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  Logger,
-  OnApplicationBootstrap,
-} from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { Repository, MoreThan } from 'typeorm';
 import { DateTime } from 'luxon';
@@ -56,8 +52,7 @@ export class AnalyticsService implements OnApplicationBootstrap {
       if (tableRowCount === 0 || !todaySnapshot) {
         this.logger.log({
           logTag,
-          message:
-            'No snapshot for today detected, running computation immediately',
+          message: 'No snapshot for today detected, running computation immediately',
           tableRowCount,
         });
         await this.computeDailySnapshot();
@@ -85,13 +80,12 @@ export class AnalyticsService implements OnApplicationBootstrap {
       });
 
       // Compute all metrics in parallel
-      const [charCount, guildCount, marketCount, contractCount] =
-        await Promise.all([
-          this.characterMetricsService.computeCharacterMetrics(snapshotDate),
-          this.guildMetricsService.computeGuildMetrics(snapshotDate),
-          this.marketMetricsService.computeMarketMetrics(snapshotDate),
-          this.contractMetricsService.computeContractMetrics(snapshotDate),
-        ]);
+      const [charCount, guildCount, marketCount, contractCount] = await Promise.all([
+        this.characterMetricsService.computeCharacterMetrics(snapshotDate),
+        this.guildMetricsService.computeGuildMetrics(snapshotDate),
+        this.marketMetricsService.computeMarketMetrics(snapshotDate),
+        this.contractMetricsService.computeContractMetrics(snapshotDate),
+      ]);
 
       const totalMetrics = charCount + guildCount + marketCount + contractCount;
 

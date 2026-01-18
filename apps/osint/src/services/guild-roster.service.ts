@@ -2,8 +2,6 @@ import { Injectable, Logger } from '@nestjs/common';
 import { BlizzAPI } from '@alexzedim/blizzapi';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Queue } from 'bullmq';
-import { InjectQueue } from '@nestjs/bullmq';
 import { from, lastValueFrom } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
 import { get } from 'lodash';
@@ -11,7 +9,6 @@ import { get } from 'lodash';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
-  CharacterJobQueue,
   charactersQueue,
   FACTION,
   GUILD_WORKER_CONSTANTS,
@@ -24,18 +21,14 @@ import {
   STATUS_CODES,
   toGuid,
   toSlug,
-  CharacterJobQueueDto,
+  CharacterMessageDto,
   characterAsGuildMember,
   ICharacterGuildMember,
   PLAYABLE_RACE,
   isGuildMember,
 } from '@app/resources';
-import {
-  CharactersEntity,
-  GuildsEntity,
-  KeysEntity,
-  RealmsEntity,
-} from '@app/pg';
+import { CharactersEntity, GuildsEntity, KeysEntity, RealmsEntity } from '@app/pg';
+import { RabbitMQPublisherService } from '@app/rabbitmq';
 
 @Injectable()
 export class GuildRosterService {
@@ -44,8 +37,7 @@ export class GuildRosterService {
   });
 
   constructor(
-    @InjectQueue(charactersQueue.name)
-    private readonly characterQueue: Queue<CharacterJobQueue, number>,
+    private readonly publisher: RabbitMQPublisherService,
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(RealmsEntity)
@@ -90,12 +82,7 @@ export class GuildRosterService {
 
       return roster;
     } catch (errorOrException) {
-      return this.handleRosterError(
-        errorOrException,
-        roster,
-        guildEntity,
-        BNet,
-      );
+      return this.handleRosterError(errorOrException, roster, guildEntity, BNet);
     }
   }
 
@@ -128,9 +115,10 @@ export class GuildRosterService {
         ? PLAYABLE_RACE.get(member.character.playable_race.id)
         : null;
 
-      const factionData = get(member, 'character.faction', null) as
-        | Record<string, any>
-        | null;
+      const factionData = get(member, 'character.faction', null) as Record<
+        string,
+        any
+      > | null;
 
       let resolvedFaction = guildEntity.faction ?? null;
 
@@ -142,9 +130,7 @@ export class GuildRosterService {
           factionData.type && factionData.name === null;
 
         if (hasFactionTypeWithoutName) {
-          const factionTypeStartsWithA = factionData.type
-            .toString()
-            .startsWith('A');
+          const factionTypeStartsWithA = factionData.type.toString().startsWith('A');
           resolvedFaction = factionTypeStartsWithA ? FACTION.A : FACTION.H;
         } else if (factionData.name) {
           resolvedFaction = factionData.name;
@@ -212,7 +198,7 @@ export class GuildRosterService {
     BNet: BlizzAPI,
   ): Promise<void> {
     const resolvedFaction = faction ?? guildEntity.faction ?? undefined;
-    const dto = CharacterJobQueueDto.fromGuildMaster({
+    const dto = CharacterMessageDto.fromGuildMaster({
       name: member.character.name,
       realm: realmSlug,
       guild: guildEntity.name,
@@ -228,10 +214,7 @@ export class GuildRosterService {
       accessToken: BNet.accessTokenObject.access_token,
     });
 
-    await this.characterQueue.add(dto.guid, dto, {
-      jobId: dto.guid,
-      priority: GUILD_WORKER_CONSTANTS.QUEUE_PRIORITY.GUILD_MASTER,
-    });
+    await this.publisher.publishMessage(charactersQueue.exchange, dto);
   }
 
   private async saveCharacterAsGuildMember(
@@ -272,15 +255,10 @@ export class GuildRosterService {
     guildEntity: GuildsEntity,
     BNet: BlizzAPI,
   ): IGuildRoster {
-    roster.statusCode = get(
-      errorOrException,
-      'status',
-      STATUS_CODES.ERROR_ROSTER,
-    );
+    roster.statusCode = get(errorOrException, 'status', STATUS_CODES.ERROR_ROSTER);
 
     const isTooManyRequests =
-      roster.statusCode ===
-      GUILD_WORKER_CONSTANTS.TOO_MANY_REQUESTS_STATUS_CODE;
+      roster.statusCode === GUILD_WORKER_CONSTANTS.TOO_MANY_REQUESTS_STATUS_CODE;
 
     if (isTooManyRequests) {
       incErrorCount(this.keysRepository, BNet.accessTokenObject.access_token);

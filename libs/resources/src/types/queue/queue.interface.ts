@@ -1,18 +1,22 @@
-import { DefaultJobOptions, WorkerOptions } from 'bullmq';
 import { LFG_STATUS, OSINT_SOURCE } from '@app/resources/constants';
 import { GuildJobQueue } from '@app/resources/types';
-import { JobsOptions } from 'bullmq/dist/esm/types';
+
+// RabbitMQ Queue Configuration Interface
+export interface IRabbitMQQueueOptions {
+  durable: boolean;
+  deadLetterExchange: string;
+  deadLetterRoutingKey: string;
+  messageTtl?: number;
+  maxLength?: number;
+  maxPriority: number;
+}
 
 export interface IQueue {
   readonly name: string;
-  readonly workerOptions: Pick<
-    WorkerOptions,
-    'concurrency' | 'lockDuration' | 'limiter'
-  >;
-  readonly defaultJobOptions: Pick<
-    DefaultJobOptions,
-    'removeOnComplete' | 'removeOnFail'
-  >;
+  readonly exchange: string;
+  readonly routingKey: string;
+  readonly prefetchCount: number;
+  readonly queueOptions: IRabbitMQQueueOptions;
 }
 
 export interface IQGuildOptions {
@@ -65,5 +69,5 @@ export interface IQRealm {
 export interface IGuildJob {
   name: string;
   data: GuildJobQueue;
-  opts: JobsOptions;
+  opts?: Record<string, any>;
 }

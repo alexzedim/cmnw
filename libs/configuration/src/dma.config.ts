@@ -14,19 +14,16 @@ export const dmaConfig: IDmaConfig = {
   isItemsPricingLab: process.env.DMA_INDEX_ITEMS_PRICING_LAB === 'true',
 
   // Pricing Service - Granular Controls
-  isPricingIndexProfessions:
-    process.env.DMA_PRICING_INDEX_PROFESSIONS === 'true',
+  isPricingIndexProfessions: process.env.DMA_PRICING_INDEX_PROFESSIONS === 'true',
   isPricingBuildSkillLine: process.env.DMA_PRICING_BUILD_SKILL_LINE === 'true',
-  isPricingBuildSpellEffect:
-    process.env.DMA_PRICING_BUILD_SPELL_EFFECT === 'true',
+  isPricingBuildSpellEffect: process.env.DMA_PRICING_BUILD_SPELL_EFFECT === 'true',
   isPricingBuildSpellReagents:
     process.env.DMA_PRICING_BUILD_SPELL_REAGENTS === 'true',
 
   // Pricing Service - Lab Methods
   isPricingLabProspecting: process.env.DMA_PRICING_LAB_PROSPECTING === 'true',
   isPricingLabMilling: process.env.DMA_PRICING_LAB_MILLING === 'true',
-  isPricingLabDisenchanting:
-    process.env.DMA_PRICING_LAB_DISENCHANTING === 'true',
+  isPricingLabDisenchanting: process.env.DMA_PRICING_LAB_DISENCHANTING === 'true',
 
   // Valuations Service - Main Control
   isValuationsBuild: process.env.DMA_VALUATIONS_BUILD === 'true',
@@ -43,6 +40,5 @@ export const dmaConfig: IDmaConfig = {
     process.env.DMA_VALUATIONS_MARKET_ASSET_CLASS === 'true',
   isValuationsCommodityAssetClass:
     process.env.DMA_VALUATIONS_COMMODITY_ASSET_CLASS === 'true',
-  isValuationsItemAssetClass:
-    process.env.DMA_VALUATIONS_ITEM_ASSET_CLASS === 'true',
+  isValuationsItemAssetClass: process.env.DMA_VALUATIONS_ITEM_ASSET_CLASS === 'true',
 };

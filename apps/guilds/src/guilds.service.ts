@@ -1,14 +1,10 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
-import { guildsQueue } from '@app/resources/queues/guilds.queue';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CharactersEntity, GuildsEntity, KeysEntity } from '@app/pg';
 import { Repository } from 'typeorm';
-import { BlizzAPI, RegionIdOrName } from '@alexzedim/blizzapi';
+import { BlizzAPI } from '@alexzedim/blizzapi';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
-import ms from 'ms';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
@@ -16,20 +12,19 @@ import {
   FACTION,
   getKeys,
   GLOBAL_OSINT_KEY,
-  GuildJobQueue,
-  GuildJobQueueDto,
+  GuildMessageDto,
+  guildsQueue,
+  HALL_OF_FAME_RAIDS,
   IHallOfFame,
   isEuRegion,
   isHallOfFame,
   notNull,
   OSINT_GUILD_LIMIT,
-  OSINT_SOURCE,
   RAID_FACTIONS,
-  HALL_OF_FAME_RAIDS,
-  toGuid,
 } from '@app/resources';
 import { bufferCount, concatMap } from 'rxjs/operators';
 import { osintConfig } from '@app/configuration';
+import { RabbitMQPublisherService } from '@app/rabbitmq';
 
 @Injectable()
 export class GuildsService implements OnApplicationBootstrap {
@@ -45,8 +40,7 @@ export class GuildsService implements OnApplicationBootstrap {
     private readonly guildsRepository: Repository<GuildsEntity>,
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
-    @InjectQueue(guildsQueue.name)
-    private readonly queueGuilds: Queue<GuildJobQueue, number>,
+    private readonly rabbitMQPublisherService: RabbitMQPublisherService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -74,14 +68,9 @@ export class GuildsService implements OnApplicationBootstrap {
       });
       if (isIndexGuildsFromCharacters) return;
 
-      this.keyEntities = await getKeys(
-        this.keysRepository,
-        clearance,
-        false,
-        true,
-      );
+      this.keyEntities = await getKeys(this.keysRepository, clearance, false, true);
 
-      let length = this.keyEntities.length;
+      const length = this.keyEntities.length;
 
       const uniqueGuildGuids = await this.charactersRepository
         .createQueryBuilder('characters')
@@ -98,12 +87,11 @@ export class GuildsService implements OnApplicationBootstrap {
       });
 
       const guildJobs = uniqueGuildGuids.map((guild) => {
-        const { client, secret, token } =
-          this.keyEntities[guildJobsItx % length];
+        const { client, secret, token } = this.keyEntities[guildJobsItx % length];
 
         const [name, realm] = guild.guildGuid.split('@');
 
-        const dto = GuildJobQueueDto.fromGuildCharactersUnique({
+        const dto = GuildMessageDto.fromGuildCharactersUnique({
           name,
           realm,
           clientId: client,
@@ -113,14 +101,7 @@ export class GuildsService implements OnApplicationBootstrap {
 
         guildJobsItx = guildJobsItx + 1;
 
-        return {
-          name: dto.guid,
-          data: dto,
-          opts: {
-            jobId: dto.guid,
-            priority: 1,
-          },
-        };
+        return dto;
       });
 
       this.logger.log({
@@ -133,7 +114,10 @@ export class GuildsService implements OnApplicationBootstrap {
           bufferCount(500),
           concatMap(async (guildJobsBatch) => {
             try {
-              await this.queueGuilds.addBulk(guildJobsBatch);
+              await this.rabbitMQPublisherService.publishBulk(
+                guildsQueue.exchange,
+                guildJobsBatch,
+              );
               this.logger.log({
                 logTag,
                 currentBatch: guildJobsBatch.length,
@@ -178,35 +162,8 @@ export class GuildsService implements OnApplicationBootstrap {
   async indexGuilds(clearance: string = GLOBAL_OSINT_KEY): Promise<void> {
     const logTag = this.indexGuilds.name;
     try {
-      const jobs = await this.queueGuilds.count();
-      if (jobs > 1_000) {
-        this.logger.warn({
-          logTag,
-          jobCount: jobs,
-          message: `Too many jobs (${jobs}), skipping guild indexing`,
-        });
-        return;
-      }
-
-      const globalConcurrency = await this.queueGuilds.getGlobalConcurrency();
-      const updatedConcurrency =
-        await this.queueGuilds.setGlobalConcurrency(10);
-
-      this.logger.log({
-        logTag,
-        queueName: guildsQueue.name,
-        globalConcurrency,
-        updatedConcurrency,
-        message: `Updated concurrency from ${globalConcurrency} to ${updatedConcurrency}`,
-      });
-
       let guildIteration = 0;
-      this.keyEntities = await getKeys(
-        this.keysRepository,
-        clearance,
-        false,
-        true,
-      );
+      this.keyEntities = await getKeys(this.keysRepository, clearance, false, true);
 
       let length = this.keyEntities.length;
 
@@ -236,7 +193,7 @@ export class GuildsService implements OnApplicationBootstrap {
             const { client, secret, token } =
               this.keyEntities[guildIteration % length];
 
-            const dto = GuildJobQueueDto.fromGuildIndex({
+            const dto = GuildMessageDto.fromGuildIndex({
               guid: guild.guid,
               name: guild.name,
               realm: guild.realm,
@@ -247,10 +204,10 @@ export class GuildsService implements OnApplicationBootstrap {
               ...guild,
             });
 
-            await this.queueGuilds.add(dto.guid, dto, {
-              jobId: dto.guid,
-              priority: 5,
-            });
+            await this.rabbitMQPublisherService.publishMessage(
+              guildsQueue.exchange,
+              dto,
+            );
 
             guildIteration = guildIteration + 1;
             const isKeyRequest = guildIteration % 100 == 0;
@@ -295,9 +252,10 @@ export class GuildsService implements OnApplicationBootstrap {
 
       for (const raid of HALL_OF_FAME_RAIDS) {
         const isOnlyLast =
-          onlyLast &&
-          raid !== HALL_OF_FAME_RAIDS[HALL_OF_FAME_RAIDS.length - 1];
+          onlyLast && raid !== HALL_OF_FAME_RAIDS[HALL_OF_FAME_RAIDS.length - 1];
+
         if (isOnlyLast) continue;
+
         await delay(2);
 
         for (const raidFaction of RAID_FACTIONS) {
@@ -321,7 +279,7 @@ export class GuildsService implements OnApplicationBootstrap {
                 return null;
               }
 
-              const dto = GuildJobQueueDto.fromHallOfFame({
+              return GuildMessageDto.fromHallOfFame({
                 name: guildEntry.guild.name,
                 realm: guildEntry.guild.realm.slug,
                 realmId: guildEntry.guild.realm.id,
@@ -333,19 +291,13 @@ export class GuildsService implements OnApplicationBootstrap {
                 clientSecret: secret,
                 accessToken: token,
               });
-
-              return {
-                name: dto.guid,
-                data: dto,
-                opts: {
-                  jobId: dto.guid,
-                  priority: 2,
-                },
-              };
             })
             .filter(notNull);
 
-          await this.queueGuilds.addBulk(guildJobs);
+          await this.rabbitMQPublisherService.publishBulk(
+            guildsQueue.exchange,
+            guildJobs,
+          );
 
           this.logger.log(
             `${logTag}: Raid ${raid} | Faction ${raidFaction} | Guilds ${guildJobs.length}`,

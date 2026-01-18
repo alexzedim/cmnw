@@ -52,6 +52,12 @@
       ],
       "@app/s3/*": [
         "libs/s3/src/*"
+      ],
+      "@app/rabbitmq": [
+        "libs/rabbitmq/src"
+      ],
+      "@app/rabbitmq/*": [
+        "libs/rabbitmq/src/*"
       ]
     }
   }

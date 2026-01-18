@@ -352,8 +352,7 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Thorium Ore', target: 'Azerothian Diamond' },
-      description:
-        'Thorium Ore (i:3859) → Azerothian Diamond (i:12800) [5 → 0.4]',
+      description: 'Thorium Ore (i:3859) → Azerothian Diamond (i:12800) [5 → 0.4]',
       reagents: [{ itemId: 3859, quantity: 5 }],
       derivatives: [
         {
@@ -402,8 +401,7 @@ export const PROSPECTING = {
         source: 'Adamantite Ore',
         target: 'Prismatic Shards & High Gems',
       },
-      description:
-        'Adamantite Ore (i:23426) → Prismatic Shards & High Quality Gems',
+      description: 'Adamantite Ore (i:23426) → Prismatic Shards & High Quality Gems',
       reagents: [{ itemId: 23426, quantity: 5 }],
       derivatives: [
         {
@@ -784,8 +782,7 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Monelite Ore', target: 'Gem Fragment' },
-      description:
-        'Monelite Ore (i:152579) → Gem Fragment (i:152512) [5 → 1.2]',
+      description: 'Monelite Ore (i:152579) → Gem Fragment (i:152512) [5 → 1.2]',
       reagents: [{ itemId: 152579, quantity: 5 }],
       derivatives: [
         {
@@ -827,8 +824,7 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Storm Silver Ore', target: 'Gem Fragment' },
-      description:
-        'Storm Silver Ore (i:152580) → Gem Fragment (i:152512) [5 → 1.2]',
+      description: 'Storm Silver Ore (i:152580) → Gem Fragment (i:152512) [5 → 1.2]',
       reagents: [{ itemId: 152580, quantity: 5 }],
       derivatives: [
         {
@@ -1045,8 +1041,7 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Mystic Sapphire *' },
-      description:
-        'Dragonflight Ores → Mystic Sapphire * (i:192840) [rare gem]',
+      description: 'Dragonflight Ores → Mystic Sapphire * (i:192840) [rare gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -1080,8 +1075,7 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Mystic Sapphire **' },
-      description:
-        'Dragonflight Ores → Mystic Sapphire ** (i:192841) [rare gem]',
+      description: 'Dragonflight Ores → Mystic Sapphire ** (i:192841) [rare gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -1115,8 +1109,7 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Mystic Sapphire ***' },
-      description:
-        'Dragonflight Ores → Mystic Sapphire *** (i:192842) [rare gem]',
+      description: 'Dragonflight Ores → Mystic Sapphire *** (i:192842) [rare gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -1150,8 +1143,7 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Vibrant Emerald *' },
-      description:
-        'Dragonflight Ores → Vibrant Emerald * (i:192843) [rare gem]',
+      description: 'Dragonflight Ores → Vibrant Emerald * (i:192843) [rare gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -1185,8 +1177,7 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Vibrant Emerald **' },
-      description:
-        'Dragonflight Ores → Vibrant Emerald ** (i:192844) [rare gem]',
+      description: 'Dragonflight Ores → Vibrant Emerald ** (i:192844) [rare gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -1220,8 +1211,7 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Vibrant Emerald ***' },
-      description:
-        'Dragonflight Ores → Vibrant Emerald *** (i:192845) [rare gem]',
+      description: 'Dragonflight Ores → Vibrant Emerald *** (i:192845) [rare gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -1323,8 +1313,7 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Sundered Onyx ***' },
-      description:
-        'Dragonflight Ores → Sundered Onyx *** (i:192848) [rare gem]',
+      description: 'Dragonflight Ores → Sundered Onyx *** (i:192848) [rare gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -1392,8 +1381,7 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Eternity Amber **' },
-      description:
-        'Dragonflight Ores → Eternity Amber ** (i:192850) [rare gem]',
+      description: 'Dragonflight Ores → Eternity Amber ** (i:192850) [rare gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -1427,8 +1415,7 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Eternity Amber ***' },
-      description:
-        'Dragonflight Ores → Eternity Amber *** (i:192851) [rare gem]',
+      description: 'Dragonflight Ores → Eternity Amber *** (i:192851) [rare gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -1534,8 +1521,7 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Alexstraszite ***' },
-      description:
-        'Dragonflight Ores → Alexstraszite *** (i:192855) [epic gem]',
+      description: 'Dragonflight Ores → Alexstraszite *** (i:192855) [epic gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -1977,8 +1963,7 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Illimited Diamond *' },
-      description:
-        'Dragonflight Ores → Illimited Diamond * (i:192869) [epic gem]',
+      description: 'Dragonflight Ores → Illimited Diamond * (i:192869) [epic gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -2012,8 +1997,7 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Illimited Diamond **' },
-      description:
-        'Dragonflight Ores → Illimited Diamond ** (i:192870) [epic gem]',
+      description: 'Dragonflight Ores → Illimited Diamond ** (i:192870) [epic gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -2047,8 +2031,7 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Various Ores', target: 'Illimited Diamond ***' },
-      description:
-        'Dragonflight Ores → Illimited Diamond *** (i:192871) [epic gem]',
+      description: 'Dragonflight Ores → Illimited Diamond *** (i:192871) [epic gem]',
       reagents: [
         { itemId: 190395, quantity: 1, label: 'Serevite Ore *' },
         { itemId: 190396, quantity: 1, label: 'Serevite Ore **' },
@@ -2509,8 +2492,7 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Titanium Ore', target: 'Cardinal Ruby' },
-      description:
-        'Titanium Ore (i:36910) → Cardinal Ruby (i:36919) [epic gem]',
+      description: 'Titanium Ore (i:36910) → Cardinal Ruby (i:36919) [epic gem]',
       reagents: [{ itemId: 36910, quantity: 1, label: 'Titanium Ore' }],
       derivatives: [
         {
@@ -2719,8 +2701,7 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Copper Ore (DF)', target: 'Vibrant Shards *' },
-      description:
-        'Copper Ore (i:2770) → Vibrant Shards * (i:206448) [5 → 0.8]',
+      description: 'Copper Ore (i:2770) → Vibrant Shards * (i:206448) [5 → 0.8]',
       reagents: [{ itemId: 2770, quantity: 5 }],
       derivatives: [
         {
@@ -2762,8 +2743,7 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Hochenblume (DF)', target: 'Vibrant Shards **' },
-      description:
-        'Hochenblume (i:191460) → Vibrant Shards ** (i:206449) [5 → 1.2]',
+      description: 'Hochenblume (i:191460) → Vibrant Shards ** (i:206449) [5 → 1.2]',
       reagents: [{ itemId: 191460, quantity: 5 }],
       derivatives: [
         {

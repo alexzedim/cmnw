@@ -2,10 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { TestsWorker } from '../src/tests.worker';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { postgresConfig } from '@app/configuration';
-import {
-  CharactersGuildsMembersEntity,
-  CharactersGuildsLogsEntity,
-} from '@app/pg';
+import { CharactersGuildsMembersEntity, CharactersGuildsLogsEntity } from '@app/pg';
 import { guildOriginal, guildUpdated } from '../mocks';
 import { ACTION_LOG, OSINT_GM_RANK } from '@app/resources';
 
@@ -316,9 +313,7 @@ describe('WORKER', () => {
       expect(result.action).toBe(ACTION_LOG.LEAVE);
       expect(result.isGuildMaster).toBe(false);
       expect(result.originalMember).toBeDefined();
-      expect(result.originalMember.characterGuid).toBe(
-        'leavingmember@stormrage',
-      );
+      expect(result.originalMember.characterGuid).toBe('leavingmember@stormrage');
       expect(result.originalMember.rank).toBe(4); // Member rank
       expect(result.logEntity).toBeDefined();
       expect(result.logEntity.characterGuid).toBe('leavingmember@stormrage');

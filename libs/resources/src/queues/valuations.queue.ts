@@ -1,15 +1,17 @@
-import { JobsOptions } from 'bullmq';
-import { IQueue } from '../../src/types';
+// RabbitMQ Queue Configuration
+// Replaces BullMQ DMA_Valuations queue
 
-const options: JobsOptions = {
-  removeOnComplete: 10,
-  removeOnFail: 10,
-};
-
-export const valuationsQueue: IQueue = {
-  name: 'DMA_Valuations',
-  workerOptions: {
-    // concurrency: 15
+export const valuationsQueue = {
+  name: 'dma.valuations.queue',
+  exchange: 'dma.exchange',
+  routingKey: 'dma.valuations.*',
+  prefetchCount: 1, // Default concurrency
+  queueOptions: {
+    durable: true,
+    deadLetterExchange: 'dlx.exchange',
+    deadLetterRoutingKey: 'dlx.dma.valuations',
+    messageTtl: 86400000, // 24 hours
+    maxLength: 100000,
+    maxPriority: 10,
   },
-  defaultJobOptions: options,
 };

@@ -1,11 +1,13 @@
-import { toGuid } from '../transformers';
-import { OSINT_SOURCE } from '../constants';
+import { toGuid } from '../../transformers';
+import { OSINT_SOURCE } from '../../constants';
 import { Logger } from '@nestjs/common';
+import { IRabbitMQMessageBase, RabbitMQMessageDto } from '@app/resources/dto';
 
 /**
- * Guild Job Queue DTO
+ * Guild Message DTO for RabbitMQ
  *
- * Comprehensive data transfer object for guild jobs added to the guildsQueue.
+ * Comprehensive data transfer object for guild messages with RabbitMQ routing.
+ * Combines GuildJobQueueDto logic with RabbitMQ-specific metadata.
  * Includes static factory methods for each source with automatic guid generation,
  * validation, and transformation logic.
  *
@@ -24,10 +26,10 @@ import { Logger } from '@nestjs/common';
  */
 
 /**
- * Base interface for creating guild job queue entries
+ * Base interface for creating guild message entries
  * Only requires essential fields; guid is auto-generated from name + realm
  */
-export interface IGuildJobQueueBase {
+export interface IGuildMessageBase {
   /** Guild name (will be converted to kebab-case for guid) */
   name: string;
   /** Realm slug (will be converted to kebab-case for guid) */
@@ -46,23 +48,38 @@ export interface IGuildJobQueueBase {
   createdBy?: OSINT_SOURCE;
 }
 
-export class GuildJobQueueDto {
-  private static readonly logger = new Logger(GuildJobQueueDto.name);
+export class GuildMessageDto extends RabbitMQMessageDto<any> {
+  private static readonly guildLogger = new Logger(GuildMessageDto.name);
 
+  private static isRabbitMQMessageBase<T>(
+    params: any,
+  ): params is IRabbitMQMessageBase<T> {
+    return !!params && typeof params === 'object' && 'data' in (params as any);
+  }
+
+  /**
+   * Private static method to perform type guard
+   * @param params - any to be validated
+   * @returns true if params has 'name' and 'realm' fields
+   */
+  private static isGuildCreateParams(
+    params: any,
+  ): params is Omit<Partial<GuildMessageDto>, 'guid'> &
+    Pick<IGuildMessageBase, 'name' | 'realm'> {
+    return (
+      !!params && typeof params === 'object' && 'name' in params && 'realm' in params
+    );
+  }
+
+  // Guild Job Queue properties
   readonly guid: string;
   readonly name: string;
   readonly realm: string;
-  readonly id?: number;
   readonly realmId?: number;
   readonly realmName?: string;
   readonly faction?: string;
   readonly statusCode?: number;
   readonly achievementPoints?: number;
-  readonly emblemId?: number;
-  readonly emblemColor?: string;
-  readonly borderColor?: string;
-  readonly backGroundColor?: string;
-  readonly leaderboard?: string;
   readonly forceUpdate: number;
   readonly createOnlyUnique: boolean;
   readonly iteration?: number;
@@ -76,11 +93,28 @@ export class GuildJobQueueDto {
   readonly updatedAt?: Date;
 
   /**
-   * Direct constructor - use when you already have a guid or need full control
-   * @param data - Complete or partial guild job queue data
+   * Constructor - creates a validated Guild Message with RabbitMQ metadata
+   * @param params - Guild message parameters
    */
-  constructor(data: Partial<GuildJobQueueDto>) {
-    Object.assign(this, data);
+  constructor(params: any) {
+    // Extract guild job queue data
+    const guildData = params.data || params;
+
+    // Call parent constructor with RabbitMQ metadata
+    super({
+      id: params.id || guildData.guid,
+      data: guildData,
+      priority: params.priority ?? 5,
+      source: params.source ?? OSINT_SOURCE.GUILD_INDEX,
+      routingKey: params.routingKey ?? 'osint.guilds.index.normal',
+      persistent: params.persistent ?? true,
+      expiration: params.expiration,
+      metadata: params.metadata,
+    });
+
+    // Assign guild job queue properties
+    Object.assign(this, guildData);
+
     // Set default region if not provided
     if (!this.region) {
       (this as any).region = 'eu';
@@ -89,20 +123,37 @@ export class GuildJobQueueDto {
 
   /**
    * Create with auto-generated guid from name and realm
-   * @param data - Guild job data without guid
-   * @returns New GuildJobQueueDto instance with generated guid
+   * @returns New GuildMessageDto instance with generated guid
+   * @param params
    */
+  static create<T>(params: IRabbitMQMessageBase<T>): RabbitMQMessageDto<T>;
   static create(
-    data: Omit<Partial<GuildJobQueueDto>, 'guid'> &
-      Pick<IGuildJobQueueBase, 'name' | 'realm'>,
-  ): GuildJobQueueDto {
-    const guid = toGuid(data.name, data.realm);
-    const dto = new GuildJobQueueDto({
-      ...data,
+    data: Omit<Partial<GuildMessageDto>, 'guid'> &
+      Pick<IGuildMessageBase, 'name' | 'realm'>,
+  ): GuildMessageDto;
+  static create(
+    params:
+      | IRabbitMQMessageBase<any>
+      | (Omit<Partial<GuildMessageDto>, 'guid'> &
+          Pick<IGuildMessageBase, 'name' | 'realm'>),
+  ): RabbitMQMessageDto<any> | GuildMessageDto {
+    if (GuildMessageDto.isRabbitMQMessageBase(params)) {
+      return RabbitMQMessageDto.create(params);
+    }
+
+    if (!GuildMessageDto.isGuildCreateParams(params)) {
+      throw new Error(
+        'GuildMessageDto.create expected guild params with name and realm.',
+      );
+    }
+
+    const guid = toGuid(params.name, params.realm);
+    const dto = new GuildMessageDto({
+      ...params,
       guid,
-      createdBy: data.createdBy || data.updatedBy,
+      createdBy: params.createdBy || params.updatedBy,
     });
-    dto.validate(false, 'GuildJobQueueDto.create');
+    dto.validate(false, 'GuildMessageDto.create');
     return dto;
   }
 
@@ -116,9 +167,9 @@ export class GuildJobQueueDto {
     clientId: string;
     clientSecret: string;
     accessToken: string;
-  }): GuildJobQueueDto {
+  }): GuildMessageDto {
     const guid = toGuid(params.name, params.realm);
-    const dto = new GuildJobQueueDto({
+    const dto = new GuildMessageDto({
       guid,
       name: params.name,
       realm: params.realm,
@@ -130,8 +181,15 @@ export class GuildJobQueueDto {
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
+      // RabbitMQ metadata
+      id: guid,
+      priority: 7,
+      source: OSINT_SOURCE.GUILD_CHARACTERS_UNIQUE,
+      routingKey: 'osint.guilds.roster.high',
+      persistent: true,
+      expiration: 3600000, // 1 hour TTL
     });
-    dto.validate(false, 'GuildJobQueueDto.fromGuildCharactersUnique');
+    dto.validate(false, 'GuildMessageDto.fromGuildCharactersUnique');
     return dto;
   }
 
@@ -149,8 +207,8 @@ export class GuildJobQueueDto {
     accessToken: string;
     // All other GuildsEntity fields
     [key: string]: any;
-  }): GuildJobQueueDto {
-    const dto = new GuildJobQueueDto({
+  }): GuildMessageDto {
+    const dto = new GuildMessageDto({
       ...params,
       region: 'eu',
       forceUpdate: 14400000, // 4 hours
@@ -161,8 +219,15 @@ export class GuildJobQueueDto {
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
       iteration: params.iteration,
+      // RabbitMQ metadata
+      id: params.guid,
+      priority: 5,
+      source: OSINT_SOURCE.GUILD_INDEX,
+      routingKey: 'osint.guilds.index.normal',
+      persistent: true,
+      expiration: 43200000, // 12 hours TTL
     });
-    dto.validate(false, 'GuildJobQueueDto.fromGuildIndex');
+    dto.validate(false, 'GuildMessageDto.fromGuildIndex');
     return dto;
   }
 
@@ -182,18 +247,18 @@ export class GuildJobQueueDto {
     clientId: string;
     clientSecret: string;
     accessToken: string;
-  }): GuildJobQueueDto {
+  }): GuildMessageDto {
     const guid = toGuid(params.name, params.realm);
     // Log warning if non-EU region was provided
     if (params.region && params.region !== 'eu') {
-      GuildJobQueueDto.logger.warn({
-        logTag: 'GuildJobQueueDto.fromHallOfFame',
+      GuildMessageDto.guildLogger.warn({
+        logTag: 'GuildMessageDto.fromHallOfFame',
         message: `Non-EU region '${params.region}' provided but only EU is supported. Defaulting to 'eu'.`,
         guid,
         providedRegion: params.region,
       });
     }
-    const dto = new GuildJobQueueDto({
+    const dto = new GuildMessageDto({
       guid,
       name: params.name,
       realm: params.realm,
@@ -209,8 +274,15 @@ export class GuildJobQueueDto {
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
+      // RabbitMQ metadata
+      id: guid,
+      priority: 9, // Highest priority for Hall of Fame guilds
+      source: OSINT_SOURCE.TOP100,
+      routingKey: 'osint.guilds.hof.urgent',
+      persistent: true,
+      expiration: 600000, // 10 minutes TTL
     });
-    dto.validate(false, 'GuildJobQueueDto.fromHallOfFame');
+    dto.validate(false, 'GuildMessageDto.fromHallOfFame');
     return dto;
   }
 
@@ -225,9 +297,9 @@ export class GuildJobQueueDto {
     clientId: string;
     clientSecret: string;
     accessToken: string;
-  }): GuildJobQueueDto {
+  }): GuildMessageDto {
     const guid = toGuid(params.name, params.realm);
-    const dto = new GuildJobQueueDto({
+    const dto = new GuildMessageDto({
       guid,
       name: params.name,
       realm: params.realm,
@@ -240,8 +312,15 @@ export class GuildJobQueueDto {
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
+      // RabbitMQ metadata
+      id: guid,
+      priority: 6,
+      source: OSINT_SOURCE.WOW_PROGRESS,
+      routingKey: 'osint.guilds.wowprogress.normal',
+      persistent: true,
+      expiration: 7200000, // 2 hours TTL
     });
-    dto.validate(false, 'GuildJobQueueDto.fromWowProgress');
+    dto.validate(false, 'GuildMessageDto.fromWowProgress');
     return dto;
   }
 
@@ -255,9 +334,9 @@ export class GuildJobQueueDto {
     clientId?: string;
     clientSecret?: string;
     accessToken?: string;
-  }): GuildJobQueueDto {
+  }): GuildMessageDto {
     const guid = toGuid(params.name, params.realm);
-    const dto = new GuildJobQueueDto({
+    const dto = new GuildMessageDto({
       guid,
       name: params.name,
       realm: params.realm,
@@ -269,20 +348,27 @@ export class GuildJobQueueDto {
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
+      // RabbitMQ metadata
+      id: guid,
+      priority: 8, // High priority for user requests
+      source: OSINT_SOURCE.GUILD_REQUEST,
+      routingKey: 'osint.guilds.request.high',
+      persistent: true,
+      expiration: 1800000, // 30 minutes TTL
     });
-    dto.validate(false, 'GuildJobQueueDto.fromGuildRequest');
+    dto.validate(false, 'GuildMessageDto.fromGuildRequest');
     return dto;
   }
 
   /**
    * Validate that required fields are present
    * @param strict - If true, throws errors; if false, logs warnings
-   * @param logTag - Optional log tag for warnings (defaults to 'GuildJobQueueDto.validate')
+   * @param logTag - Optional log tag for warnings (defaults to 'GuildMessageDto.validate')
    * @throws Error if validation fails and strict is true
    */
   validate(
     strict: boolean = true,
-    logTag: string = 'GuildJobQueueDto.validate',
+    logTag: string = 'GuildMessageDto.validate',
   ): void {
     const requiredFields = [
       'guid',
@@ -300,7 +386,11 @@ export class GuildJobQueueDto {
         if (strict) {
           throw new Error(message);
         } else {
-          GuildJobQueueDto.logger.warn({ logTag, message, guid: this.guid });
+          GuildMessageDto.guildLogger.warn({
+            logTag,
+            message,
+            guid: this.guid,
+          });
         }
       }
     }
@@ -311,7 +401,7 @@ export class GuildJobQueueDto {
       if (strict) {
         throw new Error(message);
       } else {
-        GuildJobQueueDto.logger.warn({ logTag, message, guid: this.guid });
+        GuildMessageDto.guildLogger.warn({ logTag, message, guid: this.guid });
       }
     }
 
@@ -324,7 +414,7 @@ export class GuildJobQueueDto {
       if (strict) {
         throw new Error(message);
       } else {
-        GuildJobQueueDto.logger.warn({
+        GuildMessageDto.guildLogger.warn({
           logTag,
           message,
           guid: this.guid,
@@ -340,7 +430,7 @@ export class GuildJobQueueDto {
         (field) => !this[field] || this[field] === undefined,
       );
       if (missingCredentials.length > 0) {
-        GuildJobQueueDto.logger.warn({
+        GuildMessageDto.guildLogger.warn({
           logTag,
           message: `Missing optional credentials: ${missingCredentials.join(', ')}`,
           guid: this.guid,
@@ -354,10 +444,10 @@ export class GuildJobQueueDto {
    * Create validated instance - throws if validation fails
    */
   static createValidated(
-    data: Omit<Partial<GuildJobQueueDto>, 'guid'> &
-      Pick<IGuildJobQueueBase, 'name' | 'realm'>,
-  ): GuildJobQueueDto {
-    const dto = GuildJobQueueDto.create(data);
+    data: Omit<Partial<GuildMessageDto>, 'guid'> &
+      Pick<IGuildMessageBase, 'name' | 'realm'>,
+  ): GuildMessageDto {
+    const dto = GuildMessageDto.create(data);
     dto.validate();
     return dto;
   }

@@ -16,10 +16,7 @@ export class GuildLogService {
     private readonly logsRepository: Repository<CharactersGuildsLogsEntity>,
   ) {}
 
-  async logNameChange(
-    original: GuildsEntity,
-    updated: GuildsEntity,
-  ): Promise<void> {
+  async logNameChange(original: GuildsEntity, updated: GuildsEntity): Promise<void> {
     const logEntity = this.logsRepository.create({
       guildGuid: updated.guid,
       original: original.name,
@@ -54,14 +51,8 @@ export class GuildLogService {
     );
   }
 
-  async updateGuildGuidForAllLogs(
-    oldGuid: string,
-    newGuid: string,
-  ): Promise<void> {
-    await this.logsRepository.update(
-      { guildGuid: oldGuid },
-      { guildGuid: newGuid },
-    );
+  async updateGuildGuidForAllLogs(oldGuid: string, newGuid: string): Promise<void> {
+    await this.logsRepository.update({ guildGuid: oldGuid }, { guildGuid: newGuid });
   }
 
   async detectAndLogChanges(

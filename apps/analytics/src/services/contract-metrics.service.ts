@@ -2,7 +2,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { DateTime } from 'luxon';
-import { AnalyticsMetricCategory, AnalyticsMetricType, analyticsMetricExists } from '@app/resources';
+import {
+  AnalyticsMetricCategory,
+  AnalyticsMetricType,
+  analyticsMetricExists,
+} from '@app/resources';
 import {
   ContractTotalMetrics,
   ContractCommoditiesData,
@@ -163,9 +167,7 @@ export class ContractMetricsService {
       value: {
         count: parseInt(commoditiesData?.count || '0', 10),
         totalQuantity: parseInt(commoditiesData?.total_quantity || '0', 10),
-        totalOpenInterest: parseFloat(
-          commoditiesData?.total_open_interest || '0',
-        ),
+        totalOpenInterest: parseFloat(commoditiesData?.total_open_interest || '0'),
       },
       snapshotDate,
     });
@@ -198,8 +200,8 @@ export class ContractMetricsService {
       );
 
       if (!existsByConnectedRealm) {
-        const contractByConnectedRealmMetric =
-          this.analyticsMetricRepository.create({
+        const contractByConnectedRealmMetric = this.analyticsMetricRepository.create(
+          {
             category: AnalyticsMetricCategory.CONTRACTS,
             metricType: AnalyticsMetricType.BY_CONNECTED_REALM,
             realmId: realm.connected_realm_id,
@@ -209,10 +211,9 @@ export class ContractMetricsService {
               totalOpenInterest: parseFloat(realm.total_open_interest || '0'),
             },
             snapshotDate,
-          });
-        await this.analyticsMetricRepository.save(
-          contractByConnectedRealmMetric,
+          },
         );
+        await this.analyticsMetricRepository.save(contractByConnectedRealmMetric);
         savedCount++;
       }
     }
@@ -293,17 +294,16 @@ export class ContractMetricsService {
       return 0;
     }
 
-    const contractTopByOpenInterestMetric =
-      this.analyticsMetricRepository.create({
-        category: AnalyticsMetricCategory.CONTRACTS,
-        metricType: AnalyticsMetricType.TOP_BY_OPEN_INTEREST,
-        value: {
-          itemId: topByOpenInterest.item_id,
-          openInterest: parseFloat(topByOpenInterest.open_interest || '0'),
-          quantity: parseInt(topByOpenInterest.quantity || '0', 10),
-        },
-        snapshotDate,
-      });
+    const contractTopByOpenInterestMetric = this.analyticsMetricRepository.create({
+      category: AnalyticsMetricCategory.CONTRACTS,
+      metricType: AnalyticsMetricType.TOP_BY_OPEN_INTEREST,
+      value: {
+        itemId: topByOpenInterest.item_id,
+        openInterest: parseFloat(topByOpenInterest.open_interest || '0'),
+        quantity: parseInt(topByOpenInterest.quantity || '0', 10),
+      },
+      snapshotDate,
+    });
     await this.analyticsMetricRepository.save(contractTopByOpenInterestMetric);
     return 1;
   }
@@ -339,17 +339,16 @@ export class ContractMetricsService {
       return 0;
     }
 
-    const contractPriceVolatilityMetric =
-      this.analyticsMetricRepository.create({
-        category: AnalyticsMetricCategory.CONTRACTS,
-        metricType: AnalyticsMetricType.PRICE_VOLATILITY,
-        value: {
-          itemId: volatility.item_id,
-          stdDev: parseFloat(volatility.std_dev || '0'),
-          avgPrice: parseFloat(volatility.avg_price || '0'),
-        },
-        snapshotDate,
-      });
+    const contractPriceVolatilityMetric = this.analyticsMetricRepository.create({
+      category: AnalyticsMetricCategory.CONTRACTS,
+      metricType: AnalyticsMetricType.PRICE_VOLATILITY,
+      value: {
+        itemId: volatility.item_id,
+        stdDev: parseFloat(volatility.std_dev || '0'),
+        avgPrice: parseFloat(volatility.avg_price || '0'),
+      },
+      snapshotDate,
+    });
     await this.analyticsMetricRepository.save(contractPriceVolatilityMetric);
     return 1;
   }

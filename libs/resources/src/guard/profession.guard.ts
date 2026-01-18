@@ -85,9 +85,7 @@ export const hasBnetSkillTiers = (
 /**
  * Validates skill tier object
  */
-export const isBnetSkillTier = (
-  tier: unknown,
-): tier is Readonly<IBnetSkillTier> =>
+export const isBnetSkillTier = (tier: unknown): tier is Readonly<IBnetSkillTier> =>
   typeof tier === 'object' &&
   tier !== null &&
   'id' in tier &&
@@ -176,9 +174,7 @@ export const hasBnetRecipes = (
 /**
  * Validates recipe object
  */
-export const isBnetRecipe = (
-  recipe: unknown,
-): recipe is Readonly<IBnetRecipe> =>
+export const isBnetRecipe = (recipe: unknown): recipe is Readonly<IBnetRecipe> =>
   typeof recipe === 'object' &&
   recipe !== null &&
   'id' in recipe &&

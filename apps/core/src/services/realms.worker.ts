@@ -1,6 +1,5 @@
-import { Job } from 'bullmq';
 import { Injectable, Logger } from '@nestjs/common';
-import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { BlizzAPI } from '@alexzedim/blizzapi';
 import { AxiosError } from 'axios';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -16,16 +15,15 @@ import {
   OSINT_TIMEOUT_TOLERANCE,
   REALM_TICKER,
   RealmJobQueue,
-  realmsQueue,
   toLocale,
   toSlug,
   transformConnectedRealmId,
   transformNamedField,
+  RealmMessageDto,
 } from '@app/resources';
 
-@Processor(realmsQueue.name, realmsQueue.workerOptions)
 @Injectable()
-export class RealmsWorker extends WorkerHost {
+export class RealmsWorker {
   private readonly logger = new Logger(RealmsWorker.name, { timestamp: true });
 
   private BNet: BlizzAPI;
@@ -33,19 +31,17 @@ export class RealmsWorker extends WorkerHost {
   constructor(
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
-  ) {
-    super();
-  }
+  ) {}
 
   /**
    * Handle AxiosError specifically with detailed error information
    * @param error - The error to handle
-   * @param jobData - Job context data for additional logging
+   * @param messageData - Message context data for additional logging
    * @param additionalInfo - Additional context information
    */
   private handleAxiosError(
     error: unknown,
-    jobData?: RealmJobQueue,
+    messageData?: RealmJobQueue,
     additionalInfo?: Record<string, any>,
   ): void {
     if (error instanceof AxiosError) {
@@ -58,12 +54,12 @@ export class RealmsWorker extends WorkerHost {
         method: error.config?.method?.toUpperCase(),
         responseData: error.response?.data,
         code: error.code,
-        jobData: jobData
+        messageData: messageData
           ? {
-              id: jobData.id,
-              name: jobData.name,
-              slug: jobData.slug,
-              region: jobData.region,
+              id: messageData.id,
+              name: messageData.name,
+              slug: messageData.slug,
+              region: messageData.region,
             }
           : undefined,
         ...additionalInfo,
@@ -75,12 +71,12 @@ export class RealmsWorker extends WorkerHost {
       this.logger.error({
         logTag: RealmsWorker.name,
         error,
-        jobData: jobData
+        messageData: messageData
           ? {
-              id: jobData.id,
-              name: jobData.name,
-              slug: jobData.slug,
-              region: jobData.region,
+              id: messageData.id,
+              name: messageData.name,
+              slug: messageData.slug,
+              region: messageData.region,
             }
           : undefined,
         ...additionalInfo,
@@ -88,15 +84,16 @@ export class RealmsWorker extends WorkerHost {
     }
   }
 
-  public async process(job: Job<RealmJobQueue, number>): Promise<void> {
+  @RabbitSubscribe({
+    exchange: 'core.exchange',
+    routingKey: 'core.realms.*',
+    queue: 'core.realms',
+  })
+  public async handleRealmMessage(message: RealmMessageDto): Promise<void> {
     try {
-      const args: RealmJobQueue = { ...job.data };
-
-      await job.updateProgress(1);
+      const args: RealmJobQueue = message.payload;
 
       let realmEntity = await this.realmsRepository.findOneBy({ id: args.id });
-
-      await job.updateProgress(5);
 
       if (!realmEntity) {
         realmEntity = this.realmsRepository.create({
@@ -111,19 +108,13 @@ export class RealmsWorker extends WorkerHost {
         accessToken: args.accessToken,
       });
 
-      await job.updateProgress(10);
-
       const response: Record<string, any> = await this.BNet.query(
         `/data/wow/realm/${args.slug}`,
         apiConstParams(API_HEADERS_ENUM.DYNAMIC, OSINT_TIMEOUT_TOLERANCE),
       );
 
-      await job.updateProgress(20);
-
       realmEntity.id = get(response, 'id', null);
       realmEntity.slug = get(response, 'slug', null);
-
-      await job.updateProgress(25);
 
       const name = isFieldNamed(response.name)
         ? get(response, 'name.name', null)
@@ -137,21 +128,14 @@ export class RealmsWorker extends WorkerHost {
 
       if (ticker) realmEntity.ticker = ticker;
 
-      await job.updateProgress(30);
-
       realmEntity.locale = response.locale ? response.locale : null;
 
       if (realmEntity.locale != 'enGB') {
         const realmLocale = await this.BNet.query<BlizzardApiResponse>(
           `/data/wow/realm/${args.slug}`,
-          apiConstParams(
-            API_HEADERS_ENUM.DYNAMIC,
-            OSINT_TIMEOUT_TOLERANCE,
-            true,
-          ),
+          apiConstParams(API_HEADERS_ENUM.DYNAMIC, OSINT_TIMEOUT_TOLERANCE, true),
         );
 
-        await job.updateProgress(40);
         const locale = toLocale(realmEntity.locale);
 
         const localeName = get(realmLocale, `name.${locale}`, null);
@@ -165,7 +149,6 @@ export class RealmsWorker extends WorkerHost {
           realmEntity.localeName = localeNameSlug;
           realmEntity.localeSlug = toSlug(localeNameSlug);
         }
-        await job.updateProgress(45);
       }
 
       const region = transformNamedField(response.region);
@@ -184,12 +167,7 @@ export class RealmsWorker extends WorkerHost {
 
         realmEntity.connectedRealmId = get(connectedRealm, 'id', null);
         realmEntity.status = get(connectedRealm, 'status.name', null);
-        realmEntity.populationStatus = get(
-          connectedRealm,
-          'population.name',
-          null,
-        );
-        await job.updateProgress(50);
+        realmEntity.populationStatus = get(connectedRealm, 'population.name', null);
 
         const isRealmsExists =
           'realms' in connectedRealm && Array.isArray(connectedRealm.realms);
@@ -202,12 +180,14 @@ export class RealmsWorker extends WorkerHost {
       }
 
       await this.realmsRepository.save(realmEntity);
-      await job.updateProgress(100);
+      this.logger.log(
+        `✓ Realm processed: ${realmEntity.name} (${realmEntity.slug})`,
+      );
     } catch (errorOrException) {
-      this.handleAxiosError(errorOrException, job.data, {
-        jobId: job.id,
-        progress: job.progress,
+      this.handleAxiosError(errorOrException, message.payload, {
+        timestamp: new Date().toISOString(),
       });
+      throw errorOrException;
     }
   }
 }

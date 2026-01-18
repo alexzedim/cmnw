@@ -10,14 +10,9 @@ import {
   OSINT_SOURCE,
   STATUS_CODES,
   toDate,
-  toSlug,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
-import {
-  CharactersEntity,
-  CharactersGuildsLogsEntity,
-  RealmsEntity,
-} from '@app/pg';
+import { CharactersEntity, CharactersGuildsLogsEntity, RealmsEntity } from '@app/pg';
 
 @Injectable()
 export class CharacterLifecycleService {

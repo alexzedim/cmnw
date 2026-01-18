@@ -32,8 +32,7 @@ export class TestsWorker {
     try {
       const guildMemberOriginal = originalRoster.get(guildMemberId);
       const guildMemberUpdated = updatedRoster.get(guildMemberId);
-      const isRankChanged =
-        guildMemberUpdated.rank !== guildMemberOriginal.rank;
+      const isRankChanged = guildMemberUpdated.rank !== guildMemberOriginal.rank;
 
       if (!isRankChanged) return { action: 'no_change' };
 
@@ -88,9 +87,8 @@ export class TestsWorker {
         guildId: guildEntity.id,
         characterId: guildMemberUpdated.id,
         characterGuid: guildMemberUpdated.guid,
-        realmId: guildEntity.realmId,
-        realmName: guildEntity.realmName,
-        realm: guildEntity.realm,
+        realmId: guildMemberUpdated.realmId,
+        realm: guildMemberUpdated.realmSlug,
         rank: guildMemberUpdated.rank,
         createdBy: OSINT_SOURCE.GUILD_ROSTER,
         updatedBy: OSINT_SOURCE.GUILD_ROSTER,

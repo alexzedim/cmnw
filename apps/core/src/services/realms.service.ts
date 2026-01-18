@@ -1,13 +1,10 @@
 import {
   Injectable,
-  Logger,
   NotFoundException,
   OnApplicationBootstrap,
 } from '@nestjs/common';
 import * as cheerio from 'cheerio';
-import { InjectQueue } from '@nestjs/bullmq';
 import { BlizzAPI } from '@alexzedim/blizzapi';
-import { Queue } from 'bullmq';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -23,11 +20,12 @@ import {
   GLOBAL_KEY,
   OSINT_TIMEOUT_TOLERANCE,
   REALM_ENTITY_ANY,
-  RealmJobQueue,
+  RealmMessageDto,
   realmsQueue,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
 import { LoggerService } from '@app/logger';
+import { RabbitMQPublisherService } from '@app/rabbitmq';
 
 @Injectable()
 export class RealmsService implements OnApplicationBootstrap {
@@ -41,8 +39,7 @@ export class RealmsService implements OnApplicationBootstrap {
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
-    @InjectQueue(realmsQueue.name)
-    private readonly queue: Queue<RealmJobQueue, number>,
+    private readonly publisher: RabbitMQPublisherService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -65,8 +62,6 @@ export class RealmsService implements OnApplicationBootstrap {
     try {
       const [keyEntity] = await getKeys(this.keysRepository, clearance);
 
-      await this.queue.drain(true);
-
       this.BNet = new BlizzAPI({
         region: 'eu',
         clientId: keyEntity.client,
@@ -86,21 +81,23 @@ export class RealmsService implements OnApplicationBootstrap {
           realmName: name,
           message: `Processing realm: ${id}:${name}`,
         });
-        await this.queue.add(
-          slug,
-          {
-            id: id,
-            name: name,
-            slug: slug,
-            region: 'eu',
-            clientId: keyEntity.client,
-            clientSecret: keyEntity.secret,
-            accessToken: keyEntity.token,
-          },
-          {
-            jobId: slug,
-          },
-        );
+
+        const message = {
+          id: id,
+          name: name,
+          slug: slug,
+          region: 'eu',
+          clientId: keyEntity.client,
+          clientSecret: keyEntity.secret,
+          accessToken: keyEntity.token,
+        };
+
+        const realmMessage = RealmMessageDto.create({
+          data: message,
+          priority: 5,
+        });
+
+        await this.publisher.publishMessage(realmsQueue.exchange, realmMessage);
       }
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });
@@ -133,13 +130,9 @@ export class RealmsService implements OnApplicationBootstrap {
               },
             );
             const warcraftLogsPage = cheerio.load(response.data);
-            const warcraftLogsRealmElement =
-              warcraftLogsPage.html('.server-name');
+            const warcraftLogsRealmElement = warcraftLogsPage.html('.server-name');
             const realmName = warcraftLogsPage(warcraftLogsRealmElement).text();
-            const realmEntity = await findRealm(
-              this.realmsRepository,
-              realmName,
-            );
+            const realmEntity = await findRealm(this.realmsRepository, realmName);
             if (!realmEntity) {
               throw new NotFoundException(`${realmId}:${realmName} not found!`);
             }
@@ -159,8 +152,7 @@ export class RealmsService implements OnApplicationBootstrap {
           } catch (errorOrException) {
             // Skip logging for 403/404 errors to reduce noise
             const isExpectedError =
-              errorOrException?.status === 403 ||
-              errorOrException?.status === 404;
+              errorOrException?.status === 403 || errorOrException?.status === 404;
             if (!isExpectedError) {
               this.logger.error({
                 logTag,

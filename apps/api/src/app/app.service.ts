@@ -1,13 +1,8 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  ServiceUnavailableException,
-} from '@nestjs/common';
+import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike, FindOptionsWhere } from 'typeorm';
+import { Repository, ILike } from 'typeorm';
 import {
   AnalyticsEntity,
   CharactersEntity,
@@ -63,9 +58,7 @@ export class AppService {
         errorOrException,
       });
 
-      throw new ServiceUnavailableException(
-        'Unable to load application metrics',
-      );
+      throw new ServiceUnavailableException('Unable to load application metrics');
     }
   }
 
@@ -89,9 +82,7 @@ export class AppService {
         /^[ab]$/.test(hashTypeChar) && input.searchQuery.length > 1;
       const hashValue = isHashQuery ? input.searchQuery.slice(1) : null;
       const isNumericQuery = /^\d+$/.test(input.searchQuery);
-      const itemIdQuery = isNumericQuery
-        ? parseInt(input.searchQuery, 10)
-        : null;
+      const itemIdQuery = isNumericQuery ? parseInt(input.searchQuery, 10) : null;
 
       const [characters, guilds, items, hashMatches] = await Promise.all([
         this.charactersRepository.find({

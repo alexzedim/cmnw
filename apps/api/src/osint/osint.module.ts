@@ -1,9 +1,7 @@
 import { Module } from '@nestjs/common';
-import { postgresConfig, bullConfig } from '@app/configuration';
-import { BullModule } from '@nestjs/bullmq';
+import { postgresConfig } from '@app/configuration';
+import { RabbitMQModule } from '@app/rabbitmq';
 import { OsintController } from './osint.controller';
-import { OsintService } from './osint.service';
-import { charactersQueue, guildsQueue } from '@app/resources';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   AnalyticsEntity,
@@ -21,6 +19,11 @@ import {
   ProfessionsEntity,
   RealmsEntity,
 } from '@app/pg';
+import {
+  CharacterOsintService,
+  GuildOsintService,
+  RealmOsintService,
+} from './services';
 
 @Module({
   imports: [
@@ -41,23 +44,9 @@ import {
       RealmsEntity,
       CharactersGuildsLogsEntity,
     ]),
-    BullModule.forRoot({
-      connection: {
-        host: bullConfig.host,
-        port: bullConfig.port,
-        password: bullConfig.password,
-      },
-    }),
-    BullModule.registerQueue({
-      name: charactersQueue.name,
-      defaultJobOptions: charactersQueue.defaultJobOptions,
-    }),
-    BullModule.registerQueue({
-      name: guildsQueue.name,
-      defaultJobOptions: guildsQueue.defaultJobOptions,
-    }),
+    RabbitMQModule,
   ],
   controllers: [OsintController],
-  providers: [OsintService],
+  providers: [CharacterOsintService, GuildOsintService, RealmOsintService],
 })
 export class OsintModule {}

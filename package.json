@@ -1,6 +1,6 @@
 {
   "name": "cmnw",
-  "version": "6.9.66",
+  "version": "6.10.0",
   "homepage": "https://cmnw.me",
   "description": "Intelligence always wins",
   "private": true,
@@ -17,7 +17,7 @@
     "url": "https://github.com/alexzedim/cmnw.git"
   },
   "languageName": "node",
-  "packageManager": "pnpm@10.26.1",
+  "packageManager": "pnpm@10.28.0+sha512.05df71d1421f21399e053fde567cea34d446fa02c76571441bfc1c7956e98e363088982d940465fd34480d4d90a0668bc12362f8aa88000a64e83d0b0e47be48",
   "engines": {
     "node": ">=18.0.0",
     "pnpm": ">=10.0.0"
@@ -26,12 +26,12 @@
     "prebuild": "rimraf dist",
     "build": "nest build",
     "build:all": "nest build analytics && nest build api && nest build characters && nest build core && nest build dma && nest build guilds && nest build ladder && nest build market && nest build osint && nest build tests && nest build warcraft-logs && nest build wow-progress",
-    "format": "prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
+    "format": "eslint --config eslint.config.js \"{apps,libs}/**/*.ts\" --fix && prettier --write \"apps/**/*.ts\" \"libs/**/*.ts\"",
     "start": "nest start",
     "start:dev": "rimraf dist && nest start --watch",
     "start:debug": "nest start --debug --watch",
     "start:prod": "node dist/apps/cmnw/main",
-    "lint": "eslint \"{src,apps,libs,test}/**/*.ts\" --fix",
+    "lint": "eslint --config eslint.config.js \"{src,apps,libs,test}/**/*.ts\" --fix",
     "test": "jest",
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
@@ -48,6 +48,8 @@
     "@nestjs-modules/ioredis": "2.0.2",
     "@nestjs/axios": "4.0.1",
     "@nestjs/bullmq": "11.0.4",
+    "@golevelup/nestjs-rabbitmq": "7.1.1",
+    "amqplib": "0.10.9",
     "@nestjs/common": "11.1.9",
     "@nestjs/core": "11.1.9",
     "@nestjs/mongoose": "11.0.4",
@@ -111,6 +113,7 @@
     "@typescript-eslint/eslint-plugin": "8.49.0",
     "@typescript-eslint/parser": "8.49.0",
     "eslint": "9.39.2",
+    "eslint-plugin-unused-imports": "4.1.4",
     "jest": "30.2.0",
     "prettier": "3.7.4",
     "run-script-webpack-plugin": "0.2.3",
@@ -121,7 +124,8 @@
     "tsconfig-paths": "4.2.0",
     "typescript": "5.9.3",
     "webpack": "5.103.0",
-    "webpack-node-externals": "3.0.0"
+    "webpack-node-externals": "3.0.0",
+    "@types/amqplib": "^0.10.5"
   },
   "pnpm": {
     "overrides": {

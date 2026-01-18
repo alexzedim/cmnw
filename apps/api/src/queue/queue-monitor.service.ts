@@ -1,18 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue, Job } from 'bullmq';
-import { InjectRedis } from '@nestjs-modules/ioredis';
-import Redis from 'ioredis';
-import {
-  auctionsQueue,
-  charactersQueue,
-  guildsQueue,
-  itemsQueue,
-  pricingQueue,
-  realmsQueue,
-  valuationsQueue,
-} from '@app/resources';
-import { profileQueue } from '@app/resources/queues/profile.queue';
+import { RabbitMQMonitorService } from '@app/rabbitmq';
 import {
   IAllQueuesStats,
   IJobCounts,
@@ -26,38 +13,27 @@ export class QueueMonitorService {
     timestamp: true,
   });
 
-  constructor(
-    @InjectRedis() private readonly redis: Redis,
-    @InjectQueue(auctionsQueue.name)
-    private readonly auctionsQueue: Queue,
-    @InjectQueue(charactersQueue.name)
-    private readonly charactersQueue: Queue,
-    @InjectQueue(guildsQueue.name)
-    private readonly guildsQueue: Queue,
-    @InjectQueue(realmsQueue.name)
-    private readonly realmsQueue: Queue,
-    @InjectQueue(itemsQueue.name)
-    private readonly itemsQueue: Queue,
-    @InjectQueue(pricingQueue.name)
-    private readonly pricingQueue: Queue,
-    @InjectQueue(valuationsQueue.name)
-    private readonly valuationsQueue: Queue,
-    @InjectQueue(profileQueue.name)
-    private readonly profileQueue: Queue,
-  ) {}
+  private readonly queueNames = [
+    'dma.auctions',
+    'osint.characters',
+    'osint.guilds',
+    'core.realms',
+    'dma.items',
+    'dma.pricing',
+    'dma.valuations',
+    'osint.profiles',
+  ];
 
-  private get allQueues(): Array<{ name: string; queue: Queue }> {
-    return [
-      { name: auctionsQueue.name, queue: this.auctionsQueue },
-      { name: charactersQueue.name, queue: this.charactersQueue },
-      { name: guildsQueue.name, queue: this.guildsQueue },
-      { name: realmsQueue.name, queue: this.realmsQueue },
-      { name: itemsQueue.name, queue: this.itemsQueue },
-      { name: pricingQueue.name, queue: this.pricingQueue },
-      { name: valuationsQueue.name, queue: this.valuationsQueue },
-      { name: profileQueue.name, queue: this.profileQueue },
-    ];
-  }
+  private readonly workerQueueMap: Record<string, string> = {
+    characters: 'osint.characters',
+    guilds: 'osint.guilds',
+    profile: 'osint.profiles',
+    items: 'dma.items',
+    auctions: 'dma.auctions',
+    realms: 'core.realms',
+  };
+
+  constructor(private readonly rabbitMQMonitorService: RabbitMQMonitorService) {}
 
   async getAllQueuesStats(): Promise<IAllQueuesStats> {
     const queuesStats: IQueueStats[] = [];
@@ -66,9 +42,9 @@ export class QueueMonitorService {
     let totalCompleted = 0;
     let totalFailed = 0;
 
-    for (const { name, queue } of this.allQueues) {
+    for (const queueName of this.queueNames) {
       try {
-        const stats = await this.getQueueStats(name, queue);
+        const stats = await this.getQueueStats(queueName);
         queuesStats.push(stats);
 
         totalWaiting += stats.counts.waiting;
@@ -76,7 +52,7 @@ export class QueueMonitorService {
         totalCompleted += stats.counts.completed;
         totalFailed += stats.counts.failed;
       } catch (error) {
-        this.logger.error(`Failed to get stats for queue ${name}:`, error);
+        this.logger.error(`Failed to get stats for queue ${queueName}:`, error);
       }
     }
 
@@ -90,40 +66,39 @@ export class QueueMonitorService {
     };
   }
 
-  async getQueueStats(queueName: string, queue: Queue): Promise<IQueueStats> {
-    const rawCounts = await queue.getJobCounts(
-      'waiting',
-      'active',
-      'completed',
-      'failed',
-      'delayed',
-      'paused',
-    );
+  async getQueueStats(queueName: string): Promise<IQueueStats> {
+    // Get queue stats from RabbitMQ monitor service
+    const queueStats = await this.rabbitMQMonitorService.getQueueStats(queueName);
+    if (!queueStats) {
+      this.logger.warn(`Queue stats unavailable for ${queueName}`);
+      return {
+        queueName,
+        counts: {
+          waiting: 0,
+          active: 0,
+          completed: 0,
+          failed: 0,
+          delayed: 0,
+          paused: 0,
+        },
+        activeJobs: [],
+        estimatedCompletion: undefined,
+        processingRate: 0,
+        averageProcessingTime: 0,
+      };
+    }
 
     const counts: IJobCounts = {
-      waiting: rawCounts.waiting || 0,
-      active: rawCounts.active || 0,
-      completed: rawCounts.completed || 0,
-      failed: rawCounts.failed || 0,
-      delayed: rawCounts.delayed || 0,
-      paused: rawCounts.paused || 0,
+      waiting: queueStats.waiting || 0,
+      active: queueStats.active || 0,
+      completed: queueStats.completed || 0,
+      failed: queueStats.failed || 0,
+      delayed: 0, // RabbitMQ doesn't have delayed state like BullMQ
+      paused: 0, // RabbitMQ doesn't have paused state like BullMQ
     };
 
-    const activeJobs = await queue.getActive();
-    const activeJobsProgress = await Promise.all(
-      activeJobs.slice(0, 10).map(async (job) => ({
-        jobId: job.id!,
-        name: job.name,
-        progress: job.progress,
-        timestamp: job.timestamp,
-      })),
-    );
-
-    // Calculate processing rate (jobs per minute)
-    const completedJobs = await queue.getCompleted(0, 99);
-    const processingRate = await this.calculateProcessingRate(completedJobs);
-    const averageProcessingTime =
-      await this.calculateAverageProcessingTime(completedJobs);
+    const processingRate = queueStats.processingRate ?? 0;
+    const averageProcessingTime = queueStats.avgProcessingTime ?? 0;
 
     let estimatedCompletion: string | undefined;
     const isActiveProcessing = counts.active > 0 && processingRate > 0;
@@ -135,7 +110,7 @@ export class QueueMonitorService {
     return {
       queueName,
       counts,
-      activeJobs: activeJobsProgress,
+      activeJobs: queueStats.activeJobs || [],
       estimatedCompletion,
       processingRate,
       averageProcessingTime,
@@ -145,54 +120,38 @@ export class QueueMonitorService {
   async getQueueDetailedProgress(
     queueName: string,
   ): Promise<IQueueDetailedProgress> {
-    const queue = this.allQueues.find((q) => q.name === queueName)?.queue;
-    if (!queue) {
-      throw new Error(`Queue ${queueName} not found`);
+    const queueStats = await this.rabbitMQMonitorService.getQueueStats(queueName);
+    if (!queueStats) {
+      return {
+        queueName,
+        current: 0,
+        total: 0,
+        completionPercentage: 0,
+        estimatedTimeRemaining: undefined,
+        activeWorkers: 0,
+        jobs: [],
+      };
     }
 
-    const counts = await queue.getJobCounts(
-      'waiting',
-      'active',
-      'completed',
-      'failed',
-    );
+    const counts = {
+      waiting: queueStats.waiting || 0,
+      active: queueStats.active || 0,
+      completed: queueStats.completed || 0,
+      failed: queueStats.failed || 0,
+    };
 
     const total = counts.waiting + counts.active + counts.completed;
     const current = counts.completed;
-    const completionPercentage =
-      total > 0 ? Math.round((current / total) * 100) : 0;
-
-    const activeJobs = await queue.getActive();
-    const waitingJobs = await queue.getWaiting(0, 10);
-    const allJobs = [...activeJobs, ...waitingJobs.slice(0, 10)];
-
-    const jobsDetails = await Promise.all(
-      allJobs.map(async (job) => {
-        const state = await job.getState();
-        return {
-          id: job.id!,
-          name: job.name,
-          progress: job.progress,
-          state,
-          timestamp: job.timestamp,
-          attemptsMade: job.attemptsMade,
-          processedOn: job.processedOn,
-          finishedOn: job.finishedOn,
-        };
-      }),
-    );
+    const completionPercentage = total > 0 ? Math.round((current / total) * 100) : 0;
 
     // Calculate estimated time remaining
     let estimatedTimeRemaining: string | undefined;
-    const completedJobs = await queue.getCompleted(0, 99);
-    const processingRate = await this.calculateProcessingRate(completedJobs);
+    const processingRate = queueStats.processingRate ?? 0;
 
     const isRateCalculable = processingRate > 0 && counts.waiting > 0;
     if (isRateCalculable) {
       const minutesRemaining = counts.waiting / processingRate;
-      estimatedTimeRemaining = this.formatDuration(
-        minutesRemaining * 60 * 1000,
-      );
+      estimatedTimeRemaining = this.formatDuration(minutesRemaining * 60 * 1000);
     }
 
     return {
@@ -202,41 +161,8 @@ export class QueueMonitorService {
       completionPercentage,
       estimatedTimeRemaining,
       activeWorkers: counts.active,
-      jobs: jobsDetails,
+      jobs: queueStats.activeJobs || [],
     };
-  }
-
-  private async calculateProcessingRate(completedJobs: Job[]): Promise<number> {
-    const recentJobs = completedJobs.filter((job) => {
-      const isJobFinished = job.finishedOn !== undefined;
-      if (!isJobFinished) return false;
-
-      const fiveMinutesAgo = Date.now() - 5 * 60 * 1000;
-      return job.finishedOn! > fiveMinutesAgo;
-    });
-
-    const isNoRecentJobs = recentJobs.length === 0;
-    if (isNoRecentJobs) return 0;
-
-    // Jobs per minute
-    return recentJobs.length / 5 || 0;
-  }
-
-  private async calculateAverageProcessingTime(
-    completedJobs: Job[],
-  ): Promise<number> {
-    const jobsWithTimes = completedJobs.filter(
-      (job) => job.processedOn && job.finishedOn,
-    );
-
-    const isNoJobsWithTimes = jobsWithTimes.length === 0;
-    if (isNoJobsWithTimes) return 0;
-
-    const totalTime = jobsWithTimes.reduce((sum, job) => {
-      return sum + (job.finishedOn! - job.processedOn!);
-    }, 0);
-
-    return totalTime / jobsWithTimes.length;
   }
 
   private formatDuration(ms: number): string {
@@ -252,38 +178,49 @@ export class QueueMonitorService {
   }
 
   async pauseQueue(queueName: string): Promise<void> {
-    const queue = this.allQueues.find((q) => q.name === queueName)?.queue;
-    if (!queue) {
-      throw new Error(`Queue ${queueName} not found`);
-    }
-    await queue.pause();
+    // RabbitMQ doesn't have a pause concept like BullMQ
+    // Instead, we can stop consumers for this queue
+    await this.rabbitMQMonitorService.pauseQueue(queueName);
   }
 
   async resumeQueue(queueName: string): Promise<void> {
-    const queue = this.allQueues.find((q) => q.name === queueName)?.queue;
-    if (!queue) {
-      throw new Error(`Queue ${queueName} not found`);
-    }
-    await queue.resume();
+    // Resume consumers for this queue
+    await this.rabbitMQMonitorService.resumeQueue(queueName);
   }
 
   async getWorkerStats(workerName: string): Promise<any> {
-    const key = `worker:${workerName}:last-stats`;
-    const stats = await this.redis.get(key);
-
-    if (!stats) {
+    const queueName = this.workerQueueMap[workerName];
+    if (!queueName) {
       return {
         workerName,
-        message: 'No stats available yet',
+        message: 'No queue mapping available for this worker',
         timestamp: new Date().toISOString(),
       };
     }
 
-    return JSON.parse(stats);
+    const stats = await this.rabbitMQMonitorService.getQueueStats(queueName);
+    if (!stats) {
+      return {
+        workerName,
+        queueName,
+        message: 'Queue stats unavailable',
+        timestamp: new Date().toISOString(),
+      };
+    }
+
+    return {
+      workerName,
+      queueName,
+      timestamp: new Date().toISOString(),
+      consumers: stats.consumerCount,
+      depth: stats.messageCount,
+      processingRate: stats.processingRate ?? 0,
+      averageProcessingTime: stats.avgProcessingTime ?? 0,
+    };
   }
 
   async getAllWorkerStats(): Promise<any[]> {
-    const workerNames = ['characters', 'guilds', 'profile'];
+    const workerNames = Object.keys(this.workerQueueMap);
     const statsPromises = workerNames.map((name) => this.getWorkerStats(name));
     return Promise.all(statsPromises);
   }

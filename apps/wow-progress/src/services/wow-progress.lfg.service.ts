@@ -9,23 +9,20 @@ import { mergeMap } from 'rxjs/operators';
 import * as cheerio from 'cheerio';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { RabbitMQPublisherService } from '@app/rabbitmq';
 import {
-  CharacterJobQueue,
-  charactersQueue,
   getKeys,
   getRandomElement,
   GLOBAL_OSINT_KEY,
   ICharacterQueueWP,
   LFG_STATUS,
-  OSINT_LFG_WOW_PROGRESS,
   OSINT_SOURCE,
-  ProfileJobQueue,
-  profileQueue,
+  OSINT_LFG_WOW_PROGRESS,
   toGuid,
-  toSlug,
-  CharacterJobQueueDto,
+  CharacterMessageDto,
+  RabbitMQMessageDto,
+  profileQueue,
+  charactersQueue,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
 
@@ -51,31 +48,25 @@ export class WowProgressLfgService {
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(CharactersProfileEntity)
     private readonly charactersProfileRepository: Repository<CharactersProfileEntity>,
-    @InjectQueue(profileQueue.name)
-    private readonly queueProfile: Queue<ProfileJobQueue, number>,
-    @InjectQueue(charactersQueue.name)
-    private readonly queueCharacters: Queue<CharacterJobQueue, number>,
+    private readonly rabbitMQPublisherService: RabbitMQPublisherService,
   ) {}
 
   @Cron(CronExpression.EVERY_5_MINUTES)
-  async indexWowProgressLfg(
-    clearance: string = GLOBAL_OSINT_KEY,
-  ): Promise<void> {
+  async indexWowProgressLfg(clearance: string = GLOBAL_OSINT_KEY): Promise<void> {
     const startTime = Date.now();
     try {
       this.logger.log(chalk.cyan('\n🔍 Starting WoW Progress LFG indexing...'));
       /**
        * Revoke character status from old NOW => to PREV
        */
-      const charactersLfgRemoveOld =
-        await this.charactersProfileRepository.update(
-          {
-            lfgStatus: LFG_STATUS.OLD,
-          },
-          {
-            lfgStatus: null,
-          },
-        );
+      const charactersLfgRemoveOld = await this.charactersProfileRepository.update(
+        {
+          lfgStatus: LFG_STATUS.OLD,
+        },
+        {
+          lfgStatus: null,
+        },
+      );
 
       this.stats.charactersRemoved += charactersLfgRemoveOld.affected || 0;
       this.logger.log(
@@ -138,10 +129,9 @@ export class WowProgressLfgService {
       this.logger.log(
         `${chalk.green('✓')} Found ${chalk.bold(charactersLfgNow.length)} characters in LFG-${LFG_STATUS.NOW}`,
       );
-      const characterProfileLfgOld =
-        await this.charactersProfileRepository.findBy({
-          lfgStatus: LFG_STATUS.OLD,
-        });
+      const characterProfileLfgOld = await this.charactersProfileRepository.findBy({
+        lfgStatus: LFG_STATUS.OLD,
+      });
       this.logger.log(
         `${chalk.blue('ℹ')} Found ${chalk.bold(characterProfileLfgOld.length)} characters in LFG-${LFG_STATUS.OLD}`,
       );
@@ -235,7 +225,7 @@ export class WowProgressLfgService {
 
       const key = getRandomElement(keysEntity);
 
-      const dto = CharacterJobQueueDto.fromWowProgressLfg({
+      const characterMessageDto = CharacterMessageDto.fromWowProgressLfg({
         name: characterQueue.name,
         realm: realmEntity.slug,
         realmId: realmEntity.id,
@@ -245,8 +235,9 @@ export class WowProgressLfgService {
         accessToken: key.token,
       });
 
-      await Promise.allSettled([
-        this.queueProfile.add(characterQueue.guid, {
+      const profileMessageDto = RabbitMQMessageDto.create({
+        id: characterQueue.guid,
+        data: {
           guid: characterQueue.guid,
           name: characterQueue.name,
           realm: realmEntity.slug,
@@ -254,17 +245,25 @@ export class WowProgressLfgService {
           updateRIO: true,
           updateWCL: true,
           updateWP: true,
-        }),
-        this.queueCharacters.add(dto.guid, dto, {
-          jobId: dto.guid,
-          priority: 2,
-        }),
+        },
+        priority: 1,
+        source: OSINT_SOURCE.WOW_PROGRESS_LFG,
+        routingKey: 'osint.profiles.lfg.normal',
+      });
+
+      await Promise.allSettled([
+        this.rabbitMQPublisherService.publishMessage(
+          profileQueue.exchange,
+          profileMessageDto,
+        ),
+        this.rabbitMQPublisherService.publishMessage(
+          charactersQueue.exchange,
+          characterMessageDto,
+        ),
       ]);
 
       this.stats.charactersQueued++;
-      this.logger.log(
-        `${chalk.cyan('→')} Queued ${chalk.dim(characterQueue.guid)}`,
-      );
+      this.logger.log(`${chalk.cyan('→')} Queued ${chalk.dim(characterQueue.guid)}`);
     } catch (errorOrException) {
       this.stats.errors++;
       this.logger.error(
@@ -299,21 +298,13 @@ export class WowProgressLfgService {
       const response = await this.httpService.axiosRef.get(url);
 
       const wowProgressHTML = cheerio.load(response.data);
-      const listingLookingForGuild = wowProgressHTML.html(
-        'table.rating tbody tr',
-      );
+      const listingLookingForGuild = wowProgressHTML.html('table.rating tbody tr');
 
       await Promise.allSettled(
         wowProgressHTML(listingLookingForGuild).map(async (_x, node) => {
           const tableRowElement = wowProgressHTML(node).find('td');
-          const [
-            preName,
-            preGuild,
-            preRaid,
-            preRealm,
-            preItemLevel,
-            preTimestamp,
-          ] = tableRowElement;
+          const [preName, preGuild, preRaid, preRealm, preItemLevel, preTimestamp] =
+            tableRowElement;
 
           const name = wowProgressHTML(preName).text().trim();
           const guild = wowProgressHTML(preGuild).text();

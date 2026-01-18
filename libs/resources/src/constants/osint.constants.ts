@@ -22,11 +22,9 @@ export const OSINT_SOURCE_WCL = 'https://www.warcraftlogs.com/character/eu';
 export const OSINT_SOURCE_WOW_PROGRESS_RANKS =
   'https://www.wowprogress.com/export/ranks/';
 
-export const OSINT_SOURCE_WOW_PROGRESS =
-  'https://www.wowprogress.com/character/eu';
+export const OSINT_SOURCE_WOW_PROGRESS = 'https://www.wowprogress.com/character/eu';
 
-export const OSINT_SOURCE_RAIDER_IO =
-  'https://raider.io/api/v1/characters/profile';
+export const OSINT_SOURCE_RAIDER_IO = 'https://raider.io/api/v1/characters/profile';
 
 export const OSINT_LFG_WOW_PROGRESS = [
   'https://www.wowprogress.com/gearscore/char_rating/lfg.1/sortby.ts',
@@ -37,14 +35,7 @@ export const OSINT_4_HOURS_MS = 1_000 * 60 * 60 * 4;
 
 export const OSINT_1_DAY_MS = 86_400 * 1_000;
 
-export const REALM_LOCALES = [
-  'ru_ru',
-  'en_gb',
-  'de_de',
-  'fr_fr',
-  'it_it',
-  'es_es',
-];
+export const REALM_LOCALES = ['ru_ru', 'en_gb', 'de_de', 'fr_fr', 'it_it', 'es_es'];
 
 export const BRACKETS = ['2v2', '3v3', 'rbg'];
 
@@ -97,10 +88,7 @@ export const CHARACTER_RAID_DIFFICULTY = new Map<string, IWarcraftLogsMap>([
   ['mythic', { wclId: 5, fieldName: 'mythicLogs' }],
 ]);
 
-export const CHARACTER_PROFILE_MAPPING = new Map<
-  string,
-  keyof WowProgressProfile
->([
+export const CHARACTER_PROFILE_MAPPING = new Map<string, keyof WowProgressProfile>([
   ['Battletag', 'battleTag'],
   ['Looking for guild', 'readyToTransfer'],
   ['Raids per week', 'raidDays'],
@@ -493,12 +481,7 @@ export const CHARACTER_CLASS: string[] = [
   'Evoker',
 ];
 
-export const COVENANTS: string[] = [
-  'Kyrian',
-  'Venthyr',
-  'Night Fae',
-  'Necrolord',
-];
+export const COVENANTS: string[] = ['Kyrian', 'Venthyr', 'Night Fae', 'Necrolord'];
 
 export enum FACTION {
   A = 'Alliance',

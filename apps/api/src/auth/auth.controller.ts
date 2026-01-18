@@ -75,9 +75,7 @@ export class AuthController {
         error instanceof Error ? error.stack : String(error),
         'discordCallback',
       );
-      res
-        .status(500)
-        .json({ success: false, message: 'Authentication failed' });
+      res.status(500).json({ success: false, message: 'Authentication failed' });
     }
   }
 
@@ -109,10 +107,7 @@ export class AuthController {
   @UseGuards(AuthGuard('battlenet'))
   async battlenetCallback(@Req() req, @Res() res: Response): Promise<void> {
     try {
-      this.logger.log(
-        'Battle.net OAuth callback received',
-        'battlenetCallback',
-      );
+      this.logger.log('Battle.net OAuth callback received', 'battlenetCallback');
       const authResponse: AuthResponseDto = req.user;
 
       // In a real application, you might:
@@ -128,9 +123,7 @@ export class AuthController {
         error instanceof Error ? error.stack : String(error),
         'battlenetCallback',
       );
-      res
-        .status(500)
-        .json({ success: false, message: 'Authentication failed' });
+      res.status(500).json({ success: false, message: 'Authentication failed' });
     }
   }
 }

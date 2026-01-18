@@ -1,21 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
 import chalk from 'chalk';
 import { Browser, BrowserContext, chromium, devices } from 'playwright';
-import { Job, Queue } from 'bullmq';
+import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CharactersProfileEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { HttpService } from '@nestjs/axios';
-import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import cheerio from 'cheerio';
+import { RabbitMQMonitorService } from '@app/rabbitmq';
 
 import {
   CHARACTER_RAID_DIFFICULTY,
   OSINT_SOURCE_RAIDER_IO,
   OSINT_SOURCE_WOW_PROGRESS,
   OSINT_SOURCE_WCL,
-  ProfileJobQueue,
-  profileQueue,
   CHARACTER_PROFILE_MAPPING,
   WowProgressProfile,
   WarcraftLogsProfile,
@@ -24,12 +22,13 @@ import {
   CHARACTER_PROFILE_RIO_MAPPING,
   RaiderIoCharacterMappingKey,
   capitalize,
+  ProfileJobQueue,
+  RabbitMQMessageDto,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
 
-@Processor(profileQueue.name, profileQueue.workerOptions)
 @Injectable()
-export class ProfileWorker extends WorkerHost {
+export class ProfileWorker {
   private readonly logger = new Logger(ProfileWorker.name, {
     timestamp: true,
   });
@@ -49,15 +48,12 @@ export class ProfileWorker extends WorkerHost {
 
   constructor(
     private httpService: HttpService,
-    @InjectQueue(profileQueue.name)
-    private readonly _queue: Queue<ProfileJobQueue, number>,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(CharactersProfileEntity)
     private readonly charactersProfileRepository: Repository<CharactersProfileEntity>,
-  ) {
-    super();
-  }
+    private readonly rabbitMQMonitorService: RabbitMQMonitorService,
+  ) {}
 
   private async browserControl() {
     const isBrowserSession = Boolean(this.browser && this.browserContext);
@@ -67,12 +63,19 @@ export class ProfileWorker extends WorkerHost {
     await this.browser.close();
   }
 
-  public async process(job: Job<ProfileJobQueue, number>) {
+  @RabbitSubscribe({
+    exchange: 'osint.exchange',
+    routingKey: 'osint.profiles.*',
+    queue: 'osint.profiles',
+  })
+  public async handleProfileMessage(
+    message: RabbitMQMessageDto<ProfileJobQueue>,
+  ): Promise<void> {
     const startTime = Date.now();
     this.stats.total++;
 
     try {
-      const { data: args } = job;
+      const { data: args } = message;
 
       let profileEntity = await this.charactersProfileRepository.findOneBy({
         guid: args.guid,
@@ -94,7 +97,6 @@ export class ProfileWorker extends WorkerHost {
         const raiderIo = await this.getRaiderIoProfile(args.name, args.realm);
         Object.assign(profileEntity, raiderIo);
         this.stats.rioUpdated++;
-        await job.updateProgress(60);
       }
 
       if (args.updateWCL) {
@@ -104,17 +106,12 @@ export class ProfileWorker extends WorkerHost {
         );
         Object.assign(profileEntity, warcraftLogs);
         this.stats.wclUpdated++;
-        await job.updateProgress(70);
       }
 
       if (args.updateWP) {
-        const wowProgress = await this.getWowProgressProfile(
-          args.name,
-          args.realm,
-        );
+        const wowProgress = await this.getWowProgressProfile(args.name, args.realm);
         Object.assign(profileEntity, wowProgress);
         this.stats.wpUpdated++;
-        await job.updateProgress(80);
       }
 
       await this.charactersProfileRepository.save(profileEntity);
@@ -126,6 +123,16 @@ export class ProfileWorker extends WorkerHost {
           `${args.updateRIO ? chalk.blue('RIO') : ''}${args.updateWCL ? chalk.magenta(' WCL') : ''}${args.updateWP ? chalk.cyan(' WP') : ''}`,
       );
 
+      this.rabbitMQMonitorService.recordMessageProcessingDuration(
+        'osint.profiles',
+        duration / 1000,
+        'success',
+      );
+      await this.rabbitMQMonitorService.emitMessageCompleted(
+        'osint.profiles',
+        message,
+      );
+
       // Progress report every 25 profiles
       if (this.stats.total % 25 === 0) {
         this.logProgress();
@@ -134,21 +141,29 @@ export class ProfileWorker extends WorkerHost {
       this.stats.errors++;
       const duration = Date.now() - startTime;
 
-      await job.log(errorOrException);
       this.logger.error(
-        `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${job.data.guid} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`,
+        `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${message.data?.guid} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`,
       );
 
-      return 500;
+      this.rabbitMQMonitorService.recordMessageProcessingDuration(
+        'osint.profiles',
+        duration / 1000,
+        'failure',
+      );
+      await this.rabbitMQMonitorService.emitMessageFailed(
+        'osint.profiles',
+        message,
+        errorOrException,
+      );
+
+      throw errorOrException;
     }
   }
 
   private logProgress(): void {
     const uptime = Date.now() - this.stats.startTime;
     const rate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
-      1,
-    );
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
 
     this.logger.log(
       `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
@@ -167,9 +182,7 @@ export class ProfileWorker extends WorkerHost {
   public logFinalSummary(): void {
     const uptime = Date.now() - this.stats.startTime;
     const avgRate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
-      1,
-    );
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
 
     this.logger.log(
       `\n${chalk.cyan.bold('═'.repeat(60))}\n` +
@@ -214,9 +227,7 @@ export class ProfileWorker extends WorkerHost {
       );
 
       await page.goto(url);
-      const getBestPerfAvg = await page
-        .getByText('Best Perf. Avg')
-        .allInnerTexts();
+      const getBestPerfAvg = await page.getByText('Best Perf. Avg').allInnerTexts();
       const [getBestPerfAvgValue] = getBestPerfAvg;
 
       const [_text, value] = getBestPerfAvgValue.trim().split('\n');
@@ -278,8 +289,7 @@ export class ProfileWorker extends WorkerHost {
 
           const fieldValueName = CHARACTER_PROFILE_MAPPING.get(key);
           if (fieldValueName === 'readyToTransfer')
-            wowProgressProfile.readyToTransfer =
-              value.includes('ready to transfer');
+            wowProgressProfile.readyToTransfer = value.includes('ready to transfer');
 
           if (fieldValueName === 'raidDays' && value) {
             const [from, to] = value.split(' - ');
@@ -311,9 +321,7 @@ export class ProfileWorker extends WorkerHost {
       if (hasData) {
         this.logger.log(`${chalk.cyan('✓ WP')} ${guid} - Profile updated`);
       } else {
-        this.logger.warn(
-          `${chalk.yellow('⚠ WP')} ${guid} - No profile data found`,
-        );
+        this.logger.warn(`${chalk.yellow('⚠ WP')} ${guid} - No profile data found`);
       }
 
       return wowProgressProfile;
@@ -340,9 +348,7 @@ export class ProfileWorker extends WorkerHost {
 
       const isRaiderIoProfileValid = isRaiderIoProfile(raiderIoProfile);
       if (!isRaiderIoProfileValid) {
-        this.logger.warn(
-          `${chalk.yellow('⚠ RIO')} ${guid} - Invalid profile data`,
-        );
+        this.logger.warn(`${chalk.yellow('⚠ RIO')} ${guid} - Invalid profile data`);
         return rioProfileCharacter;
       }
 

@@ -1,16 +1,17 @@
-import { JobsOptions } from 'bullmq';
-import { IQueue } from '@app/resources/types';
+// RabbitMQ Queue Configuration
+// Replaces BullMQ OSINT_Profiles queue
 
-const options: JobsOptions = {
-  removeOnComplete: 10,
-  removeOnFail: 10,
-};
-
-export const profileQueue: IQueue = {
-  name: 'OSINT_Profiles',
-  workerOptions: {
-    concurrency: parseInt(process.env.PROFILE_WORKER_CONCURRENCY || '1', 10),
-    lockDuration: 1000 * 60 * 60 * 6,
+export const profileQueue = {
+  name: 'osint.profiles.queue',
+  exchange: 'osint.exchange',
+  routingKey: 'osint.profiles.*',
+  prefetchCount: parseInt(process.env.PROFILE_WORKER_CONCURRENCY || '1', 10),
+  queueOptions: {
+    durable: true,
+    deadLetterExchange: 'dlx.exchange',
+    deadLetterRoutingKey: 'dlx.osint.profiles',
+    messageTtl: 86400000, // 24 hours
+    maxLength: 100000,
+    maxPriority: 10,
   },
-  defaultJobOptions: options,
 };

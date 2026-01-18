@@ -340,8 +340,7 @@ export class LoggerService extends ConsoleLogger {
         message: parsedInfo.message,
         level: parsedInfo.level,
         timestamp: parsedInfo.timestamp,
-        serializationError:
-          error instanceof Error ? error.message : String(error),
+        serializationError: error instanceof Error ? error.message : String(error),
       });
     }
   }
@@ -544,13 +543,6 @@ export class LoggerService extends ConsoleLogger {
     logTag?: string,
     additionalInfo?: Record<string, any>,
   ): void {
-    this.universalLog(
-      'verbose',
-      input,
-      context,
-      labels,
-      logTag,
-      additionalInfo,
-    );
+    this.universalLog('verbose', input, context, labels, logTag, additionalInfo);
   }
 }

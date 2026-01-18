@@ -1,4 +1,3 @@
-export { IMongoConfig } from './mongo.interface';
 export { IRedisConfig } from './redis.interface';
 export { ICmnwConfig } from './cmnw.interface';
 export { IKeyConfig } from './key.interface';
@@ -10,3 +9,5 @@ export { IOsintConfig } from './osint.interface';
 export { IValuations } from './valuations.interface';
 export { IPostgres, IPostgresConfig } from './postgres.interface';
 export { IWorkerConfig } from './worker.interface';
+export { IRabbitMQConfig, IRabbitMQExchange } from './rabbitmq.interface';
+export { IQueueConfig } from './queue.interface';

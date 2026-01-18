@@ -311,8 +311,7 @@ export const DARKMOON_DECKS = {
         source: 'Darkmoon Cards: Warlords',
         target: 'Darkmoon Deck: Warlords',
       },
-      description:
-        'Darkmoon Card: Warlord (8x) → Darkmoon Deck: Warlords [8 → 1]',
+      description: 'Darkmoon Card: Warlord (8x) → Darkmoon Deck: Warlords [8 → 1]',
       reagents: [
         { itemId: 19275, quantity: 8 }, // Darkmoon Card: Warlord
       ],

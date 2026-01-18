@@ -45,10 +45,7 @@ export const characterAsGuildMember = async (
   }
 
   if (!characterEntity) {
-    const realmEntity = await findRealm(
-      realmsRepository,
-      guildMember.realmSlug,
-    );
+    const realmEntity = await findRealm(realmsRepository, guildMember.realmSlug);
 
     if (!realmEntity) {
       // @todo add somekind of logging here

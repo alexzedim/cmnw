@@ -14,12 +14,7 @@ import { HttpModule } from '@nestjs/axios';
   imports: [
     HttpModule,
     TypeOrmModule.forRoot(postgresConfig),
-    TypeOrmModule.forFeature([
-      KeysEntity,
-      RealmsEntity,
-      MarketEntity,
-      ItemsEntity,
-    ]),
+    TypeOrmModule.forFeature([KeysEntity, RealmsEntity, MarketEntity, ItemsEntity]),
   ],
   controllers: [],
   providers: [

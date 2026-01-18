@@ -1,5 +1,4 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IChartOrder } from '@app/resources';
 
 export class ItemChartResponseDto {
   @ApiProperty({

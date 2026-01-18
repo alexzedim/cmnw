@@ -55,8 +55,7 @@ export class CharacterService {
       characterStatus.isValid = false;
 
       if (statusResponse.id) characterStatus.id = statusResponse.id;
-      if (statusResponse.is_valid)
-        characterStatus.isValid = statusResponse.is_valid;
+      if (statusResponse.is_valid) characterStatus.isValid = statusResponse.is_valid;
 
       const hasLastModified = statusResponse.last_modified;
       if (hasLastModified) {
@@ -196,11 +195,7 @@ export class CharacterService {
 
       return media;
     } catch (errorOrException) {
-      const statusCode = get(
-        errorOrException,
-        'status',
-        STATUS_CODES.ERROR_MEDIA,
-      );
+      const statusCode = get(errorOrException, 'status', STATUS_CODES.ERROR_MEDIA);
 
       if (statusCode === 429) {
         this.logger.debug(
@@ -232,11 +227,7 @@ export class CharacterService {
 
       return response;
     } catch (errorOrException) {
-      const statusCode = get(
-        errorOrException,
-        'status',
-        STATUS_CODES.ERROR_MOUNTS,
-      );
+      const statusCode = get(errorOrException, 'status', STATUS_CODES.ERROR_MOUNTS);
 
       if (statusCode === 429) {
         this.logger.debug(
@@ -268,11 +259,7 @@ export class CharacterService {
 
       return response;
     } catch (errorOrException) {
-      const statusCode = get(
-        errorOrException,
-        'status',
-        STATUS_CODES.ERROR_PETS,
-      );
+      const statusCode = get(errorOrException, 'status', STATUS_CODES.ERROR_PETS);
 
       if (statusCode === 429) {
         this.logger.debug(

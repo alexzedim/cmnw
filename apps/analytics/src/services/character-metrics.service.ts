@@ -131,20 +131,19 @@ export class CharacterMetricsService {
         );
 
         if (!isRealmTotalExists) {
-          const characterRealmTotalMetric =
-            this.analyticsMetricRepository.create({
-              category: AnalyticsMetricCategory.CHARACTERS,
-              metricType: AnalyticsMetricType.TOTAL,
-              realmId: realmData.realm_id,
-              value: {
-                count: parseInt(realmData.total, 10),
-                inGuilds: parseInt(realmData.in_guilds || '0', 10),
-                notInGuilds:
-                  parseInt(realmData.total, 10) -
-                  parseInt(realmData.in_guilds || '0', 10),
-              },
-              snapshotDate,
-            });
+          const characterRealmTotalMetric = this.analyticsMetricRepository.create({
+            category: AnalyticsMetricCategory.CHARACTERS,
+            metricType: AnalyticsMetricType.TOTAL,
+            realmId: realmData.realm_id,
+            value: {
+              count: parseInt(realmData.total, 10),
+              inGuilds: parseInt(realmData.in_guilds || '0', 10),
+              notInGuilds:
+                parseInt(realmData.total, 10) -
+                parseInt(realmData.in_guilds || '0', 10),
+            },
+            snapshotDate,
+          });
           await this.analyticsMetricRepository.save(characterRealmTotalMetric);
           savedCount++;
         }
@@ -426,9 +425,7 @@ export class CharacterMetricsService {
     return 1;
   }
 
-  private async computeCharacterByRealmFaction(
-    snapshotDate: Date,
-  ): Promise<number> {
+  private async computeCharacterByRealmFaction(snapshotDate: Date): Promise<number> {
     const byRealmFaction = await this.charactersRepository
       .createQueryBuilder('c')
       .select('c.realm_id')
@@ -458,14 +455,13 @@ export class CharacterMetricsService {
       );
 
       if (!isRealmFactionExists) {
-        const characterRealmFactionMetric =
-          this.analyticsMetricRepository.create({
-            category: AnalyticsMetricCategory.CHARACTERS,
-            metricType: AnalyticsMetricType.BY_FACTION,
-            realmId: parseInt(realmId, 10),
-            value: factionCounts,
-            snapshotDate,
-          });
+        const characterRealmFactionMetric = this.analyticsMetricRepository.create({
+          category: AnalyticsMetricCategory.CHARACTERS,
+          metricType: AnalyticsMetricType.BY_FACTION,
+          realmId: parseInt(realmId, 10),
+          value: factionCounts,
+          snapshotDate,
+        });
         await this.analyticsMetricRepository.save(characterRealmFactionMetric);
         savedCount++;
       }
@@ -473,9 +469,7 @@ export class CharacterMetricsService {
     return savedCount;
   }
 
-  private async computeCharacterByRealmClass(
-    snapshotDate: Date,
-  ): Promise<number> {
+  private async computeCharacterByRealmClass(snapshotDate: Date): Promise<number> {
     const byRealmClass = await this.charactersRepository
       .createQueryBuilder('c')
       .select('c.realm_id')
@@ -505,15 +499,13 @@ export class CharacterMetricsService {
       );
 
       if (!isRealmClassExists) {
-        const characterRealmClassMetric = this.analyticsMetricRepository.create(
-          {
-            category: AnalyticsMetricCategory.CHARACTERS,
-            metricType: AnalyticsMetricType.BY_CLASS,
-            realmId: parseInt(realmId, 10),
-            value: classCounts,
-            snapshotDate,
-          },
-        );
+        const characterRealmClassMetric = this.analyticsMetricRepository.create({
+          category: AnalyticsMetricCategory.CHARACTERS,
+          metricType: AnalyticsMetricType.BY_CLASS,
+          realmId: parseInt(realmId, 10),
+          value: classCounts,
+          snapshotDate,
+        });
         await this.analyticsMetricRepository.save(characterRealmClassMetric);
         savedCount++;
       }
@@ -554,14 +546,13 @@ export class CharacterMetricsService {
       {} as Record<string, number>,
     );
 
-    const characterByClassMaxLevelMetric =
-      this.analyticsMetricRepository.create({
-        category: AnalyticsMetricCategory.CHARACTERS,
-        metricType: AnalyticsMetricType.BY_CLASS_MAX_LEVEL,
-        realmId: realmId || undefined,
-        value: classMap,
-        snapshotDate,
-      });
+    const characterByClassMaxLevelMetric = this.analyticsMetricRepository.create({
+      category: AnalyticsMetricCategory.CHARACTERS,
+      metricType: AnalyticsMetricType.BY_CLASS_MAX_LEVEL,
+      realmId: realmId || undefined,
+      value: classMap,
+      snapshotDate,
+    });
     await this.analyticsMetricRepository.save(characterByClassMaxLevelMetric);
     return 1;
   }
@@ -599,14 +590,13 @@ export class CharacterMetricsService {
       {} as Record<string, number>,
     );
 
-    const characterByFactionMaxLevelMetric =
-      this.analyticsMetricRepository.create({
-        category: AnalyticsMetricCategory.CHARACTERS,
-        metricType: AnalyticsMetricType.BY_FACTION_MAX_LEVEL,
-        realmId: realmId || undefined,
-        value: factionMap,
-        snapshotDate,
-      });
+    const characterByFactionMaxLevelMetric = this.analyticsMetricRepository.create({
+      category: AnalyticsMetricCategory.CHARACTERS,
+      metricType: AnalyticsMetricType.BY_FACTION_MAX_LEVEL,
+      realmId: realmId || undefined,
+      value: factionMap,
+      snapshotDate,
+    });
     await this.analyticsMetricRepository.save(characterByFactionMaxLevelMetric);
     return 1;
   }
@@ -650,15 +640,13 @@ export class CharacterMetricsService {
       {} as Record<string, number>,
     );
 
-    const characterByRaceMaxLevelMetric = this.analyticsMetricRepository.create(
-      {
-        category: AnalyticsMetricCategory.CHARACTERS,
-        metricType: AnalyticsMetricType.BY_RACE_MAX_LEVEL,
-        realmId: realmId || undefined,
-        value: raceMap,
-        snapshotDate,
-      },
-    );
+    const characterByRaceMaxLevelMetric = this.analyticsMetricRepository.create({
+      category: AnalyticsMetricCategory.CHARACTERS,
+      metricType: AnalyticsMetricType.BY_RACE_MAX_LEVEL,
+      realmId: realmId || undefined,
+      value: raceMap,
+      snapshotDate,
+    });
     await this.analyticsMetricRepository.save(characterByRaceMaxLevelMetric);
     return 1;
   }
@@ -690,14 +678,13 @@ export class CharacterMetricsService {
       [String(maxLevel)]: parseInt(byLevelMaxLevel?.count || '0', 10),
     };
 
-    const characterByLevelMaxLevelMetric =
-      this.analyticsMetricRepository.create({
-        category: AnalyticsMetricCategory.CHARACTERS,
-        metricType: AnalyticsMetricType.BY_LEVEL_MAX_LEVEL,
-        realmId: realmId || undefined,
-        value: levelMap,
-        snapshotDate,
-      });
+    const characterByLevelMaxLevelMetric = this.analyticsMetricRepository.create({
+      category: AnalyticsMetricCategory.CHARACTERS,
+      metricType: AnalyticsMetricType.BY_LEVEL_MAX_LEVEL,
+      realmId: realmId || undefined,
+      value: levelMap,
+      snapshotDate,
+    });
     await this.analyticsMetricRepository.save(characterByLevelMaxLevelMetric);
     return 1;
   }
@@ -743,9 +730,7 @@ export class CharacterMetricsService {
             value: classCounts,
             snapshotDate,
           });
-        await this.analyticsMetricRepository.save(
-          characterRealmClassMaxLevelMetric,
-        );
+        await this.analyticsMetricRepository.save(characterRealmClassMaxLevelMetric);
         savedCount++;
       }
     }
@@ -930,9 +915,7 @@ export class CharacterMetricsService {
         achievementPoints: averages
           ? Math.floor(parseFloat(averages.avg_achievement || '0'))
           : 0,
-        mounts: averages
-          ? Math.floor(parseFloat(averages.avg_mounts || '0'))
-          : 0,
+        mounts: averages ? Math.floor(parseFloat(averages.avg_mounts || '0')) : 0,
         pets: averages ? Math.floor(parseFloat(averages.avg_pets || '0')) : 0,
         itemLevel: averages
           ? Math.floor(parseFloat(averages.avg_item_level || '0'))
