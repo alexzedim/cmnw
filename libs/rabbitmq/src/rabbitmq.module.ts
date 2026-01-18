@@ -61,6 +61,15 @@ export class RabbitMQModule implements OnModuleInit {
       // Create all queues and bind them to exchanges
       for (const [_queueKey, queueConfig] of Object.entries(RABBITMQ_QUEUES)) {
         try {
+          this.logger.debug({
+            logTag: 'RabbitMQModule.onModuleInit',
+            message: `Asserting queue with config: ${queueConfig.name}`,
+            queueName: queueConfig.name,
+            exchange: queueConfig.exchange,
+            routingKeys: queueConfig.routingKeys,
+            options: queueConfig.options,
+          });
+
           // Assert queue with its configuration
           await channel.assertQueue(queueConfig.name, queueConfig.options);
 
