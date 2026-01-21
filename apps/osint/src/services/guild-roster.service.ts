@@ -26,6 +26,7 @@ import {
   ICharacterGuildMember,
   PLAYABLE_RACE,
   isGuildMember,
+  IRGuildRosterMember,
 } from '@app/resources';
 import { CharactersEntity, GuildsEntity, KeysEntity, RealmsEntity } from '@app/pg';
 import { RabbitMQPublisherService } from '@app/rabbitmq';
@@ -82,7 +83,12 @@ export class GuildRosterService {
 
       return roster;
     } catch (errorOrException) {
-      return this.handleRosterError(errorOrException, roster, guildEntity, BNet);
+      return this.handleRosterError(
+        errorOrException,
+        roster,
+        guildEntity,
+        BNet,
+      );
     }
   }
 
@@ -107,7 +113,9 @@ export class GuildRosterService {
       const guid = toGuid(member.character.name, realmSlug);
 
       const level = member.character.level || null;
-      const characterClass = PLAYABLE_CLASS.has(member.character.playable_class.id)
+      const characterClass = PLAYABLE_CLASS.has(
+        member.character.playable_class.id,
+      )
         ? PLAYABLE_CLASS.get(member.character.playable_class.id)
         : null;
 
@@ -130,7 +138,9 @@ export class GuildRosterService {
           factionData.type && factionData.name === null;
 
         if (hasFactionTypeWithoutName) {
-          const factionTypeStartsWithA = factionData.type.toString().startsWith('A');
+          const factionTypeStartsWithA = factionData.type
+            .toString()
+            .startsWith('A');
           resolvedFaction = factionTypeStartsWithA ? FACTION.A : FACTION.H;
         } else if (factionData.name) {
           resolvedFaction = factionData.name;
@@ -186,7 +196,7 @@ export class GuildRosterService {
   }
 
   private async queueGuildMasterUpdate(
-    member: any,
+    member: Readonly<IRGuildRosterMember>,
     guildEntity: GuildsEntity,
     guildNameSlug: string,
     guid: string,
@@ -199,6 +209,7 @@ export class GuildRosterService {
   ): Promise<void> {
     const resolvedFaction = faction ?? guildEntity.faction ?? undefined;
     const dto = CharacterMessageDto.fromGuildMaster({
+      id: member.character.id,
       name: member.character.name,
       realm: realmSlug,
       guild: guildEntity.name,
@@ -255,10 +266,15 @@ export class GuildRosterService {
     guildEntity: GuildsEntity,
     BNet: BlizzAPI,
   ): IGuildRoster {
-    roster.statusCode = get(errorOrException, 'status', STATUS_CODES.ERROR_ROSTER);
+    roster.statusCode = get(
+      errorOrException,
+      'status',
+      STATUS_CODES.ERROR_ROSTER,
+    );
 
     const isTooManyRequests =
-      roster.statusCode === GUILD_WORKER_CONSTANTS.TOO_MANY_REQUESTS_STATUS_CODE;
+      roster.statusCode ===
+      GUILD_WORKER_CONSTANTS.TOO_MANY_REQUESTS_STATUS_CODE;
 
     if (isTooManyRequests) {
       incErrorCount(this.keysRepository, BNet.accessTokenObject.access_token);

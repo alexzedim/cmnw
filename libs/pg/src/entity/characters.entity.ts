@@ -222,10 +222,6 @@ export class CharactersEntity {
 
   // TODO professions
 
-  // TODO LFG to separate table
-
-  // TODO rio score separate table
-
   @Column({
     default: 'OSINT-CHARACTER-GET',
     nullable: true,

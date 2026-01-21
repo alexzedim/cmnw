@@ -9,7 +9,7 @@ import { v4 as uuidv4 } from 'uuid';
  */
 export interface IRabbitMQMessageBase<T> {
   /** Unique message ID (auto-generated if not provided) */
-  id?: string;
+  messageId?: string;
   /** Message payload (validated DTO) */
   data: T;
   /** Message priority (0-10, default: 5) */
@@ -29,7 +29,7 @@ export interface IRabbitMQMessageBase<T> {
 export class RabbitMQMessageDto<T> {
   private static readonly logger = new Logger(RabbitMQMessageDto.name);
 
-  readonly id: string;
+  readonly messageId: string;
   readonly data: T;
   readonly timestamp: number;
   readonly attempts: number;
@@ -50,8 +50,10 @@ export class RabbitMQMessageDto<T> {
    * Constructor - creates a validated RabbitMQ message wrapper
    * @param params - Message parameters
    */
-  constructor(params: IRabbitMQMessageBase<T> & { metadata?: Record<string, any> }) {
-    this.id = params.id || uuidv4();
+  constructor(
+    params: IRabbitMQMessageBase<T> & { metadata?: Record<string, any> },
+  ) {
+    this.messageId = params.messageId || uuidv4();
     this.data = params.data;
     this.timestamp = Date.now();
     this.attempts = 0;
@@ -67,7 +69,8 @@ export class RabbitMQMessageDto<T> {
       const dto = this.data as any;
       if (dto.createdBy) this.metadata.createdBy = dto.createdBy;
       if (dto.updatedBy) this.metadata.updatedBy = dto.updatedBy;
-      if (dto.forceUpdate !== undefined) this.metadata.forceUpdate = dto.forceUpdate;
+      if (dto.forceUpdate !== undefined)
+        this.metadata.forceUpdate = dto.forceUpdate;
       if (dto.createOnlyUnique !== undefined)
         this.metadata.createOnlyUnique = dto.createOnlyUnique;
     }
@@ -94,14 +97,14 @@ export class RabbitMQMessageDto<T> {
 
     for (const field of requiredFields) {
       if (this[field] === undefined || this[field] === null) {
-        const message = `Validation failed: missing required field '${field}' for message '${this.id || 'unknown'}'`;
+        const message = `Validation failed: missing required field '${field}' for message '${this.messageId || 'unknown'}'`;
         if (strict) {
           throw new Error(message);
         } else {
           RabbitMQMessageDto.logger.warn({
             logTag: 'RabbitMQMessageDto.validate',
             message,
-            messageId: this.id,
+            messageId: this.messageId,
           });
         }
       }
@@ -109,14 +112,14 @@ export class RabbitMQMessageDto<T> {
 
     // Validate priority range
     if (this.priority < 0 || this.priority > 10) {
-      const message = `Validation failed: priority must be between 0-10, got '${this.priority}' for message '${this.id}'`;
+      const message = `Validation failed: priority must be between 0-10, got '${this.priority}' for message '${this.messageId}'`;
       if (strict) {
         throw new Error(message);
       } else {
         RabbitMQMessageDto.logger.warn({
           logTag: 'RabbitMQMessageDto.validate',
           message,
-          messageId: this.id,
+          messageId: this.messageId,
           priority: this.priority,
         });
       }
@@ -137,7 +140,7 @@ export class RabbitMQMessageDto<T> {
             RabbitMQMessageDto.logger.warn({
               logTag: 'RabbitMQMessageDto.validate',
               message,
-              messageId: this.id,
+              messageId: this.messageId,
               error: error.message,
             });
           }
@@ -159,7 +162,7 @@ export class RabbitMQMessageDto<T> {
     headers: Record<string, any>;
   } {
     return {
-      messageId: this.id,
+      messageId: this.messageId,
       timestamp: this.timestamp,
       priority: this.priority,
       persistent: this.persistent,
@@ -178,7 +181,7 @@ export class RabbitMQMessageDto<T> {
    */
   incrementAttempts(): RabbitMQMessageDto<T> {
     return new RabbitMQMessageDto({
-      id: this.id,
+      messageId: this.messageId,
       data: this.data,
       priority: this.priority,
       source: this.source,
@@ -203,7 +206,7 @@ export class RabbitMQMessageDto<T> {
     const headers = properties.headers || {};
 
     return new RabbitMQMessageDto({
-      id: properties.messageId || content.id,
+      messageId: properties.messageId || content.id,
       data: content.data || content,
       priority: properties.priority,
       source: headers.source || 'unknown',

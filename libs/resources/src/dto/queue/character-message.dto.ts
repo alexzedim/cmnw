@@ -37,7 +37,9 @@ export interface ICharacterMessageBase {
 }
 
 export class CharacterMessageDto extends RabbitMQMessageDto<any> {
-  private static readonly characterLogger = new Logger(CharacterMessageDto.name);
+  private static readonly characterLogger = new Logger(
+    CharacterMessageDto.name,
+  );
 
   private static isRabbitMQMessageBase<T>(
     params: any,
@@ -50,10 +52,14 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
   ): params is Omit<Partial<CharacterMessageDto>, 'guid'> &
     Pick<ICharacterMessageBase, 'name' | 'realm'> {
     return (
-      !!params && typeof params === 'object' && 'name' in params && 'realm' in params
+      !!params &&
+      typeof params === 'object' &&
+      'name' in params &&
+      'realm' in params
     );
   }
 
+  readonly id?: number;
   readonly guid: string;
   readonly name: string;
   readonly realm: string;
@@ -85,7 +91,6 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
   readonly createdAt?: Date;
   readonly updatedAt?: Date;
   readonly lastModified?: Date;
-  readonly characterId?: number;
   readonly achievementPoints?: number;
   readonly averageItemLevel?: number;
   readonly equippedItemLevel?: number;
@@ -103,7 +108,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
     const characterData = params.data || params;
 
     super({
-      id: params.id || characterData.guid,
+      messageId: characterData.guid || params.id,
       data: characterData,
       priority: params.priority ?? 5,
       source: params.source ?? OSINT_SOURCE.CHARACTER_INDEX,
@@ -149,7 +154,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       ...params,
       guid,
       createdBy: params.createdBy || params.updatedBy,
-      id: params.id ?? guid,
+      messageId: guid,
     });
     dto.validate(false, 'CharacterMessageDto.create');
     return dto;
@@ -181,7 +186,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
       // RabbitMQ metadata
-      id: guid,
+      messageId: guid,
       priority: 7,
       source: OSINT_SOURCE.MYTHIC_PLUS,
       routingKey: 'osint.characters.ladder.high',
@@ -221,7 +226,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
       // RabbitMQ metadata
-      id: guid,
+      messageId: guid,
       priority: 7,
       source: OSINT_SOURCE.PVP_LADDER,
       routingKey: 'osint.characters.ladder.high',
@@ -258,7 +263,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
       // RabbitMQ metadata
-      id: guid,
+      messageId: guid,
       priority: 8,
       source: OSINT_SOURCE.WARCRAFT_LOGS,
       routingKey: 'osint.characters.raid.urgent',
@@ -297,7 +302,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
       // RabbitMQ metadata
-      id: guid,
+      messageId: guid,
       priority: 6,
       source: OSINT_SOURCE.WOW_PROGRESS_LFG,
       routingKey: 'osint.characters.lfg.normal',
@@ -312,6 +317,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
    * Create from Guild Roster (Guild Master)
    */
   static fromGuildMaster(params: {
+    id: number;
     name: string;
     realm: string;
     guild: string;
@@ -331,6 +337,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
     const resolvedFaction = params.faction ?? undefined;
     const dto = new CharacterMessageDto({
       guid,
+      id: params.id,
       name: params.name,
       realm: params.realm,
       guild: params.guild,
@@ -351,7 +358,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
       // RabbitMQ metadata
-      id: guid,
+      messageId: guid,
       priority: 9,
       source: OSINT_SOURCE.GUILD_ROSTER,
       routingKey: 'osint.characters.guild.urgent',
@@ -389,7 +396,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       accessToken: params.accessToken,
       iteration: params.iteration,
       // RabbitMQ metadata
-      id: params.guid,
+      messageId: params.guid,
       priority: 5,
       source: OSINT_SOURCE.CHARACTER_INDEX,
       routingKey: 'osint.characters.index.normal',
@@ -404,6 +411,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
    * Create from Guild Member (non-guild master)
    */
   static fromGuildMember(params: {
+    id?: number;
     name: string;
     realm: string;
     realmId: number;
@@ -419,12 +427,11 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
     clientId: string;
     clientSecret: string;
     accessToken: string;
-    id?: number;
   }): CharacterMessageDto {
     const guid = toGuid(params.name, params.realm);
     const dto = new CharacterMessageDto({
       guid,
-      characterId: params.id,
+      id: params.id,
       name: params.name,
       realm: params.realm,
       realmId: params.realmId,
@@ -446,7 +453,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
       // RabbitMQ metadata
-      id: guid,
+      messageId: guid,
       priority: 3,
       source: OSINT_SOURCE.GUILD_ROSTER,
       routingKey: 'osint.characters.guild.low',
@@ -480,7 +487,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<any> {
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
       // RabbitMQ metadata
-      id: params.guid,
+      messageId: params.guid,
       priority: 2,
       source: OSINT_SOURCE.OSINT_MIGRATION,
       routingKey: 'osint.characters.migration.low',
