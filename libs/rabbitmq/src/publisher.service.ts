@@ -35,7 +35,7 @@ export class RabbitMQPublisherService {
       this.logger.debug({
         logTag: 'RabbitMQPublisherService.publishMessage',
         message: 'Message published successfully',
-        messageId: message.id,
+        messageId: message.messageId,
         exchange,
         routingKey,
         priority: message.priority,
@@ -44,7 +44,7 @@ export class RabbitMQPublisherService {
       this.logger.error({
         logTag: 'RabbitMQPublisherService.publishMessage',
         message: 'Failed to publish message',
-        messageId: message.id,
+        messageId: message.messageId,
         error: error.message,
         stack: error.stack,
       });
@@ -118,7 +118,7 @@ export class RabbitMQPublisherService {
           this.logger.warn({
             logTag: 'RabbitMQPublisherService.publishWithRetry',
             message: `Publish attempt ${attempt + 1} failed, retrying in ${delayMs}ms`,
-            messageId: message.id,
+            messageId: message.messageId,
             attempt: attempt + 1,
             maxRetries,
             error: error.message,
@@ -131,7 +131,7 @@ export class RabbitMQPublisherService {
     this.logger.error({
       logTag: 'RabbitMQPublisherService.publishWithRetry',
       message: `Failed to publish message after ${maxRetries + 1} attempts`,
-      messageId: message.id,
+      messageId: message.messageId,
       maxRetries,
       error: lastError?.message,
     });
