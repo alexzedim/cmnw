@@ -342,14 +342,21 @@ export function transformFaction(faction: unknown): FACTION | null {
     return null;
   }
 
-  // @todo faction type is set to { type?: string | null; name?: string | null; } in some cases
+  const factionObject = faction as { type?: string | null; name?: string | null; };
 
-  const hasFactionTypeWithoutName = faction.type && faction.name === null;
+  const hasFactionTypeWithoutName = factionObject.type && factionObject.name === null;
   if (hasFactionTypeWithoutName) {
-    const factionTypeStartsWithA = faction.type.toString().startsWith('A');
-    summary.faction = factionTypeStartsWithA ? FACTION.A : FACTION.H;
-  } else {
-    summary.faction = faction.name;
+    const typeUpper = factionObject.type.toString().toUpperCase();
+    const validFactions = Object.values(FACTION).filter(f => f !== FACTION.ANY);
+    const matchedFaction = validFactions.find(f => f.toString().toUpperCase() === typeUpper);
+    return matchedFaction || null;
+  }
+
+  if (factionObject.name) {
+    const nameUpper = factionObject.name.toUpperCase();
+    const validFactions = Object.values(FACTION).filter(f => f !== FACTION.ANY);
+    const matchedFaction = validFactions.find(f => f.toString().toUpperCase() === nameUpper);
+    return matchedFaction || null;
   }
 
   return null
