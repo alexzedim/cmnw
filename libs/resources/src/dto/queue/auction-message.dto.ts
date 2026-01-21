@@ -18,7 +18,7 @@ export class AuctionMessageDto extends RabbitMQMessageDto<AuctionJobQueue> {
     const auctionData = params.data || params.payload || params;
 
     super({
-      id: params.id || `auction-${auctionData.connectedRealmId}`,
+      messageId: params.id || `auction-${auctionData.connectedRealmId}`,
       data: auctionData,
       priority: params.priority ?? 5,
       source: params.source ?? 'dma',
