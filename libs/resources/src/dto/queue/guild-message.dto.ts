@@ -5,6 +5,7 @@ import {
   IRabbitMQMessageBase,
   RabbitMQMessageDto,
 } from '@app/resources/dto/queue';
+import { RegionIdOrName } from '@alexzedim/blizzapi';
 
 /**
  * Guild Message DTO for RabbitMQ
@@ -34,6 +35,7 @@ import {
  */
 export interface IGuildMessageBase {
   id?: number;
+  region: RegionIdOrName;
   /** Guild name (will be converted to kebab-case for guid) */
   name: string;
   /** Realm slug (will be converted to kebab-case for guid) */
