@@ -1,0 +1,121 @@
+commit fa4bf208dd0c1d95acc4aa17ea8db81135b08321
+Author: Петербуржский Александр Дмитриевич <apeterburzhskii@sigma-it.ru>
+Date:   Wed Jan 21 03:57:13 2026 +0300
+
+    feat(guilds): add support for auction and guild message queuing
+
+diff --git a/apps/guilds/src/guilds.service.ts b/apps/guilds/src/guilds.service.ts
+index f67198b3..f92a7495 100644
+--- a/apps/guilds/src/guilds.service.ts
++++ b/apps/guilds/src/guilds.service.ts
+@@ -194,6 +194,7 @@ export class GuildsService implements OnApplicationBootstrap {
+               this.keyEntities[guildIteration % length];
+ 
+             const dto = GuildMessageDto.fromGuildIndex({
++              id: guild.id,
+               guid: guild.guid,
+               name: guild.name,
+               realm: guild.realm,
+@@ -280,6 +281,7 @@ export class GuildsService implements OnApplicationBootstrap {
+               }
+ 
+               return GuildMessageDto.fromHallOfFame({
++                id: guildEntry.guild.id,
+                 name: guildEntry.guild.name,
+                 realm: guildEntry.guild.realm.slug,
+                 realmId: guildEntry.guild.realm.id,
+diff --git a/libs/resources/src/dto/queue/auction-message.dto.ts b/libs/resources/src/dto/queue/auction-message.dto.ts
+index dafc3dd0..5c7b8019 100644
+--- a/libs/resources/src/dto/queue/auction-message.dto.ts
++++ b/libs/resources/src/dto/queue/auction-message.dto.ts
+@@ -18,7 +18,7 @@ export class AuctionMessageDto extends RabbitMQMessageDto<AuctionJobQueue> {
+     const auctionData = params.data || params.payload || params;
+ 
+     super({
+-      id: params.id || `auction-${auctionData.connectedRealmId}`,
++      messageId: params.id || `auction-${auctionData.connectedRealmId}`,
+       data: auctionData,
+       priority: params.priority ?? 5,
+       source: params.source ?? 'dma',
+diff --git a/libs/resources/src/dto/queue/guild-message.dto.ts b/libs/resources/src/dto/queue/guild-message.dto.ts
+index 69c5d11b..f2946d0e 100644
+--- a/libs/resources/src/dto/queue/guild-message.dto.ts
++++ b/libs/resources/src/dto/queue/guild-message.dto.ts
+@@ -75,6 +75,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<any> {
+   }
+ 
+   // Guild Job Queue properties
++  readonly id: number;
+   readonly guid: string;
+   readonly name: string;
+   readonly realm: string;
+@@ -105,7 +106,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<any> {
+ 
+     // Call parent constructor with RabbitMQ metadata
+     super({
+-      id: params.id || guildData.guid,
++      messageId: guildData.guid || params.id,
+       data: guildData,
+       priority: params.priority ?? 5,
+       source: params.source ?? OSINT_SOURCE.GUILD_INDEX,
+@@ -185,7 +186,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<any> {
+       clientSecret: params.clientSecret,
+       accessToken: params.accessToken,
+       // RabbitMQ metadata
+-      id: guid,
++      messageId: guid,
+       priority: 7,
+       source: OSINT_SOURCE.GUILD_CHARACTERS_UNIQUE,
+       routingKey: 'osint.guilds.roster.high',
+@@ -223,7 +224,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<any> {
+       accessToken: params.accessToken,
+       iteration: params.iteration,
+       // RabbitMQ metadata
+-      id: params.guid,
++      messageId: params.guid,
+       priority: 5,
+       source: OSINT_SOURCE.GUILD_INDEX,
+       routingKey: 'osint.guilds.index.normal',
+@@ -240,6 +241,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<any> {
+    * Note: Only EU region is supported - any other region will be ignored and defaulted to EU
+    */
+   static fromHallOfFame(params: {
++    id?: number;
+     name: string;
+     realm: string;
+     realmId: number;
+@@ -263,6 +265,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<any> {
+     }
+     const dto = new GuildMessageDto({
+       guid,
++      id: params.id,
+       name: params.name,
+       realm: params.realm,
+       realmId: params.realmId,
+@@ -278,7 +281,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<any> {
+       clientSecret: params.clientSecret,
+       accessToken: params.accessToken,
+       // RabbitMQ metadata
+-      id: guid,
++      messageId: guid,
+       priority: 9, // Highest priority for Hall of Fame guilds
+       source: OSINT_SOURCE.TOP100,
+       routingKey: 'osint.guilds.hof.urgent',
+@@ -316,7 +319,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<any> {
+       clientSecret: params.clientSecret,
+       accessToken: params.accessToken,
+       // RabbitMQ metadata
+-      id: guid,
++      messageId: guid,
+       priority: 6,
+       source: OSINT_SOURCE.WOW_PROGRESS,
+       routingKey: 'osint.guilds.wowprogress.normal',
+@@ -352,7 +355,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<any> {
+       clientSecret: params.clientSecret,
+       accessToken: params.accessToken,
+       // RabbitMQ metadata
+-      id: guid,
++      messageId: guid,
+       priority: 8, // High priority for user requests
+       source: OSINT_SOURCE.GUILD_REQUEST,
+       routingKey: 'osint.guilds.request.high',

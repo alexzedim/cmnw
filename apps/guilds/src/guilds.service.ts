@@ -194,6 +194,7 @@ export class GuildsService implements OnApplicationBootstrap {
               this.keyEntities[guildIteration % length];
 
             const dto = GuildMessageDto.fromGuildIndex({
+              id: guild.id,
               guid: guild.guid,
               name: guild.name,
               realm: guild.realm,
@@ -280,6 +281,7 @@ export class GuildsService implements OnApplicationBootstrap {
               }
 
               return GuildMessageDto.fromHallOfFame({
+                id: guildEntry.guild.id,
                 name: guildEntry.guild.name,
                 realm: guildEntry.guild.realm.slug,
                 realmId: guildEntry.guild.realm.id,
