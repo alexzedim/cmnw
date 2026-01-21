@@ -5,7 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import {
   capitalize,
   GuildExistsOrCreate,
-  GuildJobQueue,
+  IGuildMessageBase,
   OSINT_SOURCE,
   STATUS_CODES,
   TIME_MS,
@@ -26,7 +26,9 @@ export class GuildService {
     private readonly realmsRepository: Repository<RealmsEntity>,
   ) {}
 
-  async findOrCreate(guildJob: GuildJobQueue): Promise<GuildExistsOrCreate> {
+  async findOrCreate(
+    guildJob: IGuildMessageBase,
+  ): Promise<GuildExistsOrCreate> {
     const forceUpdate = guildJob.forceUpdate || TIME_MS.FOUR_HOURS;
     const nameSlug = toSlug(guildJob.name);
     const timestampNow = new Date().getTime();
@@ -75,7 +77,7 @@ export class GuildService {
   }
 
   private createNew(
-    guildJob: GuildJobQueue,
+    guildJob: IGuildMessageBase,
     realmEntity: RealmsEntity,
   ): GuildExistsOrCreate {
     const nameSlug = toSlug(guildJob.name);

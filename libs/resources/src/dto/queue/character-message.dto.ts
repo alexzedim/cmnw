@@ -18,6 +18,17 @@ import {
  * Only requires essential fields; guid is auto-generated from name + realm
  */
 export interface ICharacterMessageBase {
+  id?: number;
+  guid?: string;
+  realmId?: number;
+  realmName?: string;
+  guild?: string;
+  guildGuid?: string;
+  guildId?: number;
+  guildRank?: number;
+  class?: string;
+  lastModified?: Date;
+  region: 'eu';
   /** Character name (will be converted to kebab-case for guid) */
   name: string;
   /** Realm slug (will be converted to kebab-case for guid) */
@@ -36,7 +47,7 @@ export interface ICharacterMessageBase {
   createdBy?: OSINT_SOURCE;
 }
 
-export class CharacterMessageDto extends RabbitMQMessageDto<any> {
+export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBase> {
   private static readonly characterLogger = new Logger(
     CharacterMessageDto.name,
   );

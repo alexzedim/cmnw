@@ -11,6 +11,7 @@ import {
   IQRealm,
 } from '@app/resources/types';
 
+// @todo research don't move
 export type CharacterJobQueue = Readonly<IQCharacter> &
   Omit<CharactersEntity, 'uuid' | 'realmName' | 'realmId'> &
   Readonly<IQCharacterOptions> &

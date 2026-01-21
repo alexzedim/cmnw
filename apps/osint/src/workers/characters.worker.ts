@@ -8,13 +8,13 @@ import { coreConfig } from '@app/configuration';
 import { RabbitMQMonitorService, RabbitMQPublisherService } from '@app/rabbitmq';
 import {
   CHARACTER_SUMMARY_FIELD_MAPPING,
-  CharacterJobQueue,
   charactersQueue,
   getRandomProxy,
   OSINT_SOURCE,
   RabbitMQMessageDto,
   toSlug,
   CharacterMessageDto,
+  ICharacterMessageBase,
 } from '@app/resources';
 
 import { CharactersEntity, KeysEntity } from '@app/pg';
@@ -67,7 +67,9 @@ export class CharactersWorker {
       },
     },
   })
-  public async handleCharacterMessage(message: CharacterMessageDto): Promise<void> {
+  public async handleCharacterMessage(
+    message: CharacterMessageDto,
+  ): Promise<void> {
     await this.processCharacterMessage(message);
   }
 
@@ -195,7 +197,7 @@ export class CharactersWorker {
     message: CharacterMessageDto,
   ): Promise<void> {
     const responseMessage = RabbitMQMessageDto.create({
-      id: message.id,
+      messageId: characterEntity.guid,
       data: characterEntity,
       priority: 10,
       source: OSINT_SOURCE.CHARACTER_REQUEST,
@@ -212,7 +214,10 @@ export class CharactersWorker {
     );
   }
 
-  private logCharacterResult(character: CharactersEntity, duration: number): void {
+  private logCharacterResult(
+    character: CharactersEntity,
+    duration: number,
+  ): void {
     const statusCode = character.statusCode;
     const guid = character.guid;
 
@@ -241,7 +246,9 @@ export class CharactersWorker {
   private logProgress(): void {
     const uptime = Date.now() - this.stats.startTime;
     const rate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
+      1,
+    );
 
     this.logger.log(
       `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
@@ -260,7 +267,9 @@ export class CharactersWorker {
   public logFinalSummary(): void {
     const uptime = Date.now() - this.stats.startTime;
     const avgRate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
+      1,
+    );
 
     this.logger.log(
       `\n${chalk.cyan.bold('═'.repeat(60))}\n` +
@@ -280,7 +289,7 @@ export class CharactersWorker {
 
   private inheritSafeValuesFromArgs(
     characterEntity: CharactersEntity,
-    args: CharacterJobQueue,
+    args: ICharacterMessageBase,
   ): void {
     for (const key of CHARACTER_SUMMARY_FIELD_MAPPING.keys()) {
       const isInheritKeyValue = args[key] && !characterEntity[key];
@@ -290,7 +299,9 @@ export class CharactersWorker {
     }
   }
 
-  private async initializeApiClient(args: CharacterJobQueue): Promise<BlizzAPI> {
+  private async initializeApiClient(
+    args: ICharacterMessageBase,
+  ): Promise<BlizzAPI> {
     return new BlizzAPI({
       region: args.region || 'eu',
       clientId: args.clientId,
@@ -308,10 +319,18 @@ export class CharactersWorker {
   ): Promise<void> {
     const [summary, petsCollection, mountsCollection, media] =
       await Promise.allSettled([
-        this.characterService.getSummary(nameSlug, characterEntity.realm, this.BNet),
+        this.characterService.getSummary(
+          nameSlug,
+          characterEntity.realm,
+          this.BNet,
+        ),
         this.fetchAndSyncPets(nameSlug, characterEntity.realm),
         this.fetchAndSyncMounts(nameSlug, characterEntity.realm),
-        this.characterService.getMedia(nameSlug, characterEntity.realm, this.BNet),
+        this.characterService.getMedia(
+          nameSlug,
+          characterEntity.realm,
+          this.BNet,
+        ),
       ]);
 
     const isSummaryFulfilled = summary.status === 'fulfilled';

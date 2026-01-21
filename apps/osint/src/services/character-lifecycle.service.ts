@@ -5,7 +5,7 @@ import {
   ACTION_LOG,
   capitalize,
   CharacterExistsOrCreate,
-  CharacterJobQueue,
+  ICharacterMessageBase,
   OSINT_SOURCE,
   STATUS_CODES,
   TIME_MS,
@@ -30,7 +30,7 @@ export class CharacterLifecycleService {
   ) {}
 
   async findOrCreateCharacter(
-    character: CharacterJobQueue,
+    character: ICharacterMessageBase,
   ): Promise<CharacterExistsOrCreate> {
     const forceUpdate = character.forceUpdate || TIME_MS.TWENTY_FOUR_HOURS;
     const timestampNow = new Date().getTime();
@@ -85,7 +85,7 @@ export class CharacterLifecycleService {
   }
 
   private createNewCharacter(
-    character: CharacterJobQueue,
+    character: ICharacterMessageBase,
     realmEntity: RealmsEntity,
   ): CharacterExistsOrCreate {
     const characterNew = this.charactersRepository.create({
