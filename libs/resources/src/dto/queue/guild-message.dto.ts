@@ -33,6 +33,7 @@ import {
  * Only requires essential fields; guid is auto-generated from name + realm
  */
 export interface IGuildMessageBase {
+  id?: number;
   /** Guild name (will be converted to kebab-case for guid) */
   name: string;
   /** Realm slug (will be converted to kebab-case for guid) */
@@ -51,7 +52,7 @@ export interface IGuildMessageBase {
   createdBy?: OSINT_SOURCE;
 }
 
-export class GuildMessageDto extends RabbitMQMessageDto<any> {
+export class GuildMessageDto extends RabbitMQMessageDto<IGuildMessageBase> {
   private static readonly guildLogger = new Logger(GuildMessageDto.name);
 
   private static isRabbitMQMessageBase<T>(
@@ -70,7 +71,10 @@ export class GuildMessageDto extends RabbitMQMessageDto<any> {
   ): params is Omit<Partial<GuildMessageDto>, 'guid'> &
     Pick<IGuildMessageBase, 'name' | 'realm'> {
     return (
-      !!params && typeof params === 'object' && 'name' in params && 'realm' in params
+      !!params &&
+      typeof params === 'object' &&
+      'name' in params &&
+      'realm' in params
     );
   }
 

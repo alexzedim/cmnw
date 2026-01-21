@@ -1,4 +1,8 @@
-import { BlizzardApiNamedField, ConvertPrice } from '@app/resources/index';
+import {
+  BlizzardApiNamedField,
+  ConvertPrice,
+  FACTION,
+} from '@app/resources/index';
 import { TransformFnParams } from 'class-transformer';
 import { DateTime } from 'luxon';
 
@@ -328,4 +332,25 @@ export function transformToTrimmedString(
 
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : undefined;
+}
+
+export function transformFaction(faction: unknown): FACTION | null {
+
+  const isFactionObject = typeof faction === 'object' && faction !== null;
+
+  if (!isFactionObject) {
+    return null;
+  }
+
+  // @todo faction type is set to { type?: string | null; name?: string | null; } in some cases
+
+  const hasFactionTypeWithoutName = faction.type && faction.name === null;
+  if (hasFactionTypeWithoutName) {
+    const factionTypeStartsWithA = faction.type.toString().startsWith('A');
+    summary.faction = factionTypeStartsWithA ? FACTION.A : FACTION.H;
+  } else {
+    summary.faction = faction.name;
+  }
+
+  return null
 }
