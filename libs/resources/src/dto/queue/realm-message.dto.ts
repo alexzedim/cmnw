@@ -19,7 +19,7 @@ export class RealmMessageDto extends RabbitMQMessageDto<RealmJobQueue> {
     const realmData = params.data || params.payload || params;
 
     super({
-      id: params.id || realmData.id,
+      messageId: params.id || realmData.id,
       data: realmData,
       priority: params.priority ?? 5,
       source: params.source ?? 'core',

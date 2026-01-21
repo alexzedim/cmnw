@@ -18,7 +18,7 @@ export class ItemMessageDto extends RabbitMQMessageDto<ItemJobQueue> {
     const itemData = params.data || params.payload || params;
 
     super({
-      id: params.id || `item-${itemData.itemId}`,
+      messageId: `item-${itemData.itemId}`,
       data: itemData,
       priority: params.priority ?? 5,
       source: params.source ?? 'dma',
@@ -62,7 +62,7 @@ export class ItemMessageDto extends RabbitMQMessageDto<ItemJobQueue> {
     }
 
     return new ItemMessageDto({
-      id: `item-${params.data.itemId}`,
+      id: params.data.itemId,
       data: params.data,
       priority: params.priority ?? 5,
       source: params.source ?? 'dma',
