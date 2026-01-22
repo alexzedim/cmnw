@@ -317,7 +317,7 @@ export class CharactersWorker {
     characterEntity: CharactersEntity,
     nameSlug: string,
   ): Promise<void> {
-    const [summary, petsCollection, mountsCollection, media] =
+    const [summary, petsCollection, mountsCollection, media, professions] =
       await Promise.allSettled([
         this.characterService.getSummary(
           nameSlug,
@@ -327,6 +327,11 @@ export class CharactersWorker {
         this.fetchAndSyncPets(nameSlug, characterEntity.realm),
         this.fetchAndSyncMounts(nameSlug, characterEntity.realm),
         this.characterService.getMedia(
+          nameSlug,
+          characterEntity.realm,
+          this.BNet,
+        ),
+        this.characterService.getProfessions(
           nameSlug,
           characterEntity.realm,
           this.BNet,
@@ -351,6 +356,12 @@ export class CharactersWorker {
     const isMediaFulfilled = media.status === 'fulfilled';
     if (isMediaFulfilled) {
       Object.assign(characterEntity, media.value);
+    }
+
+    const isProfessionsFulfilled = professions.status === 'fulfilled';
+    if (isProfessionsFulfilled && professions.value) {
+      characterEntity.primaryProfessions = professions.value.primary_professions;
+      characterEntity.secondaryProfessions = professions.value.secondary_professions;
     }
   }
 

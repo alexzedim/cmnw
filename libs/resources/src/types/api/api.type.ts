@@ -60,3 +60,22 @@ export type BlizzardApiErrorResponse = {
     statusText: string;
   };
 };
+
+// Character Professions
+export type BlizzardApiCharacterProfession = {
+  id: number;
+  name: string;
+  icon: string;
+  rank: number;
+  max_rank: number;
+  specialties?: Array<{
+    id: number;
+    name: string;
+    icon: string;
+  }>;
+};
+
+export type BlizzardApiCharacterProfessions = {
+  primary_professions: BlizzardApiCharacterProfession[];
+  secondary_professions: BlizzardApiCharacterProfession[];
+};

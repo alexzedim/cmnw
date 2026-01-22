@@ -2,6 +2,7 @@ import { get } from 'lodash';
 import {
   BlizzardApiAuctions,
   BlizzardApiCharacterMedia,
+  BlizzardApiCharacterProfessions,
   BlizzardApiCharacterSummary,
   BlizzardApiErrorResponse,
   BlizzardApiItem,
@@ -143,6 +144,15 @@ export const isHallOfFame = (response: unknown): response is IHallOfFame =>
   typeof response === 'object' &&
   'entries' in response &&
   Array.isArray(response.entries);
+
+export const isCharacterProfessions = (
+  response: unknown,
+): response is BlizzardApiCharacterProfessions =>
+  typeof response === 'object' &&
+  'primary_professions' in response &&
+  'secondary_professions' in response &&
+  Array.isArray(response.primary_professions) &&
+  Array.isArray(response.secondary_professions);
 
 export const isResponseError = (error: unknown): error is BlizzardApiErrorResponse =>
   typeof error === 'object' &&
