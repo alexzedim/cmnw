@@ -220,7 +220,21 @@ export class CharactersEntity {
   })
   petsNumber?: number;
 
-  // TODO professions
+  @Column({
+    default: null,
+    nullable: true,
+    type: 'jsonb',
+    name: 'primary_professions',
+  })
+  primaryProfessions?: any;
+
+  @Column({
+    default: null,
+    nullable: true,
+    type: 'jsonb',
+    name: 'secondary_professions',
+  })
+  secondaryProfessions?: any;
 
   @Column({
     default: 'OSINT-CHARACTER-GET',

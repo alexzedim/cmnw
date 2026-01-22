@@ -25,6 +25,8 @@ import {
   toGuid,
   IBlizzardStatusResponse,
   BlizzardApiMountsCollection,
+  BlizzardApiCharacterProfessions,
+  isCharacterProfessions,
 } from '@app/resources';
 import { KeysEntity } from '@app/pg';
 
@@ -268,6 +270,38 @@ export class CharacterService {
       } else {
         this.logger.error(
           `${chalk.red('getPetsCollection')} ${nameSlug}@${realmSlug} | ${statusCode} - ${errorOrException.message}`,
+        );
+      }
+
+      return null;
+    }
+  }
+
+  async getProfessions(
+    nameSlug: string,
+    realmSlug: string,
+    BNet: BlizzAPI,
+  ): Promise<BlizzardApiCharacterProfessions | null> {
+    try {
+      const response = await BNet.query<BlizzardApiCharacterProfessions>(
+        `/profile/wow/character/${realmSlug}/${nameSlug}/professions`,
+        apiConstParams(API_HEADERS_ENUM.PROFILE),
+      );
+
+      const isValidProfessions = isCharacterProfessions(response);
+      if (!isValidProfessions) return null;
+
+      return response;
+    } catch (errorOrException) {
+      const statusCode = get(errorOrException, 'status', STATUS_CODES.ERROR_PROFESSIONS);
+
+      if (statusCode === 429) {
+        this.logger.debug(
+          `${chalk.yellow('429')} Rate limited (getProfessions): ${nameSlug}@${realmSlug}`,
+        );
+      } else {
+        this.logger.error(
+          `${chalk.red('getProfessions')} ${nameSlug}@${realmSlug} | ${statusCode} - ${errorOrException.message}`,
         );
       }
 
