@@ -80,7 +80,7 @@ export class AuctionsWorker {
     this.stats.total++;
 
     try {
-      const args: AuctionJobQueue = message.payload;
+      const args: AuctionMessageDto = message;
 
       this.BNet = new BlizzAPI({
         region: args.region,
@@ -235,7 +235,7 @@ export class AuctionsWorker {
       }
     } catch (errorOrException) {
       const duration = Date.now() - startTime;
-      const realmId = message.payload?.connectedRealmId || 'unknown';
+      const realmId = message?.connectedRealmId || 'unknown';
       const responseError = isResponseError(errorOrException);
 
       if (responseError) {

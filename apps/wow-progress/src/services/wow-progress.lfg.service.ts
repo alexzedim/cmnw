@@ -236,7 +236,7 @@ export class WowProgressLfgService {
       });
 
       const profileMessageDto = RabbitMQMessageDto.create({
-        id: characterQueue.guid,
+        messageId: characterQueue.guid,
         data: {
           guid: characterQueue.guid,
           name: characterQueue.name,
