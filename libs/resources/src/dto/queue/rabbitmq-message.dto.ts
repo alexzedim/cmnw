@@ -93,7 +93,7 @@ export class RabbitMQMessageDto<T> {
    * @throws Error if validation fails and strict is true
    */
   validate(strict: boolean = true): void {
-    const requiredFields = ['id', 'data', 'timestamp', 'source'];
+    const requiredFields = ['messageId', 'data', 'timestamp', 'source'];
 
     for (const field of requiredFields) {
       if (this[field] === undefined || this[field] === null) {
