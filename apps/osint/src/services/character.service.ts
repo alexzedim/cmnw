@@ -56,7 +56,13 @@ export class CharacterService {
 
       characterStatus.isValid = false;
 
-      if (statusResponse.id) characterStatus.id = statusResponse.id;
+      if (statusResponse.id) {
+        const numericId = Number(statusResponse.id);
+        if (!isNaN(numericId) && Number.isInteger(numericId) && numericId > 0) {
+          characterStatus.id = numericId;
+        }
+      }
+
       if (statusResponse.is_valid) characterStatus.isValid = statusResponse.is_valid;
 
       const hasLastModified = statusResponse.last_modified;
@@ -122,7 +128,16 @@ export class CharacterService {
       for (const [key, path] of CHARACTER_SUMMARY_FIELD_MAPPING.entries()) {
         const value = get(response, path, null);
         const hasValue = Boolean(value);
-        if (hasValue) summary[key] = value;
+        if (hasValue) {
+          if (key === 'id') {
+            const numericId = Number(value);
+            if (!isNaN(numericId) && Number.isInteger(numericId) && numericId > 0) {
+              summary[key] = numericId;
+            }
+          } else {
+            summary[key] = value;
+          }
+        }
       }
 
       summary.guid = toGuid(nameSlug, summary.realm);

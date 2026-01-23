@@ -131,6 +131,16 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
 
     Object.assign(this, characterData);
 
+    // Validate and ensure id is a numeric value (not a string like guid)
+    if (this.id) {
+      const numericId = Number(this.id);
+      if (isNaN(numericId) || !Number.isInteger(numericId) || numericId <= 0) {
+        (this as any).id = undefined;
+      } else {
+        (this as any).id = numericId;
+      }
+    }
+
     if (!this.region) {
       (this as any).region = 'eu';
     }
