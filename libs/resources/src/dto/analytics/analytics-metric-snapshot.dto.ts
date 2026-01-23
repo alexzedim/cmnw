@@ -6,8 +6,6 @@ import {
 } from '@app/resources/enums';
 import { IsEnum, IsInt, IsOptional, Min } from 'class-validator';
 
-console.log(AnalyticsMetricCategory);
-
 export class AnalyticsMetricSnapshotDto {
   @ApiProperty({
     enum: AnalyticsMetricCategory,
