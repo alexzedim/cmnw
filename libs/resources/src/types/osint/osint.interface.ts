@@ -387,6 +387,9 @@ export interface CharacterSummary {
 }
 
 export interface ICharacterSummary {
+  _links: {
+    self: ISelfKeyHref;
+  };
   id: number;
   name: string;
   gender: INameWithType;
@@ -416,6 +419,9 @@ export interface ICharacterSummary {
   equipment: ISelfKeyHref;
   appearance: ISelfKeyHref;
   collections: ISelfKeyHref;
+  active_title?: ISelfWithNameAndId & {
+    display_string: string;
+  };
   reputations: ISelfKeyHref;
   quests: ISelfKeyHref;
   achievements_statistics: ISelfKeyHref;
@@ -425,6 +431,9 @@ export interface ICharacterSummary {
     renown_level: number;
     soulbinds: ISelfKeyHref;
   };
+  is_remix: boolean;
+  name_search: string;
+  lastModified: string;
 }
 
 export interface ICharacterStatus {
