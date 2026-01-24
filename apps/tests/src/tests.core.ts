@@ -29,8 +29,8 @@ export class TestsCore implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
-    const seasonOne = await this.seasonOne();
-    console.log(JSON.stringify(seasonOne));
+    const group = await this.leadingGroups();
+    console.log(JSON.stringify(group));
   }
 
   async characterStats(nameSlug: string, realmSlug: string): Promise<any> {
@@ -61,6 +61,13 @@ export class TestsCore implements OnApplicationBootstrap {
   async seasonOne() {
     return await this.BNet.query<any>(
       `/data/wow/mythic-keystone/season/1`,
+      apiConstParams(API_HEADERS_ENUM.DYNAMIC),
+    );
+  }
+
+  async leadingGroups() {
+    return await this.BNet.query<any>(
+      `/data/wow/connected-realm/1602/mythic-leaderboard/${dungeonId}/period/${period}`,
       apiConstParams(API_HEADERS_ENUM.DYNAMIC),
     );
   }
