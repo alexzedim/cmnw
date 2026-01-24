@@ -24,7 +24,6 @@ import {
   IMythicKeystoneSeasonDetail,
   getKeys,
   GLOBAL_OSINT_KEY,
-  MYTHIC_PLUS_SEASONS,
   IMythicKeystoneDungeonResponse,
   isMythicKeystoneDungeonResponse,
   isMythicKeystoneSeasonResponse,
@@ -50,8 +49,8 @@ export class LadderService implements OnApplicationBootstrap {
 
   async onApplicationBootstrap(): Promise<void> {
     // await this.indexHallOfFame(GLOBAL_OSINT_KEY, false);
-    await this.indexMythicPlusLadder(GLOBAL_OSINT_KEY, false);
-    await this.indexPvPLadder(GLOBAL_OSINT_KEY, false);
+    await this.indexMythicPlusLadder(GLOBAL_OSINT_KEY);
+    // await this.indexPvPLadder(GLOBAL_OSINT_KEY, false);
   }
 
   @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_NOON)
@@ -96,7 +95,7 @@ export class LadderService implements OnApplicationBootstrap {
               name: player.character.name,
               realm: player.character.realm.slug,
               faction: player.faction.type === 'HORDE' ? FACTION.H : FACTION.A,
-              rank: player.rank,
+              // rank: player.rank,
               clientId: key.client,
               clientSecret: key.secret,
               accessToken: key.token,
@@ -122,7 +121,6 @@ export class LadderService implements OnApplicationBootstrap {
   @Cron(CronExpression.EVERY_WEEKEND)
   async indexMythicPlusLadder(
     clearance: string = GLOBAL_OSINT_KEY,
-    onlyLast = true,
   ): Promise<void> {
     const logTag = this.indexMythicPlusLadder.name;
     try {
@@ -162,7 +160,6 @@ export class LadderService implements OnApplicationBootstrap {
       }
 
       const { seasons } = seasonResponse;
-
       dungeons.forEach((dungeon) =>
         mythicPlusDungeons.set(dungeon.id, dungeon.name),
       );
@@ -182,7 +179,6 @@ export class LadderService implements OnApplicationBootstrap {
         if (!isMythicKeystoneSeasonDetail(seasonDetailResponse)) {
           throw new BadGatewayException('Invalid mythic keystone season detail response');
         }
-
         const { periods } = seasonDetailResponse;
         periods.forEach((period) => mythicPlusExpansionWeeks.add(period.id));
       }
@@ -190,23 +186,35 @@ export class LadderService implements OnApplicationBootstrap {
       const realmsEntity = await this.realmsRepository
         .createQueryBuilder('realms')
         .distinctOn(['realms.connectedRealmId'])
+        .where('realms.connectedRealmId != :connectedRealmId', {
+          connectedRealmId: 1,
+        })
         .getMany();
 
       for (const { connectedRealmId } of realmsEntity) {
         for (const dungeonId of mythicPlusDungeons.keys()) {
 
           for (const period of mythicPlusExpansionWeeks.values()) {
-            await delay(2);
 
-            const { leading_groups } = await this.BNet.query<any>(
-              `/data/wow/connected-realm/${connectedRealmId}/mythic-leaderboard/${dungeonId}/period/${period}`,
-              apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-            );
+            let leadingGroups: any;
 
-            const isSafe = !leading_groups || !Array.isArray(leading_groups);
+            try {
+              const response = await this.BNet.query<any>(
+                `/data/wow/connected-realm/${connectedRealmId}/mythic-leaderboard/${dungeonId}/period/${period}`,
+                apiConstParams(API_HEADERS_ENUM.DYNAMIC),
+              );
+
+              leadingGroups = response;
+            } catch (error) {
+              continue;
+            }
+
+            return;
+
+            const isSafe = !leadingGroups || !Array.isArray(leadingGroups);
             if (isSafe) continue;
 
-            for (const group of leading_groups) {
+            for (const group of leadingGroups) {
               const characterJobMembers = group.members.map((member) => {
                 return CharacterMessageDto.fromMythicPlusLadder({
                   name: member.profile.name,
@@ -237,7 +245,7 @@ export class LadderService implements OnApplicationBootstrap {
         }
       }
 
-      await this.redisService.set(`week:${w}`, w);
+      // await this.redisService.set(`week:${w}`, w);
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });
     }

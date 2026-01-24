@@ -189,7 +189,5 @@ export const isMythicKeystoneSeasonDetail = (
   typeof (response as any).id === 'number' &&
   'start_timestamp' in response &&
   typeof (response as any).start_timestamp === 'number' &&
-  'end_timestamp' in response &&
-  typeof (response as any).end_timestamp === 'number' &&
   'periods' in response &&
   Array.isArray((response as any).periods);
