@@ -29,7 +29,6 @@ import {
   isCharacterProfessions,
 } from '@app/resources';
 import { KeysEntity } from '@app/pg';
-import { CharacterCollectionService } from './character-collection.service';
 
 @Injectable()
 export class CharacterService {
@@ -40,7 +39,6 @@ export class CharacterService {
   constructor(
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
-    private readonly collectionSyncService: CharacterCollectionService,
   ) {}
 
   async getStatus(
@@ -65,7 +63,8 @@ export class CharacterService {
         }
       }
 
-      if (statusResponse.is_valid) characterStatus.isValid = statusResponse.is_valid;
+      if (statusResponse.is_valid)
+        characterStatus.isValid = statusResponse.is_valid;
 
       const hasLastModified = statusResponse.last_modified;
       if (hasLastModified) {
@@ -133,7 +132,11 @@ export class CharacterService {
         if (hasValue) {
           if (key === 'id') {
             const numericId = Number(value);
-            if (!isNaN(numericId) && Number.isInteger(numericId) && numericId > 0) {
+            if (
+              !isNaN(numericId) &&
+              Number.isInteger(numericId) &&
+              numericId > 0
+            ) {
               summary[key] = numericId;
             }
           } else {
@@ -214,7 +217,11 @@ export class CharacterService {
 
       return media;
     } catch (errorOrException) {
-      const statusCode = get(errorOrException, 'status', STATUS_CODES.ERROR_MEDIA);
+      const statusCode = get(
+        errorOrException,
+        'status',
+        STATUS_CODES.ERROR_MEDIA,
+      );
 
       if (statusCode === 429) {
         this.logger.debug(
@@ -246,7 +253,11 @@ export class CharacterService {
 
       return response;
     } catch (errorOrException) {
-      const statusCode = get(errorOrException, 'status', STATUS_CODES.ERROR_MOUNTS);
+      const statusCode = get(
+        errorOrException,
+        'status',
+        STATUS_CODES.ERROR_MOUNTS,
+      );
 
       if (statusCode === 429) {
         this.logger.debug(
@@ -278,7 +289,11 @@ export class CharacterService {
 
       return response;
     } catch (errorOrException) {
-      const statusCode = get(errorOrException, 'status', STATUS_CODES.ERROR_PETS);
+      const statusCode = get(
+        errorOrException,
+        'status',
+        STATUS_CODES.ERROR_PETS,
+      );
 
       if (statusCode === 429) {
         this.logger.debug(
@@ -298,9 +313,7 @@ export class CharacterService {
     nameSlug: string,
     realmSlug: string,
     BNet: BlizzAPI,
-  ): Promise<string[]> {
-    const professionsSummary: string[] = [];
-
+  ): Promise<BlizzardApiCharacterProfessions | null> {
     try {
       const response = await BNet.query<BlizzardApiCharacterProfessions>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/professions`,
@@ -308,36 +321,15 @@ export class CharacterService {
       );
 
       const isValidProfessions = isCharacterProfessions(response);
-      if (!isValidProfessions) return professionsSummary;
+      if (!isValidProfessions) return null;
 
-      await this.collectionSyncService.syncCharacterProfessions(
-        nameSlug,
-        realmSlug,
-        response,
-      );
-
-      const { primaries, secondaries } = response;
-
-      const processProfessionArray = (professions: any[]) => {
-        professions?.forEach((prof) => {
-          const { profession, tiers } = prof;
-          const { name: professionName } = profession;
-
-          tiers?.forEach((tier: any) => {
-            const { skill_points, max_skill_points } = tier;
-            professionsSummary.push(
-              `${professionName} ${skill_points}/${max_skill_points}`,
-            );
-          });
-        });
-      };
-
-      processProfessionArray(primaries || []);
-      processProfessionArray(secondaries || []);
-
-      return professionsSummary;
+      return response;
     } catch (errorOrException) {
-      const statusCode = get(errorOrException, 'status', STATUS_CODES.ERROR_PROFESSIONS);
+      const statusCode = get(
+        errorOrException,
+        'status',
+        STATUS_CODES.ERROR_PROFESSIONS,
+      );
 
       if (statusCode === 429) {
         this.logger.debug(
@@ -349,7 +341,7 @@ export class CharacterService {
         );
       }
 
-      return professionsSummary;
+      return null;
     }
   }
 }

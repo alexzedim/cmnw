@@ -7,6 +7,7 @@ import { from, lastValueFrom, mergeMap } from 'rxjs';
 import { difference } from 'lodash';
 import { hash32 } from 'farmhash';
 import {
+  BlizzardApiCharacterProfessions,
   BlizzardApiPetsCollection,
   IMounts,
   IPets,
@@ -60,13 +61,16 @@ export class CharacterCollectionService {
       const { mounts } = mountsResponse;
       const characterGuid = toGuid(nameSlug, realmSlug);
 
-      const charactersMountEntities = await this.charactersMountsRepository.findBy({
-        characterGuid,
-      });
+      const charactersMountEntities =
+        await this.charactersMountsRepository.findBy({
+          characterGuid,
+        });
 
       const updatedMountIds = new Set<number>();
       const originalMountIds = new Set(
-        charactersMountEntities.map((charactersMount) => charactersMount.mountId),
+        charactersMountEntities.map(
+          (charactersMount) => charactersMount.mountId,
+        ),
       );
 
       await lastValueFrom(
@@ -94,10 +98,11 @@ export class CharacterCollectionService {
 
             const isNewMountForCharacter = !isAddedToCollection;
             if (isNewMountForCharacter) {
-              const characterMountEntity = this.charactersMountsRepository.create({
-                mountId: mount.mount.id,
-                characterGuid,
-              });
+              const characterMountEntity =
+                this.charactersMountsRepository.create({
+                  mountId: mount.mount.id,
+                  characterGuid,
+                });
 
               characterMountsEntities.push(characterMountEntity);
             }
@@ -156,9 +161,11 @@ export class CharacterCollectionService {
       const { pets } = petsResponse;
       const characterGuid = toGuid(nameSlug, realmSlug);
 
-      const charactersPetsEntities = await this.charactersPetsRepository.findBy({
-        characterGuid,
-      });
+      const charactersPetsEntities = await this.charactersPetsRepository.findBy(
+        {
+          characterGuid,
+        },
+      );
 
       const updatedPetIds = new Set<number>();
       const originalPetIds = new Set(
@@ -218,17 +225,19 @@ export class CharacterCollectionService {
 
               const isNewPetForCharacter = !isAddedToCollection;
               if (isNewPetForCharacter) {
-                const characterPetEntity = this.charactersPetsRepository.create({
-                  petId,
-                  characterPetId,
-                  creatureId,
-                  petQuality,
-                  breedId,
-                  characterGuid,
-                  petName,
-                  petLevel,
-                  isActive,
-                });
+                const characterPetEntity = this.charactersPetsRepository.create(
+                  {
+                    petId,
+                    characterPetId,
+                    creatureId,
+                    petQuality,
+                    breedId,
+                    characterGuid,
+                    petName,
+                    petLevel,
+                    isActive,
+                  },
+                );
 
                 characterPetsEntities.push(characterPetEntity);
               }
@@ -267,12 +276,16 @@ export class CharacterCollectionService {
 
       const hasHashB = Boolean(hashB.length);
       if (hasHashB) {
-        petsCollection.hashB = hash32(hashB.join('.')).toString(16).padStart(8, '0');
+        petsCollection.hashB = hash32(hashB.join('.'))
+          .toString(16)
+          .padStart(8, '0');
       }
 
       const hasHashA = Boolean(hashA.length);
       if (hasHashA) {
-        petsCollection.hashA = hash32(hashA.join('.')).toString(16).padStart(8, '0');
+        petsCollection.hashA = hash32(hashA.join('.'))
+          .toString(16)
+          .padStart(8, '0');
       }
 
       return petsCollection;
@@ -289,7 +302,7 @@ export class CharacterCollectionService {
   async syncCharacterProfessions(
     nameSlug: string,
     realmSlug: string,
-    professionsData: any,
+    professionsData: BlizzardApiCharacterProfessions,
   ): Promise<string[]> {
     const professionsSummary: string[] = [];
 
@@ -302,40 +315,45 @@ export class CharacterCollectionService {
       const { primaries, secondaries } = professionsData;
       const characterGuid = toGuid(nameSlug, realmSlug);
 
-      const processProfessionArray = (
-        professions: any[],
-        isPrimary: boolean,
-      ) => {
-        professions?.forEach((prof) => {
-          const { profession, tiers, specialization: profSpecialization } = prof;
-          const { id: professionId, name: professionName } = profession;
+      const allProfessions: Array<{ prof: any; isPrimary: boolean }> = [
+        ...(primaries || []).map((prof) => ({ prof, isPrimary: true })),
+        ...(secondaries || []).map((prof) => ({ prof, isPrimary: false })),
+      ];
 
-          tiers?.forEach((tier: any) => {
-            const { tier: tierInfo, skill_points, max_skill_points } = tier;
-            const { id: tierId, name: tierName } = tierInfo;
+      await lastValueFrom(
+        from(allProfessions).pipe(
+          mergeMap(async ({ prof, isPrimary }) => {
+            const {
+              profession,
+              tiers,
+              specialization: profSpecialization,
+            } = prof;
+            const { id: professionId, name: professionName } = profession;
 
-            const record = this.charactersProfessionsRepository.create({
-              characterGuid,
-              professionId,
-              professionName,
-              tierId,
-              tierName,
-              skillPoints: skill_points,
-              maxSkillPoints: max_skill_points,
-              isPrimary,
-              specialization: profSpecialization?.name || null,
+            tiers?.forEach((tier: any) => {
+              const { tier: tierInfo, skill_points, max_skill_points } = tier;
+              const { id: tierId, name: tierName } = tierInfo;
+
+              const record = this.charactersProfessionsRepository.create({
+                characterGuid,
+                professionId,
+                professionName,
+                tierId,
+                tierName,
+                skillPoints: skill_points,
+                maxSkillPoints: max_skill_points,
+                isPrimary,
+                specialization: profSpecialization?.name || null,
+              });
+
+              professionRecords.push(record);
+              professionsSummary.push(
+                `${professionName} ${skill_points}/${max_skill_points}`,
+              );
             });
-
-            professionRecords.push(record);
-            professionsSummary.push(
-              `${professionName} ${skill_points}/${max_skill_points}`,
-            );
-          });
-        });
-      };
-
-      processProfessionArray(primaries || [], true);
-      processProfessionArray(secondaries || [], false);
+          }),
+        ),
+      );
 
       if (professionRecords.length > 0) {
         await this.charactersProfessionsRepository.delete({ characterGuid });
