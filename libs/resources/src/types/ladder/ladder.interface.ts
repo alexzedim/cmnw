@@ -45,6 +45,71 @@ export interface MythicKeystoneSeasonDetail {
 }
 
 /**
+ * Mythic Leaderboard Response
+ * GET /data/wow/connected-realm/{connectedRealmId}/mythic-leaderboard/{dungeonId}/period/{period}
+ */
+export interface MythicLeaderboardMemberProfile {
+  name: string;
+  id: number;
+  realm: {
+    key: ISelfKeyHref;
+    id: number;
+    slug: string;
+  };
+}
+
+export interface MythicLeaderboardMemberFaction {
+  type: string;
+}
+
+export interface MythicLeaderboardMemberSpecialization {
+  key: ISelfKeyHref;
+  id: number;
+}
+
+export interface MythicLeaderboardMember {
+  profile: MythicLeaderboardMemberProfile;
+  faction: MythicLeaderboardMemberFaction;
+  specialization: MythicLeaderboardMemberSpecialization;
+}
+
+export interface MythicLeaderboardGroup {
+  ranking: number;
+  duration: number;
+  completed_timestamp: number;
+  keystone_level: number;
+  members: MythicLeaderboardMember[];
+}
+
+export interface MythicLeaderboardKeystoneAffix {
+  keystone_affix: {
+    key: ISelfKeyHref;
+    name: string;
+    id: number;
+  };
+  starting_level: number;
+}
+
+export interface MythicLeaderboardResponse {
+  _links: {
+    self: ISelfKeyHref;
+  };
+  map: {
+    name: string;
+    id: number;
+  };
+  period: number;
+  period_start_timestamp: number;
+  period_end_timestamp: number;
+  connected_realm: ISelfKeyHref;
+  leading_groups: MythicLeaderboardGroup[];
+  keystone_affixes: MythicLeaderboardKeystoneAffix[];
+  map_challenge_mode_id: number;
+  name: string;
+  lastModified?: string;
+}
+
+/**
  * Response aggregation types for use in services
  */
 export type IMythicKeystoneDungeonResponse =
@@ -55,3 +120,6 @@ export type IMythicKeystoneSeasonResponse =
 
 export type IMythicKeystoneSeasonDetail =
   Readonly<MythicKeystoneSeasonDetail>;
+
+export type IMythicLeaderboardResponse =
+  Readonly<MythicLeaderboardResponse>;
