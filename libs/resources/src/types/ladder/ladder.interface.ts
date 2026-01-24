@@ -3,7 +3,7 @@
  * Used for typing responses from /data/wow/mythic-keystone/ endpoints
  */
 
-import { ISelfKeyHref, ISelfWithNameAndId } from '../osint';
+import { ISelfKeyHref, ISelfWithNameAndId, ISelfWithId } from '../osint';
 
 /**
  * Mythic Keystone Dungeon Index Response
@@ -29,6 +29,22 @@ export interface MythicKeystoneSeasonResponse {
 }
 
 /**
+ * Mythic Keystone Season Detail Response
+ * GET /data/wow/mythic-keystone/season/{seasonId}
+ */
+export interface MythicKeystoneSeasonPeriod extends ISelfWithId {}
+
+export interface MythicKeystoneSeasonDetail {
+  _links: Record<string, ISelfKeyHref>;
+  id: number;
+  start_timestamp: number;
+  end_timestamp: number;
+  periods: MythicKeystoneSeasonPeriod[];
+  season_name: string | null;
+  lastModified?: string;
+}
+
+/**
  * Response aggregation types for use in services
  */
 export type IMythicKeystoneDungeonResponse =
@@ -36,3 +52,6 @@ export type IMythicKeystoneDungeonResponse =
 
 export type IMythicKeystoneSeasonResponse =
   Readonly<MythicKeystoneSeasonResponse>;
+
+export type IMythicKeystoneSeasonDetail =
+  Readonly<MythicKeystoneSeasonDetail>;
