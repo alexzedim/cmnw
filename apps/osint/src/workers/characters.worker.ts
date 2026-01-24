@@ -15,6 +15,7 @@ import {
   toSlug,
   CharacterMessageDto,
   ICharacterMessageBase,
+  isCharacterProfessions,
 } from '@app/resources';
 
 import { CharactersEntity, KeysEntity } from '@app/pg';
@@ -133,6 +134,7 @@ export class CharactersWorker {
       if (hasStatus) Object.assign(characterEntity, status);
 
       const isValidCharacter = status.isValid;
+
       if (isValidCharacter) {
         await this.fetchAndUpdateCharacterData(characterEntity, nameSlug);
       }
@@ -331,11 +333,7 @@ export class CharactersWorker {
           characterEntity.realm,
           this.BNet,
         ),
-        this.characterService.getProfessions(
-          nameSlug,
-          characterEntity.realm,
-          this.BNet,
-        ),
+        this.fetchAndSyncProfessions(nameSlug, characterEntity.realm),
       ]);
 
     const isSummaryFulfilled = summary.status === 'fulfilled';
@@ -359,9 +357,8 @@ export class CharactersWorker {
     }
 
     const isProfessionsFulfilled = professions.status === 'fulfilled';
-    if (isProfessionsFulfilled && professions.value) {
-      characterEntity.primaryProfessions = professions.value.primary_professions;
-      characterEntity.secondaryProfessions = professions.value.secondary_professions;
+    if (isProfessionsFulfilled) {
+      Object.assign(characterEntity, professions.value);
     }
   }
 
@@ -416,6 +413,30 @@ export class CharactersWorker {
       mountsResponse,
       true,
     );
+  }
+
+  private async fetchAndSyncProfessions(
+    nameSlug: string,
+    realmSlug: string,
+  ): Promise<Partial<{ professions: string[] }>> {
+    const professionsResponse = await this.characterService.getProfessions(
+      nameSlug,
+      realmSlug,
+      this.BNet,
+    );
+
+    const hasProfessionResponse = Boolean(professionsResponse);
+    if (!hasProfessionResponse) {
+      return {};
+    }
+
+    const professions = await this.collectionSyncService.syncCharacterProfessions(
+      nameSlug,
+      realmSlug,
+      professionsResponse,
+    );
+
+    return { professions };
   }
 
   private async handleExistingCharacterUpdates(

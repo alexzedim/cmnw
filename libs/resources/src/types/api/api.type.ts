@@ -63,19 +63,46 @@ export type BlizzardApiErrorResponse = {
 
 // Character Professions
 export type BlizzardApiCharacterProfession = {
-  id: number;
-  name: string;
-  icon: string;
-  rank: number;
-  max_rank: number;
-  specialties?: Array<{
-    id: number;
+  profession: {
+    key: { href: string };
     name: string;
-    icon: string;
+    id: number;
+  };
+  tiers?: Array<{
+    skill_points: number;
+    max_skill_points: number;
+    tier: {
+      name: string;
+      id: number;
+    };
+    known_recipes?: Array<{
+      key: { href: string };
+      name: string;
+      id: number;
+    }>;
   }>;
+  specialization?: {
+    name: string;
+  };
+  skill_points?: number;
 };
 
 export type BlizzardApiCharacterProfessions = {
-  primary_professions: BlizzardApiCharacterProfession[];
-  secondary_professions: BlizzardApiCharacterProfession[];
+  _links: {
+    self: { href: string };
+  };
+  character: {
+    key: { href: string };
+    name: string;
+    id: number;
+    realm: {
+      key: { href: string };
+      name: string;
+      id: number;
+      slug: string;
+    };
+  };
+  primaries: BlizzardApiCharacterProfession[];
+  secondaries: BlizzardApiCharacterProfession[];
+  lastModified: string;
 };

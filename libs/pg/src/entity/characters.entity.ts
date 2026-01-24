@@ -223,18 +223,11 @@ export class CharactersEntity {
   @Column({
     default: null,
     nullable: true,
-    type: 'jsonb',
-    name: 'primary_professions',
+    type: 'text',
+    array: true,
+    name: 'professions',
   })
-  primaryProfessions?: any;
-
-  @Column({
-    default: null,
-    nullable: true,
-    type: 'jsonb',
-    name: 'secondary_professions',
-  })
-  secondaryProfessions?: any;
+  professions?: string[];
 
   @Column({
     default: 'OSINT-CHARACTER-GET',
