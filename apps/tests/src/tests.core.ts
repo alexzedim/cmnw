@@ -25,10 +25,11 @@ export class TestsCore implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
-    await this.logs('Aanzz', 'Aanzz');
+    const logs = await this.statistics('инициатива', 'gordunni');
+    console.log(logs);
   }
 
-  async logs(nameSlug: string, realmSlug: string): Promise<any> {
+  async statistics(nameSlug: string, realmSlug: string): Promise<any> {
     try {
       this.logger.log(`${nameSlug}:${realmSlug}`);
 
@@ -39,7 +40,7 @@ export class TestsCore implements OnApplicationBootstrap {
       });
 
       return await this.BNet.query(
-        `/profile/wow/character/${realmSlug}/${nameSlug}/logs`,
+        `/profile/wow/character/${realmSlug}/${nameSlug}/statistics`,
         apiConstParams(API_HEADERS_ENUM.PROFILE),
       );
     } catch (errorOrException) {

@@ -29,6 +29,7 @@ import {
   isCharacterProfessions,
 } from '@app/resources';
 import { KeysEntity } from '@app/pg';
+import { CharacterCollectionService } from './character-collection.service';
 
 @Injectable()
 export class CharacterService {
@@ -39,6 +40,7 @@ export class CharacterService {
   constructor(
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
+    private readonly collectionSyncService: CharacterCollectionService,
   ) {}
 
   async getStatus(
@@ -296,7 +298,9 @@ export class CharacterService {
     nameSlug: string,
     realmSlug: string,
     BNet: BlizzAPI,
-  ): Promise<BlizzardApiCharacterProfessions | null> {
+  ): Promise<string[]> {
+    const professionsSummary: string[] = [];
+
     try {
       const response = await BNet.query<BlizzardApiCharacterProfessions>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/professions`,
@@ -304,9 +308,34 @@ export class CharacterService {
       );
 
       const isValidProfessions = isCharacterProfessions(response);
-      if (!isValidProfessions) return null;
+      if (!isValidProfessions) return professionsSummary;
 
-      return response;
+      await this.collectionSyncService.syncCharacterProfessions(
+        nameSlug,
+        realmSlug,
+        response,
+      );
+
+      const { primaries, secondaries } = response;
+
+      const processProfessionArray = (professions: any[]) => {
+        professions?.forEach((prof) => {
+          const { profession, tiers } = prof;
+          const { name: professionName } = profession;
+
+          tiers?.forEach((tier: any) => {
+            const { skill_points, max_skill_points } = tier;
+            professionsSummary.push(
+              `${professionName} ${skill_points}/${max_skill_points}`,
+            );
+          });
+        });
+      };
+
+      processProfessionArray(primaries || []);
+      processProfessionArray(secondaries || []);
+
+      return professionsSummary;
     } catch (errorOrException) {
       const statusCode = get(errorOrException, 'status', STATUS_CODES.ERROR_PROFESSIONS);
 
@@ -320,7 +349,7 @@ export class CharacterService {
         );
       }
 
-      return null;
+      return professionsSummary;
     }
   }
 }

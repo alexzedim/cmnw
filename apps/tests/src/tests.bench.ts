@@ -60,7 +60,6 @@ export class TestsBench implements OnApplicationBootstrap {
     try {
       const a = toSlug('GrimBatol');
       console.log(a);
-      // await this.ipv6('рак-гейминг', 'soulflayer');
     } catch (error) {
       console.log(error);
     }

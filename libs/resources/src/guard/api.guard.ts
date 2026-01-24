@@ -149,10 +149,11 @@ export const isCharacterProfessions = (
   response: unknown,
 ): response is BlizzardApiCharacterProfessions =>
   typeof response === 'object' &&
-  'primary_professions' in response &&
-  'secondary_professions' in response &&
-  Array.isArray(response.primary_professions) &&
-  Array.isArray(response.secondary_professions);
+  'character' in response &&
+  'primaries' in response &&
+  'secondaries' in response &&
+  Array.isArray(response.primaries) &&
+  Array.isArray(response.secondaries);
 
 export const isResponseError = (error: unknown): error is BlizzardApiErrorResponse =>
   typeof error === 'object' &&

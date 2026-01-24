@@ -17,6 +17,7 @@ import {
 import {
   CharactersMountsEntity,
   CharactersPetsEntity,
+  CharactersProfessionsEntity,
   MountsEntity,
   PetsEntity,
 } from '@app/pg';
@@ -39,6 +40,8 @@ export class CharacterCollectionService {
     private readonly charactersMountsRepository: Repository<CharactersMountsEntity>,
     @InjectRepository(CharactersPetsEntity)
     private readonly charactersPetsRepository: Repository<CharactersPetsEntity>,
+    @InjectRepository(CharactersProfessionsEntity)
+    private readonly charactersProfessionsRepository: Repository<CharactersProfessionsEntity>,
     private readonly entityIndexingService: CharacterEntityIndexingService,
   ) {}
 
@@ -280,6 +283,73 @@ export class CharacterCollectionService {
         error: JSON.stringify(errorOrException),
       });
       return petsCollection;
+    }
+  }
+
+  async syncCharacterProfessions(
+    nameSlug: string,
+    realmSlug: string,
+    professionsData: any,
+  ): Promise<string[]> {
+    const professionsSummary: string[] = [];
+
+    try {
+      if (!professionsData) {
+        return professionsSummary;
+      }
+
+      const professionRecords: CharactersProfessionsEntity[] = [];
+      const { primaries, secondaries } = professionsData;
+      const characterGuid = toGuid(nameSlug, realmSlug);
+
+      const processProfessionArray = (
+        professions: any[],
+        isPrimary: boolean,
+      ) => {
+        professions?.forEach((prof) => {
+          const { profession, tiers, specialization: profSpecialization } = prof;
+          const { id: professionId, name: professionName } = profession;
+
+          tiers?.forEach((tier: any) => {
+            const { tier: tierInfo, skill_points, max_skill_points } = tier;
+            const { id: tierId, name: tierName } = tierInfo;
+
+            const record = this.charactersProfessionsRepository.create({
+              characterGuid,
+              professionId,
+              professionName,
+              tierId,
+              tierName,
+              skillPoints: skill_points,
+              maxSkillPoints: max_skill_points,
+              isPrimary,
+              specialization: profSpecialization?.name || null,
+            });
+
+            professionRecords.push(record);
+            professionsSummary.push(
+              `${professionName} ${skill_points}/${max_skill_points}`,
+            );
+          });
+        });
+      };
+
+      processProfessionArray(primaries || [], true);
+      processProfessionArray(secondaries || [], false);
+
+      if (professionRecords.length > 0) {
+        await this.charactersProfessionsRepository.delete({ characterGuid });
+        await this.charactersProfessionsRepository.save(professionRecords);
+      }
+
+      return professionsSummary;
+    } catch (errorOrException) {
+      this.logger.error({
+        logTag: 'syncCharacterProfessions',
+        guid: `${nameSlug}@${realmSlug}`,
+        error: JSON.stringify(errorOrException),
+      });
+      return professionsSummary;
     }
   }
 }
