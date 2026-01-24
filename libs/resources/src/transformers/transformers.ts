@@ -1,8 +1,4 @@
-import {
-  BlizzardApiNamedField,
-  ConvertPrice,
-  FACTION,
-} from '@app/resources/index';
+import { BlizzardApiNamedField, ConvertPrice, FACTION } from '@app/resources/index';
 import { TransformFnParams } from 'class-transformer';
 import { DateTime } from 'luxon';
 
@@ -335,29 +331,33 @@ export function transformToTrimmedString(
 }
 
 export function transformFaction(faction: unknown): FACTION | null {
-
   const isFactionObject = typeof faction === 'object' && faction !== null;
 
   if (!isFactionObject) {
     return null;
   }
 
-  const factionObject = faction as { type?: string | null; name?: string | null; };
+  const factionObject = faction as { type?: string | null; name?: string | null };
 
-  const hasFactionTypeWithoutName = factionObject.type && factionObject.name === null;
+  const hasFactionTypeWithoutName =
+    factionObject.type && factionObject.name === null;
   if (hasFactionTypeWithoutName) {
     const typeUpper = factionObject.type.toString().toUpperCase();
-    const validFactions = Object.values(FACTION).filter(f => f !== FACTION.ANY);
-    const matchedFaction = validFactions.find(f => f.toString().toUpperCase() === typeUpper);
+    const validFactions = Object.values(FACTION).filter((f) => f !== FACTION.ANY);
+    const matchedFaction = validFactions.find(
+      (f) => f.toString().toUpperCase() === typeUpper,
+    );
     return matchedFaction || null;
   }
 
   if (factionObject.name) {
     const nameUpper = factionObject.name.toUpperCase();
-    const validFactions = Object.values(FACTION).filter(f => f !== FACTION.ANY);
-    const matchedFaction = validFactions.find(f => f.toString().toUpperCase() === nameUpper);
+    const validFactions = Object.values(FACTION).filter((f) => f !== FACTION.ANY);
+    const matchedFaction = validFactions.find(
+      (f) => f.toString().toUpperCase() === nameUpper,
+    );
     return matchedFaction || null;
   }
 
-  return null
+  return null;
 }

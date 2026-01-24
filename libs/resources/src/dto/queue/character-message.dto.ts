@@ -1,10 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { OSINT_SOURCE, TIME_MS } from '../../constants';
 import { toGuid } from '../../transformers';
-import {
-  IRabbitMQMessageBase,
-  RabbitMQMessageDto,
-} from '@app/resources/dto/queue';
+import { IRabbitMQMessageBase, RabbitMQMessageDto } from '@app/resources/dto/queue';
 
 /**
  * Character Message DTO for RabbitMQ
@@ -48,9 +45,7 @@ export interface ICharacterMessageBase {
 }
 
 export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBase> {
-  private static readonly characterLogger = new Logger(
-    CharacterMessageDto.name,
-  );
+  private static readonly characterLogger = new Logger(CharacterMessageDto.name);
 
   private static isRabbitMQMessageBase<T>(
     params: any,
@@ -63,10 +58,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
   ): params is Omit<Partial<CharacterMessageDto>, 'guid'> &
     Pick<ICharacterMessageBase, 'name' | 'realm'> {
     return (
-      !!params &&
-      typeof params === 'object' &&
-      'name' in params &&
-      'realm' in params
+      !!params && typeof params === 'object' && 'name' in params && 'realm' in params
     );
   }
 

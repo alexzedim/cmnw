@@ -112,14 +112,10 @@ export interface MythicLeaderboardResponse {
 /**
  * Response aggregation types for use in services
  */
-export type IMythicKeystoneDungeonResponse =
-  Readonly<MythicKeystoneDungeonResponse>;
+export type IMythicKeystoneDungeonResponse = Readonly<MythicKeystoneDungeonResponse>;
 
-export type IMythicKeystoneSeasonResponse =
-  Readonly<MythicKeystoneSeasonResponse>;
+export type IMythicKeystoneSeasonResponse = Readonly<MythicKeystoneSeasonResponse>;
 
-export type IMythicKeystoneSeasonDetail =
-  Readonly<MythicKeystoneSeasonDetail>;
+export type IMythicKeystoneSeasonDetail = Readonly<MythicKeystoneSeasonDetail>;
 
-export type IMythicLeaderboardResponse =
-  Readonly<MythicLeaderboardResponse>;
+export type IMythicLeaderboardResponse = Readonly<MythicLeaderboardResponse>;

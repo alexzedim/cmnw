@@ -28,6 +28,8 @@ import {
   isMythicKeystoneDungeonResponse,
   isMythicKeystoneSeasonResponse,
   isMythicKeystoneSeasonDetail,
+  IMythicLeaderboardResponse,
+  isMythicLeaderboardResponse,
 } from '@app/resources';
 import { RabbitMQPublisherService } from '@app/rabbitmq';
 
@@ -119,9 +121,7 @@ export class LadderService implements OnApplicationBootstrap {
   }
 
   @Cron(CronExpression.EVERY_WEEKEND)
-  async indexMythicPlusLadder(
-    clearance: string = GLOBAL_OSINT_KEY,
-  ): Promise<void> {
+  async indexMythicPlusLadder(clearance: string = GLOBAL_OSINT_KEY): Promise<void> {
     const logTag = this.indexMythicPlusLadder.name;
     try {
       const keys = await getKeys(this.keysRepository, clearance, true);
@@ -171,13 +171,16 @@ export class LadderService implements OnApplicationBootstrap {
 
         await delay(2);
 
-        const seasonDetailResponse = await this.BNet.query<IMythicKeystoneSeasonDetail>(
-          `/data/wow/mythic-keystone/season/${mythicPlusSeason}`,
-          apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-        );
+        const seasonDetailResponse =
+          await this.BNet.query<IMythicKeystoneSeasonDetail>(
+            `/data/wow/mythic-keystone/season/${mythicPlusSeason}`,
+            apiConstParams(API_HEADERS_ENUM.DYNAMIC),
+          );
 
         if (!isMythicKeystoneSeasonDetail(seasonDetailResponse)) {
-          throw new BadGatewayException('Invalid mythic keystone season detail response');
+          throw new BadGatewayException(
+            'Invalid mythic keystone season detail response',
+          );
         }
         const { periods } = seasonDetailResponse;
         periods.forEach((period) => mythicPlusExpansionWeeks.add(period.id));
@@ -193,16 +196,18 @@ export class LadderService implements OnApplicationBootstrap {
 
       for (const { connectedRealmId } of realmsEntity) {
         for (const dungeonId of mythicPlusDungeons.keys()) {
-
           for (const period of mythicPlusExpansionWeeks.values()) {
-
             let leadingGroups: any;
 
             try {
-              const response = await this.BNet.query<any>(
+              const response = await this.BNet.query<IMythicLeaderboardResponse>(
                 `/data/wow/connected-realm/${connectedRealmId}/mythic-leaderboard/${dungeonId}/period/${period}`,
                 apiConstParams(API_HEADERS_ENUM.DYNAMIC),
               );
+
+              if (!isMythicLeaderboardResponse(response)) {
+                throw new BadGatewayException('Invalid mythic leaderboard response');
+              }
 
               leadingGroups = response;
             } catch (error) {

@@ -67,9 +67,7 @@ export class CharactersWorker {
       },
     },
   })
-  public async handleCharacterMessage(
-    message: CharacterMessageDto,
-  ): Promise<void> {
+  public async handleCharacterMessage(message: CharacterMessageDto): Promise<void> {
     await this.processCharacterMessage(message);
   }
 
@@ -215,10 +213,7 @@ export class CharactersWorker {
     );
   }
 
-  private logCharacterResult(
-    character: CharactersEntity,
-    duration: number,
-  ): void {
+  private logCharacterResult(character: CharactersEntity, duration: number): void {
     const statusCode = character.statusCode;
     const guid = character.guid;
 
@@ -247,9 +242,7 @@ export class CharactersWorker {
   private logProgress(): void {
     const uptime = Date.now() - this.stats.startTime;
     const rate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
-      1,
-    );
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
 
     this.logger.log(
       `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
@@ -268,9 +261,7 @@ export class CharactersWorker {
   public logFinalSummary(): void {
     const uptime = Date.now() - this.stats.startTime;
     const avgRate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
-      1,
-    );
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
 
     this.logger.log(
       `\n${chalk.cyan.bold('═'.repeat(60))}\n` +
@@ -300,9 +291,7 @@ export class CharactersWorker {
     }
   }
 
-  private async initializeApiClient(
-    args: ICharacterMessageBase,
-  ): Promise<BlizzAPI> {
+  private async initializeApiClient(args: ICharacterMessageBase): Promise<BlizzAPI> {
     return new BlizzAPI({
       region: args.region || 'eu',
       clientId: args.clientId,
@@ -320,18 +309,10 @@ export class CharactersWorker {
   ): Promise<void> {
     const [summary, petsCollection, mountsCollection, media, professions] =
       await Promise.allSettled([
-        this.characterService.getSummary(
-          nameSlug,
-          characterEntity.realm,
-          this.BNet,
-        ),
+        this.characterService.getSummary(nameSlug, characterEntity.realm, this.BNet),
         this.fetchAndSyncPets(nameSlug, characterEntity.realm),
         this.fetchAndSyncMounts(nameSlug, characterEntity.realm),
-        this.characterService.getMedia(
-          nameSlug,
-          characterEntity.realm,
-          this.BNet,
-        ),
+        this.characterService.getMedia(nameSlug, characterEntity.realm, this.BNet),
         this.fetchAndSyncProfessions(nameSlug, characterEntity.realm),
       ]);
 

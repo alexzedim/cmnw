@@ -154,9 +154,9 @@ export class TestsCharactersQueueService implements OnApplicationBootstrap {
       .take(randomCount)
       .getMany();
 
-
-    const randomSeeds = await this.charactersRepository
-      .findBy({ guid: In(hardcodedSeeds.map(s => s.guid))});
+    const randomSeeds = await this.charactersRepository.findBy({
+      guid: In(hardcodedSeeds.map((s) => s.guid)),
+    });
 
     return [...randomSeeds, ...randomEntities];
   }

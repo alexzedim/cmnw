@@ -1,8 +1,5 @@
 import { TIME_MS } from '@app/resources/constants';
-import {
-  IRabbitMQMessageBase,
-  RabbitMQMessageDto,
-} from '@app/resources/dto/queue';
+import { IRabbitMQMessageBase, RabbitMQMessageDto } from '@app/resources/dto/queue';
 import { RegionIdOrName } from '@alexzedim/blizzapi';
 
 /**
@@ -45,9 +42,7 @@ export class AuctionMessageDto extends RabbitMQMessageDto<IAuctionMessageBase> {
     params: any,
   ): params is Omit<Partial<AuctionMessageDto>, 'connectedRealmId'> &
     Pick<IAuctionMessageBase, 'connectedRealmId'> {
-    return (
-      !!params && typeof params === 'object' && 'connectedRealmId' in params
-    );
+    return !!params && typeof params === 'object' && 'connectedRealmId' in params;
   }
 
   constructor(params: any) {

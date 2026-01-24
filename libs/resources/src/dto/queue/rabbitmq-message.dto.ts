@@ -50,9 +50,7 @@ export class RabbitMQMessageDto<T> {
    * Constructor - creates a validated RabbitMQ message wrapper
    * @param params - Message parameters
    */
-  constructor(
-    params: IRabbitMQMessageBase<T> & { metadata?: Record<string, any> },
-  ) {
+  constructor(params: IRabbitMQMessageBase<T> & { metadata?: Record<string, any> }) {
     this.messageId = params.messageId || uuidv4();
     this.data = params.data;
     this.timestamp = Date.now();
@@ -69,8 +67,7 @@ export class RabbitMQMessageDto<T> {
       const dto = this.data as any;
       if (dto.createdBy) this.metadata.createdBy = dto.createdBy;
       if (dto.updatedBy) this.metadata.updatedBy = dto.updatedBy;
-      if (dto.forceUpdate !== undefined)
-        this.metadata.forceUpdate = dto.forceUpdate;
+      if (dto.forceUpdate !== undefined) this.metadata.forceUpdate = dto.forceUpdate;
       if (dto.createOnlyUnique !== undefined)
         this.metadata.createOnlyUnique = dto.createOnlyUnique;
     }
