@@ -4,10 +4,7 @@ import { RabbitMQModule } from '@app/rabbitmq';
 import { ScheduleModule } from '@nestjs/schedule';
 
 @Module({
-  imports: [
-    ScheduleModule.forRoot(),
-    RabbitMQModule,
-  ],
+  imports: [ScheduleModule.forRoot(), RabbitMQModule],
   controllers: [],
   providers: [ValuationsService],
 })

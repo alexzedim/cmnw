@@ -1,10 +1,7 @@
 import { toGuid } from '../../transformers';
 import { OSINT_SOURCE, TIME_MS } from '../../constants';
 import { Logger } from '@nestjs/common';
-import {
-  IRabbitMQMessageBase,
-  RabbitMQMessageDto,
-} from '@app/resources/dto/queue';
+import { IRabbitMQMessageBase, RabbitMQMessageDto } from '@app/resources/dto/queue';
 import { RegionIdOrName } from '@alexzedim/blizzapi';
 
 /**
@@ -73,10 +70,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<IGuildMessageBase> {
   ): params is Omit<Partial<GuildMessageDto>, 'guid'> &
     Pick<IGuildMessageBase, 'name' | 'realm'> {
     return (
-      !!params &&
-      typeof params === 'object' &&
-      'name' in params &&
-      'realm' in params
+      !!params && typeof params === 'object' && 'name' in params && 'realm' in params
     );
   }
 

@@ -83,12 +83,7 @@ export class GuildRosterService {
 
       return roster;
     } catch (errorOrException) {
-      return this.handleRosterError(
-        errorOrException,
-        roster,
-        guildEntity,
-        BNet,
-      );
+      return this.handleRosterError(errorOrException, roster, guildEntity, BNet);
     }
   }
 
@@ -107,15 +102,21 @@ export class GuildRosterService {
 
       const isCharacterGM = member.rank === OSINT_GM_RANK;
 
-      const characterRealmId = get(member, 'character.realm.id', guildEntity.realmId);
-      const characterRealmSlug = get(member, 'character.realm.slug', guildEntity.realm);
+      const characterRealmId = get(
+        member,
+        'character.realm.id',
+        guildEntity.realmId,
+      );
+      const characterRealmSlug = get(
+        member,
+        'character.realm.slug',
+        guildEntity.realm,
+      );
 
       const characterGuid = toGuid(member.character.name, characterRealmSlug);
 
       const level = member.character.level || null;
-      const characterClass = PLAYABLE_CLASS.has(
-        member.character.playable_class.id,
-      )
+      const characterClass = PLAYABLE_CLASS.has(member.character.playable_class.id)
         ? PLAYABLE_CLASS.get(member.character.playable_class.id)
         : null;
 
@@ -139,9 +140,7 @@ export class GuildRosterService {
           factionData.type && factionData.name === null;
 
         if (hasFactionTypeWithoutName) {
-          const factionTypeStartsWithA = factionData.type
-            .toString()
-            .startsWith('A');
+          const factionTypeStartsWithA = factionData.type.toString().startsWith('A');
           resolvedFaction = factionTypeStartsWithA ? FACTION.A : FACTION.H;
         } else if (factionData.name) {
           resolvedFaction = factionData.name;
@@ -267,15 +266,10 @@ export class GuildRosterService {
     guildEntity: GuildsEntity,
     BNet: BlizzAPI,
   ): IGuildRoster {
-    roster.statusCode = get(
-      errorOrException,
-      'status',
-      STATUS_CODES.ERROR_ROSTER,
-    );
+    roster.statusCode = get(errorOrException, 'status', STATUS_CODES.ERROR_ROSTER);
 
     const isTooManyRequests =
-      roster.statusCode ===
-      GUILD_WORKER_CONSTANTS.TOO_MANY_REQUESTS_STATUS_CODE;
+      roster.statusCode === GUILD_WORKER_CONSTANTS.TOO_MANY_REQUESTS_STATUS_CODE;
 
     if (isTooManyRequests) {
       incErrorCount(this.keysRepository, BNet.accessTokenObject.access_token);

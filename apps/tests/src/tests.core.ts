@@ -60,7 +60,7 @@ export class TestsCore implements OnApplicationBootstrap {
     );
   }
 
-  async mythicLeaderboard(){
+  async mythicLeaderboard() {
     return this.BNet.query(
       `/data/wow/connected-realm/1615/mythic-leaderboard/index `,
       apiConstParams(API_HEADERS_ENUM.DYNAMIC),

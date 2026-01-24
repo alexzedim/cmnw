@@ -105,9 +105,7 @@ export const isBnetSkillTier = (
 /**
  * Validates if object is a multilingual name field
  */
-export const isNameField = (
-  name: unknown,
-): name is Readonly<IBlizzardNameField> =>
+export const isNameField = (name: unknown): name is Readonly<IBlizzardNameField> =>
   typeof name === 'object' &&
   name !== null &&
   (('en_US' in name && typeof (name as any).en_US === 'string') ||
@@ -178,9 +176,7 @@ export const hasBnetRecipes = (
 /**
  * Validates recipe object
  */
-export const isBnetRecipe = (
-  recipe: unknown,
-): recipe is Readonly<IBlizzardRecipe> =>
+export const isBnetRecipe = (recipe: unknown): recipe is Readonly<IBlizzardRecipe> =>
   typeof recipe === 'object' &&
   recipe !== null &&
   'id' in recipe &&

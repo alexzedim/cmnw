@@ -13,7 +13,6 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
-  AuctionJobQueue,
   BlizzardApiAuctions,
   DMA_TIMEOUT_TOLERANCE,
   IAuctionsOrder,

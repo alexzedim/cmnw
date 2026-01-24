@@ -64,14 +64,11 @@ export type BlizzardApiErrorResponse = {
   };
 };
 // Profession Index Query Responses
-export type IProfessionResponse =
-  Readonly<ProfessionIndex>;
+export type IProfessionResponse = Readonly<ProfessionIndex>;
 
-export type IProfessionDetailResponse =
-  Readonly<ProfessionDetail>;
+export type IProfessionDetailResponse = Readonly<ProfessionDetail>;
 
-export type ISkillTieryResponse =
-  Readonly<SkillTierDetail>;
+export type ISkillTieryResponse = Readonly<SkillTierDetail>;
 
 // Character Professions
 export type BlizzardApiCharacterProfession = {

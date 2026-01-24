@@ -322,14 +322,13 @@ export class XvaService implements OnApplicationBootstrap {
         accessToken: key.token,
       });
 
-      const professionIndexResponse =
-        await this.BNet.query<IProfessionResponse>(
-          '/data/wow/profession/index',
-          {
-            timeout: 10000,
-            headers: { 'Battlenet-Namespace': 'static-eu' },
-          },
-        );
+      const professionIndexResponse = await this.BNet.query<IProfessionResponse>(
+        '/data/wow/profession/index',
+        {
+          timeout: 10000,
+          headers: { 'Battlenet-Namespace': 'static-eu' },
+        },
+      );
 
       if (!isBnetProfessionIndexResponse(professionIndexResponse)) {
         this.logger.error({
@@ -370,14 +369,13 @@ export class XvaService implements OnApplicationBootstrap {
             tier.name.en_GB?.includes(k) ? (expansion = v) : '';
           });
 
-          const skillTierDetailResponse =
-            await this.BNet.query<ISkillTieryResponse>(
-              `/data/wow/profession/${profession.id}/skill-tier/${tier.id}`,
-              {
-                timeout: 10000,
-                headers: { 'Battlenet-Namespace': 'static-eu' },
-              },
-            );
+          const skillTierDetailResponse = await this.BNet.query<ISkillTieryResponse>(
+            `/data/wow/profession/${profession.id}/skill-tier/${tier.id}`,
+            {
+              timeout: 10000,
+              headers: { 'Battlenet-Namespace': 'static-eu' },
+            },
+          );
 
           if (!isBnetSkillTierDetailResponse(skillTierDetailResponse)) {
             this.logger.warn({

@@ -1,7 +1,4 @@
-import {
-  IRabbitMQMessageBase,
-  RabbitMQMessageDto,
-} from '@app/resources/dto/queue';
+import { IRabbitMQMessageBase, RabbitMQMessageDto } from '@app/resources/dto/queue';
 
 import { RealmJobQueue } from '@app/resources/types';
 import { TIME_MS } from '@app/resources/constants';

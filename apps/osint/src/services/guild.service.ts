@@ -26,9 +26,7 @@ export class GuildService {
     private readonly realmsRepository: Repository<RealmsEntity>,
   ) {}
 
-  async findOrCreate(
-    guildJob: IGuildMessageBase,
-  ): Promise<GuildExistsOrCreate> {
+  async findOrCreate(guildJob: IGuildMessageBase): Promise<GuildExistsOrCreate> {
     const forceUpdate = guildJob.forceUpdate || TIME_MS.FOUR_HOURS;
     const nameSlug = toSlug(guildJob.name);
     const timestampNow = new Date().getTime();

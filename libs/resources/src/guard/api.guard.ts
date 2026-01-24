@@ -17,6 +17,7 @@ import {
   IMythicKeystoneDungeonResponse,
   IMythicKeystoneSeasonResponse,
   IMythicKeystoneSeasonDetail,
+  IMythicLeaderboardResponse,
   IRGuildRoster,
   IRGuildRosterMember,
 } from '@app/resources/types';
@@ -191,3 +192,21 @@ export const isMythicKeystoneSeasonDetail = (
   typeof (response as any).start_timestamp === 'number' &&
   'periods' in response &&
   Array.isArray((response as any).periods);
+
+export const isMythicLeaderboardResponse = (
+  response: unknown,
+): response is IMythicLeaderboardResponse =>
+  typeof response === 'object' &&
+  '_links' in response &&
+  'map' in response &&
+  typeof (response as any).map === 'object' &&
+  'period' in response &&
+  typeof (response as any).period === 'number' &&
+  'period_start_timestamp' in response &&
+  typeof (response as any).period_start_timestamp === 'number' &&
+  'period_end_timestamp' in response &&
+  typeof (response as any).period_end_timestamp === 'number' &&
+  'leading_groups' in response &&
+  Array.isArray((response as any).leading_groups) &&
+  'keystone_affixes' in response &&
+  Array.isArray((response as any).keystone_affixes);
