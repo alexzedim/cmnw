@@ -29,8 +29,10 @@ export class TestsCore implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
-    const group = await this.leadingGroups();
-    console.log(JSON.stringify(group));
+    console.log('--- TestsCore onApplicationBootstrap ---');
+    const r = await this.leadingGroups();
+    console.log(JSON.stringify(r));
+    console.log('--- | ---');
   }
 
   async characterStats(nameSlug: string, realmSlug: string): Promise<any> {
@@ -51,6 +53,20 @@ export class TestsCore implements OnApplicationBootstrap {
     }
   }
 
+  async dungeonIndex(): Promise<any> {
+    return this.BNet.query(
+      `/data/wow/mythic-keystone/dungeon/index`,
+      apiConstParams(API_HEADERS_ENUM.DYNAMIC),
+    );
+  }
+
+  async mythicLeaderboard(){
+    return this.BNet.query(
+      `/data/wow/connected-realm/1615/mythic-leaderboard/index `,
+      apiConstParams(API_HEADERS_ENUM.DYNAMIC),
+    );
+  }
+
   async seasonIndex(): Promise<any> {
     return this.BNet.query(
       `/data/wow/mythic-keystone/season/index`,
@@ -67,7 +83,7 @@ export class TestsCore implements OnApplicationBootstrap {
 
   async leadingGroups() {
     return await this.BNet.query<any>(
-      `/data/wow/connected-realm/1602/mythic-leaderboard/${dungeonId}/period/${period}`,
+      `/data/wow/connected-realm/1615/mythic-leaderboard/197/period/641`,
       apiConstParams(API_HEADERS_ENUM.DYNAMIC),
     );
   }

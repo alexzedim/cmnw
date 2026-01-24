@@ -38,7 +38,7 @@ export interface MythicKeystoneSeasonDetail {
   _links: Record<string, ISelfKeyHref>;
   id: number;
   start_timestamp: number;
-  end_timestamp: number;
+  end_timestamp?: number;
   periods: MythicKeystoneSeasonPeriod[];
   season_name: string | null;
   lastModified?: string;
