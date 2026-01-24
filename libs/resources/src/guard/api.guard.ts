@@ -14,6 +14,8 @@ import {
   GoldApiListing,
   ICharacterRaiderIo,
   IHallOfFame,
+  IMythicKeystoneDungeonResponse,
+  IMythicKeystoneSeasonResponse,
   IRGuildRoster,
   IRGuildRosterMember,
 } from '@app/resources/types';
@@ -159,3 +161,20 @@ export const isResponseError = (error: unknown): error is BlizzardApiErrorRespon
   typeof error === 'object' &&
   get(error, 'response.status') &&
   get(error, 'response.statusText');
+
+export const isMythicKeystoneDungeonResponse = (
+  response: unknown,
+): response is IMythicKeystoneDungeonResponse =>
+  typeof response === 'object' &&
+  '_links' in response &&
+  'dungeons' in response &&
+  Array.isArray(response.dungeons);
+
+export const isMythicKeystoneSeasonResponse = (
+  response: unknown,
+): response is IMythicKeystoneSeasonResponse =>
+  typeof response === 'object' &&
+  '_links' in response &&
+  'seasons' in response &&
+  Array.isArray(response.seasons) &&
+  'current_season' in response;
