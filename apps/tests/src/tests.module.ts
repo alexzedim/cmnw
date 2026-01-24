@@ -5,16 +5,21 @@ import { TestsBench } from './tests.bench';
 import { TestsCommunity } from './tests.community';
 import { TestsCore } from './tests.core';
 import { TestsWorker } from './tests.worker';
+import { TestsCharactersQueueService } from './tests.characters.queue.service';
+import { TestsCharactersQueueWorker } from './tests.characters.queue.worker';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { postgresConfig } from '@app/configuration';
-import { CharactersGuildsLogsEntity, CharactersGuildsMembersEntity, ItemsEntity, KeysEntity, MarketEntity, RealmsEntity } from '@app/pg';
+import { CharactersEntity, CharactersGuildsLogsEntity, CharactersGuildsMembersEntity, ItemsEntity, KeysEntity, MarketEntity, RealmsEntity } from '@app/pg';
 import { HttpModule } from '@nestjs/axios';
+import { RabbitMQModule } from '@app/rabbitmq';
 
 @Module({
   imports: [
     HttpModule,
+    RabbitMQModule,
     TypeOrmModule.forRoot(postgresConfig),
     TypeOrmModule.forFeature([
+      CharactersEntity,
       KeysEntity,
       RealmsEntity,
       MarketEntity,
@@ -26,11 +31,13 @@ import { HttpModule } from '@nestjs/axios';
   controllers: [],
   providers: [
     TestsOsint,
-    TestsDma,
-    TestsCore,
-    TestsBench,
-    TestsCommunity,
-    TestsWorker,
+    // TestsDma,
+    // TestsCore,
+    // TestsBench,
+    // TestsCommunity,
+    // TestsWorker,
+    TestsCharactersQueueService,
+    TestsCharactersQueueWorker,
   ],
 })
 export class TestsModule {}

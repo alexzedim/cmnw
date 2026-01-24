@@ -105,12 +105,12 @@ export class GuildRosterService {
         return;
       }
 
-      const isGM = member.rank === OSINT_GM_RANK;
+      const isCharacterGM = member.rank === OSINT_GM_RANK;
 
-      const realmId = get(member, 'character.realm.id', guildEntity.realmId);
-      const realmSlug = get(member, 'character.realm.slug', guildEntity.realm);
+      const characterRealmId = get(member, 'character.realm.id', guildEntity.realmId);
+      const characterRealmSlug = get(member, 'character.realm.slug', guildEntity.realm);
 
-      const guid = toGuid(member.character.name, realmSlug);
+      const characterGuid = toGuid(member.character.name, characterRealmSlug);
 
       const level = member.character.level || null;
       const characterClass = PLAYABLE_CLASS.has(
@@ -123,6 +123,7 @@ export class GuildRosterService {
         ? PLAYABLE_RACE.get(member.character.playable_race.id)
         : null;
 
+      // @todo
       const factionData = get(member, 'character.faction', null) as Record<
         string,
         any
@@ -147,13 +148,13 @@ export class GuildRosterService {
         }
       }
 
-      if (isGM) {
+      if (isCharacterGM) {
         await this.queueGuildMasterUpdate(
           member,
           guildEntity,
           guildNameSlug,
-          guid,
-          realmSlug,
+          characterGuid,
+          characterRealmSlug,
           level,
           characterClass,
           characterRace,
@@ -166,8 +167,8 @@ export class GuildRosterService {
         member,
         guildEntity,
         guildNameSlug,
-        guid,
-        realmSlug,
+        characterGuid,
+        characterRealmSlug,
         level,
         characterClass,
         characterRace,
@@ -175,13 +176,13 @@ export class GuildRosterService {
       );
 
       roster.members.push({
-        guid,
+        guid: characterGuid,
         id: member.character.id,
         rank: member.rank,
         level,
-        isGM,
-        realmId,
-        realmSlug,
+        isGM: isCharacterGM,
+        realmId: characterRealmId,
+        realmSlug: characterRealmSlug,
         class: characterClass,
         race: characterRace,
         faction: resolvedFaction,
@@ -213,7 +214,7 @@ export class GuildRosterService {
       name: member.character.name,
       realm: realmSlug,
       guild: guildEntity.name,
-      guildNameSlug,
+      guildGuid: `${guildNameSlug}@${guildEntity.realm}`,
       guildId: guildEntity.id,
       class: characterClass,
       race: characterRace,

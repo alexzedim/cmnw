@@ -225,7 +225,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
     name: string;
     realm: string;
     faction: string;
-    rank: number;
+    iteration?: number;
     clientId: string;
     clientSecret: string;
     accessToken: string;
@@ -237,7 +237,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       realm: params.realm,
       // @todo parser logic player.faction.type === 'HORDE' ? FACTION.H : FACTION.A
       faction: params.faction,
-      iteration: params.rank,
+      iteration: params.iteration,
       forceUpdate: TIME_MS.FOUR_HOURS, // 4 hours
       region: 'eu',
       createdBy: OSINT_SOURCE.PVP_LADDER,
@@ -342,7 +342,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
     name: string;
     realm: string;
     guild: string;
-    guildNameSlug: string;
+    guildGuid: string;
     guildId: number;
     class: string | null;
     race?: string | null;
@@ -354,7 +354,6 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
     accessToken: string;
   }): CharacterMessageDto {
     const guid = toGuid(params.name, params.realm);
-    const guildGuid = toGuid(params.guildNameSlug, params.realm);
     const resolvedFaction = params.faction ?? undefined;
     const dto = new CharacterMessageDto({
       guid,
@@ -362,7 +361,8 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       name: params.name,
       realm: params.realm,
       guild: params.guild,
-      guildGuid,
+      // @todo validate
+      guildGuid: params.guildGuid,
       guildId: params.guildId,
       guildRank: 0,
       class: params.class || undefined,
