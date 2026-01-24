@@ -16,7 +16,23 @@ export interface MythicKeystoneDungeonResponse {
 }
 
 /**
+ * Mythic Keystone Season Response
+ * GET /data/wow/mythic-keystone/season/index
+ */
+export interface MythicKeystoneSeason extends ISelfWithNameAndId {}
+
+export interface MythicKeystoneSeasonResponse {
+  _links: Record<string, ISelfKeyHref>;
+  seasons: MythicKeystoneSeason[];
+  current_season: MythicKeystoneSeason;
+  lastModified?: string;
+}
+
+/**
  * Response aggregation types for use in services
  */
 export type IMythicKeystoneDungeonResponse =
   Readonly<MythicKeystoneDungeonResponse>;
+
+export type IMythicKeystoneSeasonResponse =
+  Readonly<MythicKeystoneSeasonResponse>;
