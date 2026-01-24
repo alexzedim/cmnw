@@ -32,12 +32,12 @@ import { RabbitMQModule } from '@app/rabbitmq';
   providers: [
     TestsOsint,
     // TestsDma,
-    // TestsCore,
+    TestsCore,
     // TestsBench,
     // TestsCommunity,
     // TestsWorker,
-    TestsCharactersQueueService,
-    TestsCharactersQueueWorker,
+    // TestsCharactersQueueService,
+    // TestsCharactersQueueWorker,
   ],
 })
 export class TestsModule {}

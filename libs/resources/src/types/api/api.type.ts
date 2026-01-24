@@ -9,6 +9,9 @@ import {
   IItem,
   IItemMedia,
   IHallOfFame,
+  ProfessionIndex,
+  ProfessionDetail,
+  SkillTierDetail,
 } from '@app/resources/types';
 
 export type BlizzardApiStringNumber = string | number;
@@ -60,6 +63,15 @@ export type BlizzardApiErrorResponse = {
     statusText: string;
   };
 };
+// Profession Index Query Responses
+export type IProfessionResponse =
+  Readonly<ProfessionIndex>;
+
+export type IProfessionDetailResponse =
+  Readonly<ProfessionDetail>;
+
+export type ISkillTieryResponse =
+  Readonly<SkillTierDetail>;
 
 // Character Professions
 export type BlizzardApiCharacterProfession = {

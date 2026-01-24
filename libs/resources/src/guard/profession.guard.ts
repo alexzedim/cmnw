@@ -4,14 +4,14 @@
  */
 
 import {
-  IBnetProfessionIndexResponse,
-  IBnetProfessionDetailResponse,
-  IBnetSkillTierDetailResponse,
-  IBnetProfession,
-  IBnetSkillTier,
-  IBnetCategory,
-  IBnetRecipe,
-  IBnetNameField,
+  ProfessionIndex,
+  ProfessionDetail,
+  SkillTierDetail,
+  IBlizzardProfession,
+  IBlizzardSkillTier,
+  IBlizzardCategory,
+  IBlizzardRecipe,
+  IBlizzardNameField,
 } from '@app/resources/types';
 
 /**
@@ -20,7 +20,7 @@ import {
  */
 export const isBnetProfessionIndexResponse = (
   response: unknown,
-): response is Readonly<IBnetProfessionIndexResponse> =>
+): response is Readonly<ProfessionIndex> =>
   typeof response === 'object' &&
   response !== null &&
   '_links' in response &&
@@ -42,7 +42,7 @@ export const isBnetProfessionIndexResponse = (
  */
 export const isBnetProfession = (
   profession: unknown,
-): profession is Readonly<IBnetProfession> =>
+): profession is Readonly<IBlizzardProfession> =>
   typeof profession === 'object' &&
   profession !== null &&
   'id' in profession &&
@@ -58,7 +58,7 @@ export const isBnetProfession = (
  */
 export const isBnetProfessionDetailResponse = (
   response: unknown,
-): response is Readonly<IBnetProfessionDetailResponse> =>
+): response is Readonly<ProfessionDetail> =>
   typeof response === 'object' &&
   response !== null &&
   '_links' in response &&
@@ -85,7 +85,9 @@ export const hasBnetSkillTiers = (
 /**
  * Validates skill tier object
  */
-export const isBnetSkillTier = (tier: unknown): tier is Readonly<IBnetSkillTier> =>
+export const isBnetSkillTier = (
+  tier: unknown,
+): tier is Readonly<IBlizzardSkillTier> =>
   typeof tier === 'object' &&
   tier !== null &&
   'id' in tier &&
@@ -103,7 +105,9 @@ export const isBnetSkillTier = (tier: unknown): tier is Readonly<IBnetSkillTier>
 /**
  * Validates if object is a multilingual name field
  */
-export const isNameField = (name: unknown): name is Readonly<IBnetNameField> =>
+export const isNameField = (
+  name: unknown,
+): name is Readonly<IBlizzardNameField> =>
   typeof name === 'object' &&
   name !== null &&
   (('en_US' in name && typeof (name as any).en_US === 'string') ||
@@ -116,7 +120,7 @@ export const isNameField = (name: unknown): name is Readonly<IBnetNameField> =>
  */
 export const isBnetSkillTierDetailResponse = (
   response: unknown,
-): response is Readonly<IBnetSkillTierDetailResponse> =>
+): response is Readonly<SkillTierDetail> =>
   typeof response === 'object' &&
   response !== null &&
   '_links' in response &&
@@ -147,7 +151,7 @@ export const hasBnetCategories = (
  */
 export const isBnetCategory = (
   category: unknown,
-): category is Readonly<IBnetCategory> =>
+): category is Readonly<IBlizzardCategory> =>
   typeof category === 'object' &&
   category !== null &&
   'id' in category &&
@@ -174,7 +178,9 @@ export const hasBnetRecipes = (
 /**
  * Validates recipe object
  */
-export const isBnetRecipe = (recipe: unknown): recipe is Readonly<IBnetRecipe> =>
+export const isBnetRecipe = (
+  recipe: unknown,
+): recipe is Readonly<IBlizzardRecipe> =>
   typeof recipe === 'object' &&
   recipe !== null &&
   'id' in recipe &&
