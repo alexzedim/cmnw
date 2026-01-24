@@ -20,10 +20,11 @@ import {
   charactersQueue,
   delay,
   FACTION,
-  IMythicKeystoneDungeonResponse,
+  IMythicKeystoneSeasonResponse,
   getKeys,
   GLOBAL_OSINT_KEY,
   MYTHIC_PLUS_SEASONS,
+  IMythicKeystoneDungeonResponse,
 } from '@app/resources';
 import { RabbitMQPublisherService } from '@app/rabbitmq';
 
@@ -135,13 +136,12 @@ export class LadderService implements OnApplicationBootstrap {
       const mythicPlusSeasons: Set<number> = new Set();
       const mythicPlusExpansionWeeks: Set<number> = new Set();
 
-      const { dungeons } =
-        await this.BNet.query<IMythicKeystoneDungeonResponse>(
+      const { dungeons } = await this.BNet.query<IMythicKeystoneDungeonResponse>(
         '/data/wow/mythic-keystone/dungeon/index',
         apiConstParams(API_HEADERS_ENUM.DYNAMIC),
       );
 
-      const { seasons } = await this.BNet.query<any>(
+      const { seasons } = await this.BNet.query<IMythicKeystoneSeasonResponse>(
         '/data/wow/mythic-keystone/season/index',
         apiConstParams(API_HEADERS_ENUM.DYNAMIC),
       );

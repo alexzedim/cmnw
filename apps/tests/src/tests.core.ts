@@ -29,8 +29,8 @@ export class TestsCore implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
-    const dungeonIndex = await this.dungeonIndex();
-    console.log(JSON.stringify(dungeonIndex));
+    const seasonIndex = await this.seasonIndex();
+    console.log(JSON.stringify(seasonIndex));
   }
 
   async characterStats(nameSlug: string, realmSlug: string): Promise<any> {
@@ -51,9 +51,9 @@ export class TestsCore implements OnApplicationBootstrap {
     }
   }
 
-  async dungeonIndex(): Promise<any> {
+  async seasonIndex(): Promise<any> {
     return this.BNet.query(
-      `/data/wow/mythic-keystone/dungeon/index`,
+      `/data/wow/mythic-keystone/season/index`,
       apiConstParams(API_HEADERS_ENUM.DYNAMIC),
     );
   }
