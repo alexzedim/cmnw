@@ -21,6 +21,7 @@ import {
   delay,
   FACTION,
   IMythicKeystoneSeasonResponse,
+  IMythicKeystoneSeasonDetail,
   getKeys,
   GLOBAL_OSINT_KEY,
   MYTHIC_PLUS_SEASONS,
@@ -163,6 +164,7 @@ export class LadderService implements OnApplicationBootstrap {
       dungeons.forEach((dungeon) =>
         mythicPlusDungeons.set(dungeon.id, dungeon.name),
       );
+
       seasons.forEach((season) => mythicPlusSeasons.add(season.id));
 
       const lastSeason = Array.from(mythicPlusSeasons).pop();
@@ -173,7 +175,7 @@ export class LadderService implements OnApplicationBootstrap {
 
         await delay(2);
 
-        const { periods } = await this.BNet.query<any>(
+        const { periods } = await this.BNet.query<IMythicKeystoneSeasonDetail>(
           `/data/wow/mythic-keystone/season/${mythicPlusSeason}`,
           apiConstParams(API_HEADERS_ENUM.DYNAMIC),
         );
