@@ -20,6 +20,7 @@ import {
   charactersQueue,
   delay,
   FACTION,
+  IMythicKeystoneDungeonResponse,
   getKeys,
   GLOBAL_OSINT_KEY,
   MYTHIC_PLUS_SEASONS,
@@ -134,7 +135,8 @@ export class LadderService implements OnApplicationBootstrap {
       const mythicPlusSeasons: Set<number> = new Set();
       const mythicPlusExpansionWeeks: Set<number> = new Set();
 
-      const { dungeons } = await this.BNet.query<any>(
+      const { dungeons } =
+        await this.BNet.query<IMythicKeystoneDungeonResponse>(
         '/data/wow/mythic-keystone/dungeon/index',
         apiConstParams(API_HEADERS_ENUM.DYNAMIC),
       );
@@ -144,10 +146,10 @@ export class LadderService implements OnApplicationBootstrap {
         apiConstParams(API_HEADERS_ENUM.DYNAMIC),
       );
 
-      dungeons.map((dungeon) =>
-        mythicPlusDungeons.set(dungeon.id, dungeon.name.en_GB),
+      dungeons.forEach((dungeon) =>
+        mythicPlusDungeons.set(dungeon.id, dungeon.name),
       );
-      seasons.map((season) => mythicPlusSeasons.add(season.id));
+      seasons.forEach((season) => mythicPlusSeasons.add(season.id));
 
       const lastSeason = Array.from(mythicPlusSeasons).pop();
 

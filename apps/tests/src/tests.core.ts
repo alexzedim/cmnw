@@ -17,7 +17,11 @@ import { Repository } from 'typeorm';
 export class TestsCore implements OnApplicationBootstrap {
   private readonly logger = new Logger(TestsCore.name, { timestamp: true });
 
-  private BNet: BlizzAPI;
+  private BNet: BlizzAPI = new BlizzAPI({
+    region: 'eu',
+    clientId: cmnwConfig.clientId,
+    clientSecret: cmnwConfig.clientSecret,
+  });
 
   constructor(
     @InjectRepository(KeysEntity)
@@ -25,19 +29,13 @@ export class TestsCore implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
-    const logs = await this.statistics('инициатива', 'gordunni');
-    console.log(logs);
+    const dungeonIndex = await this.dungeonIndex();
+    console.log(JSON.stringify(dungeonIndex));
   }
 
-  async statistics(nameSlug: string, realmSlug: string): Promise<any> {
+  async characterStats(nameSlug: string, realmSlug: string): Promise<any> {
     try {
       this.logger.log(`${nameSlug}:${realmSlug}`);
-
-      this.BNet = new BlizzAPI({
-        region: 'eu',
-        clientId: cmnwConfig.clientId,
-        clientSecret: cmnwConfig.clientSecret,
-      });
 
       return await this.BNet.query(
         `/profile/wow/character/${realmSlug}/${nameSlug}/statistics`,
@@ -51,6 +49,13 @@ export class TestsCore implements OnApplicationBootstrap {
       });
       return errorOrException;
     }
+  }
+
+  async dungeonIndex(): Promise<any> {
+    return this.BNet.query(
+      `/data/wow/mythic-keystone/dungeon/index`,
+      apiConstParams(API_HEADERS_ENUM.DYNAMIC),
+    );
   }
 
   async getWclKeys() {

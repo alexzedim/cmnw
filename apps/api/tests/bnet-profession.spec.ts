@@ -1,12 +1,12 @@
 import {
-  BnetProfessionIndexQueryResponse,
-  BnetProfessionDetailQueryResponse,
-  BnetSkillTierDetailQueryResponse,
-  IBnetProfession,
-  IBnetSkillTier,
-  IBnetCategory,
-  IBnetRecipe,
-  IBnetNameField,
+  IProfessionResponse,
+  IProfessionDetailResponse,
+  ISkillTieryResponse,
+  IBlizzardProfession,
+  IBlizzardSkillTier,
+  IBlizzardCategory,
+  IBlizzardRecipe,
+  IBlizzardNameField,
 } from '@app/resources';
 
 /**
@@ -20,7 +20,7 @@ import {
 describe('BNet Profession API Responses', () => {
   describe('Profession Index Response', () => {
     it('should have correct structure for profession index', () => {
-      const mockResponse: BnetProfessionIndexQueryResponse = {
+      const mockResponse: IProfessionResponse = {
         _links: {
           self: {
             href: 'https://eu.api.blizzard.com/data/wow/profession/index?namespace=static-eu',
@@ -53,7 +53,7 @@ describe('BNet Profession API Responses', () => {
     });
 
     it('should have professions with valid keys', () => {
-      const profession: IBnetProfession = {
+      const profession: IBlizzardProfession = {
         key: {
           href: 'https://eu.api.blizzard.com/data/wow/profession/164?namespace=static-eu',
         },
@@ -70,13 +70,13 @@ describe('BNet Profession API Responses', () => {
 
   describe('Profession Detail Response', () => {
     it('should have correct structure for profession detail', () => {
-      const mockNameField: IBnetNameField = {
+      const mockNameField: IBlizzardNameField = {
         en_US: 'Blacksmithing',
         en_GB: 'Blacksmithing',
         de_DE: 'Schmiedekunst',
       };
 
-      const mockSkillTier: IBnetSkillTier = {
+      const mockSkillTier: IBlizzardSkillTier = {
         key: {
           href: 'https://eu.api.blizzard.com/data/wow/profession/164/skill-tier/2396?namespace=static-eu',
         },
@@ -87,7 +87,7 @@ describe('BNet Profession API Responses', () => {
         maximum_skill_level: 75,
       };
 
-      const mockResponse: BnetProfessionDetailQueryResponse = {
+      const mockResponse: IProfessionDetailResponse = {
         _links: {
           self: {
             href: 'https://eu.api.blizzard.com/data/wow/profession/164?namespace=static-eu',
@@ -112,7 +112,7 @@ describe('BNet Profession API Responses', () => {
     });
 
     it('should have skill tiers with multilingual names', () => {
-      const nameField: IBnetNameField = {
+      const nameField: IBlizzardNameField = {
         en_US: 'Shadowlands',
         en_GB: 'Shadowlands',
         de_DE: 'Schattenlande',
@@ -125,7 +125,7 @@ describe('BNet Profession API Responses', () => {
     });
 
     it('should handle skill tier with all locale variations', () => {
-      const nameField: IBnetNameField = {
+      const nameField: IBlizzardNameField = {
         en_US: 'Dragonflight',
         en_GB: 'Dragonflight',
         de_DE: 'Drachenflug',
@@ -147,14 +147,14 @@ describe('BNet Profession API Responses', () => {
 
   describe('Skill Tier Detail Response', () => {
     it('should have correct structure for skill tier detail', () => {
-      const mockRecipe: IBnetRecipe = {
+      const mockRecipe: IBlizzardRecipe = {
         key: {
           href: 'https://eu.api.blizzard.com/data/wow/recipe/2657?namespace=static-eu',
         },
         id: 2657,
       };
 
-      const mockCategory: IBnetCategory = {
+      const mockCategory: IBlizzardCategory = {
         key: {
           href: 'https://eu.api.blizzard.com/data/wow/recipe-category/133?namespace=static-eu',
         },
@@ -163,7 +163,7 @@ describe('BNet Profession API Responses', () => {
         recipes: [mockRecipe],
       };
 
-      const mockResponse: BnetSkillTierDetailQueryResponse = {
+      const mockResponse: ISkillTieryResponse = {
         _links: {
           self: {
             href: 'https://eu.api.blizzard.com/data/wow/profession/164/skill-tier/2396?namespace=static-eu',
@@ -184,7 +184,7 @@ describe('BNet Profession API Responses', () => {
     });
 
     it('should have categories with recipe arrays', () => {
-      const recipes: IBnetRecipe[] = [
+      const recipes: IBlizzardRecipe[] = [
         {
           key: {
             href: 'https://eu.api.blizzard.com/data/wow/recipe/2657?namespace=static-eu',
@@ -199,7 +199,7 @@ describe('BNet Profession API Responses', () => {
         },
       ];
 
-      const category: IBnetCategory = {
+      const category: IBlizzardCategory = {
         key: {
           href: 'https://eu.api.blizzard.com/data/wow/recipe-category/133?namespace=static-eu',
         },
@@ -215,7 +215,7 @@ describe('BNet Profession API Responses', () => {
     });
 
     it('should handle recipes with numeric IDs', () => {
-      const recipe: IBnetRecipe = {
+      const recipe: IBlizzardRecipe = {
         key: {
           href: 'https://eu.api.blizzard.com/data/wow/recipe/2657?namespace=static-eu',
         },
@@ -229,7 +229,7 @@ describe('BNet Profession API Responses', () => {
 
   describe('BNet Query Response Integration', () => {
     it('should handle full profession indexing workflow', () => {
-      const professionIndexResponse: BnetProfessionIndexQueryResponse = {
+      const professionIndexResponse: IProfessionResponse = {
         _links: {
           self: {
             href: 'https://eu.api.blizzard.com/data/wow/profession/index?namespace=static-eu',
@@ -257,7 +257,7 @@ describe('BNet Profession API Responses', () => {
     });
 
     it('should handle profession detail with skill tiers', () => {
-      const professionDetailResponse: BnetProfessionDetailQueryResponse = {
+      const professionDetailResponse: IProfessionDetailResponse = {
         _links: {
           self: {
             href: 'https://eu.api.blizzard.com/data/wow/profession/164?namespace=static-eu',
@@ -300,7 +300,7 @@ describe('BNet Profession API Responses', () => {
     });
 
     it('should handle skill tier detail with categories and recipes', () => {
-      const skillTierDetailResponse: BnetSkillTierDetailQueryResponse = {
+      const skillTierDetailResponse: ISkillTieryResponse = {
         _links: {
           self: {
             href: 'https://eu.api.blizzard.com/data/wow/profession/164/skill-tier/2396?namespace=static-eu',
@@ -345,7 +345,7 @@ describe('BNet Profession API Responses', () => {
 
   describe('Type Validation', () => {
     it('should validate readonly response types', () => {
-      const response: Readonly<BnetProfessionIndexQueryResponse> = {
+      const response: Readonly<IProfessionResponse> = {
         _links: {
           self: { href: 'test' },
         },

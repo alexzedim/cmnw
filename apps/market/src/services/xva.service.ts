@@ -30,9 +30,9 @@ import {
   SKILL_LINE_KEY_MAPPING,
   SPELL_EFFECT_KEY_MAPPING,
   EXPANSION_TICKER_MAP,
-  BnetProfessionIndexQueryResponse,
-  BnetProfessionDetailQueryResponse,
-  BnetSkillTierDetailQueryResponse,
+  IProfessionResponse,
+  IProfessionDetailResponse,
+  ISkillTieryResponse,
   isBnetProfessionIndexResponse,
   isBnetProfessionDetailResponse,
   isBnetSkillTierDetailResponse,
@@ -323,7 +323,7 @@ export class XvaService implements OnApplicationBootstrap {
       });
 
       const professionIndexResponse =
-        await this.BNet.query<BnetProfessionIndexQueryResponse>(
+        await this.BNet.query<IProfessionResponse>(
           '/data/wow/profession/index',
           {
             timeout: 10000,
@@ -344,7 +344,7 @@ export class XvaService implements OnApplicationBootstrap {
 
       for (const profession of professions) {
         const professionDetailResponse =
-          await this.BNet.query<BnetProfessionDetailQueryResponse>(
+          await this.BNet.query<IProfessionDetailResponse>(
             `/data/wow/profession/${profession.id}`,
             {
               timeout: 10000,
@@ -371,7 +371,7 @@ export class XvaService implements OnApplicationBootstrap {
           });
 
           const skillTierDetailResponse =
-            await this.BNet.query<BnetSkillTierDetailQueryResponse>(
+            await this.BNet.query<ISkillTieryResponse>(
               `/data/wow/profession/${profession.id}/skill-tier/${tier.id}`,
               {
                 timeout: 10000,

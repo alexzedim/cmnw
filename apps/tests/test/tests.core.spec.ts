@@ -23,7 +23,7 @@ describe('CORE', () => {
 
   describe('API REQUEST', () => {
     it('get character logs', async () => {
-      const result = await testsService.statistics('Aanzz', 'Aanzz');
+      const result = await testsService.characterStats('Aanzz', 'Aanzz');
       console.log(result);
     });
   });
