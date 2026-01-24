@@ -25,6 +25,8 @@ import {
   GLOBAL_OSINT_KEY,
   MYTHIC_PLUS_SEASONS,
   IMythicKeystoneDungeonResponse,
+  isMythicKeystoneDungeonResponse,
+  isMythicKeystoneSeasonResponse,
 } from '@app/resources';
 import { RabbitMQPublisherService } from '@app/rabbitmq';
 
@@ -136,15 +138,27 @@ export class LadderService implements OnApplicationBootstrap {
       const mythicPlusSeasons: Set<number> = new Set();
       const mythicPlusExpansionWeeks: Set<number> = new Set();
 
-      const { dungeons } = await this.BNet.query<IMythicKeystoneDungeonResponse>(
+      const dungeonResponse = await this.BNet.query<IMythicKeystoneDungeonResponse>(
         '/data/wow/mythic-keystone/dungeon/index',
         apiConstParams(API_HEADERS_ENUM.DYNAMIC),
       );
 
-      const { seasons } = await this.BNet.query<IMythicKeystoneSeasonResponse>(
+      if (!isMythicKeystoneDungeonResponse(dungeonResponse)) {
+        throw new BadGatewayException('Invalid mythic keystone dungeon response');
+      }
+
+      const { dungeons } = dungeonResponse;
+
+      const seasonResponse = await this.BNet.query<IMythicKeystoneSeasonResponse>(
         '/data/wow/mythic-keystone/season/index',
         apiConstParams(API_HEADERS_ENUM.DYNAMIC),
       );
+
+      if (!isMythicKeystoneSeasonResponse(seasonResponse)) {
+        throw new BadGatewayException('Invalid mythic keystone season response');
+      }
+
+      const { seasons } = seasonResponse;
 
       dungeons.forEach((dungeon) =>
         mythicPlusDungeons.set(dungeon.id, dungeon.name),
