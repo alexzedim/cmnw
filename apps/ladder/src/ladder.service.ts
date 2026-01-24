@@ -28,6 +28,7 @@ import {
   IMythicKeystoneDungeonResponse,
   isMythicKeystoneDungeonResponse,
   isMythicKeystoneSeasonResponse,
+  isMythicKeystoneSeasonDetail,
 } from '@app/resources';
 import { RabbitMQPublisherService } from '@app/rabbitmq';
 
@@ -173,23 +174,17 @@ export class LadderService implements OnApplicationBootstrap {
 
         await delay(2);
 
-        const { periods } = await this.BNet.query<IMythicKeystoneSeasonDetail>(
+        const seasonDetailResponse = await this.BNet.query<IMythicKeystoneSeasonDetail>(
           `/data/wow/mythic-keystone/season/${mythicPlusSeason}`,
           apiConstParams(API_HEADERS_ENUM.DYNAMIC),
         );
 
-        if (onlyLast) {
-          const lastWeek = periods[periods.length - 1];
-          mythicPlusExpansionWeeks.add(lastWeek.id);
-        } else {
-          periods.map((period) => mythicPlusExpansionWeeks.add(period.id));
+        if (!isMythicKeystoneSeasonDetail(seasonDetailResponse)) {
+          throw new BadGatewayException('Invalid mythic keystone season detail response');
         }
-      }
 
-      const w = Array.from(mythicPlusExpansionWeeks).pop();
-      const previousWeek = await this.redisService.get(`week:${w}`);
-      if (previousWeek) {
-        throw new BadGatewayException(`week:${w} already been requested`);
+        const { periods } = seasonDetailResponse;
+        periods.forEach((period) => mythicPlusExpansionWeeks.add(period.id));
       }
 
       const realmsEntity = await this.realmsRepository
