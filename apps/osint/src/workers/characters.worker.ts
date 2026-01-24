@@ -15,7 +15,6 @@ import {
   toSlug,
   CharacterMessageDto,
   ICharacterMessageBase,
-  isCharacterProfessions,
 } from '@app/resources';
 
 import { CharactersEntity, KeysEntity } from '@app/pg';
