@@ -139,21 +139,22 @@ export class LadderService implements OnApplicationBootstrap {
       const mythicPlusSeasons: Set<number> = new Set();
       const mythicPlusExpansionWeeks: Set<number> = new Set();
 
-      const dungeonResponse = await this.BNet.query<IMythicKeystoneDungeonResponse>(
-        '/data/wow/mythic-keystone/dungeon/index',
-        apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-      );
+      const [dungeonResponse, seasonResponse] = await Promise.all([
+        this.BNet.query<IMythicKeystoneDungeonResponse>(
+          '/data/wow/mythic-keystone/dungeon/index',
+          apiConstParams(API_HEADERS_ENUM.DYNAMIC),
+        ),
+        this.BNet.query<IMythicKeystoneSeasonResponse>(
+          '/data/wow/mythic-keystone/season/index',
+          apiConstParams(API_HEADERS_ENUM.DYNAMIC),
+        ),
+      ]);
 
       if (!isMythicKeystoneDungeonResponse(dungeonResponse)) {
         throw new BadGatewayException('Invalid mythic keystone dungeon response');
       }
 
       const { dungeons } = dungeonResponse;
-
-      const seasonResponse = await this.BNet.query<IMythicKeystoneSeasonResponse>(
-        '/data/wow/mythic-keystone/season/index',
-        apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-      );
 
       if (!isMythicKeystoneSeasonResponse(seasonResponse)) {
         throw new BadGatewayException('Invalid mythic keystone season response');
@@ -167,11 +168,8 @@ export class LadderService implements OnApplicationBootstrap {
 
       seasons.forEach((season) => mythicPlusSeasons.add(season.id));
 
-      const lastSeason = Array.from(mythicPlusSeasons).pop();
-
       for (const mythicPlusSeason of mythicPlusSeasons.values()) {
-        if (mythicPlusSeason < MYTHIC_PLUS_SEASONS.SHDW_S1) continue;
-        if (onlyLast && mythicPlusSeason !== lastSeason) continue;
+        // @todo redis
 
         await delay(2);
 
@@ -201,8 +199,7 @@ export class LadderService implements OnApplicationBootstrap {
 
       for (const { connectedRealmId } of realmsEntity) {
         for (const dungeonId of mythicPlusDungeons.keys()) {
-          // SHDW Dungeons Breakpoint
-          if (dungeonId < 375) continue;
+
           for (const period of mythicPlusExpansionWeeks.values()) {
             await delay(2);
 
