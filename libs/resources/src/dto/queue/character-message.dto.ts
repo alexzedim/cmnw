@@ -177,6 +177,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
    * Create from Mythic+ Ladder data
    */
   static fromMythicPlusLadder(params: {
+    id: number;
     name: string;
     realm: string;
     faction: string;
