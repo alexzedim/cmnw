@@ -29,9 +29,13 @@ export type BlizzardApiResponse = Record<
 
 export type BlizzardApiArrayResponse = Record<string, BlizzardApiArray>;
 
-export type BlizzardApiPetsCollection = Record<'pets', Array<IPetType>>;
+export type BlizzardApiPetsCollection = Record<'pets', Array<IPetType>> & {
+  status?: string;
+};
 
-export type BlizzardApiMountsCollection = Record<'mounts', Array<IMountsNameWithId>>;
+export type BlizzardApiMountsCollection = Record<'mounts', Array<IMountsNameWithId>> & {
+  status?: string;
+};
 
 export type BlizzardApiCharacterSummary = Readonly<ICharacterSummary>;
 
@@ -186,4 +190,5 @@ export type BlizzardApiCharacterProfessions = {
   primaries: BlizzardApiCharacterProfession[];
   secondaries: BlizzardApiCharacterProfession[];
   lastModified: string;
+  status?: string;
 };

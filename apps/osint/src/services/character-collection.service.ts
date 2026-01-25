@@ -71,41 +71,43 @@ export class CharacterCollectionService {
         charactersMountEntities.map((charactersMount) => charactersMount.mountId),
       );
 
-      await lastValueFrom(
-        from(mounts).pipe(
-          mergeMap(async (mount: any) => {
-            const isAddedToCollection = originalMountIds.has(mount.mount.id);
-            updatedMountIds.add(mount.mount.id);
+      if (mounts.length > 0) {
+        await lastValueFrom(
+          from(mounts).pipe(
+            mergeMap(async (mount: any) => {
+              const isAddedToCollection = originalMountIds.has(mount.mount.id);
+              updatedMountIds.add(mount.mount.id);
 
-            const shouldIndexMount = isIndex;
-            if (shouldIndexMount) {
-              const isMountExists = await this.mountsRepository.existsBy({
-                id: mount.mount.id,
-              });
-
-              const isNewMount = !isMountExists;
-              if (isNewMount) {
-                const mountEntity = this.mountsRepository.create({
+              const shouldIndexMount = isIndex;
+              if (shouldIndexMount) {
+                const isMountExists = await this.mountsRepository.existsBy({
                   id: mount.mount.id,
-                  name: mount.mount.name,
                 });
 
-                mountEntities.push(mountEntity);
+                const isNewMount = !isMountExists;
+                if (isNewMount) {
+                  const mountEntity = this.mountsRepository.create({
+                    id: mount.mount.id,
+                    name: mount.mount.name,
+                  });
+
+                  mountEntities.push(mountEntity);
+                }
               }
-            }
 
-            const isNewMountForCharacter = !isAddedToCollection;
-            if (isNewMountForCharacter) {
-              const characterMountEntity = this.charactersMountsRepository.create({
-                mountId: mount.mount.id,
-                characterGuid,
-              });
+              const isNewMountForCharacter = !isAddedToCollection;
+              if (isNewMountForCharacter) {
+                const characterMountEntity = this.charactersMountsRepository.create({
+                  mountId: mount.mount.id,
+                  characterGuid,
+                });
 
-              characterMountsEntities.push(characterMountEntity);
-            }
-          }),
-        ),
-      );
+                characterMountsEntities.push(characterMountEntity);
+              }
+            }),
+          ),
+        );
+      }
 
       const hasNewMountEntities = Boolean(isIndex && mountEntities.length);
       if (hasNewMountEntities) {
@@ -142,6 +144,11 @@ export class CharacterCollectionService {
         guid: `${nameSlug}@${realmSlug}`,
         error: JSON.stringify(errorOrException),
       });
+      mountsCollection.status = setStatusString(
+        mountsCollection.status || '------',
+        'MOUNTS',
+        CharacterStatusState.ERROR,
+      );
       return mountsCollection;
     }
   }
@@ -172,82 +179,84 @@ export class CharacterCollectionService {
         charactersPetsEntities.map((charactersPet) => charactersPet.petId),
       );
 
-      await lastValueFrom(
-        from(pets).pipe(
-          mergeMap(async (pet: IPetType) => {
-            try {
-              const isAddedToCollection = originalPetIds.has(pet.id);
-              const isNamed = 'name' in pet;
+      if (pets.length > 0) {
+        await lastValueFrom(
+          from(pets).pipe(
+            mergeMap(async (pet: IPetType) => {
+              try {
+                const isAddedToCollection = originalPetIds.has(pet.id);
+                const isNamed = 'name' in pet;
 
-              const creatureId =
-                'creature_display' in pet ? pet.creature_display.id : null;
-              const characterPetId = pet.id;
-              const petId = pet.species.id;
-              const petName = isNamed ? pet.name : pet.species.name;
-              const petLevel = Number(pet.level) || 1;
-              const isActive = 'is_active' in pet;
-              const petQuality = 'quality' in pet ? pet.quality.name : null;
-              const breedId = 'stats' in pet ? pet.stats.breed_id : null;
+                const creatureId =
+                  'creature_display' in pet ? pet.creature_display.id : null;
+                const characterPetId = pet.id;
+                const petId = pet.species.id;
+                const petName = isNamed ? pet.name : pet.species.name;
+                const petLevel = Number(pet.level) || 1;
+                const isActive = 'is_active' in pet;
+                const petQuality = 'quality' in pet ? pet.quality.name : null;
+                const breedId = 'stats' in pet ? pet.stats.breed_id : null;
 
-              const shouldIndexPet =
-                isIndex && creatureId && !petsEntities.has(creatureId);
+                const shouldIndexPet =
+                  isIndex && creatureId && !petsEntities.has(creatureId);
 
-              updatedPetIds.add(pet.id);
+                updatedPetIds.add(pet.id);
 
-              if (isActive) {
+                if (isActive) {
+                  const petIdentifier = isNamed
+                    ? `${pet.name}.${pet.species.name}`
+                    : `${pet.species.name}`;
+                  hashA.push(petIdentifier, pet.level);
+                }
+
                 const petIdentifier = isNamed
                   ? `${pet.name}.${pet.species.name}`
                   : `${pet.species.name}`;
-                hashA.push(petIdentifier, pet.level);
-              }
+                hashB.push(petIdentifier, pet.level);
 
-              const petIdentifier = isNamed
-                ? `${pet.name}.${pet.species.name}`
-                : `${pet.species.name}`;
-              hashB.push(petIdentifier, pet.level);
+                if (shouldIndexPet) {
+                  const isPetExists = Boolean(
+                    await this.redisService.exists(`PETS:${petId}`),
+                  );
 
-              if (shouldIndexPet) {
-                const isPetExists = Boolean(
-                  await this.redisService.exists(`PETS:${petId}`),
-                );
+                  const isNewPetType = !isPetExists;
+                  if (isNewPetType) {
+                    const petEntity = this.petsRepository.create({
+                      id: petId,
+                      creatureId: creatureId,
+                      name: pet.species.name,
+                    });
 
-                const isNewPetType = !isPetExists;
-                if (isNewPetType) {
-                  const petEntity = this.petsRepository.create({
-                    id: petId,
-                    creatureId: creatureId,
-                    name: pet.species.name,
+                    petsEntities.set(creatureId, petEntity);
+                  }
+                }
+
+                const isNewPetForCharacter = !isAddedToCollection;
+                if (isNewPetForCharacter) {
+                  const characterPetEntity = this.charactersPetsRepository.create({
+                    petId,
+                    characterPetId,
+                    creatureId,
+                    petQuality,
+                    breedId,
+                    characterGuid,
+                    petName,
+                    petLevel,
+                    isActive,
                   });
 
-                  petsEntities.set(creatureId, petEntity);
+                  characterPetsEntities.push(characterPetEntity);
                 }
-              }
-
-              const isNewPetForCharacter = !isAddedToCollection;
-              if (isNewPetForCharacter) {
-                const characterPetEntity = this.charactersPetsRepository.create({
-                  petId,
-                  characterPetId,
-                  creatureId,
-                  petQuality,
-                  breedId,
-                  characterGuid,
-                  petName,
-                  petLevel,
-                  isActive,
+              } catch (error) {
+                this.logger.error({
+                  logTag: 'syncCharacterPets|processPet',
+                  error: JSON.stringify(error),
                 });
-
-                characterPetsEntities.push(characterPetEntity);
               }
-            } catch (error) {
-              this.logger.error({
-                logTag: 'syncCharacterPets|processPet',
-                error: JSON.stringify(error),
-              });
-            }
-          }, 5),
-        ),
-      );
+            }, 5),
+          ),
+        );
+      }
 
       const hasNewPetEntities = Boolean(isIndex && petsEntities.size);
       if (hasNewPetEntities) {
@@ -270,7 +279,6 @@ export class CharacterCollectionService {
       }
 
       petsCollection.petsNumber = pets.length;
-      petsCollection.statusCode = STATUS_CODES.SUCCESS_PETS;
       petsCollection.status = setStatusString(
         petsCollection.status || '------',
         'PETS',
@@ -294,6 +302,11 @@ export class CharacterCollectionService {
         guid: `${nameSlug}@${realmSlug}`,
         error: JSON.stringify(errorOrException),
       });
+      petsCollection.status = setStatusString(
+        petsCollection.status || '------',
+        'PETS',
+        CharacterStatusState.ERROR,
+      );
       return petsCollection;
     }
   }
@@ -319,41 +332,50 @@ export class CharacterCollectionService {
         ...(secondaries || []).map((prof) => ({ prof, isPrimary: false })),
       ];
 
-      await lastValueFrom(
-        from(allProfessions).pipe(
-          mergeMap(async ({ prof, isPrimary }) => {
-            const { profession, tiers, specialization: profSpecialization } = prof;
-            const { id: professionId, name: professionName } = profession;
+      if (allProfessions.length > 0) {
+        await lastValueFrom(
+          from(allProfessions).pipe(
+            mergeMap(async ({ prof, isPrimary }) => {
+              const { profession, tiers, specialization: profSpecialization } = prof;
+              const { id: professionId, name: professionName } = profession;
 
-            tiers?.forEach((tier: any) => {
-              const { tier: tierInfo, skill_points, max_skill_points } = tier;
-              const { id: tierId, name: tierName } = tierInfo;
+              tiers?.forEach((tier: any) => {
+                const { tier: tierInfo, skill_points, max_skill_points } = tier;
+                const { id: tierId, name: tierName } = tierInfo;
 
-              const record = this.charactersProfessionsRepository.create({
-                characterGuid,
-                professionId,
-                professionName,
-                tierId,
-                tierName,
-                skillPoints: skill_points,
-                maxSkillPoints: max_skill_points,
-                isPrimary,
-                specialization: profSpecialization?.name || null,
+                const record = this.charactersProfessionsRepository.create({
+                  characterGuid,
+                  professionId,
+                  professionName,
+                  tierId,
+                  tierName,
+                  skillPoints: skill_points,
+                  maxSkillPoints: max_skill_points,
+                  isPrimary,
+                  specialization: profSpecialization?.name || null,
+                });
+
+                professionRecords.push(record);
+                professionsSummary.push(
+                  `${professionName} ${skill_points}/${max_skill_points}`,
+                );
               });
-
-              professionRecords.push(record);
-              professionsSummary.push(
-                `${professionName} ${skill_points}/${max_skill_points}`,
-              );
-            });
-          }),
-        ),
-      );
+            }),
+          ),
+        );
+      }
 
       if (professionRecords.length > 0) {
         await this.charactersProfessionsRepository.delete({ characterGuid });
         await this.charactersProfessionsRepository.save(professionRecords);
       }
+
+      // Set status to SUCCESS for PROFESSIONS endpoint
+      professionsData.status = setStatusString(
+        professionsData.status || '------',
+        'PROFESSIONS',
+        CharacterStatusState.SUCCESS,
+      );
 
       return professionsSummary;
     } catch (errorOrException) {
@@ -362,6 +384,12 @@ export class CharacterCollectionService {
         guid: `${nameSlug}@${realmSlug}`,
         error: JSON.stringify(errorOrException),
       });
+      // Set status to ERROR for PROFESSIONS endpoint on exception
+      professionsData.status = setStatusString(
+        professionsData.status || '------',
+        'PROFESSIONS',
+        CharacterStatusState.ERROR,
+      );
       return professionsSummary;
     }
   }

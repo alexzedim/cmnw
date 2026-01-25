@@ -280,6 +280,7 @@ export interface IMountsNameWithId {
 export interface IMounts {
   statusCode: number;
   mountsNumber: number;
+  status?: string;
 }
 
 export interface IPets {
@@ -287,6 +288,7 @@ export interface IPets {
   petsNumber: number;
   hashB: string;
   hashA: string;
+  status?: string;
 }
 
 export interface IPetType {

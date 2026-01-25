@@ -34,7 +34,7 @@ export class CharactersProfessionsEntity {
   professionId: number;
 
   @Column({
-    nullable: false,
+    nullable: true,
     type: 'varchar',
     name: 'profession_name',
   })
