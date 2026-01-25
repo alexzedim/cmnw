@@ -19,8 +19,6 @@ import {
   BRACKETS,
   CharacterMessageDto,
   charactersQueue,
-  delay,
-  FACTION,
   IMythicKeystoneSeasonResponse,
   IMythicKeystoneSeasonDetail,
   getKeys,
@@ -43,6 +41,7 @@ import {
   isPvPSeasonIndexResponse,
   IPvPLeaderboardResponse,
   isPvPLeaderboardResponse,
+  PvPSeason,
 } from '@app/resources';
 import { RabbitMQPublisherService } from '@app/rabbitmq';
 
@@ -89,12 +88,7 @@ export class LadderService implements OnApplicationBootstrap {
       const keys = await getKeys(this.keysRepository, clearance, true, false);
       const [key] = keys;
 
-      this.BNet = new BlizzAPI({
-        region: 'eu',
-        clientId: key.client,
-        clientSecret: key.secret,
-        accessToken: key.token,
-      });
+      this.initializeBlizzAPI(key);
 
       const pvpSeasonIndex = await this.BNet.query<IPvPSeasonIndexResponse>(
         '/data/wow/pvp-season/index',
@@ -103,42 +97,236 @@ export class LadderService implements OnApplicationBootstrap {
 
       this.validatePvPSeasonIndexResponse(pvpSeasonIndex);
 
-      for (const season of pvpSeasonIndex.seasons) {
-        for (const bracket of BRACKETS) {
-          // @todo replace with proper rate limiter
-          await delay(2);
+      await this.processPvPLeaderboards(
+        pvpSeasonIndex.seasons,
+        key,
+        logTag,
+      );
 
-          const pvpLeaderboard = await this.BNet.query<IPvPLeaderboardResponse>(
-            `/data/wow/pvp-season/${season.id}/pvp-leaderboard/${bracket}`,
-            apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-          );
-
-          this.validatePvPLeaderboardResponse(pvpLeaderboard);
-
-          const characterJobs = pvpLeaderboard.entries.map((player) => {
-            return CharacterMessageDto.fromPvPLadder({
-              name: player.character.name,
-              realm: player.character.realm.slug,
-              faction: transformFaction(player.faction.type),
-              clientId: key.client,
-              clientSecret: key.secret,
-              accessToken: key.token,
-            });
-          });
-
-          await this.publisher.publishBulk(charactersQueue.exchange, characterJobs);
-
-          this.logger.log({
-            logTag,
-            seasonId: season.id,
-            bracket,
-            playerCount: characterJobs.length,
-            message: `Processed PvP ladder: Season ${season.id}, Bracket ${bracket}, Players: ${characterJobs.length}`,
-          });
-        }
-      }
+      this.logger.log({
+        logTag,
+        message: 'PvP ladder indexing completed successfully',
+      });
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });
+    }
+  }
+
+  /**
+   * Process PvP leaderboards for all seasons and brackets
+   */
+  private async processPvPLeaderboards(
+    seasons: PvPSeason[],
+    key: KeysEntity,
+    logTag: string,
+  ): Promise<void> {
+    const totalRequests = seasons.length * BRACKETS.length;
+    let processedCount = 0;
+
+    for (const season of seasons) {
+      for (const bracket of BRACKETS) {
+        processedCount++;
+
+        try {
+          // Check if this season-bracket combination was already processed
+          const cacheKey = this.buildPvPLeaderboardCacheKey(
+            season.id,
+            bracket,
+          );
+
+          const isCached = await this.redisService.exists(cacheKey);
+          if (isCached) {
+            this.logger.debug({
+              logTag,
+              seasonId: season.id,
+              bracket,
+              message: 'Skipping cached PvP leaderboard',
+            });
+            continue;
+          }
+
+          await this.rateLimiter.wait();
+
+          const pvpLeaderboard = await this.fetchPvPLeaderboard(
+            season.id,
+            bracket,
+          );
+
+          if (pvpLeaderboard.entries.length === 0) {
+            // Mark as processed even if no entries found
+            await this.markPvPLeaderboardAsProcessed(season.id, bracket);
+            this.logger.debug({
+              logTag,
+              seasonId: season.id,
+              bracket,
+              message: 'No entries found in PvP leaderboard',
+            });
+            continue;
+          }
+
+          await this.processPvPLeaderboardEntries(
+            pvpLeaderboard,
+            season.id,
+            bracket,
+            key,
+            logTag,
+          );
+
+          // Mark season-bracket as processed in Redis
+          await this.markPvPLeaderboardAsProcessed(season.id, bracket);
+
+          this.rateLimiter.onSuccess();
+
+          // Log progress periodically
+          if (processedCount % 5 === 0) {
+            const stats = this.rateLimiter.getStats();
+            this.logger.debug({
+              logTag,
+              progress: `${processedCount}/${totalRequests}`,
+              rateLimiterStats: stats,
+            });
+          }
+        } catch (error) {
+          this.handlePvPLeaderboardError(
+            error,
+            season.id,
+            bracket,
+            logTag,
+          );
+        }
+      }
+    }
+  }
+
+  /**
+   * Build Redis cache key for PvP leaderboard
+   */
+  private buildPvPLeaderboardCacheKey(
+    seasonId: number,
+    bracket: string,
+  ): string {
+    return `pvp:leaderboard:${seasonId}:${bracket}`;
+  }
+
+  /**
+   * Mark a PvP leaderboard as processed in Redis
+   */
+  private async markPvPLeaderboardAsProcessed(
+    seasonId: number,
+    bracket: string,
+  ): Promise<void> {
+    const cacheKey = this.buildPvPLeaderboardCacheKey(seasonId, bracket);
+    await this.redisService.setex(
+      cacheKey,
+      TIME_MS.ONE_WEEK / 1000, // 7 days in seconds
+      JSON.stringify({
+        processedAt: new Date().toISOString(),
+        seasonId,
+        bracket,
+      }),
+    );
+  }
+
+  /**
+   * Fetch PvP leaderboard for a specific season and bracket
+   */
+  private async fetchPvPLeaderboard(
+    seasonId: number,
+    bracket: string,
+  ): Promise<IPvPLeaderboardResponse> {
+    const response = await this.BNet.query<IPvPLeaderboardResponse>(
+      `/data/wow/pvp-season/${seasonId}/pvp-leaderboard/${bracket}`,
+      apiConstParams(API_HEADERS_ENUM.DYNAMIC),
+    );
+
+    this.validatePvPLeaderboardResponse(response);
+    return response;
+  }
+
+  /**
+   * Process PvP leaderboard entries and publish character jobs
+   */
+  private async processPvPLeaderboardEntries(
+    pvpLeaderboard: IPvPLeaderboardResponse,
+    seasonId: number,
+    bracket: string,
+    key: KeysEntity,
+    logTag: string,
+  ): Promise<void> {
+    const characterJobs = pvpLeaderboard.entries.map((entry) =>
+      CharacterMessageDto.fromPvPLadder({
+        name: entry.character.name,
+        realm: entry.character.realm.slug,
+        faction: transformFaction(entry.faction.type),
+        clientId: key.client,
+        clientSecret: key.secret,
+        accessToken: key.token,
+      }),
+    );
+
+    if (characterJobs.length === 0) {
+      this.logger.warn({
+        logTag,
+        seasonId,
+        bracket,
+        message: 'No valid character jobs created from PvP leaderboard entries',
+      });
+      return;
+    }
+
+    await this.publisher.publishBulk(charactersQueue.exchange, characterJobs);
+
+    this.logger.log({
+      logTag,
+      seasonId,
+      bracket,
+      playerCount: characterJobs.length,
+      message: `Processed PvP ladder: Season ${seasonId}, Bracket ${bracket}, Players: ${characterJobs.length}`,
+    });
+  }
+
+  /**
+   * Handle errors during PvP leaderboard fetching with adaptive rate limiting
+   */
+  private handlePvPLeaderboardError(
+    error: unknown,
+    seasonId: number,
+    bracket: string,
+    logTag: string,
+  ): void {
+    const isRateLimitError =
+      error instanceof Error &&
+      (error.message.includes('429') || error.message.includes('403'));
+
+    if (isRateLimitError) {
+      this.rateLimiter.onRateLimit();
+      this.logger.warn({
+        logTag,
+        seasonId,
+        bracket,
+        message: 'Rate limit encountered during PvP leaderboard fetch, backing off',
+        rateLimiterStats: this.rateLimiter.getStats(),
+      });
+    } else {
+      const is404Error =
+        error instanceof Error && error.message.includes('404');
+
+      if (is404Error) {
+        this.logger.debug({
+          logTag,
+          seasonId,
+          bracket,
+          message: 'PvP leaderboard not found for this season-bracket combination (404)',
+        });
+      } else {
+        this.logger.error({
+          logTag,
+          seasonId,
+          bracket,
+          message: 'Error fetching PvP leaderboard',
+          error,
+        });
+      }
     }
   }
 
@@ -297,8 +485,8 @@ export class LadderService implements OnApplicationBootstrap {
     let processedCount = 0;
 
     // Use RxJS to process requests in parallel with mergeMap
-    await lastValueFrom(from(leaderboardRequests)
-      .pipe(
+    await lastValueFrom(
+      from(leaderboardRequests).pipe(
         mergeMap(
           async (request) => {
             processedCount++;
@@ -321,7 +509,8 @@ export class LadderService implements OnApplicationBootstrap {
           });
           return of([]);
         }),
-      ));
+      ),
+    );
   }
 
   /**
