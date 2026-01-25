@@ -41,6 +41,8 @@ import {
   ILeaderboardRequest,
   IPvPSeasonIndexResponse,
   isPvPSeasonIndexResponse,
+  IPvPLeaderboardResponse,
+  isPvPLeaderboardResponse,
 } from '@app/resources';
 import { RabbitMQPublisherService } from '@app/rabbitmq';
 
@@ -102,26 +104,22 @@ export class LadderService implements OnApplicationBootstrap {
       this.validatePvPSeasonIndexResponse(pvpSeasonIndex);
 
       for (const season of pvpSeasonIndex.seasons) {
-        const isOnlyLast =
-          onlyLast && season.id !== pvpSeasonIndex.seasons[pvpSeasonIndex.seasons.length - 1].id;
-        if (isOnlyLast) continue;
-
         for (const bracket of BRACKETS) {
+          // @todo replace with proper rate limiter
           await delay(2);
 
-          const rr = await this.BNet.query<any>(
+          const pvpLeaderboard = await this.BNet.query<IPvPLeaderboardResponse>(
             `/data/wow/pvp-season/${season.id}/pvp-leaderboard/${bracket}`,
             apiConstParams(API_HEADERS_ENUM.DYNAMIC),
           );
 
-          console.log(rr);
+          this.validatePvPLeaderboardResponse(pvpLeaderboard);
 
-          const characterJobs = rr.entries.map((player) => {
+          const characterJobs = pvpLeaderboard.entries.map((player) => {
             return CharacterMessageDto.fromPvPLadder({
               name: player.character.name,
               realm: player.character.realm.slug,
-              faction: player.faction.type === 'HORDE' ? FACTION.H : FACTION.A,
-              // rank: player.rank,
+              faction: transformFaction(player.faction.type),
               clientId: key.client,
               clientSecret: key.secret,
               accessToken: key.token,
@@ -736,6 +734,14 @@ export class LadderService implements OnApplicationBootstrap {
   ): asserts response is IPvPSeasonIndexResponse {
     if (!isPvPSeasonIndexResponse(response)) {
       throw new BadGatewayException('Invalid PvP season index response');
+    }
+  }
+
+  private validatePvPLeaderboardResponse(
+    response: unknown,
+  ): asserts response is IPvPLeaderboardResponse {
+    if (!isPvPLeaderboardResponse(response)) {
+      throw new BadGatewayException('Invalid PvP leaderboard response');
     }
   }
 }

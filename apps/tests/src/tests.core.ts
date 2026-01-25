@@ -12,6 +12,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { KeysEntity } from '@app/pg';
 import { Repository } from 'typeorm';
+import { writeFileSync } from 'fs';
+import { join } from 'path';
 
 @Injectable()
 export class TestsCore implements OnApplicationBootstrap {
@@ -30,8 +32,11 @@ export class TestsCore implements OnApplicationBootstrap {
 
   async onApplicationBootstrap() {
     console.log('--- TestsCore onApplicationBootstrap ---');
-    const r = await this.pvpIndexIndex();
-    console.log(JSON.stringify(r));
+    const r = await this.pvpSeasonLeaderboard();
+    const output = JSON.stringify(r, null, 2);
+    const filePath = join(process.cwd(), 'pvp-season-leaderboard.json');
+    writeFileSync(filePath, output, 'utf-8');
+    console.log(`PvP season leaderboard data written to: ${filePath}`);
     console.log('--- | ---');
   }
 
@@ -91,6 +96,13 @@ export class TestsCore implements OnApplicationBootstrap {
   async pvpIndexIndex() {
     return await this.BNet.query<any>(
       '/data/wow/pvp-season/index',
+      apiConstParams(API_HEADERS_ENUM.DYNAMIC),
+    );
+  }
+
+  async pvpSeasonLeaderboard() {
+    return await this.BNet.query<any>(
+      `/data/wow/pvp-season/40/pvp-leaderboard/3v3`,
       apiConstParams(API_HEADERS_ENUM.DYNAMIC),
     );
   }
