@@ -167,9 +167,6 @@ export class LadderService implements OnApplicationBootstrap {
       seasons.forEach((season) => mythicPlusSeasons.add(season.id));
 
       for (const mythicPlusSeason of mythicPlusSeasons.values()) {
-        // @todo redis
-
-        await delay(2);
 
         const seasonDetailResponse =
           await this.BNet.query<IMythicKeystoneSeasonDetail>(
@@ -249,8 +246,6 @@ export class LadderService implements OnApplicationBootstrap {
           }
         }
       }
-
-      // await this.redisService.set(`week:${w}`, w);
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });
     }
