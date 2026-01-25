@@ -63,6 +63,78 @@ export type BlizzardApiErrorResponse = {
     statusText: string;
   };
 };
+
+export type BlizzardApiGuildSummary = {
+  _links: {
+    self: { href: string };
+  };
+  id: number;
+  name: string;
+  faction: {
+    type: string;
+    name: string;
+  };
+  achievement_points: number;
+  member_count: number;
+  realm: {
+    key: { href: string };
+    name: string;
+    id: number;
+    slug: string;
+  };
+  crest: {
+    emblem: {
+      id: number;
+      media: {
+        key: { href: string };
+        id: number;
+      };
+      color: {
+        id: number;
+        rgba: {
+          r: number;
+          g: number;
+          b: number;
+          a: number;
+        };
+      };
+    };
+    border: {
+      id: number;
+      media: {
+        key: { href: string };
+        id: number;
+      };
+      color: {
+        id: number;
+        rgba: {
+          r: number;
+          g: number;
+          b: number;
+          a: number;
+        };
+      };
+    };
+    background: {
+      color: {
+        id: number;
+        rgba: {
+          r: number;
+          g: number;
+          b: number;
+          a: number;
+        };
+      };
+    };
+  };
+  roster: { href: string };
+  achievements: { href: string };
+  created_timestamp: number;
+  activity: { href: string };
+  name_search: string;
+  lastModified: string;
+};
+
 // Profession Index Query Responses
 export type IProfessionResponse = Readonly<ProfessionIndex>;
 
