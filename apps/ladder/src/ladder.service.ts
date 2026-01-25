@@ -40,6 +40,7 @@ import {
   M_PLUS_REALM_PREFIX,
   ILeaderboardRequest,
   IPvPSeasonIndexResponse,
+  isPvPSeasonIndexResponse,
 } from '@app/resources';
 import { RabbitMQPublisherService } from '@app/rabbitmq';
 
@@ -97,6 +98,8 @@ export class LadderService implements OnApplicationBootstrap {
         '/data/wow/pvp-season/index',
         apiConstParams(API_HEADERS_ENUM.DYNAMIC),
       );
+
+      this.validatePvPSeasonIndexResponse(pvpSeasonIndex);
 
       for (const season of pvpSeasonIndex.seasons) {
         const isOnlyLast =
@@ -725,6 +728,14 @@ export class LadderService implements OnApplicationBootstrap {
   ): asserts response is IMythicLeaderboardResponse {
     if (!isMythicLeaderboardResponse(response)) {
       throw new BadGatewayException('Invalid mythic leaderboard response');
+    }
+  }
+
+  private validatePvPSeasonIndexResponse(
+    response: unknown,
+  ): asserts response is IPvPSeasonIndexResponse {
+    if (!isPvPSeasonIndexResponse(response)) {
+      throw new BadGatewayException('Invalid PvP season index response');
     }
   }
 }
