@@ -207,22 +207,20 @@ export class LadderService implements OnApplicationBootstrap {
                 throw new BadGatewayException('Invalid mythic leaderboard response');
               }
 
-              leadingGroups = response;
-            } catch (error) {
+              leadingGroups = response.leading_groups;
+            } catch {
               continue;
             }
-
-            return;
-
-            const isSafe = !leadingGroups || !Array.isArray(leadingGroups);
-            if (isSafe) continue;
 
             for (const group of leadingGroups) {
               const characterJobMembers = group.members.map((member) => {
                 return CharacterMessageDto.fromMythicPlusLadder({
+                  id: member.profile.id,
                   name: member.profile.name,
                   realm: member.profile.realm.slug,
-                  faction: member.faction.type === 'HORDE' ? FACTION.H : FACTION.A,
+                  // "faction": { "type": "HORDE" }
+                  faction:
+                    transformFaction(member.faction),
                   clientId: key.client,
                   clientSecret: key.secret,
                   accessToken: key.token,
