@@ -5,6 +5,7 @@ import {
   BlizzardApiCharacterProfessions,
   BlizzardApiCharacterSummary,
   BlizzardApiErrorResponse,
+  BlizzardApiGuildSummary,
   BlizzardApiItem,
   BlizzardApiItemMedia,
   BlizzardApiMountsCollection,
@@ -63,6 +64,34 @@ export const isGuildRosterMember = (
   'level' in (member as any).character &&
   'playable_class' in (member as any).character &&
   'playable_race' in (member as any).character;
+
+export const isGuildSummary = (
+  response: unknown,
+): response is BlizzardApiGuildSummary =>
+  typeof response === 'object' &&
+  response !== null &&
+  '_links' in response &&
+  'id' in response &&
+  typeof (response as any).id === 'number' &&
+  'name' in response &&
+  typeof (response as any).name === 'string' &&
+  'faction' in response &&
+  typeof (response as any).faction === 'object' &&
+  'type' in (response as any).faction &&
+  'name' in (response as any).faction &&
+  'achievement_points' in response &&
+  typeof (response as any).achievement_points === 'number' &&
+  'member_count' in response &&
+  typeof (response as any).member_count === 'number' &&
+  'realm' in response &&
+  typeof (response as any).realm === 'object' &&
+  'id' in (response as any).realm &&
+  'name' in (response as any).realm &&
+  'slug' in (response as any).realm &&
+  'created_timestamp' in response &&
+  typeof (response as any).created_timestamp === 'number' &&
+  'lastModified' in response &&
+  typeof (response as any).lastModified === 'string';
 
 export const isPetsCollection = (
   response: unknown,

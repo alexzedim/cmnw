@@ -8,9 +8,11 @@ import { get } from 'lodash';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
+  BlizzardApiGuildSummary,
   FACTION,
   IGuildSummary,
   incErrorCount,
+  isGuildSummary,
 } from '@app/resources';
 import { KeysEntity } from '@app/pg';
 import { GUILD_WORKER_CONSTANTS, GUILD_SUMMARY_KEYS } from '@app/resources';
@@ -34,12 +36,12 @@ export class GuildSummaryService {
     const summary: Partial<IGuildSummary> = {};
 
     try {
-      const response: Record<string, any> = await BNet.query(
+      const response = await BNet.query<BlizzardApiGuildSummary>(
         `/data/wow/guild/${realmSlug}/${guildNameSlug}`,
         apiConstParams(API_HEADERS_ENUM.PROFILE),
       );
 
-      if (!response || typeof response !== 'object') {
+      if (!isGuildSummary(response)) {
         return summary;
       }
 
