@@ -129,6 +129,57 @@ export interface PvPSeasonIndexResponse {
 }
 
 /**
+ * PvP Leaderboard Response
+ * GET /data/wow/pvp-season/{seasonId}/pvp-leaderboard/{bracket}
+ */
+export interface PvPLeaderboardBracket {
+  id: number;
+  type: string;
+}
+
+export interface PvPLeaderboardCharacterRealm {
+  key: ISelfKeyHref;
+  id: number;
+  slug: string;
+}
+
+export interface PvPLeaderboardCharacter {
+  name: string;
+  id: number;
+  realm: PvPLeaderboardCharacterRealm;
+}
+
+export interface PvPLeaderboardFaction {
+  type: string;
+}
+
+export interface PvPLeaderboardSeasonMatchStatistics {
+  played: number;
+  won: number;
+  lost: number;
+}
+
+export interface PvPLeaderboardTier extends ISelfWithId {}
+
+export interface PvPLeaderboardEntry {
+  character: PvPLeaderboardCharacter;
+  faction: PvPLeaderboardFaction;
+  rank: number;
+  rating: number;
+  season_match_statistics: PvPLeaderboardSeasonMatchStatistics;
+  tier: PvPLeaderboardTier;
+}
+
+export interface PvPLeaderboardResponse {
+  _links: Record<string, ISelfKeyHref>;
+  season: PvPSeason;
+  name: string;
+  bracket: PvPLeaderboardBracket;
+  entries: PvPLeaderboardEntry[];
+  lastModified?: string;
+}
+
+/**
  * Response aggregation types for use in services
  */
 export type IMythicKeystoneDungeonResponse = Readonly<MythicKeystoneDungeonResponse>;
@@ -140,3 +191,5 @@ export type IMythicKeystoneSeasonDetail = Readonly<MythicKeystoneSeasonDetail>;
 export type IMythicLeaderboardResponse = Readonly<MythicLeaderboardResponse>;
 
 export type IPvPSeasonIndexResponse = Readonly<PvPSeasonIndexResponse>;
+
+export type IPvPLeaderboardResponse = Readonly<PvPLeaderboardResponse>;

@@ -19,6 +19,7 @@ import {
   IMythicKeystoneSeasonDetail,
   IMythicLeaderboardResponse,
   IPvPSeasonIndexResponse,
+  IPvPLeaderboardResponse,
   IRGuildRoster,
   IRGuildRosterMember,
 } from '@app/resources/types';
@@ -218,5 +219,17 @@ export const isPvPSeasonIndexResponse = (
   typeof response === 'object' &&
   '_links' in response &&
   'seasons' in response &&
-  Array.isArray((response as any).seasons) &&
+  Array.isArray(response.seasons) &&
   'current_season' in response;
+
+export const isPvPLeaderboardResponse = (
+  response: unknown,
+): response is IPvPLeaderboardResponse =>
+  typeof response === 'object' &&
+  '_links' in response &&
+  'season' in response &&
+  'name' in response &&
+  'bracket' in response &&
+  typeof (response as any).bracket === 'object' &&
+  'entries' in response &&
+  Array.isArray((response as any).entries);
