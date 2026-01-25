@@ -355,63 +355,103 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
     }
   }
 
+  /**
+   * Indexes a raid log and pushes discovered characters to the processing queue.
+   * Implements a fallback strategy: tries Fights API first (no quota), then GraphQL API.
+   *
+   * @param characterRaidLogEntity - The raid log entity to index
+   * @param wclKey - The API key for GraphQL fallback
+   * @throws Logs errors but doesn't throw - returns gracefully on failure
+   */
   async indexLogAndPushCharactersToQueue(
     characterRaidLogEntity: CharactersRaidLogsEntity,
     wclKey: KeysEntity,
-  ) {
+  ): Promise<void> {
+    const logId = characterRaidLogEntity.logId;
+    const startTime = Date.now();
+
     try {
-      let raidCharacters: Array<RaidCharacter> = [];
-      // Primary: Try Fights API (no token required, no quota limits)
-      try {
-        raidCharacters = await this.getCharactersFromFightsAPI(
-          characterRaidLogEntity.logId,
-        );
-      } catch (fightsApiError) {
-        this.logger.warn(
-          chalk.yellow(
-            `⚠ Fights API failed for ${characterRaidLogEntity.logId}, falling back to GraphQL`,
-          ),
-        );
-      }
+      // Attempt to fetch characters using primary and fallback APIs
+      const raidCharacters = await this.fetchCharactersWithFallback(logId, wclKey);
 
-      if (!raidCharacters.length) {
-        try {
-          // Fallback: Try GraphQL API (requires token, has quota)
-          raidCharacters = await this.getCharactersFromLogs(
-            wclKey.token,
-            characterRaidLogEntity.logId,
-          );
-        } catch (fightsApiError) {
-          this.logger.warn(
-            chalk.yellow(
-              `⚠ GraphQL API failed for ${characterRaidLogEntity.logId}`,
-            ),
-          );
-        }
-      }
+      // Mark log as indexed regardless of character count (prevents re-processing)
+      await this.markLogAsIndexed(logId);
 
-
-      await this.charactersRaidLogsRepository.update(
-        { logId: characterRaidLogEntity.logId },
-        { isIndexed: true },
-      );
-
+      const duration = Date.now() - startTime;
       this.stats.logsIndexed++;
+
       this.logger.log(
-        `${chalk.green('✓')} Indexed ${chalk.dim(characterRaidLogEntity.logId)} ${chalk.dim('|')} ${chalk.bold(raidCharacters.length)} characters`,
+        `${chalk.green('✓')} Indexed ${chalk.dim(logId)} ${chalk.dim('|')} ${chalk.bold(raidCharacters.length)} characters ${chalk.dim(`(${duration}ms)`)}`,
       );
 
-      if (!raidCharacters.length) {
-        return;
+      // Only queue if characters were found
+      if (raidCharacters.length > 0) {
+        await this.charactersToQueue(raidCharacters);
       }
-
-      await this.charactersToQueue(raidCharacters);
     } catch (errorOrException) {
       this.stats.errors++;
       this.logger.error(
-        `${chalk.red('✗')} Failed ${chalk.dim(characterRaidLogEntity.logId)} - ${errorOrException.message}`,
+        `${chalk.red('✗')} Failed to index ${chalk.dim(logId)} - ${errorOrException?.message || 'Unknown error'}`,
       );
     }
+  }
+
+  /**
+   * Attempts to fetch characters from raid log using primary and fallback APIs.
+   * Strategy: Fights API (no quota) → GraphQL API (quota-limited)
+   *
+   * @param logId - The raid log ID
+   * @param wclKey - API key for GraphQL fallback
+   * @returns Array of raid characters (empty if both APIs fail)
+   */
+  private async fetchCharactersWithFallback(
+    logId: string,
+    wclKey: KeysEntity,
+  ): Promise<Array<RaidCharacter>> {
+    // Primary: Try Fights API (no token required, no quota limits)
+    try {
+      const characters = await this.getCharactersFromFightsAPI(logId);
+      if (characters.length > 0) {
+        return characters;
+      }
+    } catch (fightsApiError) {
+      this.logger.warn(
+        chalk.yellow(
+          `⚠ Fights API failed for ${logId}: ${fightsApiError?.message || 'Unknown error'}, falling back to GraphQL`,
+        ),
+      );
+    }
+
+    // Fallback: Try GraphQL API (requires token, has quota)
+    try {
+      const characters = await this.getCharactersFromLogs(wclKey.token, logId);
+      if (characters.length > 0) {
+        return characters;
+      }
+    } catch (graphqlApiError) {
+      this.logger.warn(
+        chalk.yellow(
+          `⚠ GraphQL API failed for ${logId}: ${graphqlApiError?.message || 'Unknown error'}`,
+        ),
+      );
+    }
+
+    // Both APIs failed or returned no characters
+    return [];
+  }
+
+  /**
+   * Marks a raid log as indexed in the database.
+   * This prevents re-processing even if no characters were found.
+   *
+   * @param logId - The raid log ID to mark
+   * @throws Database errors are propagated
+   */
+  private async markLogAsIndexed(logId: string): Promise<void> {
+    await this.charactersRaidLogsRepository.update(
+      { logId },
+      { isIndexed: true },
+    );
   }
 
   /**
