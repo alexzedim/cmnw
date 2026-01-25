@@ -227,6 +227,12 @@ export class CharacterService {
 
       return media;
     } catch (errorOrException) {
+      media.status = setStatusString(
+        media.status || '------',
+        'MEDIA',
+        CharacterStatusState.ERROR,
+      );
+
       const statusCode = get(errorOrException, 'status', 400);
 
       if (statusCode === 429) {
@@ -248,6 +254,8 @@ export class CharacterService {
     realmSlug: string,
     BNet: BlizzAPI,
   ): Promise<BlizzardApiMountsCollection> {
+    const mounts: Partial<BlizzardApiMountsCollection> = {};
+
     try {
       const response = await BNet.query<BlizzardApiMountsCollection>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/collections/mounts`,
@@ -255,9 +263,16 @@ export class CharacterService {
       );
 
       const isValidCollection = isMountCollection(response);
-      if (!isValidCollection) return null;
+      if (!isValidCollection) {
+        mounts.status = setStatusString(
+          mounts.status || '------',
+          'MOUNTS',
+          CharacterStatusState.ERROR,
+        );
+        return mounts as BlizzardApiMountsCollection;
+      }
 
-      const mounts = response;
+      Object.assign(mounts, response);
 
       mounts.status = setStatusString(
         mounts.status || '------',
@@ -265,8 +280,14 @@ export class CharacterService {
         CharacterStatusState.SUCCESS,
       );
 
-      return mounts;
+      return mounts as BlizzardApiMountsCollection;
     } catch (errorOrException) {
+      mounts.status = setStatusString(
+        mounts.status || '------',
+        'MOUNTS',
+        CharacterStatusState.ERROR,
+      );
+
       const statusCode = get(errorOrException, 'status', 400);
 
       if (statusCode === 429) {
@@ -279,7 +300,7 @@ export class CharacterService {
         );
       }
 
-      return null;
+      return mounts as BlizzardApiMountsCollection;
     }
   }
 
@@ -288,6 +309,8 @@ export class CharacterService {
     realmSlug: string,
     BNet: BlizzAPI,
   ): Promise<BlizzardApiPetsCollection | null> {
+    const pets: Partial<BlizzardApiPetsCollection> = {};
+
     try {
       const response = await BNet.query<BlizzardApiPetsCollection>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/collections/pets`,
@@ -295,9 +318,16 @@ export class CharacterService {
       );
 
       const isValidCollection = isPetsCollection(response);
-      if (!isValidCollection) return null;
+      if (!isValidCollection) {
+        pets.status = setStatusString(
+          pets.status || '------',
+          'PETS',
+          CharacterStatusState.ERROR,
+        );
+        return pets as BlizzardApiPetsCollection;
+      }
 
-      const pets = response;
+      Object.assign(pets, response);
 
       pets.status = setStatusString(
         pets.status || '------',
@@ -305,8 +335,14 @@ export class CharacterService {
         CharacterStatusState.SUCCESS,
       );
 
-      return pets;
+      return pets as BlizzardApiPetsCollection;
     } catch (errorOrException) {
+      pets.status = setStatusString(
+        pets.status || '------',
+        'PETS',
+        CharacterStatusState.ERROR,
+      );
+
       const statusCode = get(errorOrException, 'status', 400);
 
       if (statusCode === 429) {
@@ -319,7 +355,7 @@ export class CharacterService {
         );
       }
 
-      return null;
+      return pets as BlizzardApiPetsCollection;
     }
   }
 
@@ -328,6 +364,8 @@ export class CharacterService {
     realmSlug: string,
     BNet: BlizzAPI,
   ): Promise<BlizzardApiCharacterProfessions | null> {
+    const professions: Partial<BlizzardApiCharacterProfessions> = {};
+
     try {
       const response = await BNet.query<BlizzardApiCharacterProfessions>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/professions`,
@@ -335,9 +373,16 @@ export class CharacterService {
       );
 
       const isValidProfessions = isCharacterProfessions(response);
-      if (!isValidProfessions) return null;
+      if (!isValidProfessions) {
+        professions.status = setStatusString(
+          professions.status || '------',
+          'PROFESSIONS',
+          CharacterStatusState.ERROR,
+        );
+        return professions as BlizzardApiCharacterProfessions;
+      }
 
-      const professions = response;
+      Object.assign(professions, response);
 
       professions.status = setStatusString(
         professions.status || '------',
@@ -345,8 +390,14 @@ export class CharacterService {
         CharacterStatusState.SUCCESS,
       );
 
-      return professions;
+      return professions as BlizzardApiCharacterProfessions;
     } catch (errorOrException) {
+      professions.status = setStatusString(
+        professions.status || '------',
+        'PROFESSIONS',
+        CharacterStatusState.ERROR,
+      );
+
       const statusCode = get(
         errorOrException,
         'status',
@@ -363,7 +414,7 @@ export class CharacterService {
         );
       }
 
-      return null;
+      return professions as BlizzardApiCharacterProfessions;
     }
   }
 }

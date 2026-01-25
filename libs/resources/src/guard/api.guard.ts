@@ -40,9 +40,15 @@ export const isGuildRoster = (
   response: unknown,
 ): response is Readonly<IRGuildRoster> =>
   typeof response === 'object' &&
+  response !== null &&
   'members' in response &&
   Array.isArray(response.members) &&
-  Boolean(response.members.length);
+  Boolean(response.members.length) &&
+  'guild' in response &&
+  typeof (response as any).guild === 'object' &&
+  'realm' in (response as any).guild &&
+  typeof (response as any).guild.realm === 'object' &&
+  'slug' in (response as any).guild.realm;
 
 export const isGuildMember = (
   member: unknown,

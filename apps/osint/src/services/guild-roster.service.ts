@@ -18,7 +18,6 @@ import {
   isGuildRoster,
   OSINT_GM_RANK,
   PLAYABLE_CLASS,
-  STATUS_CODES,
   toGuid,
   toSlug,
   CharacterMessageDto,
@@ -60,7 +59,6 @@ export class GuildRosterService {
         apiConstParams(API_HEADERS_ENUM.PROFILE),
       );
 
-      // @todo better validation for guildMembers, realmSlug required
       if (!isGuildRoster(response)) {
         return roster;
       }
@@ -266,7 +264,7 @@ export class GuildRosterService {
     guildEntity: GuildsEntity,
     BNet: BlizzAPI,
   ): IGuildRoster {
-    roster.statusCode = get(errorOrException, 'status', STATUS_CODES.ERROR_ROSTER);
+    roster.statusCode = get(errorOrException, 'status', 400);
 
     const isTooManyRequests =
       roster.statusCode === GUILD_WORKER_CONSTANTS.TOO_MANY_REQUESTS_STATUS_CODE;

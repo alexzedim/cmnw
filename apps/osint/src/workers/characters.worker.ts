@@ -205,7 +205,7 @@ export class CharactersWorker {
       routingKey: 'osint.characters.response.high',
       metadata: {
         guid: characterEntity.guid,
-        requestId: message.id,
+        requestId: message.guid,
       },
     });
 
