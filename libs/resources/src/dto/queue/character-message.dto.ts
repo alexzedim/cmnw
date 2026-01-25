@@ -228,7 +228,6 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       guid,
       name: params.name,
       realm: params.realm,
-      // @todo parser logic player.faction.type === 'HORDE' ? FACTION.H : FACTION.A
       faction: params.faction,
       iteration: params.iteration,
       forceUpdate: TIME_MS.FOUR_HOURS, // 4 hours
