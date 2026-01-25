@@ -14,6 +14,7 @@ import {
 } from '@app/pg';
 import { HttpModule } from '@nestjs/axios';
 import { RabbitMQModule } from '@app/rabbitmq';
+import { TestsCharactersQueueWorker } from './tests.characters.queue.worker';
 
 @Module({
   imports: [
@@ -32,14 +33,14 @@ import { RabbitMQModule } from '@app/rabbitmq';
   ],
   controllers: [],
   providers: [
-    TestsOsint,
+    // TestsOsint,
     // TestsDma,
-    TestsCore,
+    // TestsCore,
     // TestsBench,
     // TestsCommunity,
     // TestsWorker,
     // TestsCharactersQueueService,
-    // TestsCharactersQueueWorker,
+    TestsCharactersQueueWorker,
   ],
 })
 export class TestsModule {}

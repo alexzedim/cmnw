@@ -256,7 +256,6 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
   static fromWarcraftLogs(params: {
     name: string;
     realm: string;
-    timestamp: number;
     clientId: string;
     clientSecret: string;
     accessToken: string;
@@ -266,12 +265,11 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       guid,
       name: params.name,
       realm: params.realm,
-      updatedAt: new Date(params.timestamp),
       forceUpdate: TIME_MS.ONE_MINUTE, // 1 minute
       region: 'eu',
       createdBy: OSINT_SOURCE.WARCRAFT_LOGS,
       updatedBy: OSINT_SOURCE.WARCRAFT_LOGS,
-      createOnlyUnique: false,
+      createOnlyUnique: true,
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,

@@ -179,7 +179,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         `${warcraftLogsURI}?${params}page=${page}`,
         {
           headers: this.getBrowserHeaders(),
-          timeout: 10000,
+          timeout: 10_000,
         },
       );
 
@@ -260,7 +260,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         }
 
         for (const { logId, createdAt } of wclLogsFromPage) {
-          const characterRaidLog = await this.charactersRaidLogsRepository.exist({
+          const characterRaidLog = await this.charactersRaidLogsRepository.exists({
             where: { logId },
           });
           // --- If exists counter --- //
@@ -308,7 +308,6 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
 
       await this.redisService.set(GLOBAL_WCL_KEY_V2, '1', 'EX', 60 * 59);
 
-      await delay(10);
       const wclKey = await getKey(this.keysRepository, GLOBAL_WCL_KEY_V2);
       // --- A bit skeptical about taking the interval required semaphore --- //
       const characterRaidLog = await this.charactersRaidLogsRepository.find({
@@ -362,7 +361,6 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
   ) {
     try {
       let raidCharacters: Array<RaidCharacter> = [];
-
       // Primary: Try Fights API (no token required, no quota limits)
       try {
         raidCharacters = await this.getCharactersFromFightsAPI(
@@ -374,13 +372,24 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
             `⚠ Fights API failed for ${characterRaidLogEntity.logId}, falling back to GraphQL`,
           ),
         );
-
-        // Fallback: Try GraphQL API (requires token, has quota)
-        raidCharacters = await this.getCharactersFromLogs(
-          wclKey.token,
-          characterRaidLogEntity.logId,
-        );
       }
+
+      if (!raidCharacters.length) {
+        try {
+          // Fallback: Try GraphQL API (requires token, has quota)
+          raidCharacters = await this.getCharactersFromLogs(
+            wclKey.token,
+            characterRaidLogEntity.logId,
+          );
+        } catch (fightsApiError) {
+          this.logger.warn(
+            chalk.yellow(
+              `⚠ GraphQL API failed for ${characterRaidLogEntity.logId}`,
+            ),
+          );
+        }
+      }
+
 
       await this.charactersRaidLogsRepository.update(
         { logId: characterRaidLogEntity.logId },
@@ -391,6 +400,10 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
       this.logger.log(
         `${chalk.green('✓')} Indexed ${chalk.dim(characterRaidLogEntity.logId)} ${chalk.dim('|')} ${chalk.bold(raidCharacters.length)} characters`,
       );
+
+      if (!raidCharacters.length) {
+        return;
+      }
 
       await this.charactersToQueue(raidCharacters);
     } catch (errorOrException) {
@@ -409,10 +422,6 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
    */
   async getCharactersFromFightsAPI(logId: string): Promise<Array<RaidCharacter>> {
     try {
-      // Add base random delay (1-3 seconds) to avoid rate limiting
-      const delayMs = randomInt(1000, 3000);
-      await delay(delayMs);
-
       // Use adaptive rate limiter - automatically adjusts based on 403 errors
       await this.fightsAPIRateLimiter.wait();
 
@@ -438,8 +447,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         apiUrl,
         {
           headers,
-          timeout: 15000,
-          validateStatus: (status) => status >= 200 && status < 500, // Don't throw on 4xx
+          timeout: 15_000,
         },
       );
 
@@ -474,9 +482,6 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         throw new Error(`Bad response status: ${response.status}`);
       }
 
-      // Use first fight timestamp or current time
-      const timestamp = response.data.fights?.[0]?.start_time || Date.now();
-
       // Filter friendlies to get only playable characters (exclude NPCs)
       const players = (response.data.friendlies || [])
         .filter((f) => f.type !== 'NPC' && f.server)
@@ -489,7 +494,6 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
             guid: toGuid(normalizedName, normalizedRealm), // Use normalizedRealm for consistency
             name: normalizedName, // Will be capitalized by lifecycle service
             realm: normalizedRealm, // lowercase realm slug
-            timestamp: timestamp,
           };
         });
 
@@ -661,7 +665,6 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         return CharacterMessageDto.fromWarcraftLogs({
           name: raidCharacter.name,
           realm: raidCharacter.realm,
-          timestamp: raidCharacter.timestamp,
           clientId: keys[itx].client,
           clientSecret: keys[itx].secret,
           accessToken: keys[itx].token,
