@@ -3,4 +3,4 @@ export * from './osint.constants';
 export * from './core.constants';
 export * from './api.constants';
 export * from './http.constants';
-export * from './status-labels.constants';
+export * from './status.constants';

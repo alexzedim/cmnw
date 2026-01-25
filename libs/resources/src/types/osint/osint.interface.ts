@@ -255,6 +255,7 @@ export interface Media {
   avatarImage: string;
   insetImage: string;
   mainImage: string;
+  status: string;
 }
 
 export interface ICharacterMediaAssets {
@@ -382,8 +383,7 @@ export interface CharacterSummary {
   averageItemLevel: number;
   equippedItemLevel: number;
   covenantId: string;
-  statusCode: number;
-  hashT: string;
+  status: string;
 }
 
 export interface ICharacterSummary {
@@ -579,7 +579,7 @@ export interface IGuildSummary {
   realm: string;
   realmName: string;
   createdTimestamp: Date;
-  statusCode: number;
+  status: string;
   lastModified: Date;
 }
 

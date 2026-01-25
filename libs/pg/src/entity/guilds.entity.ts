@@ -71,12 +71,13 @@ export class GuildsEntity {
   membersCount?: number;
 
   @Column({
-    default: 100,
+    default: '--',
     nullable: true,
-    type: 'int',
-    name: 'status_code',
+    type: 'varchar',
+    length: 2,
+    name: 'status',
   })
-  statusCode?: number;
+  status?: string;
 
   @Column({
     default: 'OSINT-GUILD-GET',

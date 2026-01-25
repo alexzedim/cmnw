@@ -12,8 +12,9 @@ import {
   IMounts,
   IPets,
   IPetType,
-  STATUS_CODES,
   toGuid,
+  setStatusString,
+  CharacterStatusState,
 } from '@app/resources';
 import {
   CharactersMountsEntity,
@@ -127,7 +128,12 @@ export class CharacterCollectionService {
       }
 
       mountsCollection.mountsNumber = mounts.length;
-      mountsCollection.statusCode = STATUS_CODES.SUCCESS_MOUNTS;
+
+      mountsCollection.status = setStatusString(
+        mountsCollection.status || '------',
+        'MOUNTS',
+        CharacterStatusState.SUCCESS,
+      );
 
       return mountsCollection;
     } catch (errorOrException) {
@@ -265,6 +271,11 @@ export class CharacterCollectionService {
 
       petsCollection.petsNumber = pets.length;
       petsCollection.statusCode = STATUS_CODES.SUCCESS_PETS;
+      petsCollection.status = setStatusString(
+        petsCollection.status || '------',
+        'PETS',
+        CharacterStatusState.SUCCESS,
+      );
 
       const hasHashB = Boolean(hashB.length);
       if (hasHashB) {

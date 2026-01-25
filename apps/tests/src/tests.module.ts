@@ -33,14 +33,14 @@ import { TestsCharactersQueueWorker } from './tests.characters.queue.worker';
   ],
   controllers: [],
   providers: [
-    // TestsOsint,
+    TestsOsint,
     // TestsDma,
     // TestsCore,
     // TestsBench,
     // TestsCommunity,
     // TestsWorker,
     // TestsCharactersQueueService,
-    TestsCharactersQueueWorker,
+    // TestsCharactersQueueWorker,
   ],
 })
 export class TestsModule {}

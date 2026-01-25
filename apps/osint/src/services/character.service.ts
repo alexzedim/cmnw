@@ -14,7 +14,6 @@ import {
   CHARACTER_SUMMARY_FIELD_MAPPING,
   CharacterStatus,
   CharacterSummary,
-  STATUS_CODES,
   incErrorCount,
   isCharacterMedia,
   isCharacterSummary,
@@ -27,6 +26,8 @@ import {
   BlizzardApiMountsCollection,
   BlizzardApiCharacterProfessions,
   isCharacterProfessions,
+  setStatusString,
+  CharacterStatusState,
 } from '@app/resources';
 import { KeysEntity } from '@app/pg';
 
@@ -70,17 +71,21 @@ export class CharacterService {
         characterStatus.lastModified = toDate(statusResponse.last_modified);
       }
 
-      characterStatus.statusCode = STATUS_CODES.SUCCESS_STATUS;
+      characterStatus.status = setStatusString(
+        characterStatus.status || '------',
+        'STATUS',
+        CharacterStatusState.SUCCESS,
+      );
 
       return characterStatus;
     } catch (errorOrException) {
-      characterStatus.statusCode = get(
-        errorOrException,
-        'status',
-        STATUS_CODES.ERROR_STATUS,
+      characterStatus.status = setStatusString(
+        characterStatus.status || '------',
+        'STATUS',
+        CharacterStatusState.ERROR,
       );
 
-      const isTooManyRequests = characterStatus.statusCode === 429;
+      const isTooManyRequests = errorOrException.status === 429;
       if (isTooManyRequests) {
         await incErrorCount(
           this.keysRepository,
@@ -88,18 +93,18 @@ export class CharacterService {
         );
       }
 
-      const isStatusNotFound = characterStatus.statusCode === 404;
+      const isStatusNotFound = errorOrException.status === 404;
       if (isStatusNotFound) {
         this.logger.debug(
           `${chalk.blue('404')} Not found: ${nameSlug}@${realmSlug}`,
         );
-      } else if (characterStatus.statusCode === 429) {
+      } else if (errorOrException.status === 429) {
         this.logger.debug(
           `${chalk.yellow('429')} Rate limited: ${nameSlug}@${realmSlug}`,
         );
       } else {
         this.logger.error(
-          `${chalk.red('getStatus')} ${nameSlug}@${realmSlug} | ${characterStatus.statusCode} - ${errorOrException.message}`,
+          `${chalk.red('getStatus')} ${nameSlug}@${realmSlug} | ${characterStatus.status} - ${errorOrException.message}`,
         );
       }
 
@@ -153,17 +158,21 @@ export class CharacterService {
         summary.guildGuid = toGuid(summary.guild, summary.realm);
       }
 
-      summary.statusCode = STATUS_CODES.SUCCESS_SUMMARY;
+      summary.status = setStatusString(
+        summary.status || '------',
+        'SUMMARY',
+        CharacterStatusState.SUCCESS,
+      );
 
       return summary;
     } catch (errorOrException) {
-      summary.statusCode = get(
-        errorOrException,
-        'status',
-        STATUS_CODES.ERROR_SUMMARY,
+      summary.status = setStatusString(
+        summary.status || '------',
+        'SUMMARY',
+        CharacterStatusState.ERROR,
       );
 
-      const isTooManyRequests = summary.statusCode === 429;
+      const isTooManyRequests = errorOrException.status === 429;
       if (isTooManyRequests) {
         await incErrorCount(
           this.keysRepository,
@@ -171,13 +180,13 @@ export class CharacterService {
         );
       }
 
-      if (summary.statusCode === 429) {
+      if (errorOrException.status === 429) {
         this.logger.debug(
           `${chalk.yellow('429')} Rate limited (getSummary): ${nameSlug}@${realmSlug}`,
         );
       } else {
         this.logger.error(
-          `${chalk.red('getSummary')} ${nameSlug}@${realmSlug} | ${summary.statusCode} - ${errorOrException.message}`,
+          `${chalk.red('getSummary')} ${nameSlug}@${realmSlug} | ${summary.status} - ${errorOrException.message}`,
         );
       }
 
@@ -210,9 +219,15 @@ export class CharacterService {
         media[CHARACTER_MEDIA_FIELD_MAPPING.get(key)] = value;
       });
 
+      media.status = setStatusString(
+        media.status || '------',
+        'MEDIA',
+        CharacterStatusState.SUCCESS,
+      );
+
       return media;
     } catch (errorOrException) {
-      const statusCode = get(errorOrException, 'status', STATUS_CODES.ERROR_MEDIA);
+      const statusCode = get(errorOrException, 'status', 400);
 
       if (statusCode === 429) {
         this.logger.debug(
@@ -234,7 +249,7 @@ export class CharacterService {
     BNet: BlizzAPI,
   ): Promise<BlizzardApiMountsCollection> {
     try {
-      const response = await BNet.query(
+      const response = await BNet.query<BlizzardApiMountsCollection>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/collections/mounts`,
         apiConstParams(API_HEADERS_ENUM.PROFILE),
       );
@@ -242,9 +257,17 @@ export class CharacterService {
       const isValidCollection = isMountCollection(response);
       if (!isValidCollection) return null;
 
-      return response;
+      const mounts = response;
+
+      mounts.status = setStatusString(
+        mounts.status || '------',
+        'MOUNTS',
+        CharacterStatusState.SUCCESS,
+      );
+
+      return mounts;
     } catch (errorOrException) {
-      const statusCode = get(errorOrException, 'status', STATUS_CODES.ERROR_MOUNTS);
+      const statusCode = get(errorOrException, 'status', 400);
 
       if (statusCode === 429) {
         this.logger.debug(
@@ -274,9 +297,17 @@ export class CharacterService {
       const isValidCollection = isPetsCollection(response);
       if (!isValidCollection) return null;
 
-      return response;
+      const pets = response;
+
+      pets.status = setStatusString(
+        pets.status || '------',
+        'PETS',
+        CharacterStatusState.SUCCESS,
+      );
+
+      return pets;
     } catch (errorOrException) {
-      const statusCode = get(errorOrException, 'status', STATUS_CODES.ERROR_PETS);
+      const statusCode = get(errorOrException, 'status', 400);
 
       if (statusCode === 429) {
         this.logger.debug(
@@ -306,12 +337,20 @@ export class CharacterService {
       const isValidProfessions = isCharacterProfessions(response);
       if (!isValidProfessions) return null;
 
-      return response;
+      const professions = response;
+
+      professions.status = setStatusString(
+        professions.status || '------',
+        'PROFESSIONS',
+        CharacterStatusState.SUCCESS,
+      );
+
+      return professions;
     } catch (errorOrException) {
       const statusCode = get(
         errorOrException,
         'status',
-        STATUS_CODES.ERROR_PROFESSIONS,
+        400,
       );
 
       if (statusCode === 429) {

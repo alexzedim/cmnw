@@ -116,7 +116,7 @@ constants/
 ├── core.constants.ts (Core application constants)
 ├── dma.constants.ts (DMA-specific constants)
 ├── http.constants.ts (HTTP status codes, etc.)
-└── status-labels.constants.ts (Status label mappings)
+└── status.constants.ts (Status label mappings)
 ```
 
 ## Types Organization in `/libs/resources/src/types/`
