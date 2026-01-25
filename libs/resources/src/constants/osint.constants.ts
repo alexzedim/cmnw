@@ -31,6 +31,11 @@ export const OSINT_LFG_WOW_PROGRESS = [
   'https://www.wowprogress.com/gearscore/char_rating/next/0/lfg.1/sortby.ts',
 ];
 
+// Redis key prefixes
+export const M_PLUS_REALM_DUNGEON_PREFIX = 'mplus:realm:dungeon:';
+
+export const M_PLUS_REALM_PREFIX = 'mplus:realm:';
+
 export const REALM_LOCALES = ['ru_ru', 'en_gb', 'de_de', 'fr_fr', 'it_it', 'es_es'];
 
 export const BRACKETS = ['2v2', '3v3', 'rbg'];
