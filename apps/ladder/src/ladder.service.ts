@@ -34,6 +34,8 @@ import {
   MythicLeaderboardGroup,
   transformFaction,
   AdaptiveRateLimiter,
+  M_PLUS_REALM_PREFIX,
+  M_PLUS_REALM_DUNGEON_PREFIX,
 } from '@app/resources';
 import { RabbitMQPublisherService } from '@app/rabbitmq';
 
@@ -43,11 +45,6 @@ const M_PLUS_MAX_DELAY_MS = 30000;
 const EXCLUDED_CONNECTED_REALM_ID = 1;
 const M_PLUS_CACHE_TTL_SECONDS = 604800; // 7 days
 const M_PLUS_PARALLEL_REQUESTS = 3; // Number of parallel mergeMap requests
-
-// Redis key prefixes
-const REDIS_M_PLUS_REALM_DUNGEON_PREFIX = 'mplus:realm:dungeon:';
-const REDIS_M_PLUS_REALM_PREFIX = 'mplus:realm:';
-const REDIS_M_PLUS_DUNGEON_PREFIX = 'mplus:dungeon:';
 
 interface LeaderboardRequest {
   connectedRealmId: number;
@@ -469,7 +466,7 @@ export class LadderService implements OnApplicationBootstrap {
     connectedRealmId: number,
     dungeonId: number,
   ): string {
-    return `${REDIS_M_PLUS_REALM_DUNGEON_PREFIX}${connectedRealmId}:${dungeonId}`;
+    return `${M_PLUS_REALM_DUNGEON_PREFIX}${connectedRealmId}:${dungeonId}`;
   }
 
   /**
@@ -498,7 +495,7 @@ export class LadderService implements OnApplicationBootstrap {
    * Check if a realm was already processed
    */
   private async isRealmProcessed(connectedRealmId: number): Promise<boolean> {
-    const cacheKey = `${REDIS_M_PLUS_REALM_PREFIX}${connectedRealmId}`;
+    const cacheKey = `${M_PLUS_REALM_PREFIX}${connectedRealmId}`;
     return (await this.redisService.exists(cacheKey)) > 0;
   }
 
@@ -506,7 +503,7 @@ export class LadderService implements OnApplicationBootstrap {
    * Mark a realm as processed in Redis
    */
   private async markRealmAsProcessed(connectedRealmId: number): Promise<void> {
-    const cacheKey = `${REDIS_M_PLUS_REALM_PREFIX}${connectedRealmId}`;
+    const cacheKey = `${M_PLUS_REALM_PREFIX}${connectedRealmId}`;
     await this.redisService.setex(
       cacheKey,
       M_PLUS_CACHE_TTL_SECONDS,
