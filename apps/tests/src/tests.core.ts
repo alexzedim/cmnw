@@ -30,7 +30,7 @@ export class TestsCore implements OnApplicationBootstrap {
 
   async onApplicationBootstrap() {
     console.log('--- TestsCore onApplicationBootstrap ---');
-    const r = await this.leadingGroups();
+    const r = await this.pvpIndexIndex();
     console.log(JSON.stringify(r));
     console.log('--- | ---');
   }
@@ -84,6 +84,13 @@ export class TestsCore implements OnApplicationBootstrap {
   async leadingGroups() {
     return await this.BNet.query<any>(
       `/data/wow/connected-realm/1615/mythic-leaderboard/197/period/641`,
+      apiConstParams(API_HEADERS_ENUM.DYNAMIC),
+    );
+  }
+
+  async pvpIndexIndex() {
+    return await this.BNet.query<any>(
+      '/data/wow/pvp-season/index',
       apiConstParams(API_HEADERS_ENUM.DYNAMIC),
     );
   }
