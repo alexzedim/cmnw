@@ -116,6 +116,19 @@ export interface ILeaderboardRequest {
 }
 
 /**
+ * PvP Season Index Response
+ * GET /data/wow/pvp-season/index
+ */
+export interface PvPSeason extends ISelfWithId {}
+
+export interface PvPSeasonIndexResponse {
+  _links: Record<string, ISelfKeyHref>;
+  seasons: PvPSeason[];
+  current_season: PvPSeason;
+  lastModified?: string;
+}
+
+/**
  * Response aggregation types for use in services
  */
 export type IMythicKeystoneDungeonResponse = Readonly<MythicKeystoneDungeonResponse>;
@@ -125,3 +138,5 @@ export type IMythicKeystoneSeasonResponse = Readonly<MythicKeystoneSeasonRespons
 export type IMythicKeystoneSeasonDetail = Readonly<MythicKeystoneSeasonDetail>;
 
 export type IMythicLeaderboardResponse = Readonly<MythicLeaderboardResponse>;
+
+export type IPvPSeasonIndexResponse = Readonly<PvPSeasonIndexResponse>;

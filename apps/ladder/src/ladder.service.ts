@@ -39,6 +39,7 @@ import {
   M_PLUS_REALM_DUNGEON_PREFIX,
   M_PLUS_REALM_PREFIX,
   ILeaderboardRequest,
+  IPvPSeasonIndexResponse,
 } from '@app/resources';
 import { RabbitMQPublisherService } from '@app/rabbitmq';
 
@@ -92,14 +93,14 @@ export class LadderService implements OnApplicationBootstrap {
         accessToken: key.token,
       });
 
-      const r = await this.BNet.query<any>(
+      const pvpSeasonIndex = await this.BNet.query<IPvPSeasonIndexResponse>(
         '/data/wow/pvp-season/index',
         apiConstParams(API_HEADERS_ENUM.DYNAMIC),
       );
 
-      for (const season of r.seasons) {
+      for (const season of pvpSeasonIndex.seasons) {
         const isOnlyLast =
-          onlyLast && season.id !== r.seasons[r.seasons.length - 1].id;
+          onlyLast && season.id !== pvpSeasonIndex.seasons[pvpSeasonIndex.seasons.length - 1].id;
         if (isOnlyLast) continue;
 
         for (const bracket of BRACKETS) {
