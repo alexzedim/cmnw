@@ -30,6 +30,7 @@ import {
   isMythicKeystoneSeasonDetail,
   IMythicLeaderboardResponse,
   isMythicLeaderboardResponse,
+  MythicLeaderboardGroup, transformFaction,
 } from '@app/resources';
 import { RabbitMQPublisherService } from '@app/rabbitmq';
 
@@ -194,7 +195,7 @@ export class LadderService implements OnApplicationBootstrap {
       for (const { connectedRealmId } of realmsEntity) {
         for (const dungeonId of mythicPlusDungeons.keys()) {
           for (const period of mythicPlusExpansionWeeks.values()) {
-            let leadingGroups: any;
+            let leadingGroups: Array<MythicLeaderboardGroup>;
 
             try {
               const response = await this.BNet.query<IMythicLeaderboardResponse>(

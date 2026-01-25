@@ -341,6 +341,7 @@ export function transformFaction(faction: unknown): FACTION | null {
 
   const hasFactionTypeWithoutName =
     factionObject.type && factionObject.name === null;
+
   if (hasFactionTypeWithoutName) {
     const typeUpper = factionObject.type.toString().toUpperCase();
     const validFactions = Object.values(FACTION).filter((f) => f !== FACTION.ANY);
