@@ -15,6 +15,8 @@ import {
   toSlug,
   CharacterMessageDto,
   ICharacterMessageBase,
+  setStatusString,
+  CharacterStatusState,
 } from '@app/resources';
 
 import { CharactersEntity, KeysEntity } from '@app/pg';
@@ -214,27 +216,25 @@ export class CharactersWorker {
   }
 
   private logCharacterResult(character: CharactersEntity, duration: number): void {
-    const statusCode = character.statusCode;
+    const status = character.status || '------';
     const guid = character.guid;
 
-    if (statusCode === 200 || statusCode === 204) {
+    const isAllSuccess = status === 'SU-MPVR';
+    const hasAnyError = /[a-z]/.test(status);
+
+    if (isAllSuccess) {
       this.stats.success++;
       this.logger.log(
-        `${chalk.green('✓')} ${chalk.green(statusCode)} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`,
+        `${chalk.green('✓')} ${chalk.green(status)} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`,
       );
-    } else if (statusCode === 404) {
-      this.stats.notFound++;
+    } else if (hasAnyError) {
+      this.stats.errors++;
       this.logger.warn(
-        `${chalk.blue('ℹ')} ${chalk.blue('404')} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`,
-      );
-    } else if (statusCode === 429) {
-      this.stats.rateLimit++;
-      this.logger.warn(
-        `${chalk.yellow('⚠')} ${chalk.yellow('429')} Rate limited [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`,
+        `${chalk.yellow('⚠')} ${chalk.yellow(status)} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`,
       );
     } else {
       this.logger.log(
-        `${chalk.cyan('ℹ')} ${statusCode} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`,
+        `${chalk.cyan('ℹ')} ${status} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`,
       );
     }
   }
@@ -307,6 +307,9 @@ export class CharactersWorker {
     characterEntity: CharactersEntity,
     nameSlug: string,
   ): Promise<void> {
+    // Initialize status string
+    let status = characterEntity.status || '------';
+
     const [summary, petsCollection, mountsCollection, media, professions] =
       await Promise.allSettled([
         this.characterService.getSummary(nameSlug, characterEntity.realm, this.BNet),
@@ -316,30 +319,49 @@ export class CharactersWorker {
         this.fetchAndSyncProfessions(nameSlug, characterEntity.realm),
       ]);
 
+    // Process each result and update status
     const isSummaryFulfilled = summary.status === 'fulfilled';
     if (isSummaryFulfilled) {
       Object.assign(characterEntity, summary.value);
+      status = setStatusString(status, 'SUMMARY', CharacterStatusState.SUCCESS);
+    } else {
+      status = setStatusString(status, 'SUMMARY', CharacterStatusState.ERROR);
     }
 
     const isPetsCollectionFulfilled = petsCollection.status === 'fulfilled';
     if (isPetsCollectionFulfilled) {
       Object.assign(characterEntity, petsCollection.value);
+      status = setStatusString(status, 'PETS', CharacterStatusState.SUCCESS);
+    } else {
+      status = setStatusString(status, 'PETS', CharacterStatusState.ERROR);
     }
 
     const isMountsCollectionFulfilled = mountsCollection.status === 'fulfilled';
     if (isMountsCollectionFulfilled) {
       Object.assign(characterEntity, mountsCollection.value);
+      status = setStatusString(status, 'MOUNTS', CharacterStatusState.SUCCESS);
+    } else {
+      status = setStatusString(status, 'MOUNTS', CharacterStatusState.ERROR);
     }
 
     const isMediaFulfilled = media.status === 'fulfilled';
     if (isMediaFulfilled) {
       Object.assign(characterEntity, media.value);
+      status = setStatusString(status, 'MEDIA', CharacterStatusState.SUCCESS);
+    } else {
+      status = setStatusString(status, 'MEDIA', CharacterStatusState.ERROR);
     }
 
     const isProfessionsFulfilled = professions.status === 'fulfilled';
     if (isProfessionsFulfilled) {
       Object.assign(characterEntity, professions.value);
+      status = setStatusString(status, 'PROFESSIONS', CharacterStatusState.SUCCESS);
+    } else {
+      status = setStatusString(status, 'PROFESSIONS', CharacterStatusState.ERROR);
     }
+
+    // Update entity with status string
+    characterEntity.status = status;
   }
 
   private async fetchAndSyncPets(

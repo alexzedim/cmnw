@@ -19,7 +19,7 @@ export const guildOriginal: {
     faction: 'Alliance',
     membersCount: 8,
     achievementPoints: 125000,
-    statusCode: 200,
+    status: 200,
     createdBy: OSINT_SOURCE.GUILD_GET,
     updatedBy: OSINT_SOURCE.GUILD_ROSTER,
     createdTimestamp: new Date('2020-01-15'),

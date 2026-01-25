@@ -12,7 +12,7 @@ export type CharacterStatus = {
   id: number;
   isValid: boolean;
   lastModified: Date;
-  statusCode: number;
+  status: string;
 };
 
 export type CharacterExistsOrCreate = {

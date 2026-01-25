@@ -20,6 +20,8 @@ export class TestsOsint implements OnApplicationBootstrap {
 
   async onApplicationBootstrap() {
     /* _ */
+    const g = await this.guild('рак-гейминг', 'soulflayer');
+    console.log(JSON.stringify(g));
   }
 
   async realm(realmSlug: string): Promise<BlizzardApiResponse> {

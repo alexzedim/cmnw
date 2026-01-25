@@ -7,7 +7,6 @@ import {
   GuildExistsOrCreate,
   IGuildMessageBase,
   OSINT_SOURCE,
-  STATUS_CODES,
   TIME_MS,
   toGuid,
   toSlug,
@@ -65,7 +64,8 @@ export class GuildService {
       };
     }
 
-    guildEntity.statusCode = STATUS_CODES.DEFAULT_STATUS;
+    guildEntity.status = '--';
+
     return {
       guildEntity,
       isNew: false,
@@ -89,7 +89,7 @@ export class GuildService {
       realm: realmEntity.slug,
       realmId: realmEntity.id,
       realmName: realmEntity.name,
-      statusCode: STATUS_CODES.DEFAULT_STATUS,
+      status: '--',
       createdBy,
       updatedBy: OSINT_SOURCE.GUILD_GET,
     });

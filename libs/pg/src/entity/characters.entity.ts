@@ -125,7 +125,7 @@ export class CharactersEntity {
     nullable: true,
     type: 'varchar',
   })
-  gender?: string;
+ gender?: string;
 
   @Column({
     default: null,
@@ -166,12 +166,13 @@ export class CharactersEntity {
   equippedItemLevel?: number;
 
   @Column({
-    default: 100,
+    default: '------',
     nullable: true,
-    type: 'int',
-    name: 'status_code',
+    type: 'varchar',
+    length: 6,
+    name: 'status',
   })
-  statusCode?: number;
+  status?: string;
 
   @Column({
     nullable: true,

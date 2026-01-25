@@ -11,7 +11,6 @@ import {
   FACTION,
   IGuildSummary,
   incErrorCount,
-  STATUS_CODES,
 } from '@app/resources';
 import { KeysEntity } from '@app/pg';
 import { GUILD_WORKER_CONSTANTS, GUILD_SUMMARY_KEYS } from '@app/resources';
@@ -53,7 +52,7 @@ export class GuildSummaryService {
         summary.membersCount = response.member_count;
       }
 
-      summary.statusCode = GUILD_WORKER_CONSTANTS.SUCCESS_STATUS_CODE;
+      summary.status = '';
       return summary;
     } catch (errorOrException) {
       return await this.handleSummaryError(
@@ -138,10 +137,11 @@ export class GuildSummaryService {
     realmSlug: string,
     BNet: BlizzAPI,
   ): Promise<Partial<IGuildSummary>> {
-    summary.statusCode = get(errorOrException, 'status', STATUS_CODES.ERROR_GUILD);
+    summary.status = get(errorOrException, 'status', 400);
 
     const isTooManyRequests =
-      summary.statusCode === GUILD_WORKER_CONSTANTS.TOO_MANY_REQUESTS_STATUS_CODE;
+      summary.status === GUILD_WORKER_CONSTANTS.TOO_MANY_REQUESTS_STATUS_CODE;
+
     if (isTooManyRequests) {
       await incErrorCount(this.keysRepository, BNet.accessTokenObject.access_token);
     }
@@ -149,7 +149,7 @@ export class GuildSummaryService {
     this.logger.error({
       logTag: 'getSummary',
       guildGuid: `${guildNameSlug}@${realmSlug}`,
-      statusCode: summary.statusCode,
+      statusCode: summary.status,
     });
 
     return summary;

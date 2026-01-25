@@ -7,7 +7,6 @@ import {
   CharacterExistsOrCreate,
   ICharacterMessageBase,
   OSINT_SOURCE,
-  STATUS_CODES,
   TIME_MS,
   toDate,
 } from '@app/resources';
@@ -74,7 +73,7 @@ export class CharacterLifecycleService {
       };
     }
 
-    characterEntity.statusCode = 100;
+    characterEntity.status = '------';
 
     return {
       characterEntity,
@@ -102,8 +101,6 @@ export class CharacterLifecycleService {
     if (hasLastModified) {
       characterNew.lastModified = toDate(character.lastModified);
     }
-
-    characterNew.statusCode = STATUS_CODES.DEFAULT_STATUS;
 
     const hasGuild = character.guild;
     if (hasGuild) characterNew.guild = character.guild;

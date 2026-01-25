@@ -123,6 +123,7 @@ export class GuildsWorker {
         guildEntity.realm,
         this.BNet,
       );
+
       Object.assign(guildEntity, summary);
 
       // Step 6: Fetch and process guild roster
