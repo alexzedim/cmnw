@@ -109,6 +109,12 @@ export interface MythicLeaderboardResponse {
   lastModified?: string;
 }
 
+export interface ILeaderboardRequest {
+  connectedRealmId: number;
+  dungeonId: number;
+  period: number;
+}
+
 /**
  * Response aggregation types for use in services
  */

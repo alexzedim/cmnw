@@ -34,23 +34,20 @@ import {
   MythicLeaderboardGroup,
   transformFaction,
   AdaptiveRateLimiter,
-  M_PLUS_REALM_PREFIX,
+  TIME_MS,
+  REALM_ENTITY_ANY,
   M_PLUS_REALM_DUNGEON_PREFIX,
+  M_PLUS_REALM_PREFIX,
+  ILeaderboardRequest,
 } from '@app/resources';
 import { RabbitMQPublisherService } from '@app/rabbitmq';
 
 // Constants for M+ indexing
-const M_PLUS_BASE_DELAY_MS = 2000;
-const M_PLUS_MAX_DELAY_MS = 30000;
-const EXCLUDED_CONNECTED_REALM_ID = 1;
-const M_PLUS_CACHE_TTL_SECONDS = 604800; // 7 days
+/** Initial delay for rate limiter in milliseconds (2 seconds) */
+const M_PLUS_BASE_DELAY_MS = TIME_MS.FIVE_MINUTES / 150; // ~2 seconds
+/** Maximum delay for rate limiter in milliseconds (30 seconds) */
+const M_PLUS_MAX_DELAY_MS = TIME_MS.ONE_MINUTE / 2; // ~30 seconds
 const M_PLUS_PARALLEL_REQUESTS = 3; // Number of parallel mergeMap requests
-
-interface LeaderboardRequest {
-  connectedRealmId: number;
-  dungeonId: number;
-  period: number;
-}
 
 @Injectable()
 export class LadderService implements OnApplicationBootstrap {
@@ -75,9 +72,8 @@ export class LadderService implements OnApplicationBootstrap {
   }
 
   async onApplicationBootstrap(): Promise<void> {
-    // await this.indexHallOfFame(GLOBAL_OSINT_KEY, false);
     await this.indexMythicPlusLadder(GLOBAL_OSINT_KEY);
-    // await this.indexPvPLadder(GLOBAL_OSINT_KEY, false);
+    await this.indexPvPLadder(GLOBAL_OSINT_KEY, false);
   }
 
   @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_NOON)
@@ -274,7 +270,7 @@ export class LadderService implements OnApplicationBootstrap {
       .createQueryBuilder('realms')
       .distinctOn(['realms.connectedRealmId'])
       .where('realms.connectedRealmId != :connectedRealmId', {
-        connectedRealmId: EXCLUDED_CONNECTED_REALM_ID,
+        connectedRealmId: REALM_ENTITY_ANY.connectedRealmId,
       })
       .getMany();
   }
@@ -331,7 +327,7 @@ export class LadderService implements OnApplicationBootstrap {
    * Process a single leaderboard request with caching and error handling
    */
   private async processLeaderboardRequest(
-    request: LeaderboardRequest,
+    request: ILeaderboardRequest,
     key: KeysEntity,
     logTag: string,
     processedCount: number,
@@ -441,8 +437,8 @@ export class LadderService implements OnApplicationBootstrap {
     realmsEntity: RealmsEntity[],
     mythicPlusDungeons: Map<number, string>,
     mythicPlusExpansionWeeks: Set<number>,
-  ): LeaderboardRequest[] {
-    const requests: LeaderboardRequest[] = [];
+  ): ILeaderboardRequest[] {
+    const requests: ILeaderboardRequest[] = [];
 
     for (const { connectedRealmId } of realmsEntity) {
       for (const dungeonId of mythicPlusDungeons.keys()) {
@@ -482,7 +478,7 @@ export class LadderService implements OnApplicationBootstrap {
     );
     await this.redisService.setex(
       cacheKey,
-      M_PLUS_CACHE_TTL_SECONDS,
+      TIME_MS.ONE_WEEK / 1000, // 7 days in seconds
       JSON.stringify({
         processedAt: new Date().toISOString(),
         connectedRealmId,
@@ -506,7 +502,7 @@ export class LadderService implements OnApplicationBootstrap {
     const cacheKey = `${M_PLUS_REALM_PREFIX}${connectedRealmId}`;
     await this.redisService.setex(
       cacheKey,
-      M_PLUS_CACHE_TTL_SECONDS,
+      TIME_MS.ONE_WEEK / 1000, // 7 days in seconds
       JSON.stringify({
         processedAt: new Date().toISOString(),
         connectedRealmId,
