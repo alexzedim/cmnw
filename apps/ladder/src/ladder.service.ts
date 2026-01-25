@@ -35,7 +35,6 @@ import {
   TIME_MS,
   REALM_ENTITY_ANY,
   M_PLUS_REALM_DUNGEON_PREFIX,
-  M_PLUS_REALM_PREFIX,
   ILeaderboardRequest,
   IPvPSeasonIndexResponse,
   isPvPSeasonIndexResponse,
