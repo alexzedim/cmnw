@@ -61,7 +61,6 @@ export class TestsCharactersQueueService implements OnApplicationBootstrap {
         CharacterMessageDto.fromWarcraftLogs({
           name: charactersEntity.name,
           realm: charactersEntity.realm,
-          timestamp: Date.now(),
           ...credentials,
         }),
         CharacterMessageDto.fromMythicPlusLadder({
