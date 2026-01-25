@@ -678,29 +678,6 @@ export class LadderService implements OnApplicationBootstrap {
   }
 
   /**
-   * Check if a realm was already processed
-   */
-  private async isRealmProcessed(connectedRealmId: number): Promise<boolean> {
-    const cacheKey = `${M_PLUS_REALM_PREFIX}${connectedRealmId}`;
-    return (await this.redisService.exists(cacheKey)) > 0;
-  }
-
-  /**
-   * Mark a realm as processed in Redis
-   */
-  private async markRealmAsProcessed(connectedRealmId: number): Promise<void> {
-    const cacheKey = `${M_PLUS_REALM_PREFIX}${connectedRealmId}`;
-    await this.redisService.setex(
-      cacheKey,
-      TIME_MS.ONE_WEEK / 1000, // 7 days in seconds
-      JSON.stringify({
-        processedAt: new Date().toISOString(),
-        connectedRealmId,
-      }),
-    );
-  }
-
-  /**
    * Fetch leaderboard groups for a specific realm, dungeon, and period
    */
   private async fetchLeaderboardGroups(
