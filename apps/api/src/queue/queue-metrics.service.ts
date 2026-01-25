@@ -1,9 +1,9 @@
 import { Injectable, OnModuleInit, Logger, OnModuleDestroy } from '@nestjs/common';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Gauge, Counter } from 'prom-client';
-import { getStatusLabel } from '@app/resources';
 import { workerConfig } from '@app/configuration';
 import { RabbitMQMonitorService } from '@app/rabbitmq';
+import { getStatusChar } from '@app/resources';
 
 @Injectable()
 export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
@@ -153,6 +153,7 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
 
       // Track status code if available
       if (typeof messageData.statusCode === 'number') {
+        const statusLabel = getStatusChar(messageData.statusString || '------', 'STATUS');
 
         this.jobsByStatusCodeCounter.inc({
           queue: queueName,
