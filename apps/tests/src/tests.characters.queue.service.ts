@@ -65,9 +65,10 @@ export class TestsCharactersQueueService implements OnApplicationBootstrap {
           ...credentials,
         }),
         CharacterMessageDto.fromMythicPlusLadder({
+          id: charactersEntity.id,
           name: charactersEntity.name,
           realm: charactersEntity.realm,
-          faction: charactersEntity.faction ?? FACTION.A,
+          faction: charactersEntity.faction,
           ...credentials,
         }),
         CharacterMessageDto.fromPvPLadder({

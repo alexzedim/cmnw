@@ -73,13 +73,12 @@ export class LadderService implements OnApplicationBootstrap {
 
   async onApplicationBootstrap(): Promise<void> {
     await this.indexMythicPlusLadder(GLOBAL_OSINT_KEY);
-    await this.indexPvPLadder(GLOBAL_OSINT_KEY, false);
+    await this.indexPvPLadder(GLOBAL_OSINT_KEY);
   }
 
   @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_NOON)
   async indexPvPLadder(
     clearance: string = GLOBAL_OSINT_KEY,
-    onlyLast = true,
   ): Promise<void> {
     const logTag = this.indexPvPLadder.name;
     try {
