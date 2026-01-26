@@ -12,6 +12,9 @@ import {
   GuildMessageDto,
   hasAnyGuildErrorInString,
   isAllGuildSuccessInString,
+  setGuildStatusString,
+  getGuildStatusChar,
+  GuildStatusState,
 } from '@app/resources';
 import { KeysEntity } from '@app/pg';
 import { coreConfig } from '@app/configuration';
@@ -142,35 +145,43 @@ export class GuildsWorker {
       await this.guildMemberService.updateRoster(guildSnapshot, roster, isNew);
 
       // Step 7: Detect and log changes
+      let logStatus = '-----';
+      let masterStatus = '-----';
+
       if (isNew) {
         const guildById = await this.guildService.findById(
           guildSnapshot.id,
           guildSnapshot.realm,
         );
         if (guildById) {
-          await this.guildLogService.detectAndLogChanges(guildById, guildEntity);
-          await this.guildMasterService.detectAndLogGuildMasterChange(
+          logStatus = await this.guildLogService.detectAndLogChanges(guildById, guildEntity);
+          masterStatus = await this.guildMasterService.detectAndLogGuildMasterChange(
             guildById,
             roster,
           );
         }
       } else {
-        await this.guildLogService.detectAndLogChanges(guildSnapshot, guildEntity);
-        await this.guildMasterService.detectAndLogGuildMasterChange(
+        logStatus = await this.guildLogService.detectAndLogChanges(guildSnapshot, guildEntity);
+        masterStatus = await this.guildMasterService.detectAndLogGuildMasterChange(
           guildSnapshot,
           roster,
         );
       }
 
       // Step 8: Aggregate status strings from all operations
-      if (guildEntity.statusString) {
-        // Status string already set by services, use it for logging
-        const hasErrors = hasAnyGuildErrorInString(guildEntity.statusString);
-        const isSuccess = isAllGuildSuccessInString(guildEntity.statusString);
+      const operationStatuses = {
+        roster: roster.status,
+        logs: logStatus,
+        master: masterStatus,
+      };
 
-        if (!hasErrors && isSuccess) {
-          this.stats.success++;
-        }
+      guildEntity.status = this.aggregateGuildStatus(guildEntity.status, operationStatuses);
+
+      const hasErrors = hasAnyGuildErrorInString(guildEntity.status);
+      const isSuccess = isAllGuildSuccessInString(guildEntity.status);
+
+      if (!hasErrors && isSuccess) {
+        this.stats.success++;
       }
 
       // Step 9: Save guild entity
@@ -220,27 +231,65 @@ export class GuildsWorker {
     }
   }
 
+  /**
+   * Aggregate status strings from all guild operations
+   * @param currentStatus - Current guild status
+   * @param operationStatuses - Map of operation names to their status strings
+   * @returns Aggregated status string
+   */
+  private aggregateGuildStatus(
+    currentStatus: string,
+    operationStatuses: Record<string, string | undefined>,
+  ): string {
+    let aggregated = currentStatus || '-----';
+
+    // Define operations in order with their status strings
+    const operations: Array<{
+      name: 'ROSTER' | 'MEMBERS' | 'LOGS' | 'MASTER';
+      statusString: string | undefined;
+      errorIndicator: string;
+    }> = [
+      { name: 'ROSTER', statusString: operationStatuses.roster, errorIndicator: 'r' },
+      { name: 'MEMBERS', statusString: operationStatuses.roster, errorIndicator: 'm' },
+      { name: 'LOGS', statusString: operationStatuses.logs, errorIndicator: 'l' },
+      { name: 'MASTER', statusString: operationStatuses.master, errorIndicator: 'g' },
+    ];
+
+    for (const operation of operations) {
+      // Check if the error indicator exists in the status string (lowercase = error)
+      const hasError = operation.statusString?.includes(operation.errorIndicator.toLowerCase()) ?? false;
+
+      aggregated = setGuildStatusString(
+        aggregated,
+        operation.name,
+        hasError ? GuildStatusState.ERROR : GuildStatusState.SUCCESS,
+      );
+    }
+
+    return aggregated;
+  }
+
   private logGuildResult(guild: any, duration: number): void {
     const statusCode = guild.statusCode;
-    const statusString = guild.statusString;
+    const status = guild.status;
     const guid = guild.guid;
 
-    // Use statusString if available for more detailed logging
-    if (statusString) {
-      const hasErrors = hasAnyGuildErrorInString(statusString);
-      const isSuccess = isAllGuildSuccessInString(statusString);
+    // Use status if available for more detailed logging
+    if (status) {
+      const hasErrors = hasAnyGuildErrorInString(status);
+      const isSuccess = isAllGuildSuccessInString(status);
 
       if (isSuccess) {
         this.logger.log(
-          `${chalk.green('✓')} ${chalk.green('SUCCESS')} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${statusString})`)} ${chalk.dim(`(${duration}ms)`)}`,
+          `${chalk.green('✓')} ${chalk.green('SUCCESS')} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${status})`)} ${chalk.dim(`(${duration}ms)`)}`,
         );
       } else if (hasErrors) {
         this.logger.warn(
-          `${chalk.yellow('⚠')} ${chalk.yellow('PARTIAL')} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${statusString})`)} ${chalk.dim(`(${duration}ms)`)}`,
+          `${chalk.yellow('⚠')} ${chalk.yellow('PARTIAL')} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${status})`)} ${chalk.dim(`(${duration}ms)`)}`,
         );
       } else {
         this.logger.log(
-          `${chalk.cyan('ℹ')} ${chalk.cyan('PENDING')} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${statusString})`)} ${chalk.dim(`(${duration}ms)`)}`,
+          `${chalk.cyan('ℹ')} ${chalk.cyan('PENDING')} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${status})`)} ${chalk.dim(`(${duration}ms)`)}`,
         );
       }
       return;

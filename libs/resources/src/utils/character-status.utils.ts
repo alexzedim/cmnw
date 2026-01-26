@@ -14,7 +14,7 @@ import {
 
 /**
  * Set endpoint status in status string
- * @param currentStatusString - Current status string
+ * @param currentStatus - Current status string
  * @param endpoint - Endpoint name
  * @param state - Status state (SUCCESS, ERROR, PENDING)
  * @returns Updated status string
@@ -25,24 +25,24 @@ import {
  * setStatusString('SU----', 'MEDIA', CharacterStatusState.ERROR) // "SU-M---"
  */
 export function setStatusString(
-  currentStatusString: string,
+  currentStatus: string,
   endpoint: keyof typeof CHARACTER_STATUS_CODES,
   state: CharacterStatusState,
 ): string {
   const index = STATUS_ENDPOINT_ORDER.indexOf(endpoint);
   if (index === -1) {
-    return currentStatusString;
+    return currentStatus;
   }
 
   const codes = CHARACTER_STATUS_CODES[endpoint];
   const char = state === CharacterStatusState.SUCCESS ? codes.success : state === CharacterStatusState.ERROR ? codes.error : codes.pending;
 
-  return currentStatusString.substring(0, index) + char + currentStatusString.substring(index + 1);
+  return currentStatus.substring(0, index) + char + currentStatus.substring(index + 1);
 }
 
 /**
  * Get status character for endpoint
- * @param statusString - Status string
+ * @param status - Status string
  * @param endpoint - Endpoint name
  * @returns Status character (S, U, M, P, V, R, or -)
  *
@@ -51,17 +51,17 @@ export function setStatusString(
  * getStatusChar('SU-MPV', 'SUMMARY') // "U"
  * getStatusChar('SU-MPV', 'MEDIA') // "-"
  */
-export function getStatusChar(statusString: string, endpoint: keyof typeof CHARACTER_STATUS_CODES): string {
+export function getStatusChar(status: string, endpoint: keyof typeof CHARACTER_STATUS_CODES): string {
   const index = STATUS_ENDPOINT_ORDER.indexOf(endpoint);
-  if (index === -1 || index >= statusString.length) {
+  if (index === -1 || index >= status.length) {
     return '-';
   }
-  return statusString[index];
+  return status[index];
 }
 
 /**
  * Check if endpoint succeeded in status string
- * @param statusString - Status string
+ * @param status - Status string
  * @param endpoint - Endpoint name
  * @returns True if endpoint succeeded
  *
@@ -70,16 +70,16 @@ export function getStatusChar(statusString: string, endpoint: keyof typeof CHARA
  * isEndpointSuccessInString('SU-MPV', 'MEDIA') // false
  */
 export function isEndpointSuccessInString(
-  statusString: string,
+  status: string,
   endpoint: keyof typeof CHARACTER_STATUS_CODES,
 ): boolean {
-  const char = getStatusChar(statusString, endpoint);
+  const char = getStatusChar(status, endpoint);
   return char === CHARACTER_STATUS_CODES[endpoint].success;
 }
 
 /**
  * Check if endpoint failed in status string
- * @param statusString - Status string
+ * @param status - Status string
  * @param endpoint - Endpoint name
  * @returns True if endpoint failed
  *
@@ -88,16 +88,16 @@ export function isEndpointSuccessInString(
  * isEndpointErrorInString('SU-MPV', 'STATUS') // false
  */
 export function isEndpointErrorInString(
-  statusString: string,
+  status: string,
   endpoint: keyof typeof CHARACTER_STATUS_CODES,
 ): boolean {
-  const char = getStatusChar(statusString, endpoint);
+  const char = getStatusChar(status, endpoint);
   return char === CHARACTER_STATUS_CODES[endpoint].error;
 }
 
 /**
  * Check if endpoint is pending in status string
- * @param statusString - Status string
+ * @param status - Status string
  * @param endpoint - Endpoint name
  * @returns True if endpoint is pending
  *
@@ -106,145 +106,145 @@ export function isEndpointErrorInString(
  * isEndpointPendingInString('SU-MPV', 'STATUS') // false
  */
 export function isEndpointPendingInString(
-  statusString: string,
+  status: string,
   endpoint: keyof typeof CHARACTER_STATUS_CODES,
 ): boolean {
-  const char = getStatusChar(statusString, endpoint);
+  const char = getStatusChar(status, endpoint);
   return char === CHARACTER_STATUS_CODES[endpoint].pending;
 }
 
 /**
  * Get all successful endpoints
- * @param statusString - Status string
+ * @param status - Status string
  * @returns Array of endpoint names that succeeded
  *
  * @example
  * getSuccessfulEndpointsInString('SU-MPV') // ['STATUS', 'SUMMARY', 'MEDIA', 'PETS', 'MOUNTS']
  */
 export function getSuccessfulEndpointsInString(
-  statusString: string,
+  status: string,
 ): Array<keyof typeof CHARACTER_STATUS_CODES> {
   return STATUS_ENDPOINT_ORDER.filter(
-    (endpoint) => isEndpointSuccessInString(statusString, endpoint as keyof typeof CHARACTER_STATUS_CODES),
+    (endpoint) => isEndpointSuccessInString(status, endpoint as keyof typeof CHARACTER_STATUS_CODES),
   ) as Array<keyof typeof CHARACTER_STATUS_CODES>;
 }
 
 /**
  * Get all failed endpoints
- * @param statusString - Status string
+ * @param status - Status string
  * @returns Array of endpoint names that failed
  *
  * @example
  * getFailedEndpointsInString('su-mpv') // ['STATUS', 'SUMMARY', 'MEDIA', 'PETS', 'MOUNTS']
  */
 export function getFailedEndpointsInString(
-  statusString: string,
+  status: string,
 ): Array<keyof typeof CHARACTER_STATUS_CODES> {
   return STATUS_ENDPOINT_ORDER.filter(
-    (endpoint) => isEndpointErrorInString(statusString, endpoint as keyof typeof CHARACTER_STATUS_CODES),
+    (endpoint) => isEndpointErrorInString(status, endpoint as keyof typeof CHARACTER_STATUS_CODES),
   ) as Array<keyof typeof CHARACTER_STATUS_CODES>;
 }
 
 /**
  * Get all pending endpoints
- * @param statusString - Status string
+ * @param status - Status string
  * @returns Array of endpoint names that are pending
  *
  * @example
  * getPendingEndpointsInString('SU-MPV') // ['PROFESSIONS']
  */
 export function getPendingEndpointsInString(
-  statusString: string,
+  status: string,
 ): Array<keyof typeof CHARACTER_STATUS_CODES> {
   return STATUS_ENDPOINT_ORDER.filter(
-    (endpoint) => isEndpointPendingInString(statusString, endpoint as keyof typeof CHARACTER_STATUS_CODES),
+    (endpoint) => isEndpointPendingInString(status, endpoint as keyof typeof CHARACTER_STATUS_CODES),
   ) as Array<keyof typeof CHARACTER_STATUS_CODES>;
 }
 
 /**
  * Check if all endpoints succeeded
- * @param statusString - Status string
+ * @param status - Status string
  * @returns True if all endpoints succeeded
  *
  * @example
  * isAllSuccessInString('SU-MPV') // true
  * isAllSuccessInString('SU-MPv') // false
  */
-export function isAllSuccessInString(statusString: string): boolean {
-  return getFailedEndpointsInString(statusString).length === 0 && getPendingEndpointsInString(statusString).length === 0;
+export function isAllSuccessInString(status: string): boolean {
+  return getFailedEndpointsInString(status).length === 0 && getPendingEndpointsInString(status).length === 0;
 }
 
 /**
  * Check if any endpoint failed
- * @param statusString - Status string
+ * @param status - Status string
  * @returns True if any endpoint failed
  *
  * @example
  * hasAnyErrorInString('su-mpv') // true
  * hasAnyErrorInString('SU-MPV') // false
  */
-export function hasAnyErrorInString(statusString: string): boolean {
-  return getFailedEndpointsInString(statusString).length > 0;
+export function hasAnyErrorInString(status: string): boolean {
+  return getFailedEndpointsInString(status).length > 0;
 }
 
 /**
  * Get completion percentage
- * @param statusString - Status string
+ * @param status - Status string
  * @returns Percentage of completed endpoints (0-100)
  *
  * @example
  * getCompletionPercentageInString('SU-MPV') // 83
  * getCompletionPercentageInString('------') // 0
  */
-export function getCompletionPercentageInString(statusString: string): number {
+export function getCompletionPercentageInString(status: string): number {
   const total = STATUS_ENDPOINT_ORDER.length;
-  const completed = total - getPendingEndpointsInString(statusString).length;
+  const completed = total - getPendingEndpointsInString(status).length;
   return Math.round((completed / total) * 100);
 }
 
 /**
  * Get success percentage
- * @param statusString - Status string
+ * @param status - Status string
  * @returns Percentage of successful endpoints (0-100)
  *
  * @example
  * getSuccessPercentageInString('SU-MPV') // 100
  * getSuccessPercentageInString('SU-MPv') // 83
  */
-export function getSuccessPercentageInString(statusString: string): number {
+export function getSuccessPercentageInString(status: string): number {
   const total = STATUS_ENDPOINT_ORDER.length;
-  const successful = getSuccessfulEndpointsInString(statusString).length;
+  const successful = getSuccessfulEndpointsInString(status).length;
   return Math.round((successful / total) * 100);
 }
 
 /**
  * Get error percentage
- * @param statusString - Status string
+ * @param status - Status string
  * @returns Percentage of failed endpoints (0-100)
  *
  * @example
  * getErrorPercentageInString('su-mpv') // 16
  * getErrorPercentageInString('SU-MPV') // 0
  */
-export function getErrorPercentageInString(statusString: string): number {
+export function getErrorPercentageInString(status: string): number {
   const total = STATUS_ENDPOINT_ORDER.length;
-  const failed = getFailedEndpointsInString(statusString).length;
+  const failed = getFailedEndpointsInString(status).length;
   return Math.round((failed / total) * 100);
 }
 
 /**
  * Get human-readable status description
- * @param statusString - Status string
+ * @param status - Status string
  * @returns Human-readable description
  *
  * @example
  * getStatusDescriptionInString('SU-MPV') // "All endpoints succeeded"
  * getStatusDescriptionInString('su-mpv') // "5 failed, 1 pending"
  */
-export function getStatusDescriptionInString(statusString: string): string {
-  const successful = getSuccessfulEndpointsInString(statusString);
-  const failed = getFailedEndpointsInString(statusString);
-  const pending = getPendingEndpointsInString(statusString);
+export function getStatusDescriptionInString(status: string): string {
+  const successful = getSuccessfulEndpointsInString(status);
+  const failed = getFailedEndpointsInString(status);
+  const pending = getPendingEndpointsInString(status);
 
   if (successful.length === STATUS_ENDPOINT_ORDER.length) {
     return 'All endpoints succeeded';
@@ -274,7 +274,7 @@ export function getStatusDescriptionInString(statusString: string): string {
 
 /**
  * Validate status string format
- * @param statusString - Status string to validate
+ * @param status - Status string to validate
  * @returns True if status string is valid
  *
  * @example
@@ -283,14 +283,14 @@ export function getStatusDescriptionInString(statusString: string): string {
  * isValidStatusString('SU-MPV') // true
  * isValidStatusString('SU-MPV') // true
  */
-export function isValidStatusString(statusString: string): boolean {
-  if (statusString.length !== STATUS_ENDPOINT_ORDER.length) {
+export function isValidStatusString(status: string): boolean {
+  if (status.length !== STATUS_ENDPOINT_ORDER.length) {
     return false;
   }
 
   const validChars = new Set(['S', 's', 'U', 'u', 'M', 'm', 'P', 'p', 'V', 'v', 'R', 'r', '-']);
 
-  for (const char of statusString) {
+  for (const char of status) {
     if (!validChars.has(char)) {
       return false;
     }
@@ -301,14 +301,14 @@ export function isValidStatusString(statusString: string): boolean {
 
 /**
  * Convert status string to lowercase for comparison
- * @param statusString - Status string
+ * @param status - Status string
  * @returns Lowercase status string
  *
  * @example
  * toLowercaseStatusString('SU-MPV') // "su-mpv"
  */
-export function toLowercaseStatusString(statusString: string): string {
-  return statusString.toLowerCase();
+export function toLowercaseStatusString(status: string): string {
+  return status.toLowerCase();
 }
 
 // ============================================================================
@@ -323,7 +323,7 @@ import {
 
 /**
  * Set operation status in guild status string
- * @param currentStatusString - Current status string
+ * @param currentStatus - Current status string
  * @param operation - Operation name
  * @param state - Status state (SUCCESS, ERROR, PENDING)
  * @returns Updated status string
@@ -334,24 +334,24 @@ import {
  * setGuildStatusString('SR---', 'MEMBERS', GuildStatusState.ERROR) // "SRm--"
  */
 export function setGuildStatusString(
-  currentStatusString: string,
+  currentStatus: string,
   operation: keyof typeof GUILD_STATUS_CODES,
   state: GuildStatusState,
 ): string {
   const index = GUILD_STATUS_OPERATION_ORDER.indexOf(operation);
   if (index === -1) {
-    return currentStatusString;
+    return currentStatus;
   }
 
   const codes = GUILD_STATUS_CODES[operation];
   const char = state === GuildStatusState.SUCCESS ? codes.success : state === GuildStatusState.ERROR ? codes.error : codes.pending;
 
-  return currentStatusString.substring(0, index) + char + currentStatusString.substring(index + 1);
+  return currentStatus.substring(0, index) + char + currentStatus.substring(index + 1);
 }
 
 /**
  * Get status character for guild operation
- * @param statusString - Status string
+ * @param status - Status string
  * @param operation - Operation name
  * @returns Status character (S, R, M, L, G, or -)
  *
@@ -360,17 +360,17 @@ export function setGuildStatusString(
  * getGuildStatusChar('SRMLG', 'ROSTER') // "R"
  * getGuildStatusChar('SRMLG', 'MEMBERS') // "M"
  */
-export function getGuildStatusChar(statusString: string, operation: keyof typeof GUILD_STATUS_CODES): string {
+export function getGuildStatusChar(status: string, operation: keyof typeof GUILD_STATUS_CODES): string {
   const index = GUILD_STATUS_OPERATION_ORDER.indexOf(operation);
-  if (index === -1 || index >= statusString.length) {
+  if (index === -1 || index >= status.length) {
     return '-';
   }
-  return statusString[index];
+  return status[index];
 }
 
 /**
  * Check if guild operation succeeded in status string
- * @param statusString - Status string
+ * @param status - Status string
  * @param operation - Operation name
  * @returns True if operation succeeded
  *
@@ -379,16 +379,16 @@ export function getGuildStatusChar(statusString: string, operation: keyof typeof
  * isGuildOperationSuccessInString('SRMLG', 'MEMBERS') // false
  */
 export function isGuildOperationSuccessInString(
-  statusString: string,
+  status: string,
   operation: keyof typeof GUILD_STATUS_CODES,
 ): boolean {
-  const char = getGuildStatusChar(statusString, operation);
+  const char = getGuildStatusChar(status, operation);
   return char === GUILD_STATUS_CODES[operation].success;
 }
 
 /**
  * Check if guild operation failed in status string
- * @param statusString - Status string
+ * @param status - Status string
  * @param operation - Operation name
  * @returns True if operation failed
  *
@@ -397,16 +397,16 @@ export function isGuildOperationSuccessInString(
  * isGuildOperationErrorInString('SRMLG', 'SUMMARY') // false
  */
 export function isGuildOperationErrorInString(
-  statusString: string,
+  status: string,
   operation: keyof typeof GUILD_STATUS_CODES,
 ): boolean {
-  const char = getGuildStatusChar(statusString, operation);
+  const char = getGuildStatusChar(status, operation);
   return char === GUILD_STATUS_CODES[operation].error;
 }
 
 /**
  * Check if guild operation is pending in status string
- * @param statusString - Status string
+ * @param status - Status string
  * @param operation - Operation name
  * @returns True if operation is pending
  *
@@ -415,145 +415,145 @@ export function isGuildOperationErrorInString(
  * isGuildOperationPendingInString('SRMLG', 'SUMMARY') // false
  */
 export function isGuildOperationPendingInString(
-  statusString: string,
+  status: string,
   operation: keyof typeof GUILD_STATUS_CODES,
 ): boolean {
-  const char = getGuildStatusChar(statusString, operation);
+  const char = getGuildStatusChar(status, operation);
   return char === GUILD_STATUS_CODES[operation].pending;
 }
 
 /**
  * Get all successful guild operations
- * @param statusString - Status string
+ * @param status - Status string
  * @returns Array of operation names that succeeded
  *
  * @example
  * getSuccessfulGuildOperationsInString('SRMLG') // ['SUMMARY', 'ROSTER', 'MEMBERS', 'LOGS', 'MASTER']
  */
 export function getSuccessfulGuildOperationsInString(
-  statusString: string,
+  status: string,
 ): Array<keyof typeof GUILD_STATUS_CODES> {
   return GUILD_STATUS_OPERATION_ORDER.filter(
-    (operation) => isGuildOperationSuccessInString(statusString, operation as keyof typeof GUILD_STATUS_CODES),
+    (operation) => isGuildOperationSuccessInString(status, operation as keyof typeof GUILD_STATUS_CODES),
   ) as Array<keyof typeof GUILD_STATUS_CODES>;
 }
 
 /**
  * Get all failed guild operations
- * @param statusString - Status string
+ * @param status - Status string
  * @returns Array of operation names that failed
  *
  * @example
  * getFailedGuildOperationsInString('srmlg') // ['SUMMARY', 'ROSTER', 'MEMBERS', 'LOGS', 'MASTER']
  */
 export function getFailedGuildOperationsInString(
-  statusString: string,
+  status: string,
 ): Array<keyof typeof GUILD_STATUS_CODES> {
   return GUILD_STATUS_OPERATION_ORDER.filter(
-    (operation) => isGuildOperationErrorInString(statusString, operation as keyof typeof GUILD_STATUS_CODES),
+    (operation) => isGuildOperationErrorInString(status, operation as keyof typeof GUILD_STATUS_CODES),
   ) as Array<keyof typeof GUILD_STATUS_CODES>;
 }
 
 /**
  * Get all pending guild operations
- * @param statusString - Status string
+ * @param status - Status string
  * @returns Array of operation names that are pending
  *
  * @example
  * getPendingGuildOperationsInString('SR-LG') // ['MEMBERS']
  */
 export function getPendingGuildOperationsInString(
-  statusString: string,
+  status: string,
 ): Array<keyof typeof GUILD_STATUS_CODES> {
   return GUILD_STATUS_OPERATION_ORDER.filter(
-    (operation) => isGuildOperationPendingInString(statusString, operation as keyof typeof GUILD_STATUS_CODES),
+    (operation) => isGuildOperationPendingInString(status, operation as keyof typeof GUILD_STATUS_CODES),
   ) as Array<keyof typeof GUILD_STATUS_CODES>;
 }
 
 /**
  * Check if all guild operations succeeded
- * @param statusString - Status string
+ * @param status - Status string
  * @returns True if all operations succeeded
  *
  * @example
  * isAllGuildSuccessInString('SRMLG') // true
  * isAllGuildSuccessInString('SRMLg') // false
  */
-export function isAllGuildSuccessInString(statusString: string): boolean {
-  return getFailedGuildOperationsInString(statusString).length === 0 && getPendingGuildOperationsInString(statusString).length === 0;
+export function isAllGuildSuccessInString(status: string): boolean {
+  return getFailedGuildOperationsInString(status).length === 0 && getPendingGuildOperationsInString(status).length === 0;
 }
 
 /**
  * Check if any guild operation failed
- * @param statusString - Status string
+ * @param status - Status string
  * @returns True if any operation failed
  *
  * @example
  * hasAnyGuildErrorInString('srmlg') // true
  * hasAnyGuildErrorInString('SRMLG') // false
  */
-export function hasAnyGuildErrorInString(statusString: string): boolean {
-  return getFailedGuildOperationsInString(statusString).length > 0;
+export function hasAnyGuildErrorInString(status: string): boolean {
+  return getFailedGuildOperationsInString(status).length > 0;
 }
 
 /**
  * Get guild operation completion percentage
- * @param statusString - Status string
+ * @param status - Status string
  * @returns Percentage of completed operations (0-100)
  *
  * @example
  * getGuildCompletionPercentageInString('SRMLG') // 100
  * getGuildCompletionPercentageInString('-----') // 0
  */
-export function getGuildCompletionPercentageInString(statusString: string): number {
+export function getGuildCompletionPercentageInString(status: string): number {
   const total = GUILD_STATUS_OPERATION_ORDER.length;
-  const completed = total - getPendingGuildOperationsInString(statusString).length;
+  const completed = total - getPendingGuildOperationsInString(status).length;
   return Math.round((completed / total) * 100);
 }
 
 /**
  * Get guild operation success percentage
- * @param statusString - Status string
+ * @param status - Status string
  * @returns Percentage of successful operations (0-100)
  *
  * @example
  * getGuildSuccessPercentageInString('SRMLG') // 100
  * getGuildSuccessPercentageInString('SRMLg') // 80
  */
-export function getGuildSuccessPercentageInString(statusString: string): number {
+export function getGuildSuccessPercentageInString(status: string): number {
   const total = GUILD_STATUS_OPERATION_ORDER.length;
-  const successful = getSuccessfulGuildOperationsInString(statusString).length;
+  const successful = getSuccessfulGuildOperationsInString(status).length;
   return Math.round((successful / total) * 100);
 }
 
 /**
  * Get guild operation error percentage
- * @param statusString - Status string
+ * @param status - Status string
  * @returns Percentage of failed operations (0-100)
  *
  * @example
  * getGuildErrorPercentageInString('srmlg') // 100
  * getGuildErrorPercentageInString('SRMLG') // 0
  */
-export function getGuildErrorPercentageInString(statusString: string): number {
+export function getGuildErrorPercentageInString(status: string): number {
   const total = GUILD_STATUS_OPERATION_ORDER.length;
-  const failed = getFailedGuildOperationsInString(statusString).length;
+  const failed = getFailedGuildOperationsInString(status).length;
   return Math.round((failed / total) * 100);
 }
 
 /**
  * Get human-readable guild status description
- * @param statusString - Status string
+ * @param status - Status string
  * @returns Human-readable description
  *
  * @example
  * getGuildStatusDescriptionInString('SRMLG') // "All operations succeeded"
  * getGuildStatusDescriptionInString('srmlg') // "5 failed"
  */
-export function getGuildStatusDescriptionInString(statusString: string): string {
-  const successful = getSuccessfulGuildOperationsInString(statusString);
-  const failed = getFailedGuildOperationsInString(statusString);
-  const pending = getPendingGuildOperationsInString(statusString);
+export function getGuildStatusDescriptionInString(status: string): string {
+  const successful = getSuccessfulGuildOperationsInString(status);
+  const failed = getFailedGuildOperationsInString(status);
+  const pending = getPendingGuildOperationsInString(status);
 
   if (successful.length === GUILD_STATUS_OPERATION_ORDER.length) {
     return 'All operations succeeded';
@@ -583,7 +583,7 @@ export function getGuildStatusDescriptionInString(statusString: string): string 
 
 /**
  * Validate guild status string format
- * @param statusString - Status string to validate
+ * @param status - Status string to validate
  * @returns True if status string is valid
  *
  * @example
@@ -591,14 +591,14 @@ export function getGuildStatusDescriptionInString(statusString: string): string 
  * isValidGuildStatusString('SRMLGX') // false (too long)
  * isValidGuildStatusString('SRM') // false (too short)
  */
-export function isValidGuildStatusString(statusString: string): boolean {
-  if (statusString.length !== GUILD_STATUS_OPERATION_ORDER.length) {
+export function isValidGuildStatusString(status: string): boolean {
+  if (status.length !== GUILD_STATUS_OPERATION_ORDER.length) {
     return false;
   }
 
   const validChars = new Set(['S', 's', 'R', 'r', 'M', 'm', 'L', 'l', 'G', 'g', '-']);
 
-  for (const char of statusString) {
+  for (const char of status) {
     if (!validChars.has(char)) {
       return false;
     }
@@ -609,12 +609,12 @@ export function isValidGuildStatusString(statusString: string): boolean {
 
 /**
  * Convert guild status string to lowercase for comparison
- * @param statusString - Status string
+ * @param status - Status string
  * @returns Lowercase status string
  *
  * @example
  * toLowercaseGuildStatusString('SRMLG') // "srmlg"
  */
-export function toLowercaseGuildStatusString(statusString: string): string {
-  return statusString.toLowerCase();
+export function toLowercaseGuildStatusString(status: string): string {
+  return status.toLowerCase();
 }

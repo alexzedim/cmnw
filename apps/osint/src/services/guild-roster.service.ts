@@ -26,6 +26,8 @@ import {
   PLAYABLE_RACE,
   isGuildMember,
   IRGuildRosterMember,
+  GuildStatusState,
+  setGuildStatusString,
 } from '@app/resources';
 import { CharactersEntity, GuildsEntity, KeysEntity, RealmsEntity } from '@app/pg';
 import { RabbitMQPublisherService } from '@app/rabbitmq';
@@ -79,6 +81,7 @@ export class GuildRosterService {
         ),
       );
 
+      roster.status = setGuildStatusString('-----', 'ROSTER', GuildStatusState.SUCCESS);
       return roster;
     } catch (errorOrException) {
       return this.handleRosterError(errorOrException, roster, guildEntity, BNet);
@@ -265,6 +268,7 @@ export class GuildRosterService {
     BNet: BlizzAPI,
   ): IGuildRoster {
     roster.statusCode = get(errorOrException, 'status', 400);
+    roster.status = setGuildStatusString('-----', 'ROSTER', GuildStatusState.ERROR);
 
     const isTooManyRequests =
       roster.statusCode === GUILD_WORKER_CONSTANTS.TOO_MANY_REQUESTS_STATUS_CODE;

@@ -58,6 +58,7 @@ export interface IGuildRoster {
   readonly members: IGuildMember[];
   updatedAt?: Date;
   statusCode?: number;
+  status?: string;
 }
 
 export interface IGuildMember {
