@@ -89,7 +89,6 @@ export class GuildService {
       realm: realmEntity.slug,
       realmId: realmEntity.id,
       realmName: realmEntity.name,
-      status: STATUS_CODES.DEFAULT_STATUS,
       createdBy,
       updatedBy: OSINT_SOURCE.GUILD_GET,
     });

@@ -153,7 +153,7 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
 
       // Track status code if available
       if (typeof messageData.statusCode === 'number') {
-        const statusLabel = getStatusChar(messageData.statusString || '------', 'STATUS');
+        const statusLabel = getStatusChar(messageData.status || '------', 'STATUS');
 
         this.jobsByStatusCodeCounter.inc({
           queue: queueName,

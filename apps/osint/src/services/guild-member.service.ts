@@ -12,6 +12,8 @@ import {
   OSINT_GM_RANK,
   OSINT_SOURCE,
   RosterComparisonResult,
+  GuildStatusState,
+  setGuildStatusString,
 } from '@app/resources';
 import {
   CharactersEntity,
@@ -45,6 +47,7 @@ export class GuildMemberService {
 
       if (!updatedRosterMembers.length) {
         this.logger.debug(`Guild roster for ${guildEntity.guid} was not found!`);
+        roster.status = setGuildStatusString('-----', 'MEMBERS', GuildStatusState.SUCCESS);
         return;
       }
 
@@ -60,7 +63,10 @@ export class GuildMemberService {
         rosterUpdateAt,
         isNew,
       );
+
+      roster.status = setGuildStatusString('-----', 'MEMBERS', GuildStatusState.SUCCESS);
     } catch (errorOrException) {
+      roster.status = setGuildStatusString('-----', 'MEMBERS', GuildStatusState.ERROR);
       this.logger.error({
         logTag: 'updateRoster',
         guildGuid: guildEntity.guid,

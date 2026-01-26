@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Repository, IsNull, Not } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { ACTION_LOG, IGuildRoster, OSINT_GM_RANK } from '@app/resources';
+import { ACTION_LOG, IGuildRoster, OSINT_GM_RANK, GuildStatusState, setGuildStatusString } from '@app/resources';
 import {
   CharactersEntity,
   CharactersGuildsMembersEntity,
@@ -28,7 +28,7 @@ export class GuildMasterService {
   async detectAndLogGuildMasterChange(
     guildEntity: GuildsEntity,
     updatedRoster: IGuildRoster,
-  ): Promise<void> {
+  ): Promise<string> {
     try {
       const originalGM = await this.guildMembersRepository.findOneBy({
         guildGuid: guildEntity.guid,
@@ -36,7 +36,7 @@ export class GuildMasterService {
       });
 
       if (!originalGM) {
-        return;
+        return setGuildStatusString('-----', 'MASTER', GuildStatusState.SUCCESS);
       }
 
       const newGM = updatedRoster.members.find(
@@ -45,7 +45,7 @@ export class GuildMasterService {
 
       if (!newGM) {
         this.logger.warn(`No new Guild Master found for ${guildEntity.guid}`);
-        return;
+        return setGuildStatusString('-----', 'MASTER', GuildStatusState.SUCCESS);
       }
 
       const isGMChanged = Number(originalGM.characterId) !== Number(newGM.id);
@@ -54,7 +54,7 @@ export class GuildMasterService {
         this.logger.debug(
           `No GM change for ${guildEntity.guid} | GM: ${originalGM.characterId}`,
         );
-        return;
+        return setGuildStatusString('-----', 'MASTER', GuildStatusState.SUCCESS);
       }
 
       await this.logGuildMasterTransition(
@@ -63,12 +63,15 @@ export class GuildMasterService {
         newGM.guid,
         updatedRoster.updatedAt,
       );
+
+      return setGuildStatusString('-----', 'MASTER', GuildStatusState.SUCCESS);
     } catch (errorOrException) {
       this.logger.error({
         logTag: 'detectAndLogGuildMasterChange',
         guildGuid: guildEntity.guid,
         error: JSON.stringify(errorOrException),
       });
+      return setGuildStatusString('-----', 'MASTER', GuildStatusState.ERROR);
     }
   }
 

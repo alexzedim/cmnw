@@ -48,8 +48,7 @@ export class GuildSummaryService {
       }
 
       this.populateSummary(response, summary);
-      summary.status = '';
-      summary.statusString = setGuildStatusString('-----', 'SUMMARY', GuildStatusState.SUCCESS);
+      summary.status = setGuildStatusString('-----', 'SUMMARY', GuildStatusState.SUCCESS);
       return summary;
     } catch (errorOrException) {
       return await this.handleSummaryError(
@@ -106,8 +105,7 @@ export class GuildSummaryService {
     BNet: BlizzAPI,
   ): Promise<Partial<IGuildSummary>> {
     const statusCode = get(errorOrException, 'status', 400);
-    summary.status = statusCode;
-    summary.statusString = setGuildStatusString('-----', 'SUMMARY', GuildStatusState.ERROR);
+    summary.status = setGuildStatusString('-----', 'SUMMARY', GuildStatusState.ERROR);
 
     // Handle rate limiting
     if (statusCode === GUILD_WORKER_CONSTANTS.TOO_MANY_REQUESTS_STATUS_CODE) {

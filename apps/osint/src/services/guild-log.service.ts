@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { ACTION_LOG } from '@app/resources';
+import { ACTION_LOG, GuildStatusState, setGuildStatusString } from '@app/resources';
 import { CharactersGuildsLogsEntity, GuildsEntity } from '@app/pg';
 
 @Injectable()
@@ -58,22 +58,33 @@ export class GuildLogService {
   async detectAndLogChanges(
     original: GuildsEntity,
     updated: GuildsEntity,
-  ): Promise<void> {
-    const isNameChanged = original.name !== updated.name;
-    const isFactionChanged = original.faction !== updated.faction;
+  ): Promise<string> {
+    try {
+      const isNameChanged = original.name !== updated.name;
+      const isFactionChanged = original.faction !== updated.faction;
 
-    if (!isNameChanged && !isFactionChanged) {
-      this.logger.debug(`Guild ${original.guid} - no changes detected`);
-      return;
-    }
+      if (!isNameChanged && !isFactionChanged) {
+        this.logger.debug(`Guild ${original.guid} - no changes detected`);
+        return setGuildStatusString('-----', 'LOGS', GuildStatusState.SUCCESS);
+      }
 
-    if (isNameChanged) {
-      await this.updateGuildGuidForAllLogs(original.guid, updated.guid);
-      await this.logNameChange(original, updated);
-    }
+      if (isNameChanged) {
+        await this.updateGuildGuidForAllLogs(original.guid, updated.guid);
+        await this.logNameChange(original, updated);
+      }
 
-    if (isFactionChanged) {
-      await this.logFactionChange(original, updated);
+      if (isFactionChanged) {
+        await this.logFactionChange(original, updated);
+      }
+
+      return setGuildStatusString('-----', 'LOGS', GuildStatusState.SUCCESS);
+    } catch (errorOrException) {
+      this.logger.error({
+        logTag: 'detectAndLogChanges',
+        guildGuid: original.guid,
+        error: JSON.stringify(errorOrException),
+      });
+      return setGuildStatusString('-----', 'LOGS', GuildStatusState.ERROR);
     }
   }
 }
