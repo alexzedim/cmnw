@@ -13,6 +13,8 @@ import {
   isGuildSummary,
   BlizzardApiGuildSummary,
   transformFaction,
+  GuildStatusState,
+  setGuildStatusString,
 } from '@app/resources';
 import { KeysEntity } from '@app/pg';
 import { GUILD_WORKER_CONSTANTS, GUILD_SUMMARY_KEYS } from '@app/resources';
@@ -47,6 +49,7 @@ export class GuildSummaryService {
 
       this.populateSummary(response, summary);
       summary.status = '';
+      summary.statusString = setGuildStatusString('-----', 'SUMMARY', GuildStatusState.SUCCESS);
       return summary;
     } catch (errorOrException) {
       return await this.handleSummaryError(
@@ -104,6 +107,7 @@ export class GuildSummaryService {
   ): Promise<Partial<IGuildSummary>> {
     const statusCode = get(errorOrException, 'status', 400);
     summary.status = statusCode;
+    summary.statusString = setGuildStatusString('-----', 'SUMMARY', GuildStatusState.ERROR);
 
     // Handle rate limiting
     if (statusCode === GUILD_WORKER_CONSTANTS.TOO_MANY_REQUESTS_STATUS_CODE) {

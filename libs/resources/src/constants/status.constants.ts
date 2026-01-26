@@ -43,3 +43,40 @@ export const STATUS_ENDPOINT_ORDER = [
   'MOUNTS',
   'PROFESSIONS',
 ] as const;
+
+/**
+ * Guild Status State for each operation
+ */
+export enum GuildStatusState {
+  /** Operation not yet attempted or pending */
+  PENDING = 0,
+  /** Operation succeeded */
+  SUCCESS = 1,
+  /** Operation failed with error */
+  ERROR = 2,
+}
+
+/**
+ * Guild operation codes for string representation
+ * Uppercase = Success, Lowercase = Error, Hyphen = Pending
+ * 5-character string: SRMLG (Summary, Roster, Members, Logs, Master)
+ */
+export const GUILD_STATUS_CODES = {
+  SUMMARY: { success: 'S', error: 's', pending: '-' },
+  ROSTER: { success: 'R', error: 'r', pending: '-' },
+  MEMBERS: { success: 'M', error: 'm', pending: '-' },
+  LOGS: { success: 'L', error: 'l', pending: '-' },
+  MASTER: { success: 'G', error: 'g', pending: '-' },
+} as const;
+
+/**
+ * Guild operation order for string representation
+ * Defines the position of each operation in the 5-character status string
+ */
+export const GUILD_STATUS_OPERATION_ORDER = [
+  'SUMMARY',
+  'ROSTER',
+  'MEMBERS',
+  'LOGS',
+  'MASTER',
+] as const;

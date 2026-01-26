@@ -80,6 +80,15 @@ export class GuildsEntity {
   status?: string;
 
   @Column({
+    default: '-----',
+    nullable: true,
+    type: 'varchar',
+    length: 5,
+    name: 'status_string',
+  })
+  statusString?: string;
+
+  @Column({
     default: 'OSINT-GUILD-GET',
     nullable: true,
     type: 'varchar',

@@ -5,7 +5,14 @@ import chalk from 'chalk';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { getRandomProxy, isEuRegion, toSlug, GuildMessageDto } from '@app/resources';
+import {
+  getRandomProxy,
+  isEuRegion,
+  toSlug,
+  GuildMessageDto,
+  hasAnyGuildErrorInString,
+  isAllGuildSuccessInString,
+} from '@app/resources';
 import { KeysEntity } from '@app/pg';
 import { coreConfig } from '@app/configuration';
 import { RabbitMQMonitorService } from '@app/rabbitmq';
@@ -155,7 +162,18 @@ export class GuildsWorker {
         );
       }
 
-      // Step 8: Save guild entity
+      // Step 8: Aggregate status strings from all operations
+      if (guildEntity.statusString) {
+        // Status string already set by services, use it for logging
+        const hasErrors = hasAnyGuildErrorInString(guildEntity.statusString);
+        const isSuccess = isAllGuildSuccessInString(guildEntity.statusString);
+
+        if (!hasErrors && isSuccess) {
+          this.stats.success++;
+        }
+      }
+
+      // Step 9: Save guild entity
       await this.guildService.save(guildEntity);
 
       const duration = Date.now() - startTime;
@@ -204,8 +222,31 @@ export class GuildsWorker {
 
   private logGuildResult(guild: any, duration: number): void {
     const statusCode = guild.statusCode;
+    const statusString = guild.statusString;
     const guid = guild.guid;
 
+    // Use statusString if available for more detailed logging
+    if (statusString) {
+      const hasErrors = hasAnyGuildErrorInString(statusString);
+      const isSuccess = isAllGuildSuccessInString(statusString);
+
+      if (isSuccess) {
+        this.logger.log(
+          `${chalk.green('✓')} ${chalk.green('SUCCESS')} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${statusString})`)} ${chalk.dim(`(${duration}ms)`)}`,
+        );
+      } else if (hasErrors) {
+        this.logger.warn(
+          `${chalk.yellow('⚠')} ${chalk.yellow('PARTIAL')} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${statusString})`)} ${chalk.dim(`(${duration}ms)`)}`,
+        );
+      } else {
+        this.logger.log(
+          `${chalk.cyan('ℹ')} ${chalk.cyan('PENDING')} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${statusString})`)} ${chalk.dim(`(${duration}ms)`)}`,
+        );
+      }
+      return;
+    }
+
+    // Fallback to statusCode-based logging
     if (statusCode === 200 || statusCode === 204) {
       this.stats.success++;
       this.logger.log(
