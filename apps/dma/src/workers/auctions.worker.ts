@@ -19,17 +19,16 @@ import {
   ICommodityOrder,
   IPetList,
   isAuctions,
-  isResponseError,
   ITEM_KEY_GUARD,
   MARKET_TYPE,
   PETS_KEY_GUARD,
   REALM_ENTITY_ANY,
   toGold,
   transformPrice,
-  AuctionMessageDto,
 } from '@app/resources';
 import { createHash } from 'crypto';
 import { RabbitMQMonitorService } from '@app/rabbitmq';
+import { isAxiosError } from 'axios';
 
 @Injectable()
 export class AuctionsWorker {
@@ -234,11 +233,20 @@ export class AuctionsWorker {
       }
     } catch (errorOrException) {
       const duration = Date.now() - startTime;
-      const realmId = message?.connectedRealmId || 'unknown';
-      const responseError = isResponseError(errorOrException);
+      const args = message.data || message;
+      const realmId = args?.connectedRealmId || 'unknown';
 
-      if (responseError) {
-        const statusCode = errorOrException.response.status;
+      if (isAxiosError(errorOrException)) {
+        const statusCode = errorOrException.response?.status;
+
+        if (statusCode === 304) {
+          // 304 Not Modified - data hasn't changed, not an error
+          this.stats.notModified++;
+          this.logger.warn(
+            `${chalk.blue('ℹ')} ${chalk.blue('304')} [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms) Not modified`)}`,
+          );
+          return;
+        }
 
         if (statusCode === 429) {
           this.stats.rateLimit++;
@@ -247,7 +255,7 @@ export class AuctionsWorker {
           );
         } else {
           this.logger.warn(
-            `${chalk.blue('ℹ')} ${statusCode} [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.response.statusText}`,
+            `${chalk.blue('ℹ')} ${statusCode} [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.response?.statusText}`,
           );
         }
       } else {
