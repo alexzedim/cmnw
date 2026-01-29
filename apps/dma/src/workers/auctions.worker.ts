@@ -25,6 +25,7 @@ import {
   REALM_ENTITY_ANY,
   toGold,
   transformPrice,
+  formatBytes,
 } from '@app/resources';
 import { createHash } from 'crypto';
 import { RabbitMQMonitorService } from '@app/rabbitmq';
@@ -165,7 +166,7 @@ export class AuctionsWorker {
         this.stats.notModified++;
         const duration = Date.now() - startTime;
         this.logger.warn(
-          `${chalk.yellow('⚠')} ${chalk.yellow('HASH')} [${chalk.bold(this.stats.total)}] realm ${connectedRealmId} ${chalk.dim(`(${duration}ms) Duplicate payload hash ${auctionsHash} ${(payloadBytes / 1024).toFixed(2)}KB`)}`,
+          `${chalk.yellow('⚠')} ${chalk.yellow('HASH')} [${chalk.bold(this.stats.total)}] realm ${connectedRealmId} ${chalk.dim(`(${duration}ms) Duplicate payload hash ${auctionsHash} ${formatBytes(payloadBytes)}`)}`,
         );
         return;
       }
