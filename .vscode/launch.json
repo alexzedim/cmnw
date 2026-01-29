@@ -1,0 +1,145 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "analytics dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["start:dev", "analytics"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "api dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["start:dev", "api"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "characters dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["start:dev", "characters"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "core dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["start:dev", "core"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "dma dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["start:dev", "dma"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "guilds dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["start:dev", "guilds"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "ladder dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["start:dev", "ladder"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "market dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["start:dev", "market"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "osint dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["start:dev", "osint"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "tests dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["start:dev", "tests"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "warcraft-logs dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["start:dev", "warcraft-logs"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"]
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "wow-progress dev",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["start:dev", "wow-progress"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "skipFiles": ["<node_internals>/**"]
+    }
+  ],
+  "compounds": [
+    {
+      "name": "All Services dev",
+      "configurations": [
+        "analytics dev",
+        "api dev",
+        "characters dev",
+        "core dev",
+        "dma dev",
+        "guilds dev",
+        "ladder dev",
+        "market dev",
+        "osint dev",
+        "tests dev",
+        "warcraft-logs dev",
+        "wow-progress dev"
+      ],
+      "stopAll": true
+    }
+  ]
+}
