@@ -73,12 +73,23 @@ export class AuctionsWorker {
       },
     },
   })
-  public async handleAuctionMessage(message: AuctionMessageDto): Promise<void> {
+  public async handleAuctionMessage(message: any): Promise<void> {
     const startTime = Date.now();
     this.stats.total++;
 
     try {
-      const args: AuctionMessageDto = message;
+      // Extract data from message wrapper if present
+      const args = message.data || message;
+
+      this.logger.debug({
+        logTag: 'handleAuctionMessage',
+        message: 'Received auction message',
+        messageId: message.messageId,
+        connectedRealmId: args.connectedRealmId,
+        auctionsTimestamp: args.auctionsTimestamp,
+        commoditiesTimestamp: args.commoditiesTimestamp,
+        region: args.region,
+      });
 
       this.BNet = new BlizzAPI({
         region: args.region,
@@ -95,6 +106,19 @@ export class AuctionsWorker {
       const previousTimestamp = isCommodity
         ? args.commoditiesTimestamp
         : args.auctionsTimestamp;
+
+      if (!previousTimestamp) {
+        this.logger.error({
+          logTag: 'handleAuctionMessage',
+          message: `Missing timestamp for ${isCommodity ? 'commodity' : 'auctions'}`,
+          connectedRealmId: args.connectedRealmId,
+          auctionsTimestamp: args.auctionsTimestamp,
+          commoditiesTimestamp: args.commoditiesTimestamp,
+        });
+        throw new Error(
+          `Missing ${isCommodity ? 'commoditiesTimestamp' : 'auctionsTimestamp'} in message`,
+        );
+      }
 
       const ifModifiedSince = DateTime.fromMillis(previousTimestamp).toHTTP();
       const getMarketApiEndpoint = isCommodity
@@ -132,14 +156,16 @@ export class AuctionsWorker {
 
       const auctionsHash = this.computeAuctionsPayloadHash(auctions);
       const auctionsHashKey = `DMA:AUCTIONS:HASH:${auctionsHash}`;
+      const payloadBytes = Buffer.byteLength(JSON.stringify(auctions), 'utf8');
 
       const previouslyPersistedHash =
         await this.redisService.exists(auctionsHashKey);
+
       if (previouslyPersistedHash) {
         this.stats.notModified++;
         const duration = Date.now() - startTime;
         this.logger.warn(
-          `${chalk.yellow('⚠')} ${chalk.yellow('HASH')} [${chalk.bold(this.stats.total)}] realm ${connectedRealmId} ${chalk.dim(`(${duration}ms) Duplicate payload hash ${auctionsHash}`)}`,
+          `${chalk.yellow('⚠')} ${chalk.yellow('HASH')} [${chalk.bold(this.stats.total)}] realm ${connectedRealmId} ${chalk.dim(`(${duration}ms) Duplicate payload hash ${auctionsHash} ${(payloadBytes / 1024).toFixed(2)}KB`)}`,
         );
         return;
       }
