@@ -86,7 +86,8 @@ export class AuctionsService implements OnApplicationBootstrap {
               auctionsQueue.exchange,
               AuctionMessageDto.create({
                 data: message,
-                priority: 2,
+                priority: 5,
+                routingKey: 'dma.auctions.index',
               }),
             );
 
@@ -137,7 +138,8 @@ export class AuctionsService implements OnApplicationBootstrap {
         auctionsQueue.exchange,
         AuctionMessageDto.create({
           data: message,
-          priority: 1,
+          priority: 10,
+          routingKey: 'dma.auctions.commodity',
         }),
       );
 
