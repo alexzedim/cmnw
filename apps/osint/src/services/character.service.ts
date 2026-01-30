@@ -3,6 +3,7 @@ import chalk from 'chalk';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BlizzAPI } from '@alexzedim/blizzapi';
+import { isAxiosError } from 'axios';
 import { get } from 'lodash';
 import {
   API_HEADERS_ENUM,
@@ -14,7 +15,6 @@ import {
   CHARACTER_SUMMARY_FIELD_MAPPING,
   CharacterStatus,
   CharacterSummary,
-  incErrorCount,
   isCharacterMedia,
   isCharacterSummary,
   isMountCollection,
@@ -28,6 +28,9 @@ import {
   isCharacterProfessions,
   setStatusString,
   CharacterStatusState,
+  TRACKED_ERROR_STATUS_CODES,
+  ApiKeyErrorContext,
+  KeyErrorTracker,
 } from '@app/resources';
 import { KeysEntity } from '@app/pg';
 
@@ -37,10 +40,14 @@ export class CharacterService {
     timestamp: true,
   });
 
+  private readonly keyErrorTracker: KeyErrorTracker;
+
   constructor(
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
-  ) {}
+  ) {
+    this.keyErrorTracker = new KeyErrorTracker(keysRepository);
+  }
 
   async getStatus(
     nameSlug: string,
@@ -85,20 +92,27 @@ export class CharacterService {
         CharacterStatusState.ERROR,
       );
 
-      const isTooManyRequests = errorOrException.status === 429;
-      if (isTooManyRequests) {
-        await incErrorCount(
-          this.keysRepository,
-          BNet.accessTokenObject.access_token,
-        );
+      const statusCode = isAxiosError(errorOrException)
+        ? errorOrException.response?.status
+        : errorOrException.status;
+
+      // Track API key errors (403, 429)
+      if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
+        const accessToken = BNet.accessTokenObject.access_token;
+        const context: ApiKeyErrorContext = {
+          serviceName: 'CharacterService',
+          methodName: 'getStatus',
+          resourceId: `${nameSlug}@${realmSlug}`,
+        };
+        await this.keyErrorTracker.trackError(accessToken, statusCode, context);
       }
 
-      const isStatusNotFound = errorOrException.status === 404;
+      const isStatusNotFound = statusCode === 404;
       if (isStatusNotFound) {
         this.logger.debug(
           `${chalk.blue('404')} Not found: ${nameSlug}@${realmSlug}`,
         );
-      } else if (errorOrException.status === 429) {
+      } else if (statusCode === 429) {
         this.logger.debug(
           `${chalk.yellow('429')} Rate limited: ${nameSlug}@${realmSlug}`,
         );
@@ -172,15 +186,22 @@ export class CharacterService {
         CharacterStatusState.ERROR,
       );
 
-      const isTooManyRequests = errorOrException.status === 429;
-      if (isTooManyRequests) {
-        await incErrorCount(
-          this.keysRepository,
-          BNet.accessTokenObject.access_token,
-        );
+      const statusCode = isAxiosError(errorOrException)
+        ? errorOrException.response?.status
+        : errorOrException.status;
+
+      // Track API key errors (403, 429)
+      if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
+        const accessToken = BNet.accessTokenObject.access_token;
+        const context: ApiKeyErrorContext = {
+          serviceName: 'CharacterService',
+          methodName: 'getSummary',
+          resourceId: `${nameSlug}@${realmSlug}`,
+        };
+        await this.keyErrorTracker.trackError(accessToken, statusCode, context);
       }
 
-      if (errorOrException.status === 429) {
+      if (statusCode === 429) {
         this.logger.debug(
           `${chalk.yellow('429')} Rate limited (getSummary): ${nameSlug}@${realmSlug}`,
         );
@@ -233,7 +254,20 @@ export class CharacterService {
         CharacterStatusState.ERROR,
       );
 
-      const statusCode = get(errorOrException, 'status', 400);
+      const statusCode = isAxiosError(errorOrException)
+        ? errorOrException.response?.status
+        : get(errorOrException, 'status', 400);
+
+      // Track API key errors (403, 429)
+      if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
+        const accessToken = BNet.accessTokenObject.access_token;
+        const context: ApiKeyErrorContext = {
+          serviceName: 'CharacterService',
+          methodName: 'getMedia',
+          resourceId: `${nameSlug}@${realmSlug}`,
+        };
+        await this.keyErrorTracker.trackError(accessToken, statusCode, context);
+      }
 
       if (statusCode === 429) {
         this.logger.debug(
@@ -288,7 +322,20 @@ export class CharacterService {
         CharacterStatusState.ERROR,
       );
 
-      const statusCode = get(errorOrException, 'status', 400);
+      const statusCode = isAxiosError(errorOrException)
+        ? errorOrException.response?.status
+        : get(errorOrException, 'status', 400);
+
+      // Track API key errors (403, 429)
+      if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
+        const accessToken = BNet.accessTokenObject.access_token;
+        const context: ApiKeyErrorContext = {
+          serviceName: 'CharacterService',
+          methodName: 'getMountsCollection',
+          resourceId: `${nameSlug}@${realmSlug}`,
+        };
+        await this.keyErrorTracker.trackError(accessToken, statusCode, context);
+      }
 
       if (statusCode === 429) {
         this.logger.debug(
@@ -343,7 +390,20 @@ export class CharacterService {
         CharacterStatusState.ERROR,
       );
 
-      const statusCode = get(errorOrException, 'status', 400);
+      const statusCode = isAxiosError(errorOrException)
+        ? errorOrException.response?.status
+        : get(errorOrException, 'status', 400);
+
+      // Track API key errors (403, 429)
+      if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
+        const accessToken = BNet.accessTokenObject.access_token;
+        const context: ApiKeyErrorContext = {
+          serviceName: 'CharacterService',
+          methodName: 'getPetsCollection',
+          resourceId: `${nameSlug}@${realmSlug}`,
+        };
+        await this.keyErrorTracker.trackError(accessToken, statusCode, context);
+      }
 
       if (statusCode === 429) {
         this.logger.debug(
@@ -398,7 +458,20 @@ export class CharacterService {
         CharacterStatusState.ERROR,
       );
 
-      const statusCode = get(errorOrException, 'status', 400);
+      const statusCode = isAxiosError(errorOrException)
+        ? errorOrException.response?.status
+        : get(errorOrException, 'status', 400);
+
+      // Track API key errors (403, 429)
+      if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
+        const accessToken = BNet.accessTokenObject.access_token;
+        const context: ApiKeyErrorContext = {
+          serviceName: 'CharacterService',
+          methodName: 'getProfessions',
+          resourceId: `${nameSlug}@${realmSlug}`,
+        };
+        await this.keyErrorTracker.trackError(accessToken, statusCode, context);
+      }
 
       if (statusCode === 429) {
         this.logger.debug(

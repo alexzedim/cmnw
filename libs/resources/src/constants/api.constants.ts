@@ -4,6 +4,16 @@ import {
   OSINT_TIMEOUT_TOLERANCE,
 } from '@app/resources';
 
+/**
+ * HTTP status codes that indicate rate limiting or API key errors
+ * Used for efficient status code checking with Set.has() instead of multiple === comparisons
+ *
+ * Tracked status codes:
+ * - 403 (Forbidden) - Often used by APIs to indicate rate limiting
+ * - 429 (Too Many Requests) - Standard rate limit response
+ */
+export const TRACKED_ERROR_STATUS_CODES = new Set<number>([403, 429]);
+
 export enum TOLERANCE_ENUM {
   DMA = DMA_TIMEOUT_TOLERANCE,
   OSINT = OSINT_TIMEOUT_TOLERANCE,

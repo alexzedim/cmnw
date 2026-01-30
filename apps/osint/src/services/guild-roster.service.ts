@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { BlizzAPI } from '@alexzedim/blizzapi';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
+import { isAxiosError } from 'axios';
 import { from, lastValueFrom } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
 import { get } from 'lodash';
@@ -13,7 +14,6 @@ import {
   FACTION,
   GUILD_WORKER_CONSTANTS,
   IGuildRoster,
-  incErrorCount,
   IRGuildRoster,
   isGuildRoster,
   OSINT_GM_RANK,
@@ -28,6 +28,9 @@ import {
   IRGuildRosterMember,
   GuildStatusState,
   setGuildStatusString,
+  TRACKED_ERROR_STATUS_CODES,
+  ApiKeyErrorContext,
+  KeyErrorTracker,
 } from '@app/resources';
 import { CharactersEntity, GuildsEntity, KeysEntity, RealmsEntity } from '@app/pg';
 import { RabbitMQPublisherService } from '@app/rabbitmq';
@@ -38,6 +41,8 @@ export class GuildRosterService {
     timestamp: true,
   });
 
+  private readonly keyErrorTracker: KeyErrorTracker;
+
   constructor(
     private readonly publisher: RabbitMQPublisherService,
     @InjectRepository(KeysEntity)
@@ -46,7 +51,9 @@ export class GuildRosterService {
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
-  ) {}
+  ) {
+    this.keyErrorTracker = new KeyErrorTracker(keysRepository);
+  }
 
   async fetchRoster(
     guildEntity: GuildsEntity,
@@ -88,7 +95,12 @@ export class GuildRosterService {
       );
       return roster;
     } catch (errorOrException) {
-      return this.handleRosterError(errorOrException, roster, guildEntity, BNet);
+      return await this.handleRosterError(
+        errorOrException,
+        roster,
+        guildEntity,
+        BNet,
+      );
     }
   }
 
@@ -265,20 +277,28 @@ export class GuildRosterService {
     );
   }
 
-  private handleRosterError(
+  private async handleRosterError(
     errorOrException: any,
     roster: IGuildRoster,
     guildEntity: GuildsEntity,
     BNet: BlizzAPI,
-  ): IGuildRoster {
-    roster.statusCode = get(errorOrException, 'status', 400);
+  ): Promise<IGuildRoster> {
+    const statusCode = isAxiosError(errorOrException)
+      ? errorOrException.response?.status
+      : get(errorOrException, 'status', 400);
+
+    roster.statusCode = statusCode || 400;
     roster.status = setGuildStatusString('-----', 'ROSTER', GuildStatusState.ERROR);
 
-    const isTooManyRequests =
-      roster.statusCode === GUILD_WORKER_CONSTANTS.TOO_MANY_REQUESTS_STATUS_CODE;
-
-    if (isTooManyRequests) {
-      incErrorCount(this.keysRepository, BNet.accessTokenObject.access_token);
+    // Track API key errors (403, 429)
+    if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
+      const accessToken = BNet.accessTokenObject.access_token;
+      const context: ApiKeyErrorContext = {
+        serviceName: 'GuildRosterService',
+        methodName: 'fetchRoster',
+        resourceId: guildEntity.guid,
+      };
+      await this.keyErrorTracker.trackError(accessToken, statusCode, context);
     }
 
     this.logger.error({

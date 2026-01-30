@@ -7,7 +7,7 @@ import { bufferCount, concatMap } from 'rxjs/operators';
 import { from, lastValueFrom } from 'rxjs';
 import { DateTime } from 'luxon';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ItemsEntity, MarketEntity, RealmsEntity } from '@app/pg';
+import { ItemsEntity, MarketEntity, RealmsEntity, KeysEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import {
@@ -27,6 +27,9 @@ import {
   toGold,
   transformPrice,
   formatBytes,
+  KeyErrorTracker,
+  ApiKeyErrorContext,
+  TRACKED_ERROR_STATUS_CODES,
 } from '@app/resources';
 import { createHash } from 'crypto';
 import { RabbitMQMonitorService } from '@app/rabbitmq';
@@ -63,6 +66,8 @@ export class AuctionsWorker {
     429: 'rateLimit',
   } as const;
 
+  private readonly keyErrorTracker: KeyErrorTracker;
+
   constructor(
     @InjectRedis()
     private readonly redisService: Redis,
@@ -72,8 +77,12 @@ export class AuctionsWorker {
     private readonly _itemsRepository: Repository<ItemsEntity>,
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
+    @InjectRepository(KeysEntity)
+    private readonly keysRepository: Repository<KeysEntity>,
     private readonly rabbitMQMonitorService: RabbitMQMonitorService,
-  ) {}
+  ) {
+    this.keyErrorTracker = new KeyErrorTracker(keysRepository);
+  }
 
   @RabbitSubscribe({
     exchange: 'dma.exchange',
@@ -279,7 +288,11 @@ export class AuctionsWorker {
 
       if (isAxiosError(errorOrException)) {
         // Handle HTTP errors
-        const isHandled = this.handleHttpError(errorOrException, realmId, duration);
+        const isHandled = await this.handleHttpError(
+          errorOrException,
+          realmId,
+          duration,
+        );
 
         // Non-fatal HTTP errors (304, 429, 403) are handled and don't re-throw
         if (isHandled) {
@@ -480,11 +493,11 @@ export class AuctionsWorker {
    * Handles Axios HTTP errors with proper stats tracking and logging
    * @returns true if error was handled (non-fatal), false if should be re-thrown
    */
-  private handleHttpError(
+  private async handleHttpError(
     error: AxiosError,
     realmId: string | number,
     duration: number,
-  ): boolean {
+  ): Promise<boolean> {
     const statusCode = error.response?.status;
 
     if (!statusCode) {
@@ -500,6 +513,18 @@ export class AuctionsWorker {
 
     // Log the error
     this.logHttpError(statusCode, realmId, duration, error.response?.statusText);
+
+    // Track API key errors (403, 429)
+    if (TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
+      const context: ApiKeyErrorContext = {
+        serviceName: 'AuctionsWorker',
+        methodName: 'handleAuctionMessage',
+        resourceId: String(realmId),
+      };
+      // Note: We don't have access token here, so we pass empty string
+      // The tracker will handle it gracefully
+      await this.keyErrorTracker.trackError('', statusCode, context);
+    }
 
     // Return true for non-fatal errors (304, 429, 403)
     return [

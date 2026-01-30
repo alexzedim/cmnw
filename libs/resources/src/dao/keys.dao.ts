@@ -1,75 +1,120 @@
-import { ArrayContains, LessThan, Repository } from 'typeorm';
-import { HttpsProxyAgent } from 'https-proxy-agent';
+import { Repository } from 'typeorm';
 import { KeysEntity } from '@app/pg';
-import { cryptoRandomIntBetween } from '@app/resources/utils';
-import { NotFoundException } from '@nestjs/common';
-import { KEY_LOCK_ERRORS_NUM } from '@app/resources/constants';
-import { GLOBAL_PROXY_V4 } from '@app/resources/clearance';
+import { TRACKED_ERROR_STATUS_CODES } from '../constants/api.constants';
 
-export const getKey = async (
-  repository: Repository<KeysEntity>,
-  clearance: string,
-  isSafe = true,
-) => {
-  const findBy = isSafe
-    ? {
-        tags: ArrayContains([clearance]),
-        errorCounts: LessThan(KEY_LOCK_ERRORS_NUM),
-      }
-    : {
-        tags: ArrayContains([clearance]),
-      };
+/**
+ * Track API key error in the database
+ *
+ * Increments the error count for a key when it encounters rate limiting or forbidden responses.
+ * Only tracks 403 (Forbidden) and 429 (Too Many Requests) status codes.
+ *
+ * @param keysRepository - TypeORM repository for KeysEntity
+ * @param accessToken - The access token to identify the key
+ * @param statusCode - HTTP status code from the API response
+ * @returns The updated KeysEntity or null if key not found or error not tracked
+ *
+ * @example
+ * const updatedKey = await trackApiKeyError(keysRepository, token, 429);
+ * if (updatedKey) {
+ *   console.log(`Error tracked. New count: ${updatedKey.errorCounts}`);
+ * }
+ */
+export async function trackApiKeyError(
+  keysRepository: Repository<KeysEntity>,
+  accessToken: string,
+  statusCode: number,
+): Promise<KeysEntity | null> {
+  // Only track errors for specific status codes
+  if (!TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
+    return null;
+  }
 
-  const keyEntity = await repository.findOneBy(findBy);
+  // Find the key entity by accessToken
+  const keyEntity = await keysRepository.findOneBy({
+    token: accessToken,
+  });
 
   if (!keyEntity) {
-    throw new NotFoundException(`No ${clearance} keys found`);
+    return null;
   }
 
-  return keyEntity;
-};
+  // Increment error count
+  keyEntity.errorCounts += 1;
 
-export const getKeys = async (
-  repository: Repository<KeysEntity>,
+  // Save updated entity
+  const updatedEntity = await keysRepository.save(keyEntity);
+
+  return updatedEntity;
+}
+
+/**
+ * Get a single API key by clearance tag
+ *
+ * @param keysRepository - TypeORM repository for KeysEntity
+ * @param clearance - The clearance tag to filter by
+ * @returns The first KeysEntity matching the clearance tag, or null if not found
+ */
+export async function getKey(
+  keysRepository: Repository<KeysEntity>,
   clearance: string,
-  isRandom = false,
-  isSafe = true,
-) => {
-  const findBy = isSafe
-    ? {
-        tags: ArrayContains([clearance]),
-        errorCounts: LessThan(KEY_LOCK_ERRORS_NUM),
-      }
-    : {
-        tags: ArrayContains([clearance]),
-      };
+): Promise<KeysEntity | null> {
+  return keysRepository.findOne({
+    where: { tags: clearance },
+  });
+}
 
-  const keyEntities = await repository.findBy(findBy);
+/**
+ * Get multiple API keys by clearance tag
+ *
+ * @param keysRepository - TypeORM repository for KeysEntity
+ * @param clearance - The clearance tag to filter by
+ * @param isActive - Optional filter for active keys (default: true)
+ * @param isValid - Optional filter for valid keys (default: true)
+ * @returns Array of KeysEntity matching the clearance tag
+ */
+export async function getKeys(
+  keysRepository: Repository<KeysEntity>,
+  clearance: string,
+  isActive?: boolean,
+  isValid?: boolean,
+): Promise<KeysEntity[]> {
+  const query = keysRepository.createQueryBuilder('keys');
 
-  if (!keyEntities.length) {
-    throw new NotFoundException(
-      `No ${clearance} found | ${keyEntities.length} keys`,
-    );
+  query.where('keys.tags = :clearance', { clearance });
+
+  if (isActive !== undefined) {
+    query.andWhere('keys.status = :status', {
+      status: isActive ? 'active' : 'inactive',
+    });
   }
 
-  return isRandom && keyEntities.length > 1
-    ? [keyEntities[cryptoRandomIntBetween(0, keyEntities.length - 1)]]
-    : keyEntities;
-};
+  if (isValid !== undefined) {
+    query.andWhere('keys.status = :validStatus', {
+      validStatus: isValid ? 'valid' : 'invalid',
+    });
+  }
 
-export const getRandomProxy = async (
-  repository: Repository<KeysEntity>,
-): Promise<HttpsProxyAgent<string>> => {
-  const [proxyEntity] = await getKeys(repository, GLOBAL_PROXY_V4, true, false);
-  const proxy = `http://${proxyEntity.client}:${proxyEntity.secret}@${proxyEntity.token}`;
-  return new HttpsProxyAgent(proxy);
-};
+  return query.getMany();
+}
 
-export const incErrorCount = async (
-  repository: Repository<KeysEntity>,
-  token: string,
-) => {
-  const keyEntity = await repository.findOneBy({ token });
-  keyEntity.errorCounts = keyEntity.errorCounts + 1;
-  await repository.save(keyEntity);
-};
+/**
+ * Get a random API key by clearance tag
+ *
+ * @param keysRepository - TypeORM repository for KeysEntity
+ * @param clearance - The clearance tag to filter by
+ * @returns A random KeysEntity matching the clearance tag, or null if not found
+ */
+export async function getRandomProxy(
+  keysRepository: Repository<KeysEntity>,
+  clearance?: string,
+): Promise<KeysEntity | null> {
+  const query = keysRepository.createQueryBuilder('keys');
+
+  if (clearance) {
+    query.where('keys.tags = :clearance', { clearance });
+  }
+
+  query.orderBy('RANDOM()').take(1);
+
+  return query.getOne() || null;
+}
