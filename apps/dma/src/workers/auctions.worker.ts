@@ -29,7 +29,7 @@ import {
 } from '@app/resources';
 import { createHash } from 'crypto';
 import { RabbitMQMonitorService } from '@app/rabbitmq';
-import { isAxiosError } from 'axios';
+import { isAxiosError, AxiosError } from 'axios';
 
 @Injectable()
 export class AuctionsWorker {
@@ -280,10 +280,14 @@ export class AuctionsWorker {
           this.logger.warn(
             `${chalk.yellow('⚠')} ${chalk.yellow('429')} Rate limited [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)}`,
           );
-        } else {
+          return;
+        }
+
+        if (statusCode === 403) {
           this.logger.warn(
             `${chalk.blue('ℹ')} ${statusCode} [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.response?.statusText}`,
           );
+          return;
         }
       } else {
         this.stats.errors++;
