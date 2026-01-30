@@ -448,10 +448,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
    * @throws Database errors are propagated
    */
   private async markLogAsIndexed(logId: string): Promise<void> {
-    await this.charactersRaidLogsRepository.update(
-      { logId },
-      { isIndexed: true },
-    );
+    await this.charactersRaidLogsRepository.update({ logId }, { isIndexed: true });
   }
 
   /**
