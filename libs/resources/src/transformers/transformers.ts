@@ -1,19 +1,8 @@
 import { BlizzardApiNamedField, ConvertPrice, FACTION } from '@app/resources/index';
 import { TransformFnParams } from 'class-transformer';
 import { DateTime } from 'luxon';
+import kebabCase from 'kebab-case';
 
-/**
- * Converts a string to kebab-case format.
- *
- * @param s - The input string to convert
- * @returns The kebab-cased string
- * @example kebabCase('HelloWorld') // returns 'hello-world'
- */
-const kebabCase = (s: string): string =>
-  s
-    .replace(/([a-z])([A-Z])/g, '$1-$2')
-    .replace(/[\s_]+/g, '-')
-    .toLowerCase();
 
 /**
  * Generates a GUID from a character name and realm.
