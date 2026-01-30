@@ -125,7 +125,7 @@ export class CharactersEntity {
     nullable: true,
     type: 'varchar',
   })
- gender?: string;
+  gender?: string;
 
   @Column({
     default: null,

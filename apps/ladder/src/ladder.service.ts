@@ -79,9 +79,7 @@ export class LadderService implements OnApplicationBootstrap {
   }
 
   @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_NOON)
-  async indexPvPLadder(
-    clearance: string = GLOBAL_OSINT_KEY,
-  ): Promise<void> {
+  async indexPvPLadder(clearance: string = GLOBAL_OSINT_KEY): Promise<void> {
     const logTag = this.indexPvPLadder.name;
     try {
       const keys = await getKeys(this.keysRepository, clearance, true, false);
@@ -96,11 +94,7 @@ export class LadderService implements OnApplicationBootstrap {
 
       this.validatePvPSeasonIndexResponse(pvpSeasonIndex);
 
-      await this.processPvPLeaderboards(
-        pvpSeasonIndex.seasons,
-        key,
-        logTag,
-      );
+      await this.processPvPLeaderboards(pvpSeasonIndex.seasons, key, logTag);
 
       this.logger.log({
         logTag,
@@ -128,10 +122,7 @@ export class LadderService implements OnApplicationBootstrap {
 
         try {
           // Check if this season-bracket combination was already processed
-          const cacheKey = this.buildPvPLeaderboardCacheKey(
-            season.id,
-            bracket,
-          );
+          const cacheKey = this.buildPvPLeaderboardCacheKey(season.id, bracket);
 
           const isCached = await this.redisService.exists(cacheKey);
           if (isCached) {
@@ -146,10 +137,7 @@ export class LadderService implements OnApplicationBootstrap {
 
           await this.rateLimiter.wait();
 
-          const pvpLeaderboard = await this.fetchPvPLeaderboard(
-            season.id,
-            bracket,
-          );
+          const pvpLeaderboard = await this.fetchPvPLeaderboard(season.id, bracket);
 
           if (pvpLeaderboard.entries.length === 0) {
             // Mark as processed even if no entries found
@@ -186,12 +174,7 @@ export class LadderService implements OnApplicationBootstrap {
             });
           }
         } catch (error) {
-          this.handlePvPLeaderboardError(
-            error,
-            season.id,
-            bracket,
-            logTag,
-          );
+          this.handlePvPLeaderboardError(error, season.id, bracket, logTag);
         }
       }
     }
@@ -200,10 +183,7 @@ export class LadderService implements OnApplicationBootstrap {
   /**
    * Build Redis cache key for PvP leaderboard
    */
-  private buildPvPLeaderboardCacheKey(
-    seasonId: number,
-    bracket: string,
-  ): string {
+  private buildPvPLeaderboardCacheKey(seasonId: number, bracket: string): string {
     return `pvp:leaderboard:${seasonId}:${bracket}`;
   }
 
@@ -307,15 +287,15 @@ export class LadderService implements OnApplicationBootstrap {
         rateLimiterStats: this.rateLimiter.getStats(),
       });
     } else {
-      const is404Error =
-        error instanceof Error && error.message.includes('404');
+      const is404Error = error instanceof Error && error.message.includes('404');
 
       if (is404Error) {
         this.logger.debug({
           logTag,
           seasonId,
           bracket,
-          message: 'PvP leaderboard not found for this season-bracket combination (404)',
+          message:
+            'PvP leaderboard not found for this season-bracket combination (404)',
         });
       } else {
         this.logger.error({
@@ -343,9 +323,7 @@ export class LadderService implements OnApplicationBootstrap {
 
       // Build lookup maps
       const mythicPlusDungeons = this.buildDungeonMap(dungeons);
-      const mythicPlusExpansionWeeks = await this.fetchExpansionWeeks(
-        seasons,
-      );
+      const mythicPlusExpansionWeeks = await this.fetchExpansionWeeks(seasons);
 
       // Fetch realms
       const realmsEntity = await this.fetchValidRealms();
@@ -587,8 +565,7 @@ export class LadderService implements OnApplicationBootstrap {
       return { success: true };
     } catch (error) {
       // Check if this is a 404 error (leaderboard not found for this realm-dungeon combination)
-      const is404Error =
-        error instanceof Error && error.message.includes('404');
+      const is404Error = error instanceof Error && error.message.includes('404');
 
       if (is404Error) {
         // Mark as processed even if not found, and continue with other requests
@@ -661,10 +638,7 @@ export class LadderService implements OnApplicationBootstrap {
     connectedRealmId: number,
     dungeonId: number,
   ): Promise<void> {
-    const cacheKey = this.buildRealmDungeonCacheKey(
-      connectedRealmId,
-      dungeonId,
-    );
+    const cacheKey = this.buildRealmDungeonCacheKey(connectedRealmId, dungeonId);
     await this.redisService.setex(
       cacheKey,
       TIME_MS.ONE_WEEK / 1000, // 7 days in seconds
@@ -705,10 +679,7 @@ export class LadderService implements OnApplicationBootstrap {
     logTag: string,
   ): Promise<void> {
     for (const group of leadingGroups) {
-      const characterJobMembers = this.mapGroupMembersToCharacterJobs(
-        group,
-        key,
-      );
+      const characterJobMembers = this.mapGroupMembersToCharacterJobs(group, key);
 
       if (characterJobMembers.length === 0) {
         continue;

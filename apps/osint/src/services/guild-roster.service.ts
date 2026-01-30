@@ -81,7 +81,11 @@ export class GuildRosterService {
         ),
       );
 
-      roster.status = setGuildStatusString('-----', 'ROSTER', GuildStatusState.SUCCESS);
+      roster.status = setGuildStatusString(
+        '-----',
+        'ROSTER',
+        GuildStatusState.SUCCESS,
+      );
       return roster;
     } catch (errorOrException) {
       return this.handleRosterError(errorOrException, roster, guildEntity, BNet);
