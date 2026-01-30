@@ -32,6 +32,7 @@ import { RegionIdOrName } from '@alexzedim/blizzapi';
  */
 export interface IGuildMessageBase {
   id?: number;
+  guid?: string;
   region: RegionIdOrName;
   /** Guild name (will be converted to kebab-case for guid) */
   name: string;
@@ -67,62 +68,45 @@ export class GuildMessageDto extends RabbitMQMessageDto<IGuildMessageBase> {
    */
   private static isGuildCreateParams(
     params: any,
-  ): params is Omit<Partial<GuildMessageDto>, 'guid'> &
+  ): params is Omit<Partial<IGuildMessageBase>, 'guid'> &
     Pick<IGuildMessageBase, 'name' | 'realm'> {
     return (
       !!params && typeof params === 'object' && 'name' in params && 'realm' in params
     );
   }
 
-  // Guild Job Queue properties
-  readonly id: number;
-  readonly guid: string;
-  readonly name: string;
-  readonly realm: string;
-  readonly realmId?: number;
-  readonly realmName?: string;
-  readonly faction?: string;
-  readonly statusCode?: number;
-  readonly achievementPoints?: number;
-  readonly forceUpdate: number;
-  readonly createOnlyUnique: boolean;
-  readonly iteration?: number;
-  readonly createdBy?: OSINT_SOURCE;
-  readonly updatedBy: OSINT_SOURCE;
-  readonly clientId?: string;
-  readonly clientSecret?: string;
-  readonly accessToken?: string;
-  readonly region: 'eu';
-  readonly createdAt?: Date;
-  readonly updatedAt?: Date;
-
   /**
    * Constructor - creates a validated Guild Message with RabbitMQ metadata
    * @param params - Guild message parameters
    */
   constructor(params: any) {
-    // Extract guild job queue data
-    const guildData = params.data || params;
+    const messageParams = params ?? {};
+    const {
+      data,
+      messageId,
+      priority,
+      source,
+      routingKey,
+      persistent,
+      expiration,
+      metadata,
+      ...rest
+    } = messageParams;
+    const guildData = data ?? rest;
+    const resolvedMessageId =
+      messageId ?? (guildData as any)?.guid ?? (guildData as any)?.id;
 
     // Call parent constructor with RabbitMQ metadata
     super({
-      messageId: guildData.guid || params.id,
+      messageId: resolvedMessageId,
       data: guildData,
-      priority: params.priority ?? 5,
-      source: params.source ?? OSINT_SOURCE.GUILD_INDEX,
-      routingKey: params.routingKey ?? 'osint.guilds.index.normal',
-      persistent: params.persistent ?? true,
-      expiration: params.expiration,
-      metadata: params.metadata,
+      priority: priority ?? 5,
+      source: source ?? OSINT_SOURCE.GUILD_INDEX,
+      routingKey: routingKey ?? 'osint.guilds.index.normal',
+      persistent: persistent ?? true,
+      expiration,
+      metadata,
     });
-
-    // Assign guild job queue properties
-    Object.assign(this, guildData);
-
-    // Set default region if not provided
-    if (!this.region) {
-      (this as any).region = 'eu';
-    }
   }
 
   /**
@@ -132,13 +116,13 @@ export class GuildMessageDto extends RabbitMQMessageDto<IGuildMessageBase> {
    */
   static create<T>(params: IRabbitMQMessageBase<T>): RabbitMQMessageDto<T>;
   static create(
-    data: Omit<Partial<GuildMessageDto>, 'guid'> &
+    data: Omit<Partial<IGuildMessageBase>, 'guid'> &
       Pick<IGuildMessageBase, 'name' | 'realm'>,
   ): GuildMessageDto;
   static create(
     params:
       | IRabbitMQMessageBase<any>
-      | (Omit<Partial<GuildMessageDto>, 'guid'> &
+      | (Omit<Partial<IGuildMessageBase>, 'guid'> &
           Pick<IGuildMessageBase, 'name' | 'realm'>),
   ): RabbitMQMessageDto<any> | GuildMessageDto {
     if (GuildMessageDto.isRabbitMQMessageBase(params)) {
@@ -376,55 +360,48 @@ export class GuildMessageDto extends RabbitMQMessageDto<IGuildMessageBase> {
     strict: boolean = true,
     logTag: string = 'GuildMessageDto.validate',
   ): void {
-    const requiredFields = [
-      'guid',
-      'name',
-      'realm',
-      'forceUpdate',
-      'createOnlyUnique',
-      'updatedBy',
-    ];
+    const requiredFields = ['data', 'messageId'];
 
     // Check required fields
     for (const field of requiredFields) {
       if (this[field] === undefined || this[field] === null) {
-        const message = `Validation failed: missing required field '${field}' for guid '${this.guid || 'unknown'}'`;
+        const message = `Validation failed: missing required field '${field}' for guid '${this.data?.guid || 'unknown'}'`;
         if (strict) {
           throw new Error(message);
         } else {
           GuildMessageDto.guildLogger.warn({
             logTag,
             message,
-            guid: this.guid,
+            guid: this.data?.guid,
           });
         }
       }
     }
 
-    // Validate guid format
-    if (this.guid && !this.guid.includes('@')) {
-      const message = `Validation failed: guid '${this.guid}' must contain '@' separator`;
+    const guildData = this.data as IGuildMessageBase | undefined;
+
+    if (guildData?.guid && !guildData.guid.includes('@')) {
+      const message = `Validation failed: guid '${guildData.guid}' must contain '@' separator`;
       if (strict) {
         throw new Error(message);
       } else {
-        GuildMessageDto.guildLogger.warn({ logTag, message, guid: this.guid });
+        GuildMessageDto.guildLogger.warn({ logTag, message, guid: guildData.guid });
       }
     }
 
-    // Validate forceUpdate is positive number
     if (
-      this.forceUpdate !== undefined &&
-      (typeof this.forceUpdate !== 'number' || this.forceUpdate < 0)
+      guildData?.forceUpdate !== undefined &&
+      (typeof guildData.forceUpdate !== 'number' || guildData.forceUpdate < 0)
     ) {
-      const message = `Validation failed: forceUpdate must be a positive number, got '${this.forceUpdate}' for guid '${this.guid || 'unknown'}'`;
+      const message = `Validation failed: forceUpdate must be a positive number, got '${guildData.forceUpdate}' for guid '${guildData?.guid || 'unknown'}'`;
       if (strict) {
         throw new Error(message);
       } else {
         GuildMessageDto.guildLogger.warn({
           logTag,
           message,
-          guid: this.guid,
-          forceUpdate: this.forceUpdate,
+          guid: guildData?.guid,
+          forceUpdate: guildData?.forceUpdate,
         });
       }
     }
@@ -433,13 +410,13 @@ export class GuildMessageDto extends RabbitMQMessageDto<IGuildMessageBase> {
     if (!strict) {
       const credentials = ['clientId', 'clientSecret', 'accessToken'];
       const missingCredentials = credentials.filter(
-        (field) => !this[field] || this[field] === undefined,
+        (field) => !guildData?.[field] || guildData?.[field] === undefined,
       );
       if (missingCredentials.length > 0) {
         GuildMessageDto.guildLogger.warn({
           logTag,
           message: `Missing optional credentials: ${missingCredentials.join(', ')}`,
-          guid: this.guid,
+          guid: guildData?.guid,
           missingCredentials,
         });
       }
@@ -450,7 +427,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<IGuildMessageBase> {
    * Create validated instance - throws if validation fails
    */
   static createValidated(
-    data: Omit<Partial<GuildMessageDto>, 'guid'> &
+    data: Omit<Partial<IGuildMessageBase>, 'guid'> &
       Pick<IGuildMessageBase, 'name' | 'realm'>,
   ): GuildMessageDto {
     const dto = GuildMessageDto.create(data);
