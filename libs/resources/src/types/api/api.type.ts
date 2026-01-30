@@ -195,3 +195,35 @@ export type BlizzardApiCharacterProfessions = {
   lastModified: string;
   status?: string;
 };
+
+/**
+ * Context information for API key error tracking
+ *
+ * Provides additional context about where and why an API key error occurred,
+ * useful for debugging and monitoring API key usage patterns.
+ */
+export interface ApiKeyErrorContext {
+  /**
+   * Name of the service that encountered the error
+   * @example 'CharacterService', 'GuildSummaryService'
+   */
+  serviceName?: string;
+
+  /**
+   * Name of the method that encountered the error
+   * @example 'getSummary', 'getStatus'
+   */
+  methodName?: string;
+
+  /**
+   * Resource identifier (e.g., character name, guild name)
+   * @example 'Arthas', 'Burning Legion'
+   */
+  resourceId?: string;
+
+  /**
+   * Additional context information
+   * @example { realmId: 123, attempt: 2 }
+   */
+  additionalInfo?: Record<string, any>;
+}
