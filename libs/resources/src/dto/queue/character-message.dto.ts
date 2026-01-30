@@ -4,46 +4,87 @@ import { toGuid } from '../../transformers';
 import { IRabbitMQMessageBase, RabbitMQMessageDto } from '@app/resources/dto/queue';
 
 /**
- * Character Message DTO for RabbitMQ
- *
- * Comprehensive data transfer object for character messages with RabbitMQ routing.
- * Combines CharacterJobQueueDto logic with RabbitMQ-specific metadata.
- */
-
-/**
- * Base interface for creating character message entries
- * Only requires essential fields; guid is auto-generated from name + realm
+ * Base interface for character message data payload
+ * Contains all character-specific data that travels in the message.data field
  */
 export interface ICharacterMessageBase {
+  // Essential identification
   id?: number;
   guid?: string;
+  name: string;
+  realm: string;
+  region: 'eu';
+
+  // Realm info
   realmId?: number;
   realmName?: string;
+
+  // Guild info
   guild?: string;
   guildGuid?: string;
   guildId?: number;
   guildRank?: number;
+
+  // Character attributes
   class?: string;
+  race?: string;
+  faction?: string;
+  level?: number;
+  specialization?: string;
+  gender?: string;
+  lookingForGuild?: string;
+
+  // Update flags
+  updateRIO?: boolean;
+  updateWCL?: boolean;
+  updateWP?: boolean;
+
+  // Timestamps
+  createdAt?: Date;
+  updatedAt?: Date;
   lastModified?: Date;
-  region: 'eu';
-  /** Character name (will be converted to kebab-case for guid) */
-  name: string;
-  /** Realm slug (will be converted to kebab-case for guid) */
-  realm: string;
-  /** API key credentials */
+
+  // Profile data
+  achievementPoints?: number;
+  averageItemLevel?: number;
+  equippedItemLevel?: number;
+  covenantId?: number;
+  mountsNumber?: number;
+  petsNumber?: number;
+
+  // Media
+  avatarImage?: string;
+  insetImage?: string;
+  mainImage?: string;
+
+  // Status
+  statusCode?: number;
+  hashA?: string;
+  hashB?: string;
+
+  // Processing metadata
+  forceUpdate: number;
+  createOnlyUnique: boolean;
+  iteration?: number;
+  updatedBy: OSINT_SOURCE;
+  createdBy?: OSINT_SOURCE;
+
+  // API credentials
   clientId: string;
   clientSecret: string;
   accessToken: string;
-  /** Force update threshold in milliseconds */
-  forceUpdate: number;
-  /** Only create if character doesn't exist */
-  createOnlyUnique: boolean;
-  /** Source that last updated this job */
-  updatedBy: OSINT_SOURCE;
-  /** Source that created this job (optional, defaults to updatedBy) */
-  createdBy?: OSINT_SOURCE;
 }
 
+/**
+ * Character Message DTO for RabbitMQ
+ *
+ * Simplified wrapper around RabbitMQMessageDto that contains only:
+ * - messageId: Unique message identifier
+ * - data: Character data payload (ICharacterMessageBase)
+ * - metadata: RabbitMQ message metadata
+ *
+ * All character-specific properties are stored in the data field.
+ */
 export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBase> {
   private static readonly characterLogger = new Logger(CharacterMessageDto.name);
 
@@ -55,57 +96,12 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
 
   private static isCharacterCreateParams(
     params: any,
-  ): params is Omit<Partial<CharacterMessageDto>, 'guid'> &
+  ): params is Omit<Partial<ICharacterMessageBase>, 'guid'> &
     Pick<ICharacterMessageBase, 'name' | 'realm'> {
     return (
       !!params && typeof params === 'object' && 'name' in params && 'realm' in params
     );
   }
-
-  readonly id?: number;
-  readonly guid: string;
-  readonly name: string;
-  readonly realm: string;
-  readonly realmId?: number;
-  readonly realmName?: string;
-  readonly guild?: string;
-  readonly guildGuid?: string;
-  readonly guildId?: number;
-  readonly guildRank?: number;
-  readonly class?: string;
-  readonly race?: string;
-  readonly faction?: string;
-  readonly level?: number;
-  readonly specialization?: string;
-  readonly gender?: string;
-  readonly lookingForGuild?: string;
-  readonly updateRIO?: boolean;
-  readonly updateWCL?: boolean;
-  readonly updateWP?: boolean;
-  readonly forceUpdate: number;
-  readonly createOnlyUnique: boolean;
-  readonly iteration?: number;
-  readonly createdBy?: OSINT_SOURCE;
-  readonly updatedBy: OSINT_SOURCE;
-  readonly clientId?: string;
-  readonly clientSecret?: string;
-  readonly accessToken?: string;
-  readonly region: 'eu';
-  readonly createdAt?: Date;
-  readonly updatedAt?: Date;
-  readonly lastModified?: Date;
-  readonly achievementPoints?: number;
-  readonly averageItemLevel?: number;
-  readonly equippedItemLevel?: number;
-  readonly covenantId?: number;
-  readonly mountsNumber?: number;
-  readonly petsNumber?: number;
-  readonly avatarImage?: string;
-  readonly insetImage?: string;
-  readonly mainImage?: string;
-  readonly statusCode?: number;
-  readonly hashA?: string;
-  readonly hashB?: string;
 
   constructor(params: any) {
     const characterData = params.data || params;
@@ -120,22 +116,6 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       expiration: params.expiration,
       metadata: params.metadata,
     });
-
-    Object.assign(this, characterData);
-
-    // Validate and ensure id is a numeric value (not a string like guid)
-    if (this.id) {
-      const numericId = Number(this.id);
-      if (isNaN(numericId) || !Number.isInteger(numericId) || numericId <= 0) {
-        (this as any).id = undefined;
-      } else {
-        (this as any).id = numericId;
-      }
-    }
-
-    if (!this.region) {
-      (this as any).region = 'eu';
-    }
   }
 
   /**
@@ -143,13 +123,13 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
    */
   static create<T>(params: IRabbitMQMessageBase<T>): RabbitMQMessageDto<T>;
   static create(
-    data: Omit<Partial<CharacterMessageDto>, 'guid'> &
+    data: Omit<Partial<ICharacterMessageBase>, 'guid'> &
       Pick<ICharacterMessageBase, 'name' | 'realm'>,
   ): CharacterMessageDto;
   static create(
     params:
       | IRabbitMQMessageBase<any>
-      | (Omit<Partial<CharacterMessageDto>, 'guid'> &
+      | (Omit<Partial<ICharacterMessageBase>, 'guid'> &
           Pick<ICharacterMessageBase, 'name' | 'realm'>),
   ): RabbitMQMessageDto<any> | CharacterMessageDto {
     if (CharacterMessageDto.isRabbitMQMessageBase(params)) {
@@ -519,7 +499,9 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
     clientSecret: string;
     accessToken: string;
   }): Promise<CharacterMessageDto> {
-    return CharacterMessageDto.create({
+    const guid = toGuid(params.name, params.realm);
+    const dto = new CharacterMessageDto({
+      guid,
       name: params.name,
       realm: params.realm,
       clientId: params.clientId,
@@ -529,98 +511,80 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       updatedBy: OSINT_SOURCE.CHARACTER_REQUEST,
       createOnlyUnique: false,
       forceUpdate: TIME_MS.ONE_HOUR,
+      region: 'eu',
+      // RabbitMQ metadata
+      messageId: guid,
       priority: 10,
       source: OSINT_SOURCE.CHARACTER_REQUEST,
       routingKey: 'osint.characters.request.high',
+      persistent: true,
+      expiration: TIME_MS.FIVE_MINUTES,
     });
+    dto.validate(false, 'CharacterMessageDto.fromCharacterRequest');
+    return dto;
   }
 
   /**
-   * Validate that required fields are present
+   * Validate message structure
+   * @param strict - If true, throws errors; if false, logs warnings
+   * @throws Error if validation fails and strict is true
    */
-  validate(
-    strict: boolean = true,
-    logTag: string = 'CharacterMessageDto.validate',
-  ): void {
-    const requiredFields = [
-      'guid',
-      'name',
-      'realm',
-      'forceUpdate',
-      'createOnlyUnique',
-      'updatedBy',
-    ];
+  validate(strict: boolean = true, logTag?: string): void {
+    const requiredFields = ['messageId', 'data'];
 
     for (const field of requiredFields) {
       if (this[field] === undefined || this[field] === null) {
-        const message = `Validation failed: missing required field '${field}' for guid '${this.guid || 'unknown'}'`;
+        const message = `Validation failed: missing required field '${field}' for guid '${this.data?.guid || 'unknown'}'`;
         if (strict) {
           throw new Error(message);
         } else {
           CharacterMessageDto.characterLogger.warn({
-            logTag,
+            logTag: logTag || 'CharacterMessageDto.validate',
             message,
-            guid: this.guid,
+            messageId: this.messageId,
           });
         }
       }
     }
 
-    if (this.guid && !this.guid.includes('@')) {
-      const message = `Validation failed: guid '${this.guid}' must contain '@' separator`;
-      if (strict) {
-        throw new Error(message);
-      } else {
-        CharacterMessageDto.characterLogger.warn({
-          logTag,
-          message,
-          guid: this.guid,
-        });
+    // Validate data payload
+    if (this.data && typeof this.data === 'object') {
+      const data = this.data as any;
+
+      // Validate guid format
+      if (data.guid && !data.guid.includes('@')) {
+        const message = `Validation failed: guid '${data.guid}' must contain '@' separator`;
+        if (strict) {
+          throw new Error(message);
+        } else {
+          CharacterMessageDto.characterLogger.warn({
+            logTag: logTag || 'CharacterMessageDto.validate',
+            message,
+            guid: data.guid,
+          });
+        }
+      }
+
+      // Validate forceUpdate
+      if (
+        data.forceUpdate !== undefined &&
+        (typeof data.forceUpdate !== 'number' || data.forceUpdate < 0)
+      ) {
+        const message = `Validation failed: forceUpdate must be a positive number, got '${data.forceUpdate}' for guid '${data.guid || 'unknown'}'`;
+        if (strict) {
+          throw new Error(message);
+        } else {
+          CharacterMessageDto.characterLogger.warn({
+            logTag: logTag || 'CharacterMessageDto.validate',
+            message,
+            guid: data.guid,
+            forceUpdate: data.forceUpdate,
+          });
+        }
       }
     }
 
-    if (
-      this.forceUpdate !== undefined &&
-      (typeof this.forceUpdate !== 'number' || this.forceUpdate < 0)
-    ) {
-      const message = `Validation failed: forceUpdate must be a positive number, got '${this.forceUpdate}' for guid '${this.guid || 'unknown'}'`;
-      if (strict) {
-        throw new Error(message);
-      } else {
-        CharacterMessageDto.characterLogger.warn({
-          logTag,
-          message,
-          guid: this.guid,
-          forceUpdate: this.forceUpdate,
-        });
-      }
-    }
-
-    if (!strict) {
-      const credentials = ['clientId', 'clientSecret', 'accessToken'];
-      const missingCredentials = credentials.filter(
-        (field) => !this[field] || this[field] === undefined,
-      );
-      if (missingCredentials.length > 0) {
-        CharacterMessageDto.characterLogger.warn({
-          logTag,
-          message: `Missing optional credentials: ${missingCredentials.join(', ')}`,
-          guid: this.guid,
-          missingCredentials,
-        });
-      }
-    }
-  }
-
-  /**
-   * Create validated instance - throws if validation fails
-   */
-  static createValidated(
-    data: Omit<Partial<CharacterMessageDto>, 'guid'> &
-      Pick<ICharacterMessageBase, 'name' | 'realm'>,
-  ): CharacterMessageDto {
-    const dto = CharacterMessageDto.create(data);
-    dto.validate();
-    return dto;
+    // Call parent validation
+    super.validate(strict);
   }
 }
