@@ -35,9 +35,16 @@ export function setStatusString(
   }
 
   const codes = CHARACTER_STATUS_CODES[endpoint];
-  const char = state === CharacterStatusState.SUCCESS ? codes.success : state === CharacterStatusState.ERROR ? codes.error : codes.pending;
+  const char =
+    state === CharacterStatusState.SUCCESS
+      ? codes.success
+      : state === CharacterStatusState.ERROR
+        ? codes.error
+        : codes.pending;
 
-  return currentStatus.substring(0, index) + char + currentStatus.substring(index + 1);
+  return (
+    currentStatus.substring(0, index) + char + currentStatus.substring(index + 1)
+  );
 }
 
 /**
@@ -51,7 +58,10 @@ export function setStatusString(
  * getStatusChar('SU-MPV', 'SUMMARY') // "U"
  * getStatusChar('SU-MPV', 'MEDIA') // "-"
  */
-export function getStatusChar(status: string, endpoint: keyof typeof CHARACTER_STATUS_CODES): string {
+export function getStatusChar(
+  status: string,
+  endpoint: keyof typeof CHARACTER_STATUS_CODES,
+): string {
   const index = STATUS_ENDPOINT_ORDER.indexOf(endpoint);
   if (index === -1 || index >= status.length) {
     return '-';
@@ -124,8 +134,11 @@ export function isEndpointPendingInString(
 export function getSuccessfulEndpointsInString(
   status: string,
 ): Array<keyof typeof CHARACTER_STATUS_CODES> {
-  return STATUS_ENDPOINT_ORDER.filter(
-    (endpoint) => isEndpointSuccessInString(status, endpoint as keyof typeof CHARACTER_STATUS_CODES),
+  return STATUS_ENDPOINT_ORDER.filter((endpoint) =>
+    isEndpointSuccessInString(
+      status,
+      endpoint as keyof typeof CHARACTER_STATUS_CODES,
+    ),
   ) as Array<keyof typeof CHARACTER_STATUS_CODES>;
 }
 
@@ -140,8 +153,8 @@ export function getSuccessfulEndpointsInString(
 export function getFailedEndpointsInString(
   status: string,
 ): Array<keyof typeof CHARACTER_STATUS_CODES> {
-  return STATUS_ENDPOINT_ORDER.filter(
-    (endpoint) => isEndpointErrorInString(status, endpoint as keyof typeof CHARACTER_STATUS_CODES),
+  return STATUS_ENDPOINT_ORDER.filter((endpoint) =>
+    isEndpointErrorInString(status, endpoint as keyof typeof CHARACTER_STATUS_CODES),
   ) as Array<keyof typeof CHARACTER_STATUS_CODES>;
 }
 
@@ -156,8 +169,11 @@ export function getFailedEndpointsInString(
 export function getPendingEndpointsInString(
   status: string,
 ): Array<keyof typeof CHARACTER_STATUS_CODES> {
-  return STATUS_ENDPOINT_ORDER.filter(
-    (endpoint) => isEndpointPendingInString(status, endpoint as keyof typeof CHARACTER_STATUS_CODES),
+  return STATUS_ENDPOINT_ORDER.filter((endpoint) =>
+    isEndpointPendingInString(
+      status,
+      endpoint as keyof typeof CHARACTER_STATUS_CODES,
+    ),
   ) as Array<keyof typeof CHARACTER_STATUS_CODES>;
 }
 
@@ -171,7 +187,10 @@ export function getPendingEndpointsInString(
  * isAllSuccessInString('SU-MPv') // false
  */
 export function isAllSuccessInString(status: string): boolean {
-  return getFailedEndpointsInString(status).length === 0 && getPendingEndpointsInString(status).length === 0;
+  return (
+    getFailedEndpointsInString(status).length === 0 &&
+    getPendingEndpointsInString(status).length === 0
+  );
 }
 
 /**
@@ -288,7 +307,21 @@ export function isValidStatusString(status: string): boolean {
     return false;
   }
 
-  const validChars = new Set(['S', 's', 'U', 'u', 'M', 'm', 'P', 'p', 'V', 'v', 'R', 'r', '-']);
+  const validChars = new Set([
+    'S',
+    's',
+    'U',
+    'u',
+    'M',
+    'm',
+    'P',
+    'p',
+    'V',
+    'v',
+    'R',
+    'r',
+    '-',
+  ]);
 
   for (const char of status) {
     if (!validChars.has(char)) {
@@ -344,9 +377,16 @@ export function setGuildStatusString(
   }
 
   const codes = GUILD_STATUS_CODES[operation];
-  const char = state === GuildStatusState.SUCCESS ? codes.success : state === GuildStatusState.ERROR ? codes.error : codes.pending;
+  const char =
+    state === GuildStatusState.SUCCESS
+      ? codes.success
+      : state === GuildStatusState.ERROR
+        ? codes.error
+        : codes.pending;
 
-  return currentStatus.substring(0, index) + char + currentStatus.substring(index + 1);
+  return (
+    currentStatus.substring(0, index) + char + currentStatus.substring(index + 1)
+  );
 }
 
 /**
@@ -360,7 +400,10 @@ export function setGuildStatusString(
  * getGuildStatusChar('SRMLG', 'ROSTER') // "R"
  * getGuildStatusChar('SRMLG', 'MEMBERS') // "M"
  */
-export function getGuildStatusChar(status: string, operation: keyof typeof GUILD_STATUS_CODES): string {
+export function getGuildStatusChar(
+  status: string,
+  operation: keyof typeof GUILD_STATUS_CODES,
+): string {
   const index = GUILD_STATUS_OPERATION_ORDER.indexOf(operation);
   if (index === -1 || index >= status.length) {
     return '-';
@@ -433,8 +476,11 @@ export function isGuildOperationPendingInString(
 export function getSuccessfulGuildOperationsInString(
   status: string,
 ): Array<keyof typeof GUILD_STATUS_CODES> {
-  return GUILD_STATUS_OPERATION_ORDER.filter(
-    (operation) => isGuildOperationSuccessInString(status, operation as keyof typeof GUILD_STATUS_CODES),
+  return GUILD_STATUS_OPERATION_ORDER.filter((operation) =>
+    isGuildOperationSuccessInString(
+      status,
+      operation as keyof typeof GUILD_STATUS_CODES,
+    ),
   ) as Array<keyof typeof GUILD_STATUS_CODES>;
 }
 
@@ -449,8 +495,11 @@ export function getSuccessfulGuildOperationsInString(
 export function getFailedGuildOperationsInString(
   status: string,
 ): Array<keyof typeof GUILD_STATUS_CODES> {
-  return GUILD_STATUS_OPERATION_ORDER.filter(
-    (operation) => isGuildOperationErrorInString(status, operation as keyof typeof GUILD_STATUS_CODES),
+  return GUILD_STATUS_OPERATION_ORDER.filter((operation) =>
+    isGuildOperationErrorInString(
+      status,
+      operation as keyof typeof GUILD_STATUS_CODES,
+    ),
   ) as Array<keyof typeof GUILD_STATUS_CODES>;
 }
 
@@ -465,8 +514,11 @@ export function getFailedGuildOperationsInString(
 export function getPendingGuildOperationsInString(
   status: string,
 ): Array<keyof typeof GUILD_STATUS_CODES> {
-  return GUILD_STATUS_OPERATION_ORDER.filter(
-    (operation) => isGuildOperationPendingInString(status, operation as keyof typeof GUILD_STATUS_CODES),
+  return GUILD_STATUS_OPERATION_ORDER.filter((operation) =>
+    isGuildOperationPendingInString(
+      status,
+      operation as keyof typeof GUILD_STATUS_CODES,
+    ),
   ) as Array<keyof typeof GUILD_STATUS_CODES>;
 }
 
@@ -480,7 +532,10 @@ export function getPendingGuildOperationsInString(
  * isAllGuildSuccessInString('SRMLg') // false
  */
 export function isAllGuildSuccessInString(status: string): boolean {
-  return getFailedGuildOperationsInString(status).length === 0 && getPendingGuildOperationsInString(status).length === 0;
+  return (
+    getFailedGuildOperationsInString(status).length === 0 &&
+    getPendingGuildOperationsInString(status).length === 0
+  );
 }
 
 /**
@@ -596,7 +651,19 @@ export function isValidGuildStatusString(status: string): boolean {
     return false;
   }
 
-  const validChars = new Set(['S', 's', 'R', 'r', 'M', 'm', 'L', 'l', 'G', 'g', '-']);
+  const validChars = new Set([
+    'S',
+    's',
+    'R',
+    'r',
+    'M',
+    'm',
+    'L',
+    'l',
+    'G',
+    'g',
+    '-',
+  ]);
 
   for (const char of status) {
     if (!validChars.has(char)) {

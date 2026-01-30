@@ -2,7 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Repository, IsNull, Not } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { ACTION_LOG, IGuildRoster, OSINT_GM_RANK, GuildStatusState, setGuildStatusString } from '@app/resources';
+import {
+  ACTION_LOG,
+  IGuildRoster,
+  OSINT_GM_RANK,
+  GuildStatusState,
+  setGuildStatusString,
+} from '@app/resources';
 import {
   CharactersEntity,
   CharactersGuildsMembersEntity,

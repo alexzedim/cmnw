@@ -1,6 +1,4 @@
 import { Module } from '@nestjs/common';
-import { TestsOsint } from './tests.osint';
-import { TestsCore } from './tests.core';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { postgresConfig } from '@app/configuration';
 import {
@@ -14,7 +12,6 @@ import {
 } from '@app/pg';
 import { HttpModule } from '@nestjs/axios';
 import { RabbitMQModule } from '@app/rabbitmq';
-import { TestsCharactersQueueWorker } from './tests.characters.queue.worker';
 import { TestsCharactersQueueService } from './tests.characters.queue.service';
 
 @Module({
@@ -40,7 +37,7 @@ import { TestsCharactersQueueService } from './tests.characters.queue.service';
     // TestsBench,
     // TestsCommunity,
     // TestsWorker,
-     TestsCharactersQueueService,
+    TestsCharactersQueueService,
     // TestsCharactersQueueWorker,
   ],
 })

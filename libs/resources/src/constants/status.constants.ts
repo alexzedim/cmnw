@@ -5,7 +5,6 @@
  * for tracking the status of multiple character data endpoints.
  */
 
-
 /**
  * Status state for each endpoint
  */
