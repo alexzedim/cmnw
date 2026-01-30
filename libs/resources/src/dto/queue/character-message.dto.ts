@@ -104,17 +104,31 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
   }
 
   constructor(params: any) {
-    const characterData = params.data || params;
+    const messageParams = params ?? {};
+    const {
+      data,
+      messageId,
+      priority,
+      source,
+      routingKey,
+      persistent,
+      expiration,
+      metadata,
+      ...rest
+    } = messageParams;
+    const characterData = data ?? rest;
+    const resolvedMessageId =
+      messageId ?? (characterData as any)?.guid ?? (characterData as any)?.id;
 
     super({
-      messageId: characterData.guid || params.id,
+      messageId: resolvedMessageId,
       data: characterData,
-      priority: params.priority ?? 5,
-      source: params.source ?? OSINT_SOURCE.CHARACTER_INDEX,
-      routingKey: params.routingKey ?? 'osint.characters.index.normal',
-      persistent: params.persistent ?? true,
-      expiration: params.expiration,
-      metadata: params.metadata,
+      priority: priority ?? 5,
+      source: source ?? OSINT_SOURCE.CHARACTER_INDEX,
+      routingKey: routingKey ?? 'osint.characters.index.normal',
+      persistent: persistent ?? true,
+      expiration,
+      metadata,
     });
   }
 
