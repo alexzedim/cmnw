@@ -68,8 +68,15 @@ export class LadderService implements OnApplicationBootstrap {
     private readonly publisher: RabbitMQPublisherService,
   ) {
     this.rateLimiter = new AdaptiveRateLimiter(
-      M_PLUS_BASE_DELAY_MS,
-      M_PLUS_MAX_DELAY_MS,
+      {
+        initialDelayMs: M_PLUS_BASE_DELAY_MS,
+        backoffMultiplier: 1.5,
+        recoveryDivisor: 1.1,
+        successThresholdForRecovery: 5,
+        enableJitter: true,
+        jitterRangeMs: 50,
+      },
+      this.logger,
     );
   }
 
@@ -273,23 +280,33 @@ export class LadderService implements OnApplicationBootstrap {
     bracket: string,
     logTag: string,
   ): void {
-    const isRateLimitError =
-      error instanceof Error &&
-      (error.message.includes('429') || error.message.includes('403'));
+    // Use proper rate limit detection instead of string matching
+    if (error instanceof Error) {
+      // Try to extract status code from error message or response
+      const statusMatch = error.message.match(/(\d{3})/);
+      const statusCode = statusMatch ? parseInt(statusMatch[1], 10) : 0;
 
-    if (isRateLimitError) {
-      this.rateLimiter.onRateLimit();
-      this.logger.warn({
-        logTag,
-        seasonId,
-        bracket,
-        message: 'Rate limit encountered during PvP leaderboard fetch, backing off',
-        rateLimiterStats: this.rateLimiter.getStats(),
+      // Create a minimal response object for detection
+      const detection = this.rateLimiter.detectRateLimit({
+        status: statusCode,
+        headers: {},
       });
-    } else {
-      const is404Error = error instanceof Error && error.message.includes('404');
 
-      if (is404Error) {
+      if (detection.isRateLimited) {
+        this.rateLimiter.onRateLimit(detection);
+        this.logger.warn({
+          logTag,
+          seasonId,
+          bracket,
+          message:
+            'Rate limit encountered during PvP leaderboard fetch, backing off',
+          rateLimiterStats: this.rateLimiter.getStats(),
+        });
+        return;
+      }
+
+      // Check for 404 errors
+      if (statusCode === 404) {
         this.logger.debug({
           logTag,
           seasonId,
@@ -297,16 +314,18 @@ export class LadderService implements OnApplicationBootstrap {
           message:
             'PvP leaderboard not found for this season-bracket combination (404)',
         });
-      } else {
-        this.logger.error({
-          logTag,
-          seasonId,
-          bracket,
-          message: 'Error fetching PvP leaderboard',
-          error,
-        });
+        return;
       }
     }
+
+    // Log other errors
+    this.logger.error({
+      logTag,
+      seasonId,
+      bracket,
+      message: 'Error fetching PvP leaderboard',
+      error,
+    });
   }
 
   @Cron(CronExpression.EVERY_WEEKEND)
@@ -732,30 +751,41 @@ export class LadderService implements OnApplicationBootstrap {
     period: number,
     logTag: string,
   ): void {
-    const isRateLimitError =
-      error instanceof Error &&
-      (error.message.includes('429') || error.message.includes('403'));
+    // Use proper rate limit detection instead of string matching
+    if (error instanceof Error) {
+      // Try to extract status code from error message or response
+      const statusMatch = error.message.match(/(\d{3})/);
+      const statusCode = statusMatch ? parseInt(statusMatch[1], 10) : 0;
 
-    if (isRateLimitError) {
-      this.rateLimiter.onRateLimit();
-      this.logger.warn({
-        logTag,
-        connectedRealmId,
-        dungeonId,
-        period,
-        message: 'Rate limit encountered, backing off',
-        rateLimiterStats: this.rateLimiter.getStats(),
+      // Create a minimal response object for detection
+      const detection = this.rateLimiter.detectRateLimit({
+        status: statusCode,
+        headers: {},
       });
-    } else {
-      this.logger.debug({
-        logTag,
-        connectedRealmId,
-        dungeonId,
-        period,
-        message: 'Skipping leaderboard due to error',
-        error,
-      });
+
+      if (detection.isRateLimited) {
+        this.rateLimiter.onRateLimit(detection);
+        this.logger.warn({
+          logTag,
+          connectedRealmId,
+          dungeonId,
+          period,
+          message: 'Rate limit encountered, backing off',
+          rateLimiterStats: this.rateLimiter.getStats(),
+        });
+        return;
+      }
     }
+
+    // Log other errors
+    this.logger.debug({
+      logTag,
+      connectedRealmId,
+      dungeonId,
+      period,
+      message: 'Skipping leaderboard due to error',
+      error,
+    });
   }
 
   /**
