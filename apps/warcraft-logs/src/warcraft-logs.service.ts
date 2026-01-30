@@ -1,10 +1,10 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import chalk from 'chalk';
+import { AxiosError } from 'axios';
 import {
   AdaptiveRateLimiter,
   CharacterMessageDto,
   charactersQueue,
-  delay,
   FightsAPIResponse,
   getKey,
   getKeys,
@@ -14,7 +14,6 @@ import {
   isCharacterRaidLogResponse,
   KEY_LOCK,
   RaidCharacter,
-  randomInt,
   toGuid,
   toSlug,
 } from '@app/resources';
@@ -167,9 +166,8 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
 
   async getLogsFromPage(realmId = 1, page = 1) {
     try {
-      // Add delay to avoid rate limiting (1-3 seconds)
-      const delayMs = randomInt(1000, 3000);
-      await delay(delayMs);
+      // Use adaptive rate limiter for intelligent delay management
+      await this.fightsAPIRateLimiter.wait();
 
       const warcraftLogsURI = 'https://www.warcraftlogs.com/zone/reports';
       // --- add if necessary @todo zone=${this.config.raidTier}& --- //
@@ -217,7 +215,10 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         logTag: 'getLogsFromPage',
         errorOrException,
       });
-      return []; // Return empty array instead of undefined
+
+      this.fightsAPIRateLimiter.onRateLimit();
+
+      return [];
     }
   }
 
@@ -452,6 +453,36 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
   }
 
   /**
+   * Handle Axios HTTP errors with detailed error information
+   * @param error - The error to handle
+   * @param logId - Log ID for context
+   */
+  private handleFightsAPIError(error: unknown, logId: string): void {
+    if (error instanceof AxiosError) {
+      const errorInfo = {
+        logTag: 'getCharactersFromFightsAPI',
+        logId,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        url: error.config?.url,
+        method: error.config?.method?.toUpperCase(),
+        responseData: error.response?.data,
+        code: error.code,
+        message: error.message,
+      };
+
+      this.logger.error(errorInfo);
+    } else {
+      // Fallback for non-Axios errors
+      this.logger.error({
+        logTag: 'getCharactersFromFightsAPI',
+        logId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
+  /**
    * Fetches character roster from Warcraft Logs internal API endpoint.
    * This endpoint doesn't require GraphQL API token and provides full character data.
    * @param logId - The 16-character report ID
@@ -551,11 +582,8 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
 
       return Array.from(characters.values());
     } catch (errorOrException) {
-      this.logger.error({
-        logTag: 'getCharactersFromFightsAPI',
-        logId,
-        error: errorOrException.message,
-      });
+      this.fightsAPIRateLimiter.onRateLimit();
+      this.handleFightsAPIError(errorOrException, logId);
       return [];
     }
   }
