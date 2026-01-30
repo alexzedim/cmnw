@@ -13,7 +13,6 @@ import {
   hasAnyGuildErrorInString,
   isAllGuildSuccessInString,
   setGuildStatusString,
-  getGuildStatusChar,
   GuildStatusState,
 } from '@app/resources';
 import { KeysEntity } from '@app/pg';
