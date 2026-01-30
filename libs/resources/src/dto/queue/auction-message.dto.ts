@@ -19,7 +19,7 @@ export interface IAuctionMessageBase {
 /**
  * Auction Message DTO for RabbitMQ
  *
- * Wraps AuctionJobQueue with RabbitMQ-specific metadata and routing.
+ * Wraps AuctionJobQueue with RabbitMQ-specific properties and routing.
  * Used for auction data synchronization from Blizzard API.
  */
 export class AuctionMessageDto extends RabbitMQMessageDto<IAuctionMessageBase> {
@@ -53,10 +53,10 @@ export class AuctionMessageDto extends RabbitMQMessageDto<IAuctionMessageBase> {
       data: auctionData,
       priority: params.priority ?? 5,
       source: params.source ?? 'dma',
+      attempts: params.attempts,
       routingKey: params.routingKey ?? 'dma.auctions.normal',
       persistent: params.persistent ?? true,
       expiration: params.expiration,
-      metadata: params.metadata,
     });
 
     Object.assign(this, auctionData);

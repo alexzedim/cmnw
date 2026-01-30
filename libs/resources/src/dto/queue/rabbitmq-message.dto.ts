@@ -4,8 +4,8 @@ import { v4 as uuidv4 } from 'uuid';
 /**
  * Base RabbitMQ Message DTO
  *
- * Provides validation, transformation, and metadata management for all RabbitMQ messages.
- * Wraps the existing job queue DTOs with RabbitMQ-specific metadata.
+ * Provides validation and transformation for all RabbitMQ messages.
+ * Wraps the existing job queue DTOs with RabbitMQ-specific properties.
  */
 export interface IRabbitMQMessageBase<T> {
   /** Unique message ID (auto-generated if not provided) */
@@ -16,14 +16,14 @@ export interface IRabbitMQMessageBase<T> {
   priority?: number;
   /** Source service/component */
   source?: string;
+  /** Retry attempts (top-level, not headers) */
+  attempts?: number;
   /** Routing key for topic exchanges */
   routingKey?: string;
   /** Message persistence */
   persistent?: boolean;
   /** Message expiration in milliseconds */
   expiration?: number;
-  /** Optional message metadata that will be forwarded to headers */
-  metadata?: Record<string, any>;
 }
 
 export class RabbitMQMessageDto<T> {
@@ -38,39 +38,21 @@ export class RabbitMQMessageDto<T> {
   readonly routingKey?: string;
   readonly persistent: boolean;
   readonly expiration?: number;
-  readonly metadata: {
-    createdBy?: string;
-    updatedBy?: string;
-    forceUpdate?: number;
-    createOnlyUnique?: boolean;
-    [key: string]: any;
-  };
 
   /**
    * Constructor - creates a validated RabbitMQ message wrapper
    * @param params - Message parameters
    */
-  constructor(params: IRabbitMQMessageBase<T> & { metadata?: Record<string, any> }) {
+  constructor(params: IRabbitMQMessageBase<T>) {
     this.messageId = params.messageId || uuidv4();
     this.data = params.data;
     this.timestamp = Date.now();
-    this.attempts = 0;
+    this.attempts = params.attempts ?? 0;
     this.source = params.source || 'unknown';
     this.priority = params.priority ?? 5;
     this.routingKey = params.routingKey;
     this.persistent = params.persistent ?? true;
     this.expiration = params.expiration;
-    this.metadata = params.metadata || {};
-
-    // Extract metadata from data if it's a DTO with these fields
-    if (this.data && typeof this.data === 'object') {
-      const dto = this.data as any;
-      if (dto.createdBy) this.metadata.createdBy = dto.createdBy;
-      if (dto.updatedBy) this.metadata.updatedBy = dto.updatedBy;
-      if (dto.forceUpdate !== undefined) this.metadata.forceUpdate = dto.forceUpdate;
-      if (dto.createOnlyUnique !== undefined)
-        this.metadata.createOnlyUnique = dto.createOnlyUnique;
-    }
   }
 
   /**
@@ -156,7 +138,6 @@ export class RabbitMQMessageDto<T> {
     priority: number;
     persistent: boolean;
     expiration?: string;
-    headers: Record<string, any>;
   } {
     return {
       messageId: this.messageId,
@@ -164,11 +145,6 @@ export class RabbitMQMessageDto<T> {
       priority: this.priority,
       persistent: this.persistent,
       expiration: this.expiration ? this.expiration.toString() : undefined,
-      headers: {
-        source: this.source,
-        attempts: this.attempts,
-        ...this.metadata,
-      },
     };
   }
 
@@ -182,13 +158,10 @@ export class RabbitMQMessageDto<T> {
       data: this.data,
       priority: this.priority,
       source: this.source,
+      attempts: this.attempts + 1,
       routingKey: this.routingKey,
       persistent: this.persistent,
       expiration: this.expiration,
-      metadata: {
-        ...this.metadata,
-        attempts: this.attempts + 1,
-      },
     });
   }
 
@@ -200,21 +173,18 @@ export class RabbitMQMessageDto<T> {
   static fromAMQPMessage<T>(amqpMsg: any): RabbitMQMessageDto<T> {
     const content = JSON.parse(amqpMsg.content.toString());
     const properties = amqpMsg.properties;
-    const headers = properties.headers || {};
+    const data = content.data || content;
 
     return new RabbitMQMessageDto({
       messageId: properties.messageId || content.id,
-      data: content.data || content,
+      data,
       priority: properties.priority,
-      source: headers.source || 'unknown',
+      source: content.source || data?.source || 'unknown',
+      attempts: content.attempts ?? data?.attempts ?? 0,
       persistent: properties.deliveryMode === 2,
       expiration: properties.expiration
         ? parseInt(properties.expiration)
         : undefined,
-      metadata: {
-        ...headers,
-        attempts: headers.attempts || 0,
-      },
     });
   }
 }

@@ -26,7 +26,6 @@ import {
   GuildIdDto,
   GuildMessageDto,
   guildsQueue,
-  OSINT_SOURCE,
   toGuid,
   findRealm,
 } from '@app/resources';
@@ -81,9 +80,6 @@ export class GuildOsintService {
         timeout: 5000,
         publishOptions: {
           priority: 10,
-        },
-        headers: {
-          source: OSINT_SOURCE.GUILD_REQUEST,
         },
       });
     } catch (errorOrException) {

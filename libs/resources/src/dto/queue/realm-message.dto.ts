@@ -6,7 +6,7 @@ import { TIME_MS } from '@app/resources/constants';
 /**
  * Realm Message DTO for RabbitMQ
  *
- * Wraps RealmJobQueue with RabbitMQ-specific metadata and routing.
+ * Wraps RealmJobQueue with RabbitMQ-specific properties and routing.
  * Used for realm data synchronization from Blizzard API.
  */
 export class RealmMessageDto extends RabbitMQMessageDto<RealmJobQueue> {
@@ -20,10 +20,10 @@ export class RealmMessageDto extends RabbitMQMessageDto<RealmJobQueue> {
       data: realmData,
       priority: params.priority ?? 5,
       source: params.source ?? 'core',
+      attempts: params.attempts,
       routingKey: params.routingKey ?? 'core.realms.normal',
       persistent: params.persistent ?? true,
       expiration: params.expiration,
-      metadata: params.metadata,
     });
 
     this.payload = realmData;
@@ -52,11 +52,7 @@ export class RealmMessageDto extends RabbitMQMessageDto<RealmJobQueue> {
           expiration?: number;
         },
   ): RabbitMQMessageDto<RealmJobQueue> | RealmMessageDto {
-    if (
-      'id' in (params as any) ||
-      'persistent' in (params as any) ||
-      'metadata' in (params as any)
-    ) {
+    if ('id' in (params as any) || 'persistent' in (params as any)) {
       return RabbitMQMessageDto.create(
         params as IRabbitMQMessageBase<RealmJobQueue>,
       );

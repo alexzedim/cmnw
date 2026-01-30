@@ -5,7 +5,7 @@ import { TIME_MS } from '@app/resources/constants';
 /**
  * Item Message DTO for RabbitMQ
  *
- * Wraps ItemJobQueue with RabbitMQ-specific metadata and routing.
+ * Wraps ItemJobQueue with RabbitMQ-specific properties and routing.
  * Used for item data synchronization from Blizzard API.
  */
 export class ItemMessageDto extends RabbitMQMessageDto<ItemJobQueue> {
@@ -19,10 +19,10 @@ export class ItemMessageDto extends RabbitMQMessageDto<ItemJobQueue> {
       data: itemData,
       priority: params.priority ?? 5,
       source: params.source ?? 'dma',
+      attempts: params.attempts,
       routingKey: params.routingKey ?? 'dma.items.normal',
       persistent: params.persistent ?? true,
       expiration: params.expiration,
-      metadata: params.metadata,
     });
 
     this.payload = itemData;
@@ -50,11 +50,7 @@ export class ItemMessageDto extends RabbitMQMessageDto<ItemJobQueue> {
           expiration?: number;
         },
   ): RabbitMQMessageDto<ItemJobQueue> | ItemMessageDto {
-    if (
-      'id' in (params as any) ||
-      'persistent' in (params as any) ||
-      'metadata' in (params as any)
-    ) {
+    if ('id' in (params as any) || 'persistent' in (params as any)) {
       return RabbitMQMessageDto.create(params as IRabbitMQMessageBase<ItemJobQueue>);
     }
 

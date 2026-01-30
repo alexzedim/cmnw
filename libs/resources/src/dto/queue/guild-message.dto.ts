@@ -8,7 +8,7 @@ import { RegionIdOrName } from '@alexzedim/blizzapi';
  * Guild Message DTO for RabbitMQ
  *
  * Comprehensive data transfer object for guild messages with RabbitMQ routing.
- * Combines GuildJobQueueDto logic with RabbitMQ-specific metadata.
+ * Combines GuildJobQueueDto logic with RabbitMQ-specific properties.
  * Includes static factory methods for each source with automatic guid generation,
  * validation, and transformation logic.
  *
@@ -76,7 +76,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<IGuildMessageBase> {
   }
 
   /**
-   * Constructor - creates a validated Guild Message with RabbitMQ metadata
+   * Constructor - creates a validated Guild Message with RabbitMQ properties
    * @param params - Guild message parameters
    */
   constructor(params: any) {
@@ -86,26 +86,26 @@ export class GuildMessageDto extends RabbitMQMessageDto<IGuildMessageBase> {
       messageId,
       priority,
       source,
+      attempts,
       routingKey,
       persistent,
       expiration,
-      metadata,
       ...rest
     } = messageParams;
-    const guildData = data ?? rest;
+    const guildData = data ? { ...rest, ...data } : rest;
     const resolvedMessageId =
       messageId ?? (guildData as any)?.guid ?? (guildData as any)?.id;
 
-    // Call parent constructor with RabbitMQ metadata
+    // Call parent constructor with RabbitMQ properties
     super({
       messageId: resolvedMessageId,
       data: guildData,
       priority: priority ?? 5,
       source: source ?? OSINT_SOURCE.GUILD_INDEX,
+      attempts,
       routingKey: routingKey ?? 'osint.guilds.index.normal',
       persistent: persistent ?? true,
       expiration,
-      metadata,
     });
   }
 
@@ -169,7 +169,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<IGuildMessageBase> {
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
-      // RabbitMQ metadata
+      // RabbitMQ properties
       messageId: guid,
       priority: 7,
       source: OSINT_SOURCE.GUILD_CHARACTERS_UNIQUE,
@@ -207,7 +207,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<IGuildMessageBase> {
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
       iteration: params.iteration,
-      // RabbitMQ metadata
+      // RabbitMQ properties
       messageId: params.guid,
       priority: 5,
       source: OSINT_SOURCE.GUILD_INDEX,
@@ -264,7 +264,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<IGuildMessageBase> {
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
-      // RabbitMQ metadata
+      // RabbitMQ properties
       messageId: guid,
       priority: 9, // Highest priority for Hall of Fame guilds
       source: OSINT_SOURCE.TOP100,
@@ -302,7 +302,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<IGuildMessageBase> {
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
-      // RabbitMQ metadata
+      // RabbitMQ properties
       messageId: guid,
       priority: 6,
       source: OSINT_SOURCE.WOW_PROGRESS,
@@ -338,7 +338,7 @@ export class GuildMessageDto extends RabbitMQMessageDto<IGuildMessageBase> {
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
-      // RabbitMQ metadata
+      // RabbitMQ properties
       messageId: guid,
       priority: 8, // High priority for user requests
       source: OSINT_SOURCE.GUILD_REQUEST,

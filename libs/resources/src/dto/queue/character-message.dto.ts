@@ -81,7 +81,7 @@ export interface ICharacterMessageBase {
  * Simplified wrapper around RabbitMQMessageDto that contains only:
  * - messageId: Unique message identifier
  * - data: Character data payload (ICharacterMessageBase)
- * - metadata: RabbitMQ message metadata
+ * - attempts: Top-level retry attempts
  *
  * All character-specific properties are stored in the data field.
  */
@@ -110,13 +110,13 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       messageId,
       priority,
       source,
+      attempts,
       routingKey,
       persistent,
       expiration,
-      metadata,
       ...rest
     } = messageParams;
-    const characterData = data ?? rest;
+    const characterData = data ? { ...rest, ...data } : rest;
     const resolvedMessageId =
       messageId ?? (characterData as any)?.guid ?? (characterData as any)?.id;
 
@@ -125,10 +125,10 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       data: characterData,
       priority: priority ?? 5,
       source: source ?? OSINT_SOURCE.CHARACTER_INDEX,
+      attempts,
       routingKey: routingKey ?? 'osint.characters.index.normal',
       persistent: persistent ?? true,
       expiration,
-      metadata,
     });
   }
 
@@ -193,7 +193,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
-      // RabbitMQ metadata
+      // RabbitMQ properties
       messageId: guid,
       priority: 7,
       source: OSINT_SOURCE.MYTHIC_PLUS,
@@ -232,7 +232,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
-      // RabbitMQ metadata
+      // RabbitMQ properties
       messageId: guid,
       priority: 7,
       source: OSINT_SOURCE.PVP_LADDER,
@@ -267,7 +267,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
-      // RabbitMQ metadata
+      // RabbitMQ properties
       messageId: guid,
       priority: 8,
       source: OSINT_SOURCE.WARCRAFT_LOGS,
@@ -306,7 +306,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
-      // RabbitMQ metadata
+      // RabbitMQ properties
       messageId: guid,
       priority: 6,
       source: OSINT_SOURCE.WOW_PROGRESS_LFG,
@@ -362,7 +362,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
-      // RabbitMQ metadata
+      // RabbitMQ properties
       messageId: guid,
       priority: 9,
       source: OSINT_SOURCE.GUILD_ROSTER,
@@ -400,7 +400,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
       iteration: params.iteration,
-      // RabbitMQ metadata
+      // RabbitMQ properties
       messageId: params.guid,
       priority: 5,
       source: OSINT_SOURCE.CHARACTER_INDEX,
@@ -457,7 +457,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
-      // RabbitMQ metadata
+      // RabbitMQ properties
       messageId: guid,
       priority: 3,
       source: OSINT_SOURCE.GUILD_ROSTER,
@@ -491,7 +491,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
-      // RabbitMQ metadata
+      // RabbitMQ properties
       messageId: params.guid,
       priority: 2,
       source: OSINT_SOURCE.OSINT_MIGRATION,
@@ -526,7 +526,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       createOnlyUnique: false,
       forceUpdate: TIME_MS.ONE_HOUR,
       region: 'eu',
-      // RabbitMQ metadata
+      // RabbitMQ properties
       messageId: guid,
       priority: 10,
       source: OSINT_SOURCE.CHARACTER_REQUEST,

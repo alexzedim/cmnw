@@ -200,14 +200,13 @@ export class CharactersWorker {
   ): Promise<void> {
     const responseMessage = RabbitMQMessageDto.create({
       messageId: characterEntity.guid,
-      data: characterEntity,
+      data: {
+        ...characterEntity,
+        requestId: message.messageId,
+      },
       priority: 10,
       source: OSINT_SOURCE.CHARACTER_GET,
       routingKey: 'osint.characters.response.high',
-      metadata: {
-        guid: characterEntity.guid,
-        requestId: message.messageId,
-      },
     });
 
     await this.rabbitMQPublisherService.publishMessage(
