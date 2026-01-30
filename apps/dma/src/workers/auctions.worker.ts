@@ -44,10 +44,23 @@ export class AuctionsWorker {
     errors: 0,
     notModified: 0,
     noData: 0,
+    forbidden: 0,
     startTime: Date.now(),
   };
 
   private BNet: BlizzAPI;
+
+  private readonly HTTP_STATUS_CODES = {
+    NOT_MODIFIED: 304,
+    FORBIDDEN: 403,
+    RATE_LIMITED: 429,
+  } as const;
+
+  private readonly ERROR_STATS_MAP = {
+    304: 'notModified',
+    403: 'forbidden',
+    429: 'rateLimit',
+  } as const;
 
   constructor(
     @InjectRedis()
@@ -264,43 +277,40 @@ export class AuctionsWorker {
       const realmId = args?.connectedRealmId || 'unknown';
 
       if (isAxiosError(errorOrException)) {
-        const statusCode = errorOrException.response?.status;
+        // Handle HTTP errors
+        const isHandled = this.handleHttpError(errorOrException, realmId, duration);
 
-        if (statusCode === 304) {
-          // 304 Not Modified - data hasn't changed, not an error
-          this.stats.notModified++;
-          this.logger.warn(
-            `${chalk.blue('ℹ')} ${chalk.blue('304')} [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms) Not modified`)}`,
-          );
+        // Non-fatal HTTP errors (304, 429, 403) are handled and don't re-throw
+        if (isHandled) {
           return;
         }
 
-        if (statusCode === 429) {
-          this.stats.rateLimit++;
-          this.logger.warn(
-            `${chalk.yellow('⚠')} ${chalk.yellow('429')} Rate limited [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)}`,
-          );
-          return;
-        }
-
-        if (statusCode === 403) {
-          this.logger.warn(
-            `${chalk.blue('ℹ')} ${statusCode} [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.response?.statusText}`,
-          );
-          return;
-        }
-      } else {
+        // Fatal HTTP errors (5xx, 4xx except handled ones) are re-thrown
         this.stats.errors++;
-        this.logger.error(
-          `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`,
+        this.logProcessingError(
+          realmId,
+          duration,
+          `HTTP ${errorOrException.response?.status}: ${errorOrException.message}`,
+        );
+      } else {
+        // Handle non-HTTP errors
+        this.stats.errors++;
+        this.logProcessingError(
+          realmId,
+          duration,
+          errorOrException instanceof Error
+            ? errorOrException.message
+            : String(errorOrException),
         );
       }
 
+      // Record failure metrics and emit event
       this.rabbitMQMonitorService.recordMessageProcessingDuration(
         'dma.auctions',
         duration / 1000,
         'failure',
       );
+
       await this.rabbitMQMonitorService.emitMessageFailed(
         'dma.auctions',
         message,
@@ -412,6 +422,90 @@ export class AuctionsWorker {
         `${chalk.dim('  Avg Rate:')} ${chalk.bold(avgRate)} realms/sec\n` +
         `${chalk.cyan.bold('═'.repeat(60))}`,
     );
+  }
+
+  /**
+   * Logs HTTP error responses with consistent formatting
+   */
+  private logHttpError(
+    statusCode: number,
+    realmId: string | number,
+    duration: number,
+    statusText?: string,
+  ): void {
+    const logConfig = this.getHttpErrorLogConfig(statusCode);
+
+    const message = statusText
+      ? `${logConfig.icon} ${chalk[logConfig.color](statusCode)} [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)} - ${statusText}`
+      : `${logConfig.icon} ${chalk[logConfig.color](statusCode)} [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)}`;
+
+    this.logger.warn(message);
+  }
+
+  /**
+   * Logs non-HTTP errors with consistent formatting
+   */
+  private logProcessingError(
+    realmId: string | number,
+    duration: number,
+    errorMessage: string,
+  ): void {
+    this.logger.error(
+      `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)} - ${errorMessage}`,
+    );
+  }
+
+  /**
+   * Returns configuration for HTTP error logging
+   */
+  private getHttpErrorLogConfig(statusCode: number): {
+    icon: string;
+    color: 'blue' | 'yellow' | 'red';
+    label: string;
+  } {
+    switch (statusCode) {
+      case this.HTTP_STATUS_CODES.NOT_MODIFIED:
+        return { icon: chalk.blue('ℹ'), color: 'blue', label: 'Not modified' };
+      case this.HTTP_STATUS_CODES.RATE_LIMITED:
+        return { icon: chalk.yellow('⚠'), color: 'yellow', label: 'Rate limited' };
+      case this.HTTP_STATUS_CODES.FORBIDDEN:
+        return { icon: chalk.blue('ℹ'), color: 'blue', label: 'Forbidden' };
+      default:
+        return { icon: chalk.red('✗'), color: 'red', label: 'Error' };
+    }
+  }
+
+  /**
+   * Handles Axios HTTP errors with proper stats tracking and logging
+   * @returns true if error was handled (non-fatal), false if should be re-thrown
+   */
+  private handleHttpError(
+    error: AxiosError,
+    realmId: string | number,
+    duration: number,
+  ): boolean {
+    const statusCode = error.response?.status;
+
+    if (!statusCode) {
+      return false; // Not a valid HTTP error, should be re-thrown
+    }
+
+    // Update stats based on status code
+    const statKey =
+      this.ERROR_STATS_MAP[statusCode as keyof typeof this.ERROR_STATS_MAP];
+    if (statKey) {
+      this.stats[statKey]++;
+    }
+
+    // Log the error
+    this.logHttpError(statusCode, realmId, duration, error.response?.statusText);
+
+    // Return true for non-fatal errors (304, 429, 403)
+    return [
+      this.HTTP_STATUS_CODES.NOT_MODIFIED,
+      this.HTTP_STATUS_CODES.RATE_LIMITED,
+      this.HTTP_STATUS_CODES.FORBIDDEN,
+    ].includes(statusCode as 304 | 403 | 429);
   }
 
   private computeAuctionsPayloadHash(
