@@ -398,11 +398,7 @@ export class CharacterService {
         CharacterStatusState.ERROR,
       );
 
-      const statusCode = get(
-        errorOrException,
-        'status',
-        400,
-      );
+      const statusCode = get(errorOrException, 'status', 400);
 
       if (statusCode === 429) {
         this.logger.debug(

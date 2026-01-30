@@ -202,11 +202,11 @@ export class CharactersWorker {
       messageId: characterEntity.guid,
       data: characterEntity,
       priority: 10,
-      source: OSINT_SOURCE.CHARACTER_REQUEST,
+      source: OSINT_SOURCE.CHARACTER_GET,
       routingKey: 'osint.characters.response.high',
       metadata: {
         guid: characterEntity.guid,
-        requestId: message.guid,
+        requestId: message.messageId,
       },
     });
 
