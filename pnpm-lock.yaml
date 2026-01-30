@@ -129,9 +129,6 @@ importers:
       ioredis:
         specifier: 5.8.2
         version: 5.8.2
-      kebab-case:
-        specifier: 2.0.2
-        version: 2.0.2
       lodash:
         specifier: 4.17.21
         version: 4.17.21
@@ -3304,9 +3301,6 @@ packages:
   kareem@3.0.0:
     resolution: {integrity: sha512-RKhaOBSPN8L7y4yAgNhDT2602G5FD6QbOIISbjN9D6mjHPeqeg7K+EB5IGSU5o81/X2Gzm3ICnAvQW3x3OP8HA==}
     engines: {node: '>=18.0.0'}
-
-  kebab-case@2.0.2:
-    resolution: {integrity: sha512-NhIP7vecGtqJfNZ85ct0yRQfx//gCJHapJCBZP6/BBcBw/U218Jw7YX7rO6TI5/cCp5dJvlIjN3vbcRTqq7nWA==}
 
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
@@ -8567,8 +8561,6 @@ snapshots:
       graceful-fs: 4.2.11
 
   kareem@3.0.0: {}
-
-  kebab-case@2.0.2: {}
 
   keyv@4.5.4:
     dependencies:

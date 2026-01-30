@@ -1,8 +1,34 @@
 import { BlizzardApiNamedField, ConvertPrice, FACTION } from '@app/resources/index';
 import { TransformFnParams } from 'class-transformer';
 import { DateTime } from 'luxon';
-import kebabCase from 'kebab-case';
 
+const KEBAB_REGEX = /\p{Lu}/gu;
+
+/**
+ * Transforms a string into kebab-case.
+ *
+ * @example
+ * kebabCase("helloWorld"); // "hello-world"
+ * kebabCase("HelloWorld"); // "-hello-world"
+ * kebabCase("HelloWorld", false); // "hello-world"
+ *
+ * @param str - The string to transform
+ * @param keepLeadingDash - Whether to keep the leading dash in case the string starts with an uppercase letter (default: true)
+ * @returns The kebab-cased string
+ */
+export const kebabCase = (str: string, keepLeadingDash = false): string => {
+  const result = str.replace(KEBAB_REGEX, (match) => `-${match.toLowerCase()}`);
+
+  if (keepLeadingDash) {
+    return result;
+  }
+
+  if (result.startsWith('-')) {
+    return result.slice(1);
+  }
+
+  return result;
+};
 
 /**
  * Generates a GUID from a character name and realm.
