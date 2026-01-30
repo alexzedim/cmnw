@@ -153,14 +153,20 @@ export class GuildsWorker {
           guildSnapshot.realm,
         );
         if (guildById) {
-          logStatus = await this.guildLogService.detectAndLogChanges(guildById, guildEntity);
+          logStatus = await this.guildLogService.detectAndLogChanges(
+            guildById,
+            guildEntity,
+          );
           masterStatus = await this.guildMasterService.detectAndLogGuildMasterChange(
             guildById,
             roster,
           );
         }
       } else {
-        logStatus = await this.guildLogService.detectAndLogChanges(guildSnapshot, guildEntity);
+        logStatus = await this.guildLogService.detectAndLogChanges(
+          guildSnapshot,
+          guildEntity,
+        );
         masterStatus = await this.guildMasterService.detectAndLogGuildMasterChange(
           guildSnapshot,
           roster,
@@ -174,7 +180,10 @@ export class GuildsWorker {
         master: masterStatus,
       };
 
-      guildEntity.status = this.aggregateGuildStatus(guildEntity.status, operationStatuses);
+      guildEntity.status = this.aggregateGuildStatus(
+        guildEntity.status,
+        operationStatuses,
+      );
 
       const hasErrors = hasAnyGuildErrorInString(guildEntity.status);
       const isSuccess = isAllGuildSuccessInString(guildEntity.status);
@@ -249,15 +258,29 @@ export class GuildsWorker {
       statusString: string | undefined;
       errorIndicator: string;
     }> = [
-      { name: 'ROSTER', statusString: operationStatuses.roster, errorIndicator: 'r' },
-      { name: 'MEMBERS', statusString: operationStatuses.roster, errorIndicator: 'm' },
+      {
+        name: 'ROSTER',
+        statusString: operationStatuses.roster,
+        errorIndicator: 'r',
+      },
+      {
+        name: 'MEMBERS',
+        statusString: operationStatuses.roster,
+        errorIndicator: 'm',
+      },
       { name: 'LOGS', statusString: operationStatuses.logs, errorIndicator: 'l' },
-      { name: 'MASTER', statusString: operationStatuses.master, errorIndicator: 'g' },
+      {
+        name: 'MASTER',
+        statusString: operationStatuses.master,
+        errorIndicator: 'g',
+      },
     ];
 
     for (const operation of operations) {
       // Check if the error indicator exists in the status string (lowercase = error)
-      const hasError = operation.statusString?.includes(operation.errorIndicator.toLowerCase()) ?? false;
+      const hasError =
+        operation.statusString?.includes(operation.errorIndicator.toLowerCase()) ??
+        false;
 
       aggregated = setGuildStatusString(
         aggregated,
