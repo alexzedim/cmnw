@@ -93,7 +93,7 @@ export class AuctionMessageDto extends RabbitMQMessageDto<IAuctionMessageBase> {
       source: params.source ?? 'dma',
       routingKey: params.routingKey ?? 'dma.auctions.normal',
       persistent: true,
-      expiration: params.expiration ?? TIME_MS.TWELVE_HOURS,
+      expiration: params.expiration ?? TIME_MS.ONE_HOUR,
     });
   }
 }

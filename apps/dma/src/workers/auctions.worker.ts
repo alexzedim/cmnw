@@ -13,6 +13,7 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
+  AuctionMessageDto,
   BlizzardApiAuctions,
   DMA_TIMEOUT_TOLERANCE,
   IAuctionsOrder,
@@ -87,7 +88,7 @@ export class AuctionsWorker {
       },
     },
   })
-  public async handleAuctionMessage(message: any): Promise<void> {
+  public async handleAuctionMessage(message: AuctionMessageDto): Promise<void> {
     const startTime = Date.now();
     this.stats.total++;
 
