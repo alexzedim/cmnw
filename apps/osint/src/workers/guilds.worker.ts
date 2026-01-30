@@ -210,9 +210,10 @@ export class GuildsWorker {
         message.data?.name && message.data?.realm
           ? `${message.data.name}@${message.data.realm}`
           : 'unknown';
+      const updatedBy = message.data?.updatedBy || 'unknown';
 
       this.logger.error(
-        `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`,
+        `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)} [${chalk.bold(updatedBy)}] - ${errorOrException.message}`,
       );
 
       this.rabbitMQMonitorService.recordMessageProcessingDuration(
