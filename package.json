@@ -79,7 +79,6 @@
     "http-proxy-agent": "7.0.2",
     "https-proxy-agent": "7.0.6",
     "ioredis": "5.8.2",
-    "kebab-case": "2.0.2",
     "lodash": "4.17.21",
     "luxon": "3.7.2",
     "mongoose": "9.0.1",
