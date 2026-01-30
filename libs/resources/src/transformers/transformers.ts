@@ -39,7 +39,7 @@ export const kebabCase = (str: string, keepLeadingDash = false): string => {
  * @example toGuid('PlayerName', 'RealmName') // returns 'player-name@realm-name'
  */
 export const toGuid = (name: string, realm: string): string =>
-  kebabCase(`${name}@${realm}`);
+  `${kebabCase(name)}@${kebabCase(realm)}`;
 
 /**
  * Capitalizes the first letter of a string.
