@@ -29,11 +29,9 @@ import {
   CharacterResponseDto,
   CharacterLfgDto,
   charactersQueue,
-  charactersRequestsQueue,
   getKeys,
   GLOBAL_OSINT_KEY,
   LFG_STATUS,
-  OSINT_SOURCE,
   toGuid,
   findRealm,
 } from '@app/resources';
@@ -88,10 +86,6 @@ export class CharacterOsintService {
         timeout: 5000,
         publishOptions: {
           priority: 10,
-        },
-        headers: {
-          source: OSINT_SOURCE.CHARACTER_REQUEST,
-          requestQueue: charactersRequestsQueue.name,
         },
       });
     } catch (errorOrException) {
