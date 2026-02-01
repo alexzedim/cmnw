@@ -143,7 +143,7 @@ export class RabbitMQMonitorService {
         this.logger.warn('Failed to monitor DLQ:', error);
       }
 
-      this.logger.debug('Queue depths monitored successfully');
+      // this.logger.debug('Queue depths monitored successfully');
     } catch (error) {
       this.logger.error('Error monitoring queue depths:', error);
     }
@@ -184,7 +184,7 @@ export class RabbitMQMonitorService {
         }
       }
 
-      this.logger.debug('Consumer counts monitored successfully');
+      // this.logger.debug('Consumer counts monitored successfully');
     } catch (error) {
       this.logger.error('Error monitoring consumer counts:', error);
     }
@@ -209,7 +209,7 @@ export class RabbitMQMonitorService {
       await channel.assertQueue('health-check');
 
       this.connectionHealthGauge.set(1);
-      this.logger.debug('RabbitMQ connection is healthy');
+      // this.logger.debug('RabbitMQ connection is healthy');
     } catch (error) {
       if (this.connectionHealthGauge) {
         this.connectionHealthGauge.set(0);
