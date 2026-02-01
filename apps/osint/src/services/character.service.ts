@@ -113,11 +113,11 @@ export class CharacterService {
           `${chalk.blue('404')} Not found: ${nameSlug}@${realmSlug}`,
         );
       } else if (statusCode === 429) {
-        this.logger.debug(
+        this.logger.warn(
           `${chalk.yellow('429')} Rate limited: ${nameSlug}@${realmSlug}`,
         );
       } else {
-        this.logger.error(
+        this.logger.warn(
           `${chalk.red('getStatus')} ${nameSlug}@${realmSlug} | ${characterStatus.status} - ${errorOrException.message}`,
         );
       }
