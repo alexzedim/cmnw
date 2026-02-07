@@ -1,12 +1,19 @@
 import { Module } from '@nestjs/common';
+import { BullModule } from '@nestjs/bullmq';
 import { CharactersService } from './characters.service';
 import { RabbitMQModule } from '@app/rabbitmq';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CharactersEntity, KeysEntity } from '@app/pg';
-import { postgresConfig, redisConfig, s3Config } from '@app/configuration';
+import {
+  postgresConfig,
+  redisConfig,
+  s3Config,
+  getRedisConnection,
+} from '@app/configuration';
 import { S3Module } from '@app/s3';
 import { RedisModule } from '@nestjs-modules/ioredis';
+import { charactersQueue } from '@app/resources/queues';
 
 @Module({
   imports: [
@@ -22,6 +29,12 @@ import { RedisModule } from '@nestjs-modules/ioredis';
     }),
     TypeOrmModule.forRoot(postgresConfig),
     TypeOrmModule.forFeature([KeysEntity, CharactersEntity]),
+    BullModule.forRoot({ connection: getRedisConnection() }),
+    BullModule.registerQueue({
+      name: charactersQueue.name,
+      connection: charactersQueue.connection,
+      defaultJobOptions: charactersQueue.defaultJobOptions,
+    }),
     RabbitMQModule,
   ],
   controllers: [],
