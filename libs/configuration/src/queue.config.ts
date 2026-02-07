@@ -1,93 +1,119 @@
 /**
- * RabbitMQ Queue Configuration
+ * BullMQ Queue Configuration
  *
- * Defines all queues, their bindings, and configuration for the CMNW system.
- * Supports priority queues, TTL, and dead letter exchange routing.
+ * Defines all queues, their connections, and configuration for the CMNW system.
+ * Supports priority queues, retry strategies, and dead letter queue routing.
  */
-import { IQueueConfig } from '@app/configuration/interfaces/queue.interface';
-import { TIME_MS } from '@app/resources/constants';
+import {
+  IBullMQConnection,
+  IBullMQJobOptions,
+  IBullMQQueueOptions,
+  IQueueConfig,
+} from '@app/resources/types/queue/queue.type';
 
-export const RABBITMQ_QUEUES: Record<string, IQueueConfig> = {
+/**
+ * Redis connection configuration for BullMQ
+ * All values are sourced from environment variables with sensible defaults
+ */
+export const REDIS_CONNECTION: IBullMQConnection = {
+  host: process.env.REDIS_HOST || 'localhost',
+  port: parseInt(process.env.REDIS_PORT || '6379', 10),
+  password: process.env.REDIS_PASSWORD || undefined,
+  db: parseInt(process.env.REDIS_DB || '1', 10),
+  connectTimeout: 5000,
+  maxRetriesPerRequest: 3,
+  lazyConnect: false,
+  keepAlive: 30000,
+};
+
+/**
+ * Default job options for all queues
+ * Provides consistent retry behavior and cleanup policies
+ */
+const DEFAULT_JOB_OPTIONS: IBullMQJobOptions = {
+  attempts: 3,
+  backoff: {
+    type: 'exponential',
+    delay: 2000,
+  },
+  removeOnComplete: 1000,
+  removeOnFail: 500,
+};
+
+/**
+ * BullMQ Queue Configurations
+ *
+ * Maps all application queues to their BullMQ configurations.
+ * Each queue includes connection settings and default job options.
+ */
+export const BULLMQ_QUEUES: Record<string, IQueueConfig> = {
   // OSINT Queues
   CHARACTERS: {
     name: 'osint.characters',
-    exchange: 'osint.exchange',
-    routingKeys: [
-      'osint.characters.ladder.*',
-      'osint.characters.raid.*',
-      'osint.characters.lfg.*',
-      'osint.characters.guild.*',
-      'osint.characters.index.*',
-      'osint.characters.migration.*',
-    ],
+    domain: 'osint',
+    jobType: 'CharacterJobQueue',
     options: {
-      durable: true,
-      arguments: {
-        'x-max-priority': 10,
-        'x-dead-letter-exchange': 'dlx.exchange',
-        'x-dead-letter-routing-key': 'dlx.characters',
+      name: 'osint.characters',
+      connection: REDIS_CONNECTION,
+      defaultJobOptions: {
+        ...DEFAULT_JOB_OPTIONS,
+        priority: 5,
       },
     },
   },
 
   CHARACTERS_REQUESTS: {
     name: 'osint.characters.requests',
-    exchange: 'osint.exchange',
-    routingKeys: ['osint.characters.request.*'],
+    domain: 'osint',
+    jobType: 'CharacterJobQueue',
     options: {
-      durable: true,
-      arguments: {
-        'x-max-priority': 10,
-        'x-dead-letter-exchange': 'dlx.exchange',
-        'x-dead-letter-routing-key': 'dlx.characters.requests',
+      name: 'osint.characters.requests',
+      connection: REDIS_CONNECTION,
+      defaultJobOptions: {
+        ...DEFAULT_JOB_OPTIONS,
+        priority: 7,
       },
     },
   },
 
   CHARACTERS_RESPONSES: {
     name: 'osint.characters.responses',
-    exchange: 'osint.exchange',
-    routingKeys: ['osint.characters.response.*'],
+    domain: 'osint',
+    jobType: 'CharacterJobQueue',
     options: {
-      durable: true,
-      arguments: {
-        'x-max-priority': 10,
-        'x-dead-letter-exchange': 'dlx.exchange',
-        'x-dead-letter-routing-key': 'dlx.characters.responses',
+      name: 'osint.characters.responses',
+      connection: REDIS_CONNECTION,
+      defaultJobOptions: {
+        ...DEFAULT_JOB_OPTIONS,
+        priority: 7,
       },
     },
   },
 
   GUILDS: {
     name: 'osint.guilds',
-    exchange: 'osint.exchange',
-    routingKeys: [
-      'osint.guilds.roster.*',
-      'osint.guilds.index.*',
-      'osint.guilds.hof.*',
-      'osint.guilds.wowprogress.*',
-      'osint.guilds.request.*',
-    ],
+    domain: 'osint',
+    jobType: 'GuildJobQueue',
     options: {
-      durable: true,
-      arguments: {
-        'x-max-priority': 10,
-        'x-dead-letter-exchange': 'dlx.exchange',
-        'x-dead-letter-routing-key': 'dlx.guilds',
+      name: 'osint.guilds',
+      connection: REDIS_CONNECTION,
+      defaultJobOptions: {
+        ...DEFAULT_JOB_OPTIONS,
+        priority: 5,
       },
     },
   },
 
   PROFILES: {
     name: 'osint.profiles',
-    exchange: 'osint.exchange',
-    routingKeys: ['osint.profiles.*'],
+    domain: 'osint',
+    jobType: 'ProfileJobQueue',
     options: {
-      durable: true,
-      arguments: {
-        'x-max-priority': 10,
-        'x-dead-letter-exchange': 'dlx.exchange',
-        'x-dead-letter-routing-key': 'dlx.profiles',
+      name: 'osint.profiles',
+      connection: REDIS_CONNECTION,
+      defaultJobOptions: {
+        ...DEFAULT_JOB_OPTIONS,
+        priority: 5,
       },
     },
   },
@@ -95,42 +121,42 @@ export const RABBITMQ_QUEUES: Record<string, IQueueConfig> = {
   // DMA Queues
   AUCTIONS: {
     name: 'dma.auctions',
-    exchange: 'dma.exchange',
-    routingKeys: ['dma.auctions.*'],
+    domain: 'dma',
+    jobType: 'AuctionJobQueue',
     options: {
-      durable: true,
-      arguments: {
-        'x-max-priority': 10,
-        'x-dead-letter-exchange': 'dlx.exchange',
-        'x-dead-letter-routing-key': 'dlx.auctions',
+      name: 'dma.auctions',
+      connection: REDIS_CONNECTION,
+      defaultJobOptions: {
+        ...DEFAULT_JOB_OPTIONS,
+        priority: 5,
       },
     },
   },
 
   ITEMS: {
     name: 'dma.items',
-    exchange: 'dma.exchange',
-    routingKeys: ['dma.items.*'],
+    domain: 'dma',
+    jobType: 'ItemJobQueue',
     options: {
-      durable: true,
-      arguments: {
-        'x-max-priority': 10,
-        'x-dead-letter-exchange': 'dlx.exchange',
-        'x-dead-letter-routing-key': 'dlx.items',
+      name: 'dma.items',
+      connection: REDIS_CONNECTION,
+      defaultJobOptions: {
+        ...DEFAULT_JOB_OPTIONS,
+        priority: 5,
       },
     },
   },
 
   VALUATIONS: {
     name: 'dma.valuations',
-    exchange: 'dma.exchange',
-    routingKeys: ['dma.valuations.*'],
+    domain: 'dma',
+    jobType: 'AuctionJobQueue',
     options: {
-      durable: true,
-      arguments: {
-        'x-max-priority': 10,
-        'x-dead-letter-exchange': 'dlx.exchange',
-        'x-dead-letter-routing-key': 'dlx.valuations',
+      name: 'dma.valuations',
+      connection: REDIS_CONNECTION,
+      defaultJobOptions: {
+        ...DEFAULT_JOB_OPTIONS,
+        priority: 5,
       },
     },
   },
@@ -138,14 +164,14 @@ export const RABBITMQ_QUEUES: Record<string, IQueueConfig> = {
   // Core Queues
   REALMS: {
     name: 'core.realms',
-    exchange: 'osint.exchange',
-    routingKeys: ['core.realms.*'],
+    domain: 'core',
+    jobType: 'RealmJobQueue',
     options: {
-      durable: true,
-      arguments: {
-        'x-max-priority': 10,
-        'x-dead-letter-exchange': 'dlx.exchange',
-        'x-dead-letter-routing-key': 'dlx.realms',
+      name: 'core.realms',
+      connection: REDIS_CONNECTION,
+      defaultJobOptions: {
+        ...DEFAULT_JOB_OPTIONS,
+        priority: 5,
       },
     },
   },
@@ -153,34 +179,93 @@ export const RABBITMQ_QUEUES: Record<string, IQueueConfig> = {
   // Dead Letter Queue
   DLQ: {
     name: 'dlx.dlq',
-    exchange: 'dlx.exchange',
-    routingKeys: ['dlx.*'],
+    domain: 'dlx',
+    jobType: 'CharacterJobQueue',
     options: {
-      durable: true,
-      arguments: {
-        'x-message-ttl': TIME_MS.TWENTY_FOUR_HOURS, // 24 hours
+      name: 'dlx.dlq',
+      connection: REDIS_CONNECTION,
+      defaultJobOptions: {
+        ...DEFAULT_JOB_OPTIONS,
+        priority: 0,
+        removeOnComplete: 100,
+        removeOnFail: 50,
       },
     },
   },
 };
 
 /**
+ * Get Redis connection configuration
+ *
+ * @returns Redis connection configuration object
+ */
+export function getRedisConnection(): IBullMQConnection {
+  return REDIS_CONNECTION;
+}
+
+/**
  * Get queue configuration by name
+ *
+ * @param queueName - The name of the queue to retrieve
+ * @returns Queue configuration or undefined if not found
+ *
+ * @example
+ * ```typescript
+ * const charactersQueue = getQueueConfig('CHARACTERS');
+ * if (charactersQueue) {
+ *   console.log(charactersQueue.name); // 'osint.characters'
+ * }
+ * ```
  */
 export function getQueueConfig(queueName: string): IQueueConfig | undefined {
-  return RABBITMQ_QUEUES[queueName];
+  return BULLMQ_QUEUES[queueName];
 }
 
 /**
  * Get all queue names
+ *
+ * @returns Array of all queue configuration keys
+ *
+ * @example
+ * ```typescript
+ * const allQueues = getAllQueueNames();
+ * // ['CHARACTERS', 'CHARACTERS_REQUESTS', 'CHARACTERS_RESPONSES', ...]
+ * ```
  */
 export function getAllQueueNames(): string[] {
-  return Object.keys(RABBITMQ_QUEUES);
+  return Object.keys(BULLMQ_QUEUES);
 }
 
 /**
- * Get all queues for a specific exchange
+ * Get all queues for a specific domain
+ *
+ * @param domain - The domain to filter queues by (e.g., 'osint', 'dma', 'core')
+ * @returns Array of queue configurations for the specified domain
+ *
+ * @example
+ * ```typescript
+ * const osintQueues = getQueuesByDomain('osint');
+ * // Returns all OSINT queues (CHARACTERS, GUILDS, PROFILES, etc.)
+ * ```
  */
-export function getQueuesByExchange(exchange: string): IQueueConfig[] {
-  return Object.values(RABBITMQ_QUEUES).filter((q) => q.exchange === exchange);
+export function getQueuesByDomain(domain: string): IQueueConfig[] {
+  return Object.values(BULLMQ_QUEUES).filter((queue) => queue.domain === domain);
+}
+
+/**
+ * Get queue options by queue name
+ *
+ * @param queueName - The name of the queue to retrieve options for
+ * @returns BullMQ queue options or undefined if not found
+ *
+ * @example
+ * ```typescript
+ * const options = getQueueOptions('CHARACTERS');
+ * if (options) {
+ *   const queue = new Queue(options.name, { connection: options.connection });
+ * }
+ * ```
+ */
+export function getQueueOptions(queueName: string): IBullMQQueueOptions | undefined {
+  return BULLMQ_QUEUES[queueName]?.options;
 }
