@@ -24,4 +24,11 @@ export const profileQueue: IBullMQQueueOptions = {
     removeOnFail: 500,
     priority: 5,
   },
+  workerOptions: {
+    queueName: 'osint.profiles',
+    connection: getRedisConnection(),
+    concurrency: 5,
+    maxStalledCount: 500,
+    stalledInterval: 30000,
+  },
 };

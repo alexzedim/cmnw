@@ -50,6 +50,8 @@ export interface IBullMQQueueOptions {
   defaultJobOptions?: IBullMQJobOptions;
   /** Number of workers processing this queue (default: 1) */
   concurrency?: number;
+  /** Worker options for processing jobs from this queue */
+  workerOptions?: IBullMQWorkerOptions;
 }
 
 /**

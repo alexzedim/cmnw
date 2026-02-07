@@ -24,4 +24,11 @@ export const realmsQueue: IBullMQQueueOptions = {
     removeOnFail: 500,
     priority: 5,
   },
+  workerOptions: {
+    queueName: 'core.realms',
+    connection: getRedisConnection(),
+    concurrency: 5,
+    maxStalledCount: 500,
+    stalledInterval: 30000,
+  },
 };

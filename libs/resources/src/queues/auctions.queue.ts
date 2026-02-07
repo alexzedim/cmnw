@@ -24,5 +24,12 @@ export const auctionsQueue: IBullMQQueueOptions = {
     removeOnFail: 500,
     priority: 5,
   },
+  workerOptions: {
+    queueName: 'dma.auctions',
+    connection: getRedisConnection(),
+    concurrency: 10,
+    maxStalledCount: 500,
+    stalledInterval: 30000,
+  },
 };
 
