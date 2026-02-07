@@ -24,4 +24,11 @@ export const valuationsQueue: IBullMQQueueOptions = {
     removeOnFail: 500,
     priority: 5,
   },
+  workerOptions: {
+    queueName: 'dma.valuations',
+    connection: getRedisConnection(),
+    concurrency: 10,
+    maxStalledCount: 500,
+    stalledInterval: 30000,
+  },
 };
