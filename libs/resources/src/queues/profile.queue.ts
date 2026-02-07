@@ -1,19 +1,27 @@
-// RabbitMQ Queue Configuration
-// Replaces BullMQ OSINT_Profiles queue
+/**
+ * BullMQ Queue Configuration for Profiles
+ *
+ * Defines BullMQ queue configuration for profile-related jobs.
+ * Replaces RabbitMQ profile queue.
+ */
+import { getRedisConnection } from '@app/configuration';
+import type { IBullMQQueueOptions } from '@app/resources/types/queue/queue.type';
 
-import { TIME_MS } from '@app/resources/constants';
-
-export const profileQueue = {
-  name: 'osint.profiles.queue',
-  exchange: 'osint.exchange',
-  routingKey: 'osint.profiles.*',
-  prefetchCount: parseInt(process.env.PROFILE_WORKER_CONCURRENCY || '1', 10),
-  queueOptions: {
-    durable: true,
-    deadLetterExchange: 'dlx.exchange',
-    deadLetterRoutingKey: 'dlx.osint.profiles',
-    messageTtl: TIME_MS.TWENTY_FOUR_HOURS, // 24 hours
-    maxLength: 100000,
-    maxPriority: 10,
+/**
+ * BullMQ queue configuration for profile jobs
+ * Used for processing character profile data from Blizzard API
+ */
+export const profileQueue: IBullMQQueueOptions = {
+  name: 'osint.profiles',
+  connection: getRedisConnection(),
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 2000,
+    },
+    removeOnComplete: 1000,
+    removeOnFail: 500,
+    priority: 5,
   },
 };
