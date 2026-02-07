@@ -6,17 +6,13 @@
  */
 
 // Character queues
-export {
-  charactersQueue,
-  charactersRequestsQueue,
-  charactersResponsesQueue,
-} from './characters.queue';
+export { charactersQueue } from './characters.queue';
 
 // Guild queues
 export { guildsQueue } from './guilds.queue';
 
 // Profile queues
-export { profileQueue } from './profiles.queue';
+export { profileQueue } from './profile.queue';
 
 // Auction queues
 export { auctionsQueue } from './auctions.queue';
@@ -29,6 +25,3 @@ export { valuationsQueue } from './valuations.queue';
 
 // Realm queues
 export { realmsQueue } from './realms.queue';
-
-// Dead Letter Queue
-export { dlqQueue } from './dlq.queue';
