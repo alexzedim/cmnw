@@ -1,19 +1,19 @@
 import Redis from 'ioredis';
 import { Injectable, Logger } from '@nestjs/common';
-import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { BlizzAPI } from '@alexzedim/blizzapi';
 import chalk from 'chalk';
 import { bufferCount, concatMap } from 'rxjs/operators';
 import { from, lastValueFrom } from 'rxjs';
 import { DateTime } from 'luxon';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ItemsEntity, MarketEntity, RealmsEntity, KeysEntity } from '@app/pg';
+import { ItemsEntity, MarketEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
-  AuctionMessageDto,
+  auctionsQueue,
   BlizzardApiAuctions,
   DMA_TIMEOUT_TOLERANCE,
   IAuctionsOrder,
@@ -27,16 +27,13 @@ import {
   toGold,
   transformPrice,
   formatBytes,
-  KeyErrorTracker,
-  ApiKeyErrorContext,
-  TRACKED_ERROR_STATUS_CODES,
 } from '@app/resources';
 import { createHash } from 'crypto';
-import { RabbitMQMonitorService } from '@app/rabbitmq';
 import { isAxiosError, AxiosError } from 'axios';
 
 @Injectable()
-export class AuctionsWorker {
+@Processor(auctionsQueue)
+export class AuctionsWorker extends WorkerHost {
   private readonly logger = new Logger(AuctionsWorker.name, {
     timestamp: true,
   });
@@ -66,8 +63,6 @@ export class AuctionsWorker {
     429: 'rateLimit',
   } as const;
 
-  private readonly keyErrorTracker: KeyErrorTracker;
-
   constructor(
     @InjectRedis()
     private readonly redisService: Redis,
@@ -77,42 +72,22 @@ export class AuctionsWorker {
     private readonly _itemsRepository: Repository<ItemsEntity>,
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
-    @InjectRepository(KeysEntity)
-    private readonly keysRepository: Repository<KeysEntity>,
-    private readonly rabbitMQMonitorService: RabbitMQMonitorService,
   ) {
-    this.keyErrorTracker = new KeyErrorTracker(keysRepository);
+    super();
   }
 
-  @RabbitSubscribe({
-    exchange: 'dma.exchange',
-    routingKey: 'dma.auctions.*',
-    queue: 'dma.auctions',
-    queueOptions: {
-      durable: true,
-      arguments: {
-        'x-max-priority': 10,
-        'x-dead-letter-exchange': 'dlx.exchange',
-        'x-dead-letter-routing-key': 'dlx.auctions',
-      },
-    },
-  })
-  public async handleAuctionMessage(message: AuctionMessageDto): Promise<void> {
+  async process(job: any): Promise<void> {
     const startTime = Date.now();
     this.stats.total++;
 
-    try {
-      // Extract data from message wrapper if present
-      const args = message.data || message;
+    // Extract data from message wrapper if present
+    const args = job.data || job;
 
+    try {
       this.logger.debug({
         logTag: 'handleAuctionMessage',
         message: 'Received auction message',
-        messageId: message.messageId,
-        connectedRealmId: args.connectedRealmId,
-        auctionsTimestamp: args.auctionsTimestamp,
-        commoditiesTimestamp: args.commoditiesTimestamp,
-        region: args.region,
+        data: args,
       });
 
       this.BNet = new BlizzAPI({
@@ -266,31 +241,18 @@ export class AuctionsWorker {
         `${chalk.green('✓')} ${chalk.green('200')} [${chalk.bold(this.stats.total)}] realm ${connectedRealmId} ${chalk.dim(`(${duration}ms)`)} ${chalk.dim(`${iterator} orders`)}`,
       );
 
-      this.rabbitMQMonitorService.recordMessageProcessingDuration(
-        'dma.auctions',
-        duration / 1000,
-        'success',
-      );
-
-      await this.rabbitMQMonitorService.emitMessageCompleted(
-        'dma.auctions',
-        message,
-      );
-
       // Progress report every 10 realms
       if (this.stats.total % 10 === 0) {
         this.logProgress();
       }
     } catch (errorOrException) {
       const duration = Date.now() - startTime;
-      const args = message.data || message;
-      const realmId = args?.connectedRealmId || 'unknown';
 
       if (isAxiosError(errorOrException)) {
         // Handle HTTP errors
         const isHandled = await this.handleHttpError(
           errorOrException,
-          realmId,
+          args.realmId,
           duration,
         );
 
@@ -302,7 +264,7 @@ export class AuctionsWorker {
         // Fatal HTTP errors (5xx, 4xx except handled ones) are re-thrown
         this.stats.errors++;
         this.logProcessingError(
-          realmId,
+          args.realmId,
           duration,
           `HTTP ${errorOrException.response?.status}: ${errorOrException.message}`,
         );
@@ -310,26 +272,13 @@ export class AuctionsWorker {
         // Handle non-HTTP errors
         this.stats.errors++;
         this.logProcessingError(
-          realmId,
+          args.realmId,
           duration,
           errorOrException instanceof Error
             ? errorOrException.message
             : String(errorOrException),
         );
       }
-
-      // Record failure metrics and emit event
-      this.rabbitMQMonitorService.recordMessageProcessingDuration(
-        'dma.auctions',
-        duration / 1000,
-        'failure',
-      );
-
-      await this.rabbitMQMonitorService.emitMessageFailed(
-        'dma.auctions',
-        message,
-        errorOrException,
-      );
 
       throw errorOrException;
     }
@@ -493,11 +442,11 @@ export class AuctionsWorker {
    * Handles Axios HTTP errors with proper stats tracking and logging
    * @returns true if error was handled (non-fatal), false if should be re-thrown
    */
-  private async handleHttpError(
+  private handleHttpError(
     error: AxiosError,
     realmId: string | number,
     duration: number,
-  ): Promise<boolean> {
+  ): boolean {
     const statusCode = error.response?.status;
 
     if (!statusCode) {
@@ -514,19 +463,7 @@ export class AuctionsWorker {
     // Log the error
     this.logHttpError(statusCode, realmId, duration, error.response?.statusText);
 
-    // Track API key errors (403, 429)
-    if (TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
-      const context: ApiKeyErrorContext = {
-        serviceName: 'AuctionsWorker',
-        methodName: 'handleAuctionMessage',
-        resourceId: String(realmId),
-      };
-      // Note: We don't have access token here, so we pass empty string
-      // The tracker will handle it gracefully
-      await this.keyErrorTracker.trackError('', statusCode, context);
-    }
-
-    // Return true for non-fatal errors (304, 429, 403)
+    // Return true for non-fatal errors (304,429,403)
     return [
       this.HTTP_STATUS_CODES.NOT_MODIFIED,
       this.HTTP_STATUS_CODES.RATE_LIMITED,

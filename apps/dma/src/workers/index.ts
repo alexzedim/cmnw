@@ -1,2 +1,2 @@
-export * from './auctions.worker';
-export * from './items.worker';
+export { AuctionsWorker } from './auctions.worker';
+export { ItemsWorker } from './items.worker';

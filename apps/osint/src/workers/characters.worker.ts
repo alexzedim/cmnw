@@ -1,17 +1,14 @@
 import { BlizzAPI } from '@alexzedim/blizzapi';
-import { RabbitRPC, RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
+import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Injectable, Logger } from '@nestjs/common';
 import chalk from 'chalk';
 import { coreConfig } from '@app/configuration';
-import { RabbitMQMonitorService, RabbitMQPublisherService } from '@app/rabbitmq';
 import {
   CHARACTER_SUMMARY_FIELD_MAPPING,
   charactersQueue,
   getRandomProxy,
-  OSINT_SOURCE,
-  RabbitMQMessageDto,
   toSlug,
   CharacterMessageDto,
   ICharacterMessageBase,
@@ -27,7 +24,8 @@ import {
 } from '../services';
 
 @Injectable()
-export class CharactersWorker {
+@Processor(charactersQueue.name, charactersQueue.defaultJobOptions)
+export class CharactersWorker extends WorkerHost {
   private readonly logger = new Logger(CharactersWorker.name, {
     timestamp: true,
   });
@@ -49,49 +47,18 @@ export class CharactersWorker {
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
+    @InjectQueue(charactersQueue.name)
+    private readonly charactersQueue: any,
     private readonly characterService: CharacterService,
     private readonly lifecycleService: CharacterLifecycleService,
     private readonly collectionSyncService: CharacterCollectionService,
-    private readonly rabbitMQMonitorService: RabbitMQMonitorService,
-    private readonly rabbitMQPublisherService: RabbitMQPublisherService,
-  ) {}
-
-  @RabbitSubscribe({
-    exchange: 'osint.exchange',
-    routingKey: 'osint.characters.*',
-    queue: 'osint.characters',
-    queueOptions: {
-      durable: true,
-      arguments: {
-        'x-max-priority': 10,
-        'x-dead-letter-exchange': 'dlx.exchange',
-        'x-dead-letter-routing-key': 'dlx.characters',
-      },
-    },
-  })
-  public async handleCharacterMessage(message: CharacterMessageDto): Promise<void> {
-    await this.processCharacterMessage(message);
+  ) {
+    super();
   }
 
-  @RabbitRPC({
-    exchange: 'osint.exchange',
-    routingKey: 'osint.characters.request.*',
-    queue: 'osint.characters.requests',
-    queueOptions: {
-      durable: true,
-      arguments: {
-        'x-max-priority': 10,
-        'x-dead-letter-exchange': 'dlx.exchange',
-        'x-dead-letter-routing-key': 'dlx.characters.requests',
-      },
-    },
-  })
-  public async handleCharacterRequest(
-    message: CharacterMessageDto,
-  ): Promise<CharactersEntity> {
-    const characterEntity = await this.processCharacterMessage(message);
-    await this.publishCharacterResponse(characterEntity, message);
-    return characterEntity;
+  async process(job: any): Promise<CharactersEntity> {
+    const message: CharacterMessageDto = job.data;
+    return this.processCharacterMessage(message);
   }
 
   private async processCharacterMessage(
@@ -151,16 +118,6 @@ export class CharactersWorker {
       const duration = Date.now() - startTime;
       this.logCharacterResult(characterEntity, duration);
 
-      this.rabbitMQMonitorService.recordMessageProcessingDuration(
-        'osint.characters',
-        duration / 1000,
-        'success',
-      );
-      await this.rabbitMQMonitorService.emitMessageCompleted(
-        'osint.characters',
-        message,
-      );
-
       // Progress report every 50 characters
       if (this.stats.total % 50 === 0) {
         this.logProgress();
@@ -180,39 +137,8 @@ export class CharactersWorker {
         `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)} [${chalk.bold(updatedBy)}] - ${errorOrException.message}`,
       );
 
-      this.rabbitMQMonitorService.recordMessageProcessingDuration(
-        'osint.characters',
-        duration / 1000,
-        'failure',
-      );
-      await this.rabbitMQMonitorService.emitMessageFailed(
-        'osint.characters',
-        message,
-        errorOrException,
-      );
       throw errorOrException;
     }
-  }
-
-  private async publishCharacterResponse(
-    characterEntity: CharactersEntity,
-    message: CharacterMessageDto,
-  ): Promise<void> {
-    const responseMessage = RabbitMQMessageDto.create({
-      messageId: characterEntity.guid,
-      data: {
-        ...characterEntity,
-        requestId: message.messageId,
-      },
-      priority: 10,
-      source: OSINT_SOURCE.CHARACTER_GET,
-      routingKey: 'osint.characters.response.high',
-    });
-
-    await this.rabbitMQPublisherService.publishMessage(
-      charactersQueue.exchange,
-      responseMessage,
-    );
   }
 
   private logCharacterResult(character: CharactersEntity, duration: number): void {
