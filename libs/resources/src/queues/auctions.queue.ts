@@ -25,3 +25,4 @@ export const auctionsQueue: IBullMQQueueOptions = {
     priority: 5,
   },
 };
+
