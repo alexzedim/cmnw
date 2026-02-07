@@ -1,83 +1,72 @@
-import { TIME_MS } from '@app/resources/constants';
-import { IRabbitMQMessageBase, RabbitMQMessageDto } from '@app/resources/dto/queue';
-import { RegionIdOrName } from '@alexzedim/blizzapi';
+import { IQueueMessageBase, QueueMessageDto } from '@app/resources/dto/queue';
+import { ItemJobQueue } from '@app/resources/types/queue/queue.type';
 
 /**
- * Base interface for creating auction message entries
+ * Base interface for creating auction job data
  */
 export interface IAuctionMessageBase {
   connectedRealmId: number;
   auctionsTimestamp?: number;
   commoditiesTimestamp?: number;
   isAssetClassIndex?: boolean;
-  region?: RegionIdOrName;
+  region?: 'eu' | 'us' | 'kr' | 'tw';
   clientId?: string;
   clientSecret?: string;
   accessToken?: string;
 }
 
 /**
- * Auction Message DTO for RabbitMQ
+ * Auction Message DTO for BullMQ
  *
- * Wraps AuctionJobQueue with RabbitMQ-specific properties and routing.
+ * Wraps ItemJobQueue with BullMQ-specific properties.
  * Used for auction data synchronization from Blizzard API.
  */
-export class AuctionMessageDto extends RabbitMQMessageDto<IAuctionMessageBase> {
-  readonly connectedRealmId: number;
-  readonly auctionsTimestamp?: number;
-  readonly commoditiesTimestamp?: number;
-  readonly isAssetClassIndex?: boolean;
-  readonly region?: RegionIdOrName;
-  readonly clientId?: string;
-  readonly clientSecret?: string;
-  readonly accessToken?: string;
-
-  private static isRabbitMQMessageBase<T>(
+export class AuctionMessageDto extends QueueMessageDto<IAuctionMessageBase> {
+  private static isQueueMessageBase<T>(
     params: any,
-  ): params is IRabbitMQMessageBase<T> {
+  ): params is IQueueMessageBase<T> {
     return !!params && typeof params === 'object' && 'data' in (params as any);
   }
 
   private static isAuctionCreateParams(
     params: any,
   ): params is Omit<Partial<AuctionMessageDto>, 'connectedRealmId'> &
-    Pick<IAuctionMessageBase, 'connectedRealmId'> {
-    return !!params && typeof params === 'object' && 'connectedRealmId' in params;
+      Pick<IAuctionMessageBase, 'connectedRealmId'> {
+    return (
+      !!params && typeof params === 'object' && 'connectedRealmId' in params
+    );
   }
 
   constructor(params: any) {
-    const auctionData = params.data || params;
+    const messageParams = params ?? {};
+    const { data, priority, source, attempts, metadata, ...rest } = messageParams;
+    const auctionData = data ? { ...rest, ...data } : rest;
 
     super({
-      messageId: params.id || `auction-${auctionData.connectedRealmId}`,
       data: auctionData,
-      priority: params.priority ?? 5,
-      source: params.source ?? 'dma',
-      attempts: params.attempts,
-      routingKey: params.routingKey ?? 'dma.auctions.normal',
-      persistent: params.persistent ?? true,
-      expiration: params.expiration,
+      priority: priority ?? 5,
+      source: source ?? 'dma',
+      attempts,
+      metadata,
     });
-
-    Object.assign(this, auctionData);
   }
 
   /**
-   * Create from auction data with RabbitMQ routing
+   * Create from auction data with BullMQ options
    */
-  static create<T>(params: IRabbitMQMessageBase<T>): RabbitMQMessageDto<T>;
+  static create<T>(params: IQueueMessageBase<T>): QueueMessageDto<T>;
   static create(
     params: Omit<Partial<AuctionMessageDto>, 'connectedRealmId'> &
       Pick<IAuctionMessageBase, 'connectedRealmId'>,
   ): AuctionMessageDto;
   static create(
     params:
-      | IRabbitMQMessageBase<IAuctionMessageBase>
+      | IQueueMessageBase<IAuctionMessageBase>
       | (Omit<Partial<AuctionMessageDto>, 'connectedRealmId'> &
           Pick<IAuctionMessageBase, 'connectedRealmId'>),
-  ): RabbitMQMessageDto<IAuctionMessageBase> | AuctionMessageDto {
-    if (AuctionMessageDto.isRabbitMQMessageBase(params)) {
-      return RabbitMQMessageDto.create(params);
+  ): QueueMessageDto<IAuctionMessageBase> | AuctionMessageDto {
+    if (AuctionMessageDto.isQueueMessageBase(params)) {
+      return QueueMessageDto.create(params);
     }
 
     if (!AuctionMessageDto.isAuctionCreateParams(params)) {
@@ -87,13 +76,9 @@ export class AuctionMessageDto extends RabbitMQMessageDto<IAuctionMessageBase> {
     }
 
     return new AuctionMessageDto({
-      id: `auction-${params.connectedRealmId}`,
       data: params,
       priority: params.priority ?? 5,
       source: params.source ?? 'dma',
-      routingKey: params.routingKey ?? 'dma.auctions.normal',
-      persistent: true,
-      expiration: params.expiration ?? TIME_MS.ONE_HOUR,
     });
   }
 }

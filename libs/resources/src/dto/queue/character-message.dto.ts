@@ -1,11 +1,12 @@
 import { Logger } from '@nestjs/common';
 import { OSINT_SOURCE, TIME_MS } from '../../constants';
 import { toGuid } from '../../transformers';
-import { IRabbitMQMessageBase, RabbitMQMessageDto } from '@app/resources/dto/queue';
+import { IQueueMessageBase, QueueMessageDto } from '@app/resources/dto/queue';
+import { CharacterJobQueue } from '@app/resources/types/queue/queue.type';
 
 /**
- * Base interface for character message data payload
- * Contains all character-specific data that travels in the message.data field
+ * Base interface for character job data payload
+ * Contains all character-specific data that travels in job.data field
  */
 export interface ICharacterMessageBase {
   // Essential identification
@@ -76,21 +77,23 @@ export interface ICharacterMessageBase {
 }
 
 /**
- * Character Message DTO for RabbitMQ
+ * Character Message DTO for BullMQ
  *
- * Simplified wrapper around RabbitMQMessageDto that contains only:
- * - messageId: Unique message identifier
+ * Simplified wrapper around QueueMessageDto that contains only:
  * - data: Character data payload (ICharacterMessageBase)
- * - attempts: Top-level retry attempts
+ * - priority: Job priority (0-10)
+ * - source: Source service/component
+ * - attempts: Retry attempts
+ * - metadata: Additional job metadata
  *
- * All character-specific properties are stored in the data field.
+ * All character-specific properties are stored in data field.
  */
-export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBase> {
+export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> {
   private static readonly characterLogger = new Logger(CharacterMessageDto.name);
 
-  private static isRabbitMQMessageBase<T>(
+  private static isQueueMessageBase<T>(
     params: any,
-  ): params is IRabbitMQMessageBase<T> {
+  ): params is IQueueMessageBase<T> {
     return !!params && typeof params === 'object' && 'data' in (params as any);
   }
 
@@ -105,49 +108,34 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
 
   constructor(params: any) {
     const messageParams = params ?? {};
-    const {
-      data,
-      messageId,
-      priority,
-      source,
-      attempts,
-      routingKey,
-      persistent,
-      expiration,
-      ...rest
-    } = messageParams;
+    const { data, priority, source, attempts, metadata, ...rest } = messageParams;
     const characterData = data ? { ...rest, ...data } : rest;
-    const resolvedMessageId =
-      messageId ?? (characterData as any)?.guid ?? (characterData as any)?.id;
 
     super({
-      messageId: resolvedMessageId,
       data: characterData,
       priority: priority ?? 5,
       source: source ?? OSINT_SOURCE.CHARACTER_INDEX,
       attempts,
-      routingKey: routingKey ?? 'osint.characters.index.normal',
-      persistent: persistent ?? true,
-      expiration,
+      metadata,
     });
   }
 
   /**
    * Create with auto-generated guid from name and realm
    */
-  static create<T>(params: IRabbitMQMessageBase<T>): RabbitMQMessageDto<T>;
+  static create<T>(params: IQueueMessageBase<T>): QueueMessageDto<T>;
   static create(
     data: Omit<Partial<ICharacterMessageBase>, 'guid'> &
       Pick<ICharacterMessageBase, 'name' | 'realm'>,
   ): CharacterMessageDto;
   static create(
     params:
-      | IRabbitMQMessageBase<any>
+      | IQueueMessageBase<any>
       | (Omit<Partial<ICharacterMessageBase>, 'guid'> &
           Pick<ICharacterMessageBase, 'name' | 'realm'>),
-  ): RabbitMQMessageDto<any> | CharacterMessageDto {
-    if (CharacterMessageDto.isRabbitMQMessageBase(params)) {
-      return RabbitMQMessageDto.create(params);
+  ): QueueMessageDto<any> | CharacterMessageDto {
+    if (CharacterMessageDto.isQueueMessageBase(params)) {
+      return QueueMessageDto.create(params);
     }
 
     if (!CharacterMessageDto.isCharacterCreateParams(params)) {
@@ -161,7 +149,6 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       ...params,
       guid,
       createdBy: params.createdBy || params.updatedBy,
-      messageId: guid,
     });
     dto.validate(false, 'CharacterMessageDto.create');
     return dto;
@@ -185,7 +172,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       name: params.name,
       realm: params.realm,
       faction: params.faction,
-      forceUpdate: TIME_MS.FOUR_HOURS, // 4 hours
+      forceUpdate: TIME_MS.FOUR_HOURS,
       region: 'eu',
       createdBy: OSINT_SOURCE.MYTHIC_PLUS,
       updatedBy: OSINT_SOURCE.MYTHIC_PLUS,
@@ -193,13 +180,8 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
-      // RabbitMQ properties
-      messageId: guid,
       priority: 7,
       source: OSINT_SOURCE.MYTHIC_PLUS,
-      routingKey: 'osint.characters.ladder.high',
-      persistent: true,
-      expiration: TIME_MS.ONE_HOUR,
     });
     dto.validate(false, 'CharacterMessageDto.fromMythicPlusLadder');
     return dto;
@@ -224,7 +206,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       realm: params.realm,
       faction: params.faction,
       iteration: params.iteration,
-      forceUpdate: TIME_MS.FOUR_HOURS, // 4 hours
+      forceUpdate: TIME_MS.FOUR_HOURS,
       region: 'eu',
       createdBy: OSINT_SOURCE.PVP_LADDER,
       updatedBy: OSINT_SOURCE.PVP_LADDER,
@@ -232,13 +214,8 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
-      // RabbitMQ properties
-      messageId: guid,
       priority: 7,
       source: OSINT_SOURCE.PVP_LADDER,
-      routingKey: 'osint.characters.ladder.high',
-      persistent: true,
-      expiration: TIME_MS.ONE_HOUR,
     });
     dto.validate(false, 'CharacterMessageDto.fromPvPLadder');
     return dto;
@@ -259,7 +236,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       guid,
       name: params.name,
       realm: params.realm,
-      forceUpdate: TIME_MS.ONE_MINUTE, // 1 minute
+      forceUpdate: TIME_MS.ONE_MINUTE,
       region: 'eu',
       createdBy: OSINT_SOURCE.WARCRAFT_LOGS,
       updatedBy: OSINT_SOURCE.WARCRAFT_LOGS,
@@ -267,13 +244,8 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
-      // RabbitMQ properties
-      messageId: guid,
       priority: 8,
       source: OSINT_SOURCE.WARCRAFT_LOGS,
-      routingKey: 'osint.characters.raid.urgent',
-      persistent: true,
-      expiration: TIME_MS.TEN_MINUTES,
     });
     dto.validate(false, 'CharacterMessageDto.fromWarcraftLogs');
     return dto;
@@ -298,7 +270,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       realm: params.realm,
       realmId: params.realmId,
       realmName: params.realmName,
-      forceUpdate: TIME_MS.THIRTY_MINUTES, // 30 minutes
+      forceUpdate: TIME_MS.THIRTY_MINUTES,
       region: 'eu',
       createdBy: OSINT_SOURCE.WOW_PROGRESS_LFG,
       updatedBy: OSINT_SOURCE.WOW_PROGRESS_LFG,
@@ -306,13 +278,8 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
-      // RabbitMQ properties
-      messageId: guid,
       priority: 6,
       source: OSINT_SOURCE.WOW_PROGRESS_LFG,
-      routingKey: 'osint.characters.lfg.normal',
-      persistent: true,
-      expiration: TIME_MS.TWO_HOURS,
     });
     dto.validate(false, 'CharacterMessageDto.fromWowProgressLfg');
     return dto;
@@ -345,7 +312,6 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       name: params.name,
       realm: params.realm,
       guild: params.guild,
-      // @todo validate
       guildGuid: params.guildGuid,
       guildId: params.guildId,
       guildRank: 0,
@@ -362,13 +328,8 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
-      // RabbitMQ properties
-      messageId: guid,
       priority: 9,
       source: OSINT_SOURCE.GUILD_ROSTER,
-      routingKey: 'osint.characters.guild.urgent',
-      persistent: true,
-      expiration: TIME_MS.FIVE_MINUTES,
     });
     dto.validate(false, 'CharacterMessageDto.fromGuildMaster');
     return dto;
@@ -392,7 +353,7 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       ...rest,
       characterId,
       region: 'eu',
-      forceUpdate: TIME_MS.TWELVE_HOURS, // 12 hours
+      forceUpdate: TIME_MS.TWELVE_HOURS,
       createdBy: OSINT_SOURCE.CHARACTER_INDEX,
       updatedBy: OSINT_SOURCE.CHARACTER_INDEX,
       createOnlyUnique: false,
@@ -400,13 +361,8 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
       iteration: params.iteration,
-      // RabbitMQ properties
-      messageId: params.guid,
       priority: 5,
       source: OSINT_SOURCE.CHARACTER_INDEX,
-      routingKey: 'osint.characters.index.normal',
-      persistent: true,
-      expiration: TIME_MS.TWELVE_HOURS,
     });
     dto.validate(false, 'CharacterMessageDto.fromCharacterIndex');
     return dto;
@@ -457,13 +413,8 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
-      // RabbitMQ properties
-      messageId: guid,
       priority: 3,
       source: OSINT_SOURCE.GUILD_ROSTER,
-      routingKey: 'osint.characters.guild.low',
-      persistent: true,
-      expiration: TIME_MS.TWENTY_FOUR_HOURS,
     });
     dto.validate(false, 'CharacterMessageDto.fromGuildMember');
     return dto;
@@ -491,13 +442,8 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
-      // RabbitMQ properties
-      messageId: params.guid,
       priority: 2,
       source: OSINT_SOURCE.OSINT_MIGRATION,
-      routingKey: 'osint.characters.migration.low',
-      persistent: true,
-      expiration: TIME_MS.TWENTY_FOUR_HOURS,
     });
     dto.validate(false, 'CharacterMessageDto.fromMigrationFile');
     return dto;
@@ -506,13 +452,13 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
   /**
    * Create from character request (API-driven)
    */
-  static async fromCharacterRequest(params: {
+  static fromCharacterRequest(params: {
     name: string;
     realm: string;
     clientId: string;
     clientSecret: string;
     accessToken: string;
-  }): Promise<CharacterMessageDto> {
+  }): CharacterMessageDto {
     const guid = toGuid(params.name, params.realm);
     const dto = new CharacterMessageDto({
       guid,
@@ -526,13 +472,8 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
       createOnlyUnique: false,
       forceUpdate: TIME_MS.ONE_HOUR,
       region: 'eu',
-      // RabbitMQ properties
-      messageId: guid,
       priority: 10,
       source: OSINT_SOURCE.CHARACTER_REQUEST,
-      routingKey: 'osint.characters.request.high',
-      persistent: true,
-      expiration: TIME_MS.FIVE_MINUTES,
     });
     dto.validate(false, 'CharacterMessageDto.fromCharacterRequest');
     return dto;
@@ -541,60 +482,40 @@ export class CharacterMessageDto extends RabbitMQMessageDto<ICharacterMessageBas
   /**
    * Validate message structure
    * @param strict - If true, throws errors; if false, logs warnings
+   * @param logTag - Optional log tag for warnings
    * @throws Error if validation fails and strict is true
    */
   validate(strict: boolean = true, logTag?: string): void {
-    const requiredFields = ['messageId', 'data'];
+    const characterData = this.data as ICharacterMessageBase | undefined;
 
-    for (const field of requiredFields) {
-      if (this[field] === undefined || this[field] === null) {
-        const message = `Validation failed: missing required field '${field}' for guid '${this.data?.guid || 'unknown'}'`;
-        if (strict) {
-          throw new Error(message);
-        } else {
-          CharacterMessageDto.characterLogger.warn({
-            logTag: logTag || 'CharacterMessageDto.validate',
-            message,
-            messageId: this.messageId,
-          });
-        }
+    if (characterData?.guid && !characterData.guid.includes('@')) {
+      const message = `Validation failed: guid '${characterData.guid}' must contain '@' separator`;
+      if (strict) {
+        throw new Error(message);
+      } else {
+        CharacterMessageDto.characterLogger.warn({
+          logTag: logTag || 'CharacterMessageDto.validate',
+          message,
+          guid: characterData.guid,
+        });
       }
     }
 
-    // Validate data payload
-    if (this.data && typeof this.data === 'object') {
-      const data = this.data as any;
-
-      // Validate guid format
-      if (data.guid && !data.guid.includes('@')) {
-        const message = `Validation failed: guid '${data.guid}' must contain '@' separator`;
-        if (strict) {
-          throw new Error(message);
-        } else {
-          CharacterMessageDto.characterLogger.warn({
-            logTag: logTag || 'CharacterMessageDto.validate',
-            message,
-            guid: data.guid,
-          });
-        }
-      }
-
-      // Validate forceUpdate
-      if (
-        data.forceUpdate !== undefined &&
-        (typeof data.forceUpdate !== 'number' || data.forceUpdate < 0)
-      ) {
-        const message = `Validation failed: forceUpdate must be a positive number, got '${data.forceUpdate}' for guid '${data.guid || 'unknown'}'`;
-        if (strict) {
-          throw new Error(message);
-        } else {
-          CharacterMessageDto.characterLogger.warn({
-            logTag: logTag || 'CharacterMessageDto.validate',
-            message,
-            guid: data.guid,
-            forceUpdate: data.forceUpdate,
-          });
-        }
+    if (
+      characterData?.forceUpdate !== undefined &&
+      (typeof characterData.forceUpdate !== 'number' ||
+        characterData.forceUpdate < 0)
+    ) {
+      const message = `Validation failed: forceUpdate must be a positive number, got '${characterData.forceUpdate}' for guid '${characterData?.guid || 'unknown'}'`;
+      if (strict) {
+        throw new Error(message);
+      } else {
+        CharacterMessageDto.characterLogger.warn({
+          logTag: logTag || 'CharacterMessageDto.validate',
+          message,
+          guid: characterData?.guid,
+          forceUpdate: characterData?.forceUpdate,
+        });
       }
     }
 
