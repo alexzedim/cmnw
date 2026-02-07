@@ -1,201 +1,151 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
 import { BlizzAPI } from '@alexzedim/blizzapi';
-import { AxiosError } from 'axios';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+import chalk from 'chalk';
 import { InjectRepository } from '@nestjs/typeorm';
-import { RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
-import { get } from 'lodash';
+
 import {
-  API_HEADERS_ENUM,
-  apiConstParams,
-  BlizzardApiResponse,
-  IConnectedRealm,
-  isFieldNamed,
-  OSINT_TIMEOUT_TOLERANCE,
-  REALM_TICKER,
-  RealmJobQueue,
-  toLocale,
-  toSlug,
-  transformConnectedRealmId,
-  transformNamedField,
-  RealmMessageDto,
+  getRandomProxy,
+  RealmsMessageDto,
+  RealmsEntity,
+  realmsQueue,
 } from '@app/resources';
+import { KeysEntity } from '@app/pg';
+import { coreConfig } from '@app/configuration';
+
+import { RealmsService } from '.';
 
 @Injectable()
-export class RealmsWorker {
-  private readonly logger = new Logger(RealmsWorker.name, { timestamp: true });
+@Processor(realmsQueue)
+export class RealmsWorker extends WorkerHost {
+  private readonly logger = new Logger(RealmsWorker.name, {
+    timestamp: true,
+  });
+
+  private stats = {
+    total: 0,
+    success: 0,
+    rateLimit: 0,
+    errors: 0,
+    skipped: 0,
+    startTime: Date.now(),
+  };
 
   private BNet: BlizzAPI;
 
   constructor(
-    @InjectRepository(RealmsEntity)
-    private readonly realmsRepository: Repository<RealmsEntity>,
-  ) {}
-
-  /**
-   * Handle AxiosError specifically with detailed error information
-   * @param error - The error to handle
-   * @param messageData - Message context data for additional logging
-   * @param additionalInfo - Additional context information
-   */
-  private handleAxiosError(
-    error: unknown,
-    messageData?: RealmJobQueue,
-    additionalInfo?: Record<string, any>,
-  ): void {
-    if (error instanceof AxiosError) {
-      const errorInfo = {
-        logTag: RealmsWorker.name,
-        message: error.message,
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        url: error.config?.url,
-        method: error.config?.method?.toUpperCase(),
-        responseData: error.response?.data,
-        code: error.code,
-        messageData: messageData
-          ? {
-              id: messageData.id,
-              name: messageData.name,
-              slug: messageData.slug,
-              region: messageData.region,
-            }
-          : undefined,
-        ...additionalInfo,
-      };
-
-      this.logger.error(errorInfo);
-    } else {
-      // Fallback for non-Axios errors
-      this.logger.error({
-        logTag: RealmsWorker.name,
-        error,
-        messageData: messageData
-          ? {
-              id: messageData.id,
-              name: messageData.name,
-              slug: messageData.slug,
-              region: messageData.region,
-            }
-          : undefined,
-        ...additionalInfo,
-      });
-    }
+    @InjectRepository(KeysEntity)
+    private readonly keysRepository: Repository<KeysEntity>,
+    private readonly realmsService: RealmsService,
+  ) {
+    super();
   }
 
-  @RabbitSubscribe({
-    exchange: 'core.exchange',
-    routingKey: 'core.realms.*',
-    queue: 'core.realms',
-    queueOptions: {
-      durable: true,
-      arguments: {
-        'x-max-priority': 10,
-        'x-dead-letter-exchange': 'dlx.exchange',
-        'x-dead-letter-routing-key': 'dlx.realms',
-      },
-    },
-  })
-  public async handleRealmMessage(message: RealmMessageDto): Promise<void> {
+  async process(job: any): Promise<void> {
+    const message: RealmsMessageDto = job.data;
+    const startTime = Date.now();
+    this.stats.total++;
+
     try {
-      const args: RealmJobQueue = message.payload;
+      const { data: args } = message;
 
-      let realmEntity = await this.realmsRepository.findOneBy({ id: args.id });
+      // Step 1: Find or create realm entity
+      const { realmEntity, isNew } =
+        await this.realmsService.findOrCreate(args);
 
-      if (!realmEntity) {
-        realmEntity = this.realmsRepository.create({
-          id: args.id,
-        });
+      if (!isNew) {
+        this.stats.skipped++;
+        this.logger.warn(
+          `${chalk.yellow('⊘')} Skipped [${chalk.bold(this.stats.total)}] ${realmEntity.guid} ${chalk.dim('(not new)')}`,
+        );
+        return;
       }
 
+      // Step 2: Initialize Blizzard API client
       this.BNet = new BlizzAPI({
-        region: args.region,
+        region: args.region || 'eu',
         clientId: args.clientId,
         clientSecret: args.clientSecret,
         accessToken: args.accessToken,
+        httpsAgent: coreConfig.useProxy
+          ? await getRandomProxy(this.keysRepository)
+          : undefined,
       });
 
-      const response: Record<string, any> = await this.BNet.query(
-        `/data/wow/realm/${args.slug}`,
-        apiConstParams(API_HEADERS_ENUM.DYNAMIC, OSINT_TIMEOUT_TOLERANCE),
+      if (args.updatedBy) {
+        realmEntity.updatedBy = args.updatedBy;
+      }
+
+      // Step 3: Fetch realm data from API
+      const realmData = await this.realmsService.fetchRealm(
+        args.realmSlug,
+        this.BNet,
       );
 
-      realmEntity.id = get(response, 'id', null);
-      realmEntity.slug = get(response, 'slug', null);
+      Object.assign(realmEntity, realmData);
 
-      const name = isFieldNamed(response.name)
-        ? get(response, 'name.name', null)
-        : response.name;
+      // Step 4: Save realm entity
+      await this.realmsService.save(realmEntity);
 
-      if (name) realmEntity.name = name;
-
-      const ticker = REALM_TICKER.has(realmEntity.name)
-        ? REALM_TICKER.get(realmEntity.name)
-        : null;
-
-      if (ticker) realmEntity.ticker = ticker;
-
-      realmEntity.locale = response.locale ? response.locale : null;
-
-      if (realmEntity.locale != 'enGB') {
-        const realmLocale = await this.BNet.query<BlizzardApiResponse>(
-          `/data/wow/realm/${args.slug}`,
-          apiConstParams(API_HEADERS_ENUM.DYNAMIC, OSINT_TIMEOUT_TOLERANCE, true),
-        );
-
-        const locale = toLocale(realmEntity.locale);
-
-        const localeName = get(realmLocale, `name.${locale}`, null);
-        if (localeName) {
-          realmEntity.localeName = localeName;
-          realmEntity.localeSlug = toSlug(localeName);
-        }
-      } else {
-        const localeNameSlug = get(response, 'name', null);
-        if (localeNameSlug) {
-          realmEntity.localeName = localeNameSlug;
-          realmEntity.localeSlug = toSlug(localeNameSlug);
-        }
-      }
-
-      const region = transformNamedField(response.region);
-      if (region) realmEntity.region = region;
-      if (response.timezone) realmEntity.timezone = response.timezone;
-
-      const category = get(response, 'category', null);
-      if (category) realmEntity.category = category;
-
-      const connectedRealmId = transformConnectedRealmId(response);
-      if (connectedRealmId) {
-        const connectedRealm = await this.BNet.query<IConnectedRealm>(
-          `/data/wow/connected-realm/${connectedRealmId}`,
-          apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-        );
-
-        realmEntity.connectedRealmId = get(connectedRealm, 'id', null);
-        realmEntity.status = get(connectedRealm, 'status.name', null);
-        realmEntity.populationStatus = get(connectedRealm, 'population.name', null);
-
-        const isRealmsExists =
-          'realms' in connectedRealm && Array.isArray(connectedRealm.realms);
-
-        if (isRealmsExists) {
-          realmEntity.connectedRealms = connectedRealm.realms.map(
-            ({ slug }) => slug,
-          );
-        }
-      }
-
-      await this.realmsRepository.save(realmEntity);
+      this.stats.success++;
+      const duration = Date.now() - startTime;
       this.logger.log(
-        `✓ Realm processed: ${realmEntity.name} (${realmEntity.slug})`,
+        `${chalk.green('✓')} [${chalk.bold(this.stats.total)}] ${realmEntity.guid} ${chalk.dim(`(${duration}ms)`)}`,
       );
+
+      // Progress report every 25 realms
+      if (this.stats.total % 25 === 0) {
+        this.logProgress();
+      }
     } catch (errorOrException) {
-      this.handleAxiosError(errorOrException, message.payload, {
-        timestamp: new Date().toISOString(),
-      });
+      this.stats.errors++;
+      const duration = Date.now() - startTime;
+      const guid = message.data?.realmSlug || 'unknown';
+
+      this.logger.error(
+        `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`,
+      );
+
       throw errorOrException;
     }
+  }
+
+  private logProgress(): void {
+    const uptime = Date.now() - this.stats.startTime;
+    const rate = (this.stats.total / (uptime / 1000)).toFixed(2);
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
+
+    this.logger.log(
+      `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
+        `${chalk.magenta('📊 REALMS PROGRESS REPORT')}\n` +
+        `${chalk.dim('  Total:')} ${chalk.bold(this.stats.total)} realms processed\n` +
+        `${chalk.green('  ✓ Success:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
+        `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
+        `${chalk.yellow('  ⊘ Skipped:')} ${chalk.yellow.bold(this.stats.skipped)}\n` +
+        `${chalk.red('  ✗ Errors:')} ${chalk.red.bold(this.stats.errors)}\n` +
+        `${chalk.dim('  Rate:')} ${chalk.bold(rate)} realms/sec\n` +
+        `${chalk.magenta.bold('━'.repeat(60))}`,
+    );
+  }
+
+  public logFinalSummary(): void {
+    const uptime = Date.now() - this.stats.startTime;
+    const avgRate = (this.stats.total / (uptime / 1000)).toFixed(2);
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
+
+    this.logger.log(
+      `\n${chalk.cyan.bold('═'.repeat(60))}\n` +
+        `${chalk.cyan.bold('  🎯 REALMS FINAL SUMMARY')}\n` +
+        `${chalk.cyan.bold('═'.repeat(60))}\n` +
+        `${chalk.dim('  Total Realms:')} ${chalk.bold.white(this.stats.total)}\n` +
+        `${chalk.green('  ✓ Successful:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
+        `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
+        `${chalk.yellow('  ⊘ Skipped:')} ${chalk.yellow.bold(this.stats.skipped)}\n` +
+        `${chalk.red('  ✗ Failed:')} ${chalk.red.bold(this.stats.errors)}\n` +
+        `${chalk.dim('  Total Time:')} ${chalk.bold((uptime / 1000).toFixed(1))}s\n` +
+        `${chalk.dim('  Avg Rate:')} ${chalk.bold(avgRate)} realms/sec\n` +
+        `${chalk.cyan.bold('═'.repeat(60))}`,
+    );
   }
 }
