@@ -1,5 +1,4 @@
 import { IQueueMessageBase, QueueMessageDto } from '@app/resources/dto/queue';
-import { ProfileJobQueue } from '@app/resources/types/queue/queue.type';
 
 /**
  * Base interface for profile job data
@@ -51,16 +50,14 @@ export interface IProfileMessageBase {
  * All profile-specific properties are stored in data field.
  */
 export class ProfileMessageDto extends QueueMessageDto<IProfileMessageBase> {
-  private static isQueueMessageBase<T>(
-    params: any,
-  ): params is IQueueMessageBase<T> {
+  private static isQueueMessageBase<T>(params: any): params is IQueueMessageBase<T> {
     return !!params && typeof params === 'object' && 'data' in (params as any);
   }
 
   private static isProfileCreateParams(
     params: any,
   ): params is Omit<Partial<IProfileMessageBase>, 'guid'> &
-      Pick<IProfileMessageBase, 'name' | 'realm'> {
+    Pick<IProfileMessageBase, 'name' | 'realm'> {
     return (
       !!params && typeof params === 'object' && 'name' in params && 'realm' in params
     );
@@ -172,8 +169,7 @@ export class ProfileMessageDto extends QueueMessageDto<IProfileMessageBase> {
     if (!strict) {
       const credentials = ['clientId', 'clientSecret', 'accessToken'];
       const missingCredentials = credentials.filter(
-        (field) =>
-          !profileData?.[field] || profileData?.[field] === undefined,
+        (field) => !profileData?.[field] || profileData?.[field] === undefined,
       );
       if (missingCredentials.length > 0) {
         this.logger.warn({

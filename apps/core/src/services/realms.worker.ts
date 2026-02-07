@@ -5,12 +5,7 @@ import chalk from 'chalk';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import {
-  getRandomProxy,
-  RealmsMessageDto,
-  RealmsEntity,
-  realmsQueue,
-} from '@app/resources';
+import { getRandomProxy, RealmsMessageDto, realmsQueue } from '@app/resources';
 import { KeysEntity } from '@app/pg';
 import { coreConfig } from '@app/configuration';
 
@@ -51,8 +46,7 @@ export class RealmsWorker extends WorkerHost {
       const { data: args } = message;
 
       // Step 1: Find or create realm entity
-      const { realmEntity, isNew } =
-        await this.realmsService.findOrCreate(args);
+      const { realmEntity, isNew } = await this.realmsService.findOrCreate(args);
 
       if (!isNew) {
         this.stats.skipped++;

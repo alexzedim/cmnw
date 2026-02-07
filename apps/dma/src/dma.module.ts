@@ -5,10 +5,7 @@ import { AuctionsWorker, ItemsWorker } from './workers';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ItemsEntity, KeysEntity, MarketEntity, RealmsEntity } from '@app/pg';
 import { getRedisConnection } from '@app/configuration';
-import {
-  auctionsQueue,
-  itemsQueue,
-} from '@app/resources/queues';
+import { auctionsQueue, itemsQueue } from '@app/resources/queues';
 
 @Module({
   imports: [

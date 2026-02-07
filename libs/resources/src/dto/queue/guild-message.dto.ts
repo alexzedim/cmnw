@@ -54,9 +54,7 @@ export interface IGuildMessageBase {
 export class GuildMessageDto extends QueueMessageDto<IGuildMessageBase> {
   private static readonly guildLogger = new Logger(GuildMessageDto.name);
 
-  private static isQueueMessageBase<T>(
-    params: any,
-  ): params is IQueueMessageBase<T> {
+  private static isQueueMessageBase<T>(params: any): params is IQueueMessageBase<T> {
     return !!params && typeof params === 'object' && 'data' in (params as any);
   }
 
@@ -68,7 +66,7 @@ export class GuildMessageDto extends QueueMessageDto<IGuildMessageBase> {
   private static isGuildCreateParams(
     params: any,
   ): params is Omit<Partial<IGuildMessageBase>, 'guid'> &
-      Pick<IGuildMessageBase, 'name' | 'realm'> {
+    Pick<IGuildMessageBase, 'name' | 'realm'> {
     return (
       !!params && typeof params === 'object' && 'name' in params && 'realm' in params
     );
@@ -314,7 +312,10 @@ export class GuildMessageDto extends QueueMessageDto<IGuildMessageBase> {
    * @param logTag - Optional log tag for warnings (defaults to 'GuildMessageDto.validate')
    * @throws Error if validation fails and strict is true
    */
-  validate(strict: boolean = true, logTag: string = 'GuildMessageDto.validate'): void {
+  validate(
+    strict: boolean = true,
+    logTag: string = 'GuildMessageDto.validate',
+  ): void {
     const guildData = this.data as IGuildMessageBase | undefined;
 
     if (guildData?.guid && !guildData.guid.includes('@')) {

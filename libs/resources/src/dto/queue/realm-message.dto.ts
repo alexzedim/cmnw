@@ -8,16 +8,13 @@ import { RealmJobQueue } from '@app/resources/types/queue/queue.type';
  * Used for realm data synchronization from Blizzard API.
  */
 export class RealmMessageDto extends QueueMessageDto<RealmJobQueue> {
-  private static isQueueMessageBase<T>(
-    params: any,
-  ): params is IQueueMessageBase<T> {
+  private static isQueueMessageBase<T>(params: any): params is IQueueMessageBase<T> {
     return !!params && typeof params === 'object' && 'data' in (params as any);
   }
 
   private static isRealmCreateParams(
     params: any,
-  ): params is Omit<Partial<RealmMessageDto>, 'id'> &
-      Pick<RealmJobQueue, 'id'> {
+  ): params is Omit<Partial<RealmMessageDto>, 'id'> & Pick<RealmJobQueue, 'id'> {
     return !!params && typeof params === 'object' && 'id' in params;
   }
 
@@ -52,9 +49,7 @@ export class RealmMessageDto extends QueueMessageDto<RealmJobQueue> {
     }
 
     if (!RealmMessageDto.isRealmCreateParams(params)) {
-      throw new Error(
-        'RealmMessageDto.create expected realm params with id.',
-      );
+      throw new Error('RealmMessageDto.create expected realm params with id.');
     }
 
     return new RealmMessageDto({

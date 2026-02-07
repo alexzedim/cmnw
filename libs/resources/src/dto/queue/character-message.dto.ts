@@ -2,7 +2,6 @@ import { Logger } from '@nestjs/common';
 import { OSINT_SOURCE, TIME_MS } from '../../constants';
 import { toGuid } from '../../transformers';
 import { IQueueMessageBase, QueueMessageDto } from '@app/resources/dto/queue';
-import { CharacterJobQueue } from '@app/resources/types/queue/queue.type';
 
 /**
  * Base interface for character job data payload
@@ -91,9 +90,7 @@ export interface ICharacterMessageBase {
 export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> {
   private static readonly characterLogger = new Logger(CharacterMessageDto.name);
 
-  private static isQueueMessageBase<T>(
-    params: any,
-  ): params is IQueueMessageBase<T> {
+  private static isQueueMessageBase<T>(params: any): params is IQueueMessageBase<T> {
     return !!params && typeof params === 'object' && 'data' in (params as any);
   }
 

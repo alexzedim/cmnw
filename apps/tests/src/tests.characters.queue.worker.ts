@@ -7,7 +7,6 @@ import { Repository } from 'typeorm';
 import {
   getRandomProxy,
   CharacterMessageDto,
-  CharactersEntity,
   charactersQueue,
 } from '@app/resources';
 import { KeysEntity } from '@app/pg';
@@ -108,10 +107,7 @@ export class TestsCharactersQueueWorker extends WorkerHost {
       Object.assign(characterEntity, pets);
 
       // Step 6: Sync character collections
-      await this.collectionSyncService.syncCollections(
-        characterEntity,
-        BNet,
-      );
+      await this.collectionSyncService.syncCollections(characterEntity, BNet);
 
       // Step 7: Update character lifecycle
       await this.lifecycleService.updateLifecycle(characterEntity);
@@ -132,9 +128,10 @@ export class TestsCharactersQueueWorker extends WorkerHost {
     } catch (errorOrException) {
       this.stats.errors++;
       const duration = Date.now() - startTime;
-      const guid = message.data?.name && message.data?.realm
-        ? `${message.data.name}@${message.data.realm}`
-        : 'unknown';
+      const guid =
+        message.data?.name && message.data?.realm
+          ? `${message.data.name}@${message.data.realm}`
+          : 'unknown';
 
       this.logger.error(
         `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`,

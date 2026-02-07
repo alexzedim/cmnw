@@ -1,5 +1,4 @@
 import { IQueueMessageBase, QueueMessageDto } from '@app/resources/dto/queue';
-import { ItemJobQueue } from '@app/resources/types/queue/queue.type';
 
 /**
  * Base interface for creating auction job data
@@ -22,19 +21,15 @@ export interface IAuctionMessageBase {
  * Used for auction data synchronization from Blizzard API.
  */
 export class AuctionMessageDto extends QueueMessageDto<IAuctionMessageBase> {
-  private static isQueueMessageBase<T>(
-    params: any,
-  ): params is IQueueMessageBase<T> {
+  private static isQueueMessageBase<T>(params: any): params is IQueueMessageBase<T> {
     return !!params && typeof params === 'object' && 'data' in (params as any);
   }
 
   private static isAuctionCreateParams(
     params: any,
   ): params is Omit<Partial<AuctionMessageDto>, 'connectedRealmId'> &
-      Pick<IAuctionMessageBase, 'connectedRealmId'> {
-    return (
-      !!params && typeof params === 'object' && 'connectedRealmId' in params
-    );
+    Pick<IAuctionMessageBase, 'connectedRealmId'> {
+    return !!params && typeof params === 'object' && 'connectedRealmId' in params;
   }
 
   constructor(params: any) {
