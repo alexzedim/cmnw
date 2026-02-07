@@ -24,7 +24,7 @@ import {
 } from '../services';
 
 @Injectable()
-@Processor(charactersQueue.name, charactersQueue.defaultJobOptions)
+@Processor(charactersQueue.name, charactersQueue.workerOptions)
 export class CharactersWorker extends WorkerHost {
   private readonly logger = new Logger(CharactersWorker.name, {
     timestamp: true,

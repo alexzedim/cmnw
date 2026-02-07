@@ -1,3 +1,17 @@
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import { from, lastValueFrom, mergeMap } from 'rxjs';
+import { createHash } from 'crypto';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+import { Queue } from 'bullmq';
+
+import { CharactersEntity, KeysEntity } from '@app/pg';
+import { S3Service } from '@app/s3';
+import { osintConfig } from '@app/configuration';
 import {
   charactersQueue,
   getKeys,
@@ -5,19 +19,6 @@ import {
   OSINT_CHARACTER_LIMIT,
   CharacterMessageDto,
 } from '@app/resources';
-
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { CharactersEntity, KeysEntity } from '@app/pg';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { from, lastValueFrom, mergeMap } from 'rxjs';
-import { S3Service } from '@app/s3';
-import { osintConfig } from '@app/configuration';
-import { InjectRedis } from '@nestjs-modules/ioredis';
-import Redis from 'ioredis';
-import { createHash } from 'crypto';
-import { RabbitMQPublisherService } from '@app/rabbitmq';
 
 @Injectable()
 export class CharactersService implements OnApplicationBootstrap {
@@ -34,7 +35,8 @@ export class CharactersService implements OnApplicationBootstrap {
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
-    private readonly publisher: RabbitMQPublisherService,
+    @InjectQueue(charactersQueue.name)
+    private readonly charactersQueue: Queue<CharacterMessageDto>,
     private readonly s3Service: S3Service,
   ) {}
 
@@ -60,9 +62,8 @@ export class CharactersService implements OnApplicationBootstrap {
         skip: this.offset,
       });
 
-      const isRotate = true;
       const charactersCount = await this.charactersRepository.count();
-      this.offset = this.offset + (isRotate ? OSINT_CHARACTER_LIMIT : 0);
+      this.offset = this.offset + OSINT_CHARACTER_LIMIT;
 
       if (this.offset >= charactersCount) {
         this.logger.warn({
@@ -88,7 +89,7 @@ export class CharactersService implements OnApplicationBootstrap {
               accessToken: token,
             });
 
-            await this.publisher.publishMessage(charactersQueue.exchange, dto);
+            await this.charactersQueue.add(dto.data.guid, dto);
 
             characterIteration = characterIteration + 1;
             const isKeyRequest = characterIteration % 1000 == 0;
@@ -175,8 +176,6 @@ export class CharactersService implements OnApplicationBootstrap {
       });
 
       for (const character of characters) {
-        const [nameSlug, realmSlug] = character.guid.split('@');
-
         const { client, secret, token } =
           this.keyEntities[characterIteration % length];
 
@@ -187,7 +186,7 @@ export class CharactersService implements OnApplicationBootstrap {
           accessToken: token,
         });
 
-        await this.publisher.publishMessage(charactersQueue.exchange, dto);
+        await this.charactersQueue.add(dto.data.guid, dto);
 
         characterIteration = characterIteration + 1;
       }
