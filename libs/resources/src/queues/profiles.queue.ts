@@ -1,18 +1,18 @@
 /**
- * BullMQ Queue Configuration for Auctions
+ * BullMQ Queue Configuration for Profiles
  *
- * Defines BullMQ queue configuration for auction-related jobs.
- * Replaces RabbitMQ auction queue.
+ * Defines BullMQ queue configuration for profile-related jobs.
+ * Replaces RabbitMQ profile queue.
  */
 import { getRedisConnection } from '@app/configuration';
 import type { IBullMQQueueOptions } from '@app/resources/types/queue/queue.type';
 
 /**
- * BullMQ queue configuration for auction jobs
- * Used for processing auction data from Blizzard API
+ * BullMQ queue configuration for profile jobs
+ * Used for processing character profile data from Blizzard API
  */
-export const auctionsQueue: IBullMQQueueOptions = {
-  name: 'dma.auctions',
+export const profileQueue: IBullMQQueueOptions = {
+  name: 'osint.profiles',
   connection: getRedisConnection(),
   defaultJobOptions: {
     attempts: 3,

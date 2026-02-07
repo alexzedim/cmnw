@@ -1,19 +1,27 @@
-// RabbitMQ Queue Configuration
-// Replaces BullMQ DMA_Valuations queue
+/**
+ * BullMQ Queue Configuration for Valuations
+ *
+ * Defines BullMQ queue configuration for valuation-related jobs.
+ * Replaces RabbitMQ valuation queue.
+ */
+import { getRedisConnection } from '@app/configuration';
+import type { IBullMQQueueOptions } from '@app/resources/types/queue/queue.type';
 
-import { TIME_MS } from '@app/resources/constants';
-
-export const valuationsQueue = {
-  name: 'dma.valuations.queue',
-  exchange: 'dma.exchange',
-  routingKey: 'dma.valuations.*',
-  prefetchCount: 1, // Default concurrency
-  queueOptions: {
-    durable: true,
-    deadLetterExchange: 'dlx.exchange',
-    deadLetterRoutingKey: 'dlx.dma.valuations',
-    messageTtl: TIME_MS.TWENTY_FOUR_HOURS, // 24 hours
-    maxLength: 100000,
-    maxPriority: 10,
+/**
+ * BullMQ queue configuration for valuation jobs
+ * Used for processing auction valuation data
+ */
+export const valuationsQueue: IBullMQQueueOptions = {
+  name: 'dma.valuations',
+  connection: getRedisConnection(),
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 2000,
+    },
+    removeOnComplete: 1000,
+    removeOnFail: 500,
+    priority: 5,
   },
 };
