@@ -1,13 +1,12 @@
 import { Injectable, Logger } from '@nestjs/common';
 import chalk from 'chalk';
 import { Browser, BrowserContext, chromium, devices } from 'playwright';
-import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CharactersProfileEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { HttpService } from '@nestjs/axios';
 import cheerio from 'cheerio';
-import { RabbitMQMonitorService } from '@app/rabbitmq';
 
 import {
   CHARACTER_RAID_DIFFICULTY,
@@ -22,13 +21,13 @@ import {
   CHARACTER_PROFILE_RIO_MAPPING,
   RaiderIoCharacterMappingKey,
   capitalize,
-  ProfileJobQueue,
-  RabbitMQMessageDto,
+  profileQueue,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
 
 @Injectable()
-export class ProfileWorker {
+@Processor(profileQueue.name)
+export class ProfileWorker extends WorkerHost {
   private readonly logger = new Logger(ProfileWorker.name, {
     timestamp: true,
   });
@@ -52,8 +51,9 @@ export class ProfileWorker {
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(CharactersProfileEntity)
     private readonly charactersProfileRepository: Repository<CharactersProfileEntity>,
-    private readonly rabbitMQMonitorService: RabbitMQMonitorService,
-  ) {}
+  ) {
+    super();
+  }
 
   private async browserControl() {
     const isBrowserSession = Boolean(this.browser && this.browserContext);
@@ -63,22 +63,8 @@ export class ProfileWorker {
     await this.browser.close();
   }
 
-  @RabbitSubscribe({
-    exchange: 'osint.exchange',
-    routingKey: 'osint.profiles.*',
-    queue: 'osint.profiles',
-    queueOptions: {
-      durable: true,
-      arguments: {
-        'x-max-priority': 10,
-        'x-dead-letter-exchange': 'dlx.exchange',
-        'x-dead-letter-routing-key': 'dlx.profiles',
-      },
-    },
-  })
-  public async handleProfileMessage(
-    message: RabbitMQMessageDto<ProfileJobQueue>,
-  ): Promise<void> {
+  async process(job: any): Promise<void> {
+    const message = job.data;
     const startTime = Date.now();
     this.stats.total++;
 
@@ -131,16 +117,6 @@ export class ProfileWorker {
           `${args.updateRIO ? chalk.blue('RIO') : ''}${args.updateWCL ? chalk.magenta(' WCL') : ''}${args.updateWP ? chalk.cyan(' WP') : ''}`,
       );
 
-      this.rabbitMQMonitorService.recordMessageProcessingDuration(
-        'osint.profiles',
-        duration / 1000,
-        'success',
-      );
-      await this.rabbitMQMonitorService.emitMessageCompleted(
-        'osint.profiles',
-        message,
-      );
-
       // Progress report every 25 profiles
       if (this.stats.total % 25 === 0) {
         this.logProgress();
@@ -151,17 +127,6 @@ export class ProfileWorker {
 
       this.logger.error(
         `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${message.data?.guid} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`,
-      );
-
-      this.rabbitMQMonitorService.recordMessageProcessingDuration(
-        'osint.profiles',
-        duration / 1000,
-        'failure',
-      );
-      await this.rabbitMQMonitorService.emitMessageFailed(
-        'osint.profiles',
-        message,
-        errorOrException,
       );
 
       throw errorOrException;
@@ -366,6 +331,7 @@ export class ProfileWorker {
         );
 
         if (!isKeyInProfile) return;
+
         const fieldProfile = CHARACTER_PROFILE_RIO_MAPPING.get(
           <RaiderIoCharacterMappingKey>key,
         );
@@ -382,7 +348,6 @@ export class ProfileWorker {
       rioProfileCharacter.raidProgress = raiderIoProfile.raid_progression;
 
       const [season] = raiderIoProfile.mythic_plus_scores_by_season;
-
       rioProfileCharacter.raiderIoScore = season.scores.all;
       rioProfileCharacter.updatedByRaiderIo = new Date();
 

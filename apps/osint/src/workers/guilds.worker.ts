@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { BlizzAPI } from '@alexzedim/blizzapi';
-import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
 import chalk from 'chalk';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -14,10 +14,10 @@ import {
   isAllGuildSuccessInString,
   setGuildStatusString,
   GuildStatusState,
+  guildsQueue,
 } from '@app/resources';
 import { KeysEntity } from '@app/pg';
 import { coreConfig } from '@app/configuration';
-import { RabbitMQMonitorService } from '@app/rabbitmq';
 
 import {
   GuildService,
@@ -29,8 +29,11 @@ import {
 } from '../services';
 
 @Injectable()
-export class GuildsWorker {
-  private readonly logger = new Logger(GuildsWorker.name, { timestamp: true });
+@Processor(guildsQueue)
+export class GuildsWorker extends WorkerHost {
+  private readonly logger = new Logger(GuildsWorker.name, {
+    timestamp: true,
+  });
 
   private stats = {
     total: 0,
@@ -54,23 +57,12 @@ export class GuildsWorker {
     private readonly guildMemberService: GuildMemberService,
     private readonly guildLogService: GuildLogService,
     private readonly guildMasterService: GuildMasterService,
-    private readonly rabbitMQMonitorService: RabbitMQMonitorService,
-  ) {}
+  ) {
+    super();
+  }
 
-  @RabbitSubscribe({
-    exchange: 'osint.exchange',
-    routingKey: 'osint.guilds.*',
-    queue: 'osint.guilds',
-    queueOptions: {
-      durable: true,
-      arguments: {
-        'x-max-priority': 10,
-        'x-dead-letter-exchange': 'dlx.exchange',
-        'x-dead-letter-routing-key': 'dlx.guilds',
-      },
-    },
-  })
-  public async handleGuildMessage(message: GuildMessageDto): Promise<void> {
+  async process(job: any): Promise<void> {
+    const message: GuildMessageDto = job.data;
     const startTime = Date.now();
     this.stats.total++;
 
@@ -198,16 +190,6 @@ export class GuildsWorker {
       const duration = Date.now() - startTime;
       this.logGuildResult(guildEntity, duration);
 
-      this.rabbitMQMonitorService.recordMessageProcessingDuration(
-        'osint.guilds',
-        duration / 1000,
-        'success',
-      );
-      await this.rabbitMQMonitorService.emitMessageCompleted(
-        'osint.guilds',
-        message,
-      );
-
       // Progress report every 25 guilds
       if (this.stats.total % 25 === 0) {
         this.logProgress();
@@ -223,17 +205,6 @@ export class GuildsWorker {
 
       this.logger.error(
         `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)} [${chalk.bold(updatedBy)}] - ${errorOrException.message}`,
-      );
-
-      this.rabbitMQMonitorService.recordMessageProcessingDuration(
-        'osint.guilds',
-        duration / 1000,
-        'failure',
-      );
-      await this.rabbitMQMonitorService.emitMessageFailed(
-        'osint.guilds',
-        message,
-        errorOrException,
       );
 
       throw errorOrException;
@@ -279,8 +250,7 @@ export class GuildsWorker {
     for (const operation of operations) {
       // Check if the error indicator exists in the status string (lowercase = error)
       const hasError =
-        operation.statusString?.includes(operation.errorIndicator.toLowerCase()) ??
-        false;
+        operation.statusString?.includes(operation.errorIndicator.toLowerCase()) ?? false;
 
       aggregated = setGuildStatusString(
         aggregated,

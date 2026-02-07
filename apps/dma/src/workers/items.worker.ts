@@ -1,70 +1,39 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { RabbitSubscribe } from '@golevelup/nestjs-rabbitmq';
-import { BlizzAPI } from '@alexzedim/blizzapi';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
 import chalk from 'chalk';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ItemsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
-import { get } from 'lodash';
-import {
-  API_HEADERS_ENUM,
-  apiConstParams,
-  BlizzardApiItem,
-  DMA_SOURCE,
-  IItem,
-  isItem,
-  isItemMedia,
-  isNamedField,
-  ITEM_FIELD_MAPPING,
-  ItemJobQueue,
-  toGold,
-  TOLERANCE_ENUM,
-  VALUATION_TYPE,
-  ItemMessageDto,
-} from '@app/resources';
-import { RabbitMQMonitorService } from '@app/rabbitmq';
+
+import { isItemMedia, itemsQueue } from '@app/resources';
+import { ItemsEntity } from '@app/pg';
 
 @Injectable()
-export class ItemsWorker {
-  private readonly logger = new Logger(ItemsWorker.name, { timestamp: true });
+@Processor(itemsQueue)
+export class ItemsWorker extends WorkerHost {
+  private readonly logger = new Logger(ItemsWorker.name, {
+    timestamp: true,
+  });
 
   private stats = {
     total: 0,
     success: 0,
-    notFound: 0,
+    rateLimit: 0,
     errors: 0,
-    updated: 0,
-    created: 0,
+    skipped: 0,
     startTime: Date.now(),
   };
-
-  private BNet: BlizzAPI;
 
   constructor(
     @InjectRepository(ItemsEntity)
     private readonly itemsRepository: Repository<ItemsEntity>,
-    private readonly rabbitMQMonitorService: RabbitMQMonitorService,
   ) {}
 
-  @RabbitSubscribe({
-    exchange: 'dma.exchange',
-    routingKey: 'dma.items.*',
-    queue: 'dma.items',
-    queueOptions: {
-      durable: true,
-      arguments: {
-        'x-max-priority': 10,
-        'x-dead-letter-exchange': 'dlx.exchange',
-        'x-dead-letter-routing-key': 'dlx.items',
-      },
-    },
-  })
-  public async handleItemMessage(message: ItemMessageDto): Promise<void> {
+  public async process(message: ItemMessageDto): Promise<void> {
     const startTime = Date.now();
     this.stats.total++;
 
     try {
-      const args: ItemJobQueue = message.payload;
+      const { data: args } = message;
 
       // --- Check exits, if not, create --- //
       let itemEntity = await this.itemsRepository.findOneBy({
@@ -159,24 +128,9 @@ export class ItemsWorker {
       await this.itemsRepository.save(itemEntity);
 
       const duration = Date.now() - startTime;
-      this.stats.success++;
-
-      if (isNew) {
-        this.stats.created++;
-      } else {
-        this.stats.updated++;
-      }
-
       this.logger.log(
         `${chalk.green('✓')} ${chalk.green('200')} [${chalk.bold(this.stats.total)}] ${isNew ? chalk.cyan('created') : chalk.yellow('updated')} item ${itemEntity.id} ${chalk.dim('|')} ${itemEntity.name} ${chalk.dim(`(${duration}ms)`)}`,
       );
-
-      this.rabbitMQMonitorService.recordMessageProcessingDuration(
-        'dma.items',
-        duration / 1000,
-        'success',
-      );
-      await this.rabbitMQMonitorService.emitMessageCompleted('dma.items', message);
 
       // Progress report every 50 items
       if (this.stats.total % 50 === 0) {
@@ -190,16 +144,7 @@ export class ItemsWorker {
       this.logger.error(
         `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] item ${itemId} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`,
       );
-      this.rabbitMQMonitorService.recordMessageProcessingDuration(
-        'dma.items',
-        duration / 1000,
-        'failure',
-      );
-      await this.rabbitMQMonitorService.emitMessageFailed(
-        'dma.items',
-        message,
-        errorOrException,
-      );
+
       throw errorOrException;
     }
   }
@@ -214,9 +159,8 @@ export class ItemsWorker {
         `${chalk.magenta('📊 ITEMS PROGRESS REPORT')}\n` +
         `${chalk.dim('  Total:')} ${chalk.bold(this.stats.total)} items processed\n` +
         `${chalk.green('  ✓ Success:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
-        `${chalk.cyan('    → Created:')} ${chalk.cyan.bold(this.stats.created)}\n` +
-        `${chalk.yellow('    → Updated:')} ${chalk.yellow.bold(this.stats.updated)}\n` +
-        `${chalk.blue('  ℹ Not Found:')} ${chalk.blue.bold(this.stats.notFound)}\n` +
+        `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
+        `${chalk.yellow('  ⊘ Skipped:')} ${chalk.yellow.bold(this.stats.skipped)}\n` +
         `${chalk.red('  ✗ Errors:')} ${chalk.red.bold(this.stats.errors)}\n` +
         `${chalk.dim('  Rate:')} ${chalk.bold(rate)} items/sec\n` +
         `${chalk.magenta.bold('━'.repeat(60))}`,
@@ -234,9 +178,8 @@ export class ItemsWorker {
         `${chalk.cyan.bold('═'.repeat(60))}\n` +
         `${chalk.dim('  Total Items:')} ${chalk.bold.white(this.stats.total)}\n` +
         `${chalk.green('  ✓ Successful:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
-        `${chalk.cyan('    → Created:')} ${chalk.cyan.bold(this.stats.created)}\n` +
-        `${chalk.yellow('    → Updated:')} ${chalk.yellow.bold(this.stats.updated)}\n` +
-        `${chalk.blue('  ℹ Not Found:')} ${chalk.blue.bold(this.stats.notFound)}\n` +
+        `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
+        `${chalk.yellow('  ⊘ Skipped:')} ${chalk.yellow.bold(this.stats.skipped)}\n` +
         `${chalk.red('  ✗ Failed:')} ${chalk.red.bold(this.stats.errors)}\n` +
         `${chalk.dim('  Total Time:')} ${chalk.bold((uptime / 1000).toFixed(1))}s\n` +
         `${chalk.dim('  Avg Rate:')} ${chalk.bold(avgRate)} items/sec\n` +
