@@ -1,71 +1,66 @@
-import { IRabbitMQMessageBase, RabbitMQMessageDto } from '@app/resources/dto/queue';
-
-import { RealmJobQueue } from '@app/resources/types';
-import { TIME_MS } from '@app/resources/constants';
+import { IQueueMessageBase, QueueMessageDto } from '@app/resources/dto/queue';
+import { RealmJobQueue } from '@app/resources/types/queue/queue.type';
 
 /**
- * Realm Message DTO for RabbitMQ
+ * Realm Message DTO for BullMQ
  *
- * Wraps RealmJobQueue with RabbitMQ-specific properties and routing.
+ * Wraps RealmJobQueue with BullMQ-specific properties.
  * Used for realm data synchronization from Blizzard API.
  */
-export class RealmMessageDto extends RabbitMQMessageDto<RealmJobQueue> {
-  readonly payload: RealmJobQueue;
+export class RealmMessageDto extends QueueMessageDto<RealmJobQueue> {
+  private static isQueueMessageBase<T>(
+    params: any,
+  ): params is IQueueMessageBase<T> {
+    return !!params && typeof params === 'object' && 'data' in (params as any);
+  }
+
+  private static isRealmCreateParams(
+    params: any,
+  ): params is Omit<Partial<RealmMessageDto>, 'id'> &
+      Pick<RealmJobQueue, 'id'> {
+    return !!params && typeof params === 'object' && 'id' in params;
+  }
 
   constructor(params: any) {
-    const realmData = params.data || params.payload || params;
+    const messageParams = params ?? {};
+    const { data, priority, source, attempts, metadata, ...rest } = messageParams;
+    const realmData = data ? { ...rest, ...data } : rest;
 
     super({
-      messageId: params.id || realmData.id,
       data: realmData,
-      priority: params.priority ?? 5,
-      source: params.source ?? 'core',
-      attempts: params.attempts,
-      routingKey: params.routingKey ?? 'core.realms.normal',
-      persistent: params.persistent ?? true,
-      expiration: params.expiration,
+      priority: priority ?? 5,
+      source: source ?? 'core',
+      attempts,
+      metadata,
     });
-
-    this.payload = realmData;
   }
 
   /**
-   * Create from realm data with RabbitMQ routing
+   * Create from realm data with BullMQ options
    */
-  static create<T>(params: IRabbitMQMessageBase<T>): RabbitMQMessageDto<T>;
-  static create(params: {
-    data: RealmJobQueue;
-    priority?: number;
-    source?: string;
-    routingKey?: string;
-    expiration?: number;
-  }): RealmMessageDto;
-
+  static create<T>(params: IQueueMessageBase<T>): QueueMessageDto<T>;
+  static create(
+    data: Omit<Partial<RealmMessageDto>, 'id'> & Pick<RealmJobQueue, 'id'>,
+  ): RealmMessageDto;
   static create(
     params:
-      | IRabbitMQMessageBase<RealmJobQueue>
-      | {
-          data: RealmJobQueue;
-          priority?: number;
-          source?: string;
-          routingKey?: string;
-          expiration?: number;
-        },
-  ): RabbitMQMessageDto<RealmJobQueue> | RealmMessageDto {
-    if ('id' in (params as any) || 'persistent' in (params as any)) {
-      return RabbitMQMessageDto.create(
-        params as IRabbitMQMessageBase<RealmJobQueue>,
+      | IQueueMessageBase<RealmJobQueue>
+      | (Omit<Partial<RealmMessageDto>, 'id'> & Pick<RealmJobQueue, 'id'>),
+  ): QueueMessageDto<RealmJobQueue> | RealmMessageDto {
+    if (RealmMessageDto.isQueueMessageBase(params)) {
+      return QueueMessageDto.create(params);
+    }
+
+    if (!RealmMessageDto.isRealmCreateParams(params)) {
+      throw new Error(
+        'RealmMessageDto.create expected realm params with id.',
       );
     }
 
     return new RealmMessageDto({
-      id: params.data.id,
-      data: params.data,
+      data: params,
       priority: params.priority ?? 5,
       source: params.source ?? 'core',
-      routingKey: params.routingKey ?? 'core.realms.normal',
-      persistent: true,
-      expiration: params.expiration ?? TIME_MS.TWELVE_HOURS,
     });
   }
 }
