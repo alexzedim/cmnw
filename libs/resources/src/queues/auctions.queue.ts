@@ -32,4 +32,3 @@ export const auctionsQueue: IBullMQQueueOptions = {
     stalledInterval: 30000,
   },
 };
-

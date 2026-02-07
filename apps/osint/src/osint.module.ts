@@ -33,11 +33,7 @@ import {
   RealmsEntity,
 } from '@app/pg';
 import { getRedisConnection } from '@app/configuration';
-import {
-  charactersQueue,
-  guildsQueue,
-  profileQueue,
-} from '@app/resources/queues';
+import { charactersQueue, guildsQueue, profileQueue } from '@app/resources/queues';
 
 @Module({
   imports: [

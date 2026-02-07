@@ -250,7 +250,8 @@ export class GuildsWorker extends WorkerHost {
     for (const operation of operations) {
       // Check if the error indicator exists in the status string (lowercase = error)
       const hasError =
-        operation.statusString?.includes(operation.errorIndicator.toLowerCase()) ?? false;
+        operation.statusString?.includes(operation.errorIndicator.toLowerCase()) ??
+        false;
 
       aggregated = setGuildStatusString(
         aggregated,

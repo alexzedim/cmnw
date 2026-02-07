@@ -8,16 +8,14 @@ import { ItemJobQueue } from '@app/resources/types/queue/queue.type';
  * Used for item data synchronization from Blizzard API.
  */
 export class ItemMessageDto extends QueueMessageDto<ItemJobQueue> {
-  private static isQueueMessageBase<T>(
-    params: any,
-  ): params is IQueueMessageBase<T> {
+  private static isQueueMessageBase<T>(params: any): params is IQueueMessageBase<T> {
     return !!params && typeof params === 'object' && 'data' in (params as any);
   }
 
   private static isItemCreateParams(
     params: any,
   ): params is Omit<Partial<ItemMessageDto>, 'itemId'> &
-      Pick<ItemJobQueue, 'itemId'> {
+    Pick<ItemJobQueue, 'itemId'> {
     return !!params && typeof params === 'object' && 'itemId' in params;
   }
 
@@ -40,23 +38,19 @@ export class ItemMessageDto extends QueueMessageDto<ItemJobQueue> {
    */
   static create<T>(params: IQueueMessageBase<T>): QueueMessageDto<T>;
   static create(
-    data: Omit<Partial<ItemJobQueue>, 'itemId'> &
-      Pick<ItemJobQueue, 'itemId'>,
+    data: Omit<Partial<ItemJobQueue>, 'itemId'> & Pick<ItemJobQueue, 'itemId'>,
   ): ItemMessageDto;
   static create(
     params:
       | IQueueMessageBase<ItemJobQueue>
-      | (Omit<Partial<ItemJobQueue>, 'itemId'> &
-          Pick<ItemJobQueue, 'itemId'>),
+      | (Omit<Partial<ItemJobQueue>, 'itemId'> & Pick<ItemJobQueue, 'itemId'>),
   ): QueueMessageDto<ItemJobQueue> | ItemMessageDto {
     if (ItemMessageDto.isQueueMessageBase(params)) {
       return QueueMessageDto.create(params);
     }
 
     if (!ItemMessageDto.isItemCreateParams(params)) {
-      throw new Error(
-        'ItemMessageDto.create expected item params with itemId.',
-      );
+      throw new Error('ItemMessageDto.create expected item params with itemId.');
     }
 
     return new ItemMessageDto({
