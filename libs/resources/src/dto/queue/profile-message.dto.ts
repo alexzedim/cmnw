@@ -1,8 +1,9 @@
-import { IQueueMessageBase, QueueMessageDto } from '@app/resources/dto/queue';
+import { Logger } from '@nestjs/common';
+import { JobsOptions } from 'bullmq';
+import { profileQueue } from '../../queues/profile.queue';
 
 /**
- * Base interface for profile job data
- * Contains all profile-specific data that travels in job.data field
+ * Base interface for creating profile job data
  */
 export interface IProfileMessageBase {
   // Essential identification
@@ -32,82 +33,43 @@ export interface IProfileMessageBase {
   gender?: string;
 
   // API credentials
-  clientId: string;
-  clientSecret: string;
-  accessToken: string;
+  clientId?: string;
+  clientSecret?: string;
+  accessToken?: string;
 }
 
-/**
- * Profile Message DTO for BullMQ
- *
- * Simplified wrapper around QueueMessageDto that contains only:
- * - data: Profile data payload (IProfileMessageBase)
- * - priority: Job priority (0-10)
- * - source: Source service/component
- * - attempts: Retry attempts
- * - metadata: Additional job metadata
- *
- * All profile-specific properties are stored in data field.
- */
-export class ProfileMessageDto extends QueueMessageDto<IProfileMessageBase> {
-  private static isQueueMessageBase<T>(params: any): params is IQueueMessageBase<T> {
-    return !!params && typeof params === 'object' && 'data' in (params as any);
-  }
+export class ProfileMessageDto {
+  public readonly name: string;
+  public readonly data: IProfileMessageBase;
+  public readonly opts?: JobsOptions;
 
-  private static isProfileCreateParams(
-    params: any,
-  ): params is Omit<Partial<IProfileMessageBase>, 'guid'> &
-    Pick<IProfileMessageBase, 'name' | 'realm'> {
-    return (
-      !!params && typeof params === 'object' && 'name' in params && 'realm' in params
-    );
-  }
+  private static readonly profileLogger = new Logger(ProfileMessageDto.name);
 
-  constructor(params: any) {
-    const messageParams = params ?? {};
-    const { data, priority, source, attempts, metadata, ...rest } = messageParams;
-    const profileData = data ? { ...rest, ...data } : rest;
-
-    super({
-      data: profileData,
-      priority: priority ?? 5,
-      source: source ?? 'osint',
-      attempts,
-      metadata,
-    });
+  /**
+   * Constructor - creates a validated Profile Message with BullMQ properties
+   * @param name - Queue name (e.g., 'osint.profiles')
+   * @param data - Profile message data
+   * @param opts - BullMQ job options (optional)
+   */
+  constructor(name: string, data: IProfileMessageBase, opts?: JobsOptions) {
+    this.name = name;
+    this.data = data;
+    this.opts = opts;
   }
 
   /**
-   * Create with auto-generated guid from name and realm
+   * Create from profile data with BullMQ options
+   * @param data - Profile data
+   * @param opts - Optional job options
+   * @returns New ProfileMessageDto instance
    */
-  static create<T>(params: IQueueMessageBase<T>): QueueMessageDto<T>;
-  static create(
-    data: Omit<Partial<IProfileMessageBase>, 'guid'> &
-      Pick<IProfileMessageBase, 'name' | 'realm'>,
-  ): ProfileMessageDto;
-  static create(
-    params:
-      | IQueueMessageBase<IProfileMessageBase>
-      | (Omit<Partial<IProfileMessageBase>, 'guid'> &
-          Pick<IProfileMessageBase, 'name' | 'realm'>),
-  ): QueueMessageDto<IProfileMessageBase> | ProfileMessageDto {
-    if (ProfileMessageDto.isQueueMessageBase(params)) {
-      return QueueMessageDto.create(params);
-    }
+  static create(data: IProfileMessageBase, opts?: JobsOptions): ProfileMessageDto {
+    const mergedOpts = {
+      ...profileQueue.defaultJobOptions,
+      ...opts,
+    };
 
-    if (!ProfileMessageDto.isProfileCreateParams(params)) {
-      throw new Error(
-        'ProfileMessageDto.create expected profile params with name and realm.',
-      );
-    }
-
-    const guid = `${params.name}@${params.realm}`;
-    const dto = new ProfileMessageDto({
-      ...params,
-      guid,
-      createdBy: params.createdBy || params.updatedBy,
-    });
-    dto.validate(false, 'ProfileMessageDto.create');
+    const dto = new ProfileMessageDto(profileQueue.name, data, mergedOpts);
     return dto;
   }
 
@@ -118,7 +80,7 @@ export class ProfileMessageDto extends QueueMessageDto<IProfileMessageBase> {
    * @throws Error if validation fails and strict is true
    */
   validate(strict: boolean = true, logTag?: string): void {
-    const profileData = this.data as IProfileMessageBase | undefined;
+    const profileData = this.data;
 
     if (
       profileData?.name &&
@@ -128,7 +90,7 @@ export class ProfileMessageDto extends QueueMessageDto<IProfileMessageBase> {
       if (strict) {
         throw new Error(message);
       } else {
-        this.logger.warn({
+        this.profileLogger.warn({
           logTag: logTag || 'ProfileMessageDto.validate',
           message,
           name: profileData?.name,
@@ -144,7 +106,7 @@ export class ProfileMessageDto extends QueueMessageDto<IProfileMessageBase> {
       if (strict) {
         throw new Error(message);
       } else {
-        this.logger.warn({
+        this.profileLogger.warn({
           logTag: logTag || 'ProfileMessageDto.validate',
           message,
           realm: profileData?.realm,
@@ -157,7 +119,7 @@ export class ProfileMessageDto extends QueueMessageDto<IProfileMessageBase> {
       if (strict) {
         throw new Error(message);
       } else {
-        this.logger.warn({
+        this.profileLogger.warn({
           logTag: logTag || 'ProfileMessageDto.validate',
           message,
           region: profileData?.region,
@@ -172,7 +134,7 @@ export class ProfileMessageDto extends QueueMessageDto<IProfileMessageBase> {
         (field) => !profileData?.[field] || profileData?.[field] === undefined,
       );
       if (missingCredentials.length > 0) {
-        this.logger.warn({
+        this.profileLogger.warn({
           logTag: logTag || 'ProfileMessageDto.validate',
           message: `Missing optional credentials: ${missingCredentials.join(', ')}`,
           name: profileData?.name,
@@ -180,8 +142,5 @@ export class ProfileMessageDto extends QueueMessageDto<IProfileMessageBase> {
         });
       }
     }
-
-    // Call parent validation
-    super.validate(strict);
   }
 }
