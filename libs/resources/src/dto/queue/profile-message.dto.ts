@@ -90,7 +90,7 @@ export class ProfileMessageDto {
       if (strict) {
         throw new Error(message);
       } else {
-        this.profileLogger.warn({
+        ProfileMessageDto.profileLogger.warn({
           logTag: logTag || 'ProfileMessageDto.validate',
           message,
           name: profileData?.name,
@@ -106,7 +106,7 @@ export class ProfileMessageDto {
       if (strict) {
         throw new Error(message);
       } else {
-        this.profileLogger.warn({
+        ProfileMessageDto.profileLogger.warn({
           logTag: logTag || 'ProfileMessageDto.validate',
           message,
           realm: profileData?.realm,
@@ -119,7 +119,7 @@ export class ProfileMessageDto {
       if (strict) {
         throw new Error(message);
       } else {
-        this.profileLogger.warn({
+        ProfileMessageDto.profileLogger.warn({
           logTag: logTag || 'ProfileMessageDto.validate',
           message,
           region: profileData?.region,
@@ -134,7 +134,7 @@ export class ProfileMessageDto {
         (field) => !profileData?.[field] || profileData?.[field] === undefined,
       );
       if (missingCredentials.length > 0) {
-        this.profileLogger.warn({
+        ProfileMessageDto.profileLogger.warn({
           logTag: logTag || 'ProfileMessageDto.validate',
           message: `Missing optional credentials: ${missingCredentials.join(', ')}`,
           name: profileData?.name,
