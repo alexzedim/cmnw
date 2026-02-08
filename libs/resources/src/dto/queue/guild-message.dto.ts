@@ -1,8 +1,9 @@
 import { toGuid } from '../../transformers';
 import { OSINT_SOURCE, TIME_MS } from '../../constants';
 import { Logger } from '@nestjs/common';
-import { IQueueMessageBase, QueueMessageDto } from '@app/resources/dto/queue';
+import { JobsOptions } from 'bullmq';
 import { RegionIdOrName } from '@alexzedim/blizzapi';
+import { guildsQueue } from '../../queues/guilds.queue';
 
 /**
  * Guild Message DTO for BullMQ
@@ -37,6 +38,14 @@ export interface IGuildMessageBase {
   name: string;
   /** Realm slug (will be converted to kebab-case for guid) */
   realm: string;
+  /** Realm ID (for Hall of Fame) */
+  realmId?: number;
+  /** Realm name (for Hall of Fame) */
+  realmName?: string;
+  /** Faction (for Hall of Fame) */
+  faction?: string;
+  /** Iteration number (for guild index and WoW Progress) */
+  iteration?: number;
   /** API key credentials */
   clientId?: string;
   clientSecret?: string;
@@ -51,77 +60,49 @@ export interface IGuildMessageBase {
   createdBy?: OSINT_SOURCE;
 }
 
-export class GuildMessageDto extends QueueMessageDto<IGuildMessageBase> {
+export class GuildMessageDto {
+  public readonly name: string;
+  public readonly data: IGuildMessageBase;
+  public readonly opts?: JobsOptions;
+
   private static readonly guildLogger = new Logger(GuildMessageDto.name);
-
-  private static isQueueMessageBase<T>(params: any): params is IQueueMessageBase<T> {
-    return !!params && typeof params === 'object' && 'data' in (params as any);
-  }
-
-  /**
-   * Private static method to perform type guard
-   * @param params - any to be validated
-   * @returns true if params has 'name' and 'realm' fields
-   */
-  private static isGuildCreateParams(
-    params: any,
-  ): params is Omit<Partial<IGuildMessageBase>, 'guid'> &
-    Pick<IGuildMessageBase, 'name' | 'realm'> {
-    return (
-      !!params && typeof params === 'object' && 'name' in params && 'realm' in params
-    );
-  }
 
   /**
    * Constructor - creates a validated Guild Message with BullMQ properties
-   * @param params - Guild message parameters
+   * @param name - Queue name (e.g., 'osint.guilds')
+   * @param data - Guild message data
+   * @param opts - BullMQ job options (optional)
    */
-  constructor(params: any) {
-    const messageParams = params ?? {};
-    const { data, priority, source, attempts, metadata, ...rest } = messageParams;
-    const guildData = data ? { ...rest, ...data } : rest;
-
-    super({
-      data: guildData,
-      priority: priority ?? 5,
-      source: source ?? OSINT_SOURCE.GUILD_INDEX,
-      attempts,
-      metadata,
-    });
+  constructor(name: string, data: IGuildMessageBase, opts?: JobsOptions) {
+    this.name = name;
+    this.data = data;
+    this.opts = opts;
   }
 
   /**
    * Create with auto-generated guid from name and realm
+   * @param data - Guild data with name and realm
+   * @param opts - Optional job options
    * @returns New GuildMessageDto instance with generated guid
-   * @param params
    */
-  static create<T>(params: IQueueMessageBase<T>): QueueMessageDto<T>;
   static create(
     data: Omit<Partial<IGuildMessageBase>, 'guid'> &
       Pick<IGuildMessageBase, 'name' | 'realm'>,
-  ): GuildMessageDto;
-  static create(
-    params:
-      | IQueueMessageBase<any>
-      | (Omit<Partial<IGuildMessageBase>, 'guid'> &
-          Pick<IGuildMessageBase, 'name' | 'realm'>),
-  ): QueueMessageDto<any> | GuildMessageDto {
-    if (GuildMessageDto.isQueueMessageBase(params)) {
-      return QueueMessageDto.create(params);
-    }
-
-    if (!GuildMessageDto.isGuildCreateParams(params)) {
-      throw new Error(
-        'GuildMessageDto.create expected guild params with name and realm.',
-      );
-    }
-
-    const guid = toGuid(params.name, params.realm);
-    const dto = new GuildMessageDto({
-      ...params,
+    opts?: JobsOptions,
+  ): GuildMessageDto {
+    const guid = toGuid(data.name, data.realm);
+    const guildData: IGuildMessageBase = {
+      ...data,
       guid,
-      createdBy: params.createdBy || params.updatedBy,
-    });
+      createdBy: data.createdBy || data.updatedBy,
+    } as IGuildMessageBase;
+
+    const mergedOpts = {
+      ...guildsQueue.defaultJobOptions,
+      ...opts,
+    };
+
+    const dto = new GuildMessageDto(guildsQueue.name, guildData, mergedOpts);
     dto.validate(false, 'GuildMessageDto.create');
     return dto;
   }
@@ -129,6 +110,7 @@ export class GuildMessageDto extends QueueMessageDto<IGuildMessageBase> {
   /**
    * Create from Guild Characters Unique (discovered from character rosters)
    * Pattern: GuildsService.indexGuildCharactersUnique
+   * Priority: 7
    */
   static fromGuildCharactersUnique(params: {
     name: string;
@@ -138,7 +120,7 @@ export class GuildMessageDto extends QueueMessageDto<IGuildMessageBase> {
     accessToken: string;
   }): GuildMessageDto {
     const guid = toGuid(params.name, params.realm);
-    const dto = new GuildMessageDto({
+    const guildData: IGuildMessageBase = {
       guid,
       name: params.name,
       realm: params.realm,
@@ -150,9 +132,14 @@ export class GuildMessageDto extends QueueMessageDto<IGuildMessageBase> {
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
+    };
+
+    const opts: JobsOptions = {
+      ...guildsQueue.defaultJobOptions,
       priority: 7,
-      source: OSINT_SOURCE.GUILD_CHARACTERS_UNIQUE,
-    });
+    };
+
+    const dto = new GuildMessageDto(guildsQueue.name, guildData, opts);
     dto.validate(false, 'GuildMessageDto.fromGuildCharactersUnique');
     return dto;
   }
@@ -160,6 +147,7 @@ export class GuildMessageDto extends QueueMessageDto<IGuildMessageBase> {
   /**
    * Create from Guild Index (database guild roster)
    * Pattern: GuildsService.indexGuilds
+   * Priority: 5
    */
   static fromGuildIndex(params: {
     guid: string;
@@ -172,7 +160,7 @@ export class GuildMessageDto extends QueueMessageDto<IGuildMessageBase> {
     // All other GuildsEntity fields
     [key: string]: any;
   }): GuildMessageDto {
-    const dto = new GuildMessageDto({
+    const guildData: IGuildMessageBase = {
       ...params,
       region: 'eu',
       forceUpdate: TIME_MS.FOUR_HOURS,
@@ -183,9 +171,14 @@ export class GuildMessageDto extends QueueMessageDto<IGuildMessageBase> {
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
       iteration: params.iteration,
+    };
+
+    const opts: JobsOptions = {
+      ...guildsQueue.defaultJobOptions,
       priority: 5,
-      source: OSINT_SOURCE.GUILD_INDEX,
-    });
+    };
+
+    const dto = new GuildMessageDto(guildsQueue.name, guildData, opts);
     dto.validate(false, 'GuildMessageDto.fromGuildIndex');
     return dto;
   }
@@ -194,6 +187,7 @@ export class GuildMessageDto extends QueueMessageDto<IGuildMessageBase> {
    * Create from Hall of Fame (Blizzard leaderboards)
    * Pattern: GuildsService.indexHallOfFame
    * Note: Only EU region is supported - any other region will be ignored and defaulted to EU
+   * Priority: 9
    */
   static fromHallOfFame(params: {
     id?: number;
@@ -218,7 +212,7 @@ export class GuildMessageDto extends QueueMessageDto<IGuildMessageBase> {
         providedRegion: params.region,
       });
     }
-    const dto = new GuildMessageDto({
+    const guildData: IGuildMessageBase = {
       guid,
       id: params.id,
       name: params.name,
@@ -235,9 +229,14 @@ export class GuildMessageDto extends QueueMessageDto<IGuildMessageBase> {
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
+    };
+
+    const opts: JobsOptions = {
+      ...guildsQueue.defaultJobOptions,
       priority: 9,
-      source: OSINT_SOURCE.TOP100,
-    });
+    };
+
+    const dto = new GuildMessageDto(guildsQueue.name, guildData, opts);
     dto.validate(false, 'GuildMessageDto.fromHallOfFame');
     return dto;
   }
@@ -245,6 +244,7 @@ export class GuildMessageDto extends QueueMessageDto<IGuildMessageBase> {
   /**
    * Create from WoW Progress rankings
    * Pattern: WowProgressRanksService.transformWowProgressToGuildJobs
+   * Priority: 6
    */
   static fromWowProgress(params: {
     name: string;
@@ -255,7 +255,7 @@ export class GuildMessageDto extends QueueMessageDto<IGuildMessageBase> {
     accessToken: string;
   }): GuildMessageDto {
     const guid = toGuid(params.name, params.realm);
-    const dto = new GuildMessageDto({
+    const guildData: IGuildMessageBase = {
       guid,
       name: params.name,
       realm: params.realm,
@@ -268,9 +268,14 @@ export class GuildMessageDto extends QueueMessageDto<IGuildMessageBase> {
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
+    };
+
+    const opts: JobsOptions = {
+      ...guildsQueue.defaultJobOptions,
       priority: 6,
-      source: OSINT_SOURCE.WOW_PROGRESS,
-    });
+    };
+
+    const dto = new GuildMessageDto(guildsQueue.name, guildData, opts);
     dto.validate(false, 'GuildMessageDto.fromWowProgress');
     return dto;
   }
@@ -278,6 +283,7 @@ export class GuildMessageDto extends QueueMessageDto<IGuildMessageBase> {
   /**
    * Create from Guild Request (direct API request for specific guild)
    * Pattern: OsintService.getGuild
+   * Priority: 8
    */
   static fromGuildRequest(params: {
     name: string;
@@ -287,7 +293,7 @@ export class GuildMessageDto extends QueueMessageDto<IGuildMessageBase> {
     accessToken?: string;
   }): GuildMessageDto {
     const guid = toGuid(params.name, params.realm);
-    const dto = new GuildMessageDto({
+    const guildData: IGuildMessageBase = {
       guid,
       name: params.name,
       realm: params.realm,
@@ -299,9 +305,14 @@ export class GuildMessageDto extends QueueMessageDto<IGuildMessageBase> {
       clientId: params.clientId,
       clientSecret: params.clientSecret,
       accessToken: params.accessToken,
+    };
+
+    const opts: JobsOptions = {
+      ...guildsQueue.defaultJobOptions,
       priority: 8,
-      source: OSINT_SOURCE.GUILD_REQUEST,
-    });
+    };
+
+    const dto = new GuildMessageDto(guildsQueue.name, guildData, opts);
     dto.validate(false, 'GuildMessageDto.fromGuildRequest');
     return dto;
   }
@@ -312,11 +323,8 @@ export class GuildMessageDto extends QueueMessageDto<IGuildMessageBase> {
    * @param logTag - Optional log tag for warnings (defaults to 'GuildMessageDto.validate')
    * @throws Error if validation fails and strict is true
    */
-  validate(
-    strict: boolean = true,
-    logTag: string = 'GuildMessageDto.validate',
-  ): void {
-    const guildData = this.data as IGuildMessageBase | undefined;
+  validate(strict: boolean = true, logTag: string = 'GuildMessageDto.validate'): void {
+    const guildData = this.data;
 
     if (guildData?.guid && !guildData.guid.includes('@')) {
       const message = `Validation failed: guid '${guildData.guid}' must contain '@' separator`;
@@ -363,9 +371,6 @@ export class GuildMessageDto extends QueueMessageDto<IGuildMessageBase> {
         });
       }
     }
-
-    // Call parent validation
-    super.validate(strict);
   }
 
   /**
@@ -374,8 +379,9 @@ export class GuildMessageDto extends QueueMessageDto<IGuildMessageBase> {
   static createValidated(
     data: Omit<Partial<IGuildMessageBase>, 'guid'> &
       Pick<IGuildMessageBase, 'name' | 'realm'>,
+    opts?: JobsOptions,
   ): GuildMessageDto {
-    const dto = GuildMessageDto.create(data);
+    const dto = GuildMessageDto.create(data, opts);
     dto.validate();
     return dto;
   }
