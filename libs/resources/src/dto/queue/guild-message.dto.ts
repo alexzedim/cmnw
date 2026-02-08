@@ -323,7 +323,10 @@ export class GuildMessageDto {
    * @param logTag - Optional log tag for warnings (defaults to 'GuildMessageDto.validate')
    * @throws Error if validation fails and strict is true
    */
-  validate(strict: boolean = true, logTag: string = 'GuildMessageDto.validate'): void {
+  validate(
+    strict: boolean = true,
+    logTag: string = 'GuildMessageDto.validate',
+  ): void {
     const guildData = this.data;
 
     if (guildData?.guid && !guildData.guid.includes('@')) {

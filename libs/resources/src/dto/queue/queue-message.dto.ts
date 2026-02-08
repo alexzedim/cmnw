@@ -5,7 +5,7 @@
  * Implements strict output structure: { name: NameType, data: DataType, opts?: JobsOptions }.
  */
 import { Logger } from '@nestjs/common';
-import type { JobsOptions } from '@nestjs/bullmq';
+import type { JobOptions } from '@nestjs/bullmq';
 
 /**
  * Base interface for BullMQ job data
@@ -46,7 +46,7 @@ export class QueueMessageDto<T, NameType extends string> {
   /**
    * BullMQ job options
    */
-  readonly opts?: JobsOptions;
+  readonly opts?: JobOptions;
 
   /**
    * Creates a new QueueMessageDto instance with strict structure
@@ -55,11 +55,7 @@ export class QueueMessageDto<T, NameType extends string> {
    * @param data - The message data
    * @param opts - Optional BullMQ job options
    */
-  constructor(
-    name: NameType,
-    data: T,
-    opts?: JobsOptions,
-  ) {
+  constructor(name: NameType, data: T, opts?: JobOptions) {
     this.name = name;
     this.data = data;
     this.opts = opts;
@@ -76,7 +72,7 @@ export class QueueMessageDto<T, NameType extends string> {
   static create<T, NameType extends string>(
     name: NameType,
     data: T,
-    opts?: JobsOptions,
+    opts?: JobOptions,
   ): QueueMessageDto<T, NameType> {
     const message = new QueueMessageDto(name, data, opts);
     message.validate();
@@ -143,53 +139,5 @@ export class QueueMessageDto<T, NameType extends string> {
         }
       }
     }
-  }
-
-  /**
-   * Get current attempt count from opts
-   *
-   * @returns The number of attempts made
-   */
-  getAttempts(): number {
-    return this.opts?.attempts ?? 0;
-  }
-
-  /**
-   * Get priority from opts
-   *
-   * @returns The priority level (0-10)
-   */
-  getPriority(): number {
-    return this.opts?.priority ?? 5;
-  }
-
-  /**
-   * Get source from metadata
-   *
-   * @returns The source string
-   */
-  getSource(): string {
-    return (this.opts?.metadata as Record<string, unknown> | undefined)?.source as string ?? 'unknown';
-  }
-
-  /**
-   * Increment retry attempt counter in opts
-   *
-   * @returns New message instance with incremented attempts
-   */
-  incrementAttempts(): QueueMessageDto<T, NameType> {
-    return new QueueMessageDto(this.name, this.data, {
-      ...this.opts,
-      attempts: (this.opts?.attempts ?? 0) + 1,
-    });
-  }
-
-  /**
-   * Convert to BullMQ job options
-   *
-   * @returns BullMQ job options
-   */
-  toBullMQOptions(): JobsOptions {
-    return this.opts ?? {};
   }
 }
