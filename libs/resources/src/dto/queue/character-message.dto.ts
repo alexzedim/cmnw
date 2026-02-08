@@ -1,6 +1,6 @@
 import { Logger } from '@nestjs/common';
-import { OSINT_SOURCE } from '../../constants';
-import { toGuid } from '../../transformers';
+import { OSINT_SOURCE } from '@app/resources/constants';
+import { toGuid } from '@app/resources/transformers';
 import { QueueMessageDto } from '@app/resources/dto/queue';
 import { charactersQueue } from '@app/resources/queues/characters.queue';
 import { JobsOptions } from 'bullmq';
@@ -154,7 +154,7 @@ export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> 
       },
       {
         priority: 7,
-        source: OSINT_SOURCE.MYTHIC_PLUS,
+        metadata: { source: OSINT_SOURCE.MYTHIC_PLUS },
       },
     );
   }
@@ -186,7 +186,7 @@ export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> 
       },
       {
         priority: 7,
-        source: OSINT_SOURCE.PVP_LADDER,
+        metadata: { source: OSINT_SOURCE.PVP_LADDER },
       },
     );
   }
@@ -214,7 +214,7 @@ export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> 
       },
       {
         priority: 8,
-        source: OSINT_SOURCE.WARCRAFT_LOGS,
+        metadata: { source: OSINT_SOURCE.WARCRAFT_LOGS },
       },
     );
   }
@@ -246,7 +246,7 @@ export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> 
       },
       {
         priority: 6,
-        source: OSINT_SOURCE.WOW_PROGRESS_LFG,
+        metadata: { source: OSINT_SOURCE.WOW_PROGRESS_LFG },
       },
     );
   }
@@ -263,6 +263,7 @@ export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> 
     guild: string;
     guildGuid: string;
     guildId: number;
+    guildRank?: number;
     class: string | null;
     race?: string | null;
     faction?: string | null;
@@ -295,8 +296,7 @@ export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> 
       },
       {
         priority: 9,
-        source: OSINT_SOURCE.GUILD_ROSTER,
-        metadata: { guid },
+        metadata: { source: OSINT_SOURCE.GUILD_ROSTER, guid },
       },
     );
   }
@@ -332,8 +332,7 @@ export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> 
       },
       {
         priority: 5,
-        source: OSINT_SOURCE.CHARACTER_INDEX,
-        metadata: { characterId: params.id },
+        metadata: { source: OSINT_SOURCE.CHARACTER_INDEX, characterId: params.id },
       },
     );
   }
@@ -385,8 +384,7 @@ export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> 
       },
       {
         priority: 3,
-        source: OSINT_SOURCE.GUILD_ROSTER,
-        metadata: { guid },
+        metadata: { source: OSINT_SOURCE.GUILD_ROSTER, guid },
       },
     );
   }
@@ -417,7 +415,7 @@ export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> 
       },
       {
         priority: 2,
-        source: OSINT_SOURCE.OSINT_MIGRATION,
+        metadata: { source: OSINT_SOURCE.OSINT_MIGRATION },
       },
     );
   }
@@ -445,7 +443,7 @@ export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> 
       },
       {
         priority: 10,
-        source: OSINT_SOURCE.CHARACTER_REQUEST,
+        metadata: { source: OSINT_SOURCE.CHARACTER_REQUEST },
       },
     );
   }
