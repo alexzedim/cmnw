@@ -5,7 +5,7 @@
  * Implements strict output structure: { name: NameType, data: DataType, opts?: JobsOptions }.
  */
 import { Logger } from '@nestjs/common';
-import type { JobOptions } from '@nestjs/bullmq';
+import { JobsOptions } from 'bullmq';
 
 /**
  * Base interface for BullMQ job data
@@ -46,7 +46,7 @@ export class QueueMessageDto<T, NameType extends string> {
   /**
    * BullMQ job options
    */
-  readonly opts?: JobOptions;
+  readonly opts?: JobsOptions;
 
   /**
    * Creates a new QueueMessageDto instance with strict structure
@@ -55,7 +55,7 @@ export class QueueMessageDto<T, NameType extends string> {
    * @param data - The message data
    * @param opts - Optional BullMQ job options
    */
-  constructor(name: NameType, data: T, opts?: JobOptions) {
+  constructor(name: NameType, data: T, opts?: JobsOptions) {
     this.name = name;
     this.data = data;
     this.opts = opts;
@@ -72,7 +72,7 @@ export class QueueMessageDto<T, NameType extends string> {
   static create<T, NameType extends string>(
     name: NameType,
     data: T,
-    opts?: JobOptions,
+    opts?: JobsOptions,
   ): QueueMessageDto<T, NameType> {
     const message = new QueueMessageDto(name, data, opts);
     message.validate();
