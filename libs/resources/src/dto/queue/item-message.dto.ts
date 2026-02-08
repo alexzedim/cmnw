@@ -1,62 +1,50 @@
-import { IQueueMessageBase, QueueMessageDto } from '@app/resources/dto/queue';
-import { ItemJobQueue } from '@app/resources/types/queue/queue.type';
+import { Logger } from '@nestjs/common';
+import { JobsOptions } from 'bullmq';
+import { itemsQueue } from '../../queues/items.queue';
 
 /**
- * Item Message DTO for BullMQ
- *
- * Wraps ItemJobQueue with BullMQ-specific properties.
- * Used for item data synchronization from Blizzard API.
+ * Base interface for creating item job data
  */
-export class ItemMessageDto extends QueueMessageDto<ItemJobQueue> {
-  private static isQueueMessageBase<T>(params: any): params is IQueueMessageBase<T> {
-    return !!params && typeof params === 'object' && 'data' in (params as any);
-  }
+export interface IItemMessageBase {
+  itemId: number;
+  name?: string;
+  realmId?: number;
+  region?: 'eu' | 'us' | 'kr' | 'tw';
+  source?: string;
+}
 
-  private static isItemCreateParams(
-    params: any,
-  ): params is Omit<Partial<ItemMessageDto>, 'itemId'> &
-    Pick<ItemJobQueue, 'itemId'> {
-    return !!params && typeof params === 'object' && 'itemId' in params;
-  }
+export class ItemMessageDto {
+  public readonly name: string;
+  public readonly data: IItemMessageBase;
+  public readonly opts?: JobsOptions;
 
-  constructor(params: any) {
-    const messageParams = params ?? {};
-    const { data, priority, source, attempts, metadata, ...rest } = messageParams;
-    const itemData = data ? { ...rest, ...data } : rest;
+  private static readonly itemLogger = new Logger(ItemMessageDto.name);
 
-    super({
-      data: itemData,
-      priority: priority ?? 5,
-      source: source ?? 'dma',
-      attempts,
-      metadata,
-    });
+  /**
+   * Constructor - creates a validated Item Message with BullMQ properties
+   * @param name - Queue name (e.g., 'dma.items')
+   * @param data - Item message data
+   * @param opts - BullMQ job options (optional)
+   */
+  constructor(name: string, data: IItemMessageBase, opts?: JobsOptions) {
+    this.name = name;
+    this.data = data;
+    this.opts = opts;
   }
 
   /**
    * Create from item data with BullMQ options
+   * @param data - Item data
+   * @param opts - Optional job options
+   * @returns New ItemMessageDto instance
    */
-  static create<T>(params: IQueueMessageBase<T>): QueueMessageDto<T>;
-  static create(
-    data: Omit<Partial<ItemJobQueue>, 'itemId'> & Pick<ItemJobQueue, 'itemId'>,
-  ): ItemMessageDto;
-  static create(
-    params:
-      | IQueueMessageBase<ItemJobQueue>
-      | (Omit<Partial<ItemJobQueue>, 'itemId'> & Pick<ItemJobQueue, 'itemId'>),
-  ): QueueMessageDto<ItemJobQueue> | ItemMessageDto {
-    if (ItemMessageDto.isQueueMessageBase(params)) {
-      return QueueMessageDto.create(params);
-    }
+  static create(data: IItemMessageBase, opts?: JobsOptions): ItemMessageDto {
+    const mergedOpts = {
+      ...itemsQueue.defaultJobOptions,
+      ...opts,
+    };
 
-    if (!ItemMessageDto.isItemCreateParams(params)) {
-      throw new Error('ItemMessageDto.create expected item params with itemId.');
-    }
-
-    return new ItemMessageDto({
-      data: params,
-      priority: params.priority ?? 5,
-      source: params.source ?? 'dma',
-    });
+    const dto = new ItemMessageDto(itemsQueue.name, data, mergedOpts);
+    return dto;
   }
 }
