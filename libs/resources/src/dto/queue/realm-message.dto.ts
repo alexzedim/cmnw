@@ -1,61 +1,51 @@
-import { IQueueMessageBase, QueueMessageDto } from '@app/resources/dto/queue';
-import { RealmJobQueue } from '@app/resources/types/queue/queue.type';
+import { Logger } from '@nestjs/common';
+import { JobsOptions } from 'bullmq';
+import { realmsQueue } from '../../queues/realms.queue';
 
 /**
- * Realm Message DTO for BullMQ
- *
- * Wraps RealmJobQueue with BullMQ-specific properties.
- * Used for realm data synchronization from Blizzard API.
+ * Base interface for creating realm job data
  */
-export class RealmMessageDto extends QueueMessageDto<RealmJobQueue> {
-  private static isQueueMessageBase<T>(params: any): params is IQueueMessageBase<T> {
-    return !!params && typeof params === 'object' && 'data' in (params as any);
-  }
+export interface IRealmMessageBase {
+  id: number;
+  name: string;
+  slug: string;
+  region: 'eu' | 'us' | 'kr' | 'tw';
+  connectedRealmId?: number;
+  source?: string;
+}
 
-  private static isRealmCreateParams(
-    params: any,
-  ): params is Omit<Partial<RealmMessageDto>, 'id'> & Pick<RealmJobQueue, 'id'> {
-    return !!params && typeof params === 'object' && 'id' in params;
-  }
+export class RealmMessageDto {
+  public readonly name: string;
+  public readonly data: IRealmMessageBase;
+  public readonly opts?: JobsOptions;
 
-  constructor(params: any) {
-    const messageParams = params ?? {};
-    const { data, priority, source, attempts, metadata, ...rest } = messageParams;
-    const realmData = data ? { ...rest, ...data } : rest;
+  private static readonly realmLogger = new Logger(RealmMessageDto.name);
 
-    super({
-      data: realmData,
-      priority: priority ?? 5,
-      source: source ?? 'core',
-      attempts,
-      metadata,
-    });
+  /**
+   * Constructor - creates a validated Realm Message with BullMQ properties
+   * @param name - Queue name (e.g., 'core.realms')
+   * @param data - Realm message data
+   * @param opts - BullMQ job options (optional)
+   */
+  constructor(name: string, data: IRealmMessageBase, opts?: JobsOptions) {
+    this.name = name;
+    this.data = data;
+    this.opts = opts;
   }
 
   /**
    * Create from realm data with BullMQ options
+   * @param data - Realm data
+   * @param opts - Optional job options
+   * @returns New RealmMessageDto instance
    */
-  static create<T>(params: IQueueMessageBase<T>): QueueMessageDto<T>;
-  static create(
-    data: Omit<Partial<RealmMessageDto>, 'id'> & Pick<RealmJobQueue, 'id'>,
-  ): RealmMessageDto;
-  static create(
-    params:
-      | IQueueMessageBase<RealmJobQueue>
-      | (Omit<Partial<RealmMessageDto>, 'id'> & Pick<RealmJobQueue, 'id'>),
-  ): QueueMessageDto<RealmJobQueue> | RealmMessageDto {
-    if (RealmMessageDto.isQueueMessageBase(params)) {
-      return QueueMessageDto.create(params);
-    }
+  static create(data: IRealmMessageBase, opts?: JobsOptions): RealmMessageDto {
+    const mergedOpts = {
+      ...realmsQueue.defaultJobOptions,
+      ...opts,
+    };
 
-    if (!RealmMessageDto.isRealmCreateParams(params)) {
-      throw new Error('RealmMessageDto.create expected realm params with id.');
-    }
-
-    return new RealmMessageDto({
-      data: params,
-      priority: params.priority ?? 5,
-      source: params.source ?? 'core',
-    });
+    const dto = new RealmMessageDto(realmsQueue.name, data, mergedOpts);
+    return dto;
   }
 }
