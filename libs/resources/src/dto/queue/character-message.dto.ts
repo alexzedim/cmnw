@@ -1,7 +1,9 @@
 import { Logger } from '@nestjs/common';
-import { OSINT_SOURCE, TIME_MS } from '../../constants';
+import { OSINT_SOURCE } from '../../constants';
 import { toGuid } from '../../transformers';
-import { IQueueMessageBase, QueueMessageDto } from '@app/resources/dto/queue';
+import { QueueMessageDto } from '@app/resources/dto/queue';
+import { charactersQueue } from '@app/resources/queues/characters.queue';
+import { JobsOptions } from 'bullmq';
 
 /**
  * Base interface for character job data payload
@@ -90,69 +92,45 @@ export interface ICharacterMessageBase {
 export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> {
   private static readonly characterLogger = new Logger(CharacterMessageDto.name);
 
-  private static isQueueMessageBase<T>(params: any): params is IQueueMessageBase<T> {
-    return !!params && typeof params === 'object' && 'data' in (params as any);
-  }
+  /**
+   * Creates a new CharacterMessageDto instance with strict structure
+   *
+   * @param name - The queue name (derived from queue definition)
+   * @param data - The message data
+   * @param opts - Optional BullMQ job options
+   */
+  constructor(name: string, data: ICharacterMessageBase, opts?: JobsOptions) {
+    // Merge default job options from queue definition with provided opts
+    const mergedOpts = {
+      ...charactersQueue.defaultJobOptions,
+      ...opts,
+    };
 
-  private static isCharacterCreateParams(
-    params: any,
-  ): params is Omit<Partial<ICharacterMessageBase>, 'guid'> &
-    Pick<ICharacterMessageBase, 'name' | 'realm'> {
-    return (
-      !!params && typeof params === 'object' && 'name' in params && 'realm' in params
-    );
-  }
-
-  constructor(params: any) {
-    const messageParams = params ?? {};
-    const { data, priority, source, attempts, metadata, ...rest } = messageParams;
-    const characterData = data ? { ...rest, ...data } : rest;
-
-    super({
-      data: characterData,
-      priority: priority ?? 5,
-      source: source ?? OSINT_SOURCE.CHARACTER_INDEX,
-      attempts,
-      metadata,
-    });
+    super(name, data, mergedOpts);
   }
 
   /**
-   * Create with auto-generated guid from name and realm
+   * Creates a message with validation (backward compatibility)
+   *
+   * @param name - The queue name
+   * @param data - The message data
+   * @param opts - Optional BullMQ job options
+   * @returns Validated CharacterMessageDto instance
    */
-  static create<T>(params: IQueueMessageBase<T>): QueueMessageDto<T>;
-  static create(
-    data: Omit<Partial<ICharacterMessageBase>, 'guid'> &
-      Pick<ICharacterMessageBase, 'name' | 'realm'>,
-  ): CharacterMessageDto;
-  static create(
-    params:
-      | IQueueMessageBase<any>
-      | (Omit<Partial<ICharacterMessageBase>, 'guid'> &
-          Pick<ICharacterMessageBase, 'name' | 'realm'>),
-  ): QueueMessageDto<any> | CharacterMessageDto {
-    if (CharacterMessageDto.isQueueMessageBase(params)) {
-      return QueueMessageDto.create(params);
-    }
-
-    if (!CharacterMessageDto.isCharacterCreateParams(params)) {
-      throw new Error(
-        'CharacterMessageDto.create expected character params with name and realm.',
-      );
-    }
-
-    const guid = toGuid(params.name, params.realm);
-    const dto = new CharacterMessageDto({
-      ...params,
-      guid,
-      createdBy: params.createdBy || params.updatedBy,
-    });
-    dto.validate(false, 'CharacterMessageDto.create');
-    return dto;
+  static create<T>(
+    name: string,
+    data: T,
+    opts?: JobsOptions,
+  ): CharacterMessageDto<T> {
+    const message = new CharacterMessageDto(name, data, opts);
+    message.validate(false, 'CharacterMessageDto.create');
+    return message;
   }
 
   /**
    * Create from Mythic+ Ladder data
+   *
+   * Priority: 7 (High - user-initiated competitive content)
    */
   static fromMythicPlusLadder(params: {
     id: number;
@@ -163,29 +141,28 @@ export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> 
     clientSecret: string;
     accessToken: string;
   }): CharacterMessageDto {
-    const guid = toGuid(params.name, params.realm);
-    const dto = new CharacterMessageDto({
-      guid,
-      name: params.name,
-      realm: params.realm,
-      faction: params.faction,
-      forceUpdate: TIME_MS.FOUR_HOURS,
-      region: 'eu',
-      createdBy: OSINT_SOURCE.MYTHIC_PLUS,
-      updatedBy: OSINT_SOURCE.MYTHIC_PLUS,
-      createOnlyUnique: true,
-      clientId: params.clientId,
-      clientSecret: params.clientSecret,
-      accessToken: params.accessToken,
-      priority: 7,
-      source: OSINT_SOURCE.MYTHIC_PLUS,
-    });
-    dto.validate(false, 'CharacterMessageDto.fromMythicPlusLadder');
-    return dto;
+    return CharacterMessageDto.create(
+      'osint.characters',
+      {
+        id: params.id,
+        name: params.name,
+        realm: params.realm,
+        faction: params.faction,
+        clientId: params.clientId,
+        clientSecret: params.clientSecret,
+        accessToken: params.accessToken,
+      },
+      {
+        priority: 7,
+        source: OSINT_SOURCE.MYTHIC_PLUS,
+      },
+    );
   }
 
   /**
    * Create from PvP Ladder data
+   *
+   * Priority: 7 (High - user-initiated competitive content)
    */
   static fromPvPLadder(params: {
     name: string;
@@ -196,30 +173,28 @@ export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> 
     clientSecret: string;
     accessToken: string;
   }): CharacterMessageDto {
-    const guid = toGuid(params.name, params.realm);
-    const dto = new CharacterMessageDto({
-      guid,
-      name: params.name,
-      realm: params.realm,
-      faction: params.faction,
-      iteration: params.iteration,
-      forceUpdate: TIME_MS.FOUR_HOURS,
-      region: 'eu',
-      createdBy: OSINT_SOURCE.PVP_LADDER,
-      updatedBy: OSINT_SOURCE.PVP_LADDER,
-      createOnlyUnique: true,
-      clientId: params.clientId,
-      clientSecret: params.clientSecret,
-      accessToken: params.accessToken,
-      priority: 7,
-      source: OSINT_SOURCE.PVP_LADDER,
-    });
-    dto.validate(false, 'CharacterMessageDto.fromPvPLadder');
-    return dto;
+    return CharacterMessageDto.create(
+      'osint.characters',
+      {
+        name: params.name,
+        realm: params.realm,
+        faction: params.faction,
+        iteration: params.iteration,
+        clientId: params.clientId,
+        clientSecret: params.clientSecret,
+        accessToken: params.accessToken,
+      },
+      {
+        priority: 7,
+        source: OSINT_SOURCE.PVP_LADDER,
+      },
+    );
   }
 
   /**
    * Create from Warcraft Logs raid data
+   *
+   * Priority: 8 (Very High - official API data)
    */
   static fromWarcraftLogs(params: {
     name: string;
@@ -228,28 +203,26 @@ export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> 
     clientSecret: string;
     accessToken: string;
   }): CharacterMessageDto {
-    const guid = toGuid(params.name, params.realm);
-    const dto = new CharacterMessageDto({
-      guid,
-      name: params.name,
-      realm: params.realm,
-      forceUpdate: TIME_MS.ONE_MINUTE,
-      region: 'eu',
-      createdBy: OSINT_SOURCE.WARCRAFT_LOGS,
-      updatedBy: OSINT_SOURCE.WARCRAFT_LOGS,
-      createOnlyUnique: true,
-      clientId: params.clientId,
-      clientSecret: params.clientSecret,
-      accessToken: params.accessToken,
-      priority: 8,
-      source: OSINT_SOURCE.WARCRAFT_LOGS,
-    });
-    dto.validate(false, 'CharacterMessageDto.fromWarcraftLogs');
-    return dto;
+    return CharacterMessageDto.create(
+      'osint.characters',
+      {
+        name: params.name,
+        realm: params.realm,
+        clientId: params.clientId,
+        clientSecret: params.clientSecret,
+        accessToken: params.accessToken,
+      },
+      {
+        priority: 8,
+        source: OSINT_SOURCE.WARCRAFT_LOGS,
+      },
+    );
   }
 
   /**
    * Create from WoW Progress LFG data
+   *
+   * Priority: 6 (Medium - community-driven content)
    */
   static fromWowProgressLfg(params: {
     name: string;
@@ -260,30 +233,28 @@ export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> 
     clientSecret: string;
     accessToken: string;
   }): CharacterMessageDto {
-    const guid = toGuid(params.name, params.realm);
-    const dto = new CharacterMessageDto({
-      guid,
-      name: params.name,
-      realm: params.realm,
-      realmId: params.realmId,
-      realmName: params.realmName,
-      forceUpdate: TIME_MS.THIRTY_MINUTES,
-      region: 'eu',
-      createdBy: OSINT_SOURCE.WOW_PROGRESS_LFG,
-      updatedBy: OSINT_SOURCE.WOW_PROGRESS_LFG,
-      createOnlyUnique: false,
-      clientId: params.clientId,
-      clientSecret: params.clientSecret,
-      accessToken: params.accessToken,
-      priority: 6,
-      source: OSINT_SOURCE.WOW_PROGRESS_LFG,
-    });
-    dto.validate(false, 'CharacterMessageDto.fromWowProgressLfg');
-    return dto;
+    return CharacterMessageDto.create(
+      'osint.characters',
+      {
+        name: params.name,
+        realm: params.realm,
+        realmId: params.realmId,
+        realmName: params.realmName,
+        clientId: params.clientId,
+        clientSecret: params.clientSecret,
+        accessToken: params.accessToken,
+      },
+      {
+        priority: 6,
+        source: OSINT_SOURCE.WOW_PROGRESS_LFG,
+      },
+    );
   }
 
   /**
    * Create from Guild Roster (Guild Master)
+   *
+   * Priority: 9 (Very High - guild leadership data)
    */
   static fromGuildMaster(params: {
     id: number;
@@ -295,45 +266,45 @@ export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> 
     class: string | null;
     race?: string | null;
     faction?: string | null;
-    level: number | null;
+    level?: number | null;
     lastModified: Date;
     clientId: string;
     clientSecret: string;
     accessToken: string;
   }): CharacterMessageDto {
     const guid = toGuid(params.name, params.realm);
-    const resolvedFaction = params.faction ?? undefined;
-    const dto = new CharacterMessageDto({
-      guid,
-      id: params.id,
-      name: params.name,
-      realm: params.realm,
-      guild: params.guild,
-      guildGuid: params.guildGuid,
-      guildId: params.guildId,
-      guildRank: 0,
-      class: params.class || undefined,
-      race: params.race || undefined,
-      faction: resolvedFaction,
-      level: params.level || undefined,
-      lastModified: params.lastModified,
-      forceUpdate: TIME_MS.IMMEDIATE,
-      region: 'eu',
-      createdBy: OSINT_SOURCE.GUILD_ROSTER,
-      updatedBy: OSINT_SOURCE.GUILD_ROSTER,
-      createOnlyUnique: false,
-      clientId: params.clientId,
-      clientSecret: params.clientSecret,
-      accessToken: params.accessToken,
-      priority: 9,
-      source: OSINT_SOURCE.GUILD_ROSTER,
-    });
-    dto.validate(false, 'CharacterMessageDto.fromGuildMaster');
-    return dto;
+
+    return CharacterMessageDto.create(
+      'osint.characters',
+      {
+        id: params.id,
+        name: params.name,
+        realm: params.realm,
+        guild: params.guild,
+        guildGuid: params.guildGuid,
+        guildId: params.guildId,
+        guildRank: params.guildRank,
+        class: params.class,
+        race: params.race,
+        faction: params.faction,
+        level: params.level,
+        lastModified: params.lastModified,
+        clientId: params.clientId,
+        clientSecret: params.clientSecret,
+        accessToken: params.accessToken,
+      },
+      {
+        priority: 9,
+        source: OSINT_SOURCE.GUILD_ROSTER,
+        metadata: { guid },
+      },
+    );
   }
 
   /**
    * Create from Character Index (database)
+   *
+   * Priority: 5 (Medium - periodic database indexing)
    */
   static fromCharacterIndex(params: {
     guid: string;
@@ -345,28 +316,32 @@ export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> 
     accessToken: string;
     [key: string]: any;
   }): CharacterMessageDto {
-    const { id: characterId, ...rest } = params;
-    const dto = new CharacterMessageDto({
-      ...rest,
-      characterId,
-      region: 'eu',
-      forceUpdate: TIME_MS.TWELVE_HOURS,
-      createdBy: OSINT_SOURCE.CHARACTER_INDEX,
-      updatedBy: OSINT_SOURCE.CHARACTER_INDEX,
-      createOnlyUnique: false,
-      clientId: params.clientId,
-      clientSecret: params.clientSecret,
-      accessToken: params.accessToken,
-      iteration: params.iteration,
-      priority: 5,
-      source: OSINT_SOURCE.CHARACTER_INDEX,
-    });
-    dto.validate(false, 'CharacterMessageDto.fromCharacterIndex');
-    return dto;
+    const { id, ...rest } = params;
+
+    return CharacterMessageDto.create(
+      'osint.characters',
+      {
+        guid: params.guid,
+        name: params.name,
+        realm: params.realm,
+        ...rest,
+        clientId: params.clientId,
+        clientSecret: params.clientSecret,
+        accessToken: params.accessToken,
+        iteration: params.iteration,
+      },
+      {
+        priority: 5,
+        source: OSINT_SOURCE.CHARACTER_INDEX,
+        metadata: { characterId: params.id },
+      },
+    );
   }
 
   /**
    * Create from Guild Member (non-guild master)
+   *
+   * Priority: 3 (Low - regular guild membership updates)
    */
   static fromGuildMember(params: {
     id?: number;
@@ -379,46 +354,47 @@ export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> 
     guildId: number;
     guildRank: number;
     class: string | null;
-    faction: string;
-    level: number | null;
+    faction?: string | null;
+    level?: number | null;
     lastModified: Date;
     clientId: string;
     clientSecret: string;
     accessToken: string;
   }): CharacterMessageDto {
     const guid = toGuid(params.name, params.realm);
-    const dto = new CharacterMessageDto({
-      guid,
-      id: params.id,
-      name: params.name,
-      realm: params.realm,
-      realmId: params.realmId,
-      realmName: params.realmName,
-      guild: params.guild,
-      guildGuid: params.guildGuid,
-      guildId: params.guildId,
-      guildRank: params.guildRank,
-      class: params.class || undefined,
-      faction: params.faction,
-      level: params.level || undefined,
-      lastModified: params.lastModified,
-      forceUpdate: TIME_MS.ONE_WEEK,
-      region: 'eu',
-      createdBy: OSINT_SOURCE.GUILD_ROSTER,
-      updatedBy: OSINT_SOURCE.GUILD_ROSTER,
-      createOnlyUnique: true,
-      clientId: params.clientId,
-      clientSecret: params.clientSecret,
-      accessToken: params.accessToken,
-      priority: 3,
-      source: OSINT_SOURCE.GUILD_ROSTER,
-    });
-    dto.validate(false, 'CharacterMessageDto.fromGuildMember');
-    return dto;
+
+    return CharacterMessageDto.create(
+      'osint.characters',
+      {
+        id: params.id,
+        name: params.name,
+        realm: params.realm,
+        realmId: params.realmId,
+        realmName: params.realmName,
+        guild: params.guild,
+        guildGuid: params.guildGuid,
+        guildId: params.guildId,
+        guildRank: params.guildRank,
+        class: params.class,
+        faction: params.faction,
+        level: params.level,
+        lastModified: params.lastModified,
+        clientId: params.clientId,
+        clientSecret: params.clientSecret,
+        accessToken: params.accessToken,
+      },
+      {
+        priority: 3,
+        source: OSINT_SOURCE.GUILD_ROSTER,
+        metadata: { guid },
+      },
+    );
   }
 
   /**
    * Create from S3 migration file
+   *
+   * Priority: 2 (Very Low - bulk data import)
    */
   static fromMigrationFile(params: {
     guid: string;
@@ -427,27 +403,29 @@ export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> 
     accessToken: string;
   }): CharacterMessageDto {
     const [nameSlug, realmSlug] = params.guid.split('@');
-    const dto = new CharacterMessageDto({
-      guid: params.guid,
-      name: nameSlug,
-      realm: realmSlug,
-      region: 'eu',
-      forceUpdate: TIME_MS.TWELVE_HOURS,
-      createdBy: OSINT_SOURCE.OSINT_MIGRATION,
-      updatedBy: OSINT_SOURCE.OSINT_MIGRATION,
-      createOnlyUnique: true,
-      clientId: params.clientId,
-      clientSecret: params.clientSecret,
-      accessToken: params.accessToken,
-      priority: 2,
-      source: OSINT_SOURCE.OSINT_MIGRATION,
-    });
-    dto.validate(false, 'CharacterMessageDto.fromMigrationFile');
-    return dto;
+
+    return CharacterMessageDto.create(
+      'osint.characters',
+      {
+        guid: params.guid,
+        name: nameSlug,
+        realm: realmSlug,
+        region: 'eu',
+        clientId: params.clientId,
+        clientSecret: params.clientSecret,
+        accessToken: params.accessToken,
+      },
+      {
+        priority: 2,
+        source: OSINT_SOURCE.OSINT_MIGRATION,
+      },
+    );
   }
 
   /**
    * Create from character request (API-driven)
+   *
+   * Priority: 10 (Very High - user-initiated API requests)
    */
   static fromCharacterRequest(params: {
     name: string;
@@ -456,28 +434,25 @@ export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> 
     clientSecret: string;
     accessToken: string;
   }): CharacterMessageDto {
-    const guid = toGuid(params.name, params.realm);
-    const dto = new CharacterMessageDto({
-      guid,
-      name: params.name,
-      realm: params.realm,
-      clientId: params.clientId,
-      clientSecret: params.clientSecret,
-      accessToken: params.accessToken,
-      createdBy: OSINT_SOURCE.CHARACTER_REQUEST,
-      updatedBy: OSINT_SOURCE.CHARACTER_REQUEST,
-      createOnlyUnique: false,
-      forceUpdate: TIME_MS.ONE_HOUR,
-      region: 'eu',
-      priority: 10,
-      source: OSINT_SOURCE.CHARACTER_REQUEST,
-    });
-    dto.validate(false, 'CharacterMessageDto.fromCharacterRequest');
-    return dto;
+    return CharacterMessageDto.create(
+      'osint.characters',
+      {
+        name: params.name,
+        realm: params.realm,
+        clientId: params.clientId,
+        clientSecret: params.clientSecret,
+        accessToken: params.accessToken,
+      },
+      {
+        priority: 10,
+        source: OSINT_SOURCE.CHARACTER_REQUEST,
+      },
+    );
   }
 
   /**
    * Validate message structure
+   *
    * @param strict - If true, throws errors; if false, logs warnings
    * @param logTag - Optional log tag for warnings
    * @throws Error if validation fails and strict is true
@@ -485,6 +460,7 @@ export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> 
   validate(strict: boolean = true, logTag?: string): void {
     const characterData = this.data as ICharacterMessageBase | undefined;
 
+    // Validate guid format
     if (characterData?.guid && !characterData.guid.includes('@')) {
       const message = `Validation failed: guid '${characterData.guid}' must contain '@' separator`;
       if (strict) {
@@ -497,26 +473,5 @@ export class CharacterMessageDto extends QueueMessageDto<ICharacterMessageBase> 
         });
       }
     }
-
-    if (
-      characterData?.forceUpdate !== undefined &&
-      (typeof characterData.forceUpdate !== 'number' ||
-        characterData.forceUpdate < 0)
-    ) {
-      const message = `Validation failed: forceUpdate must be a positive number, got '${characterData.forceUpdate}' for guid '${characterData?.guid || 'unknown'}'`;
-      if (strict) {
-        throw new Error(message);
-      } else {
-        CharacterMessageDto.characterLogger.warn({
-          logTag: logTag || 'CharacterMessageDto.validate',
-          message,
-          guid: characterData?.guid,
-          forceUpdate: characterData?.forceUpdate,
-        });
-      }
-    }
-
-    // Call parent validation
-    super.validate(strict);
   }
 }
