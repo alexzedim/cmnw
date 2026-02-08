@@ -8,6 +8,8 @@ import { BlizzAPI } from '@alexzedim/blizzapi';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 import { KeysEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { lastValueFrom, mergeMap, range } from 'rxjs';
@@ -20,12 +22,11 @@ import {
   GLOBAL_KEY,
   OSINT_TIMEOUT_TOLERANCE,
   REALM_ENTITY_ANY,
-  RealmMessageDto,
   realmsQueue,
+  RealmMessageDto,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
 import { LoggerService } from '@app/logger';
-import { RabbitMQPublisherService } from '@app/rabbitmq';
 
 @Injectable()
 export class RealmsService implements OnApplicationBootstrap {
@@ -39,7 +40,8 @@ export class RealmsService implements OnApplicationBootstrap {
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
-    private readonly publisher: RabbitMQPublisherService,
+    @InjectQueue(realmsQueue.name)
+    private readonly realmsQueue: Queue<RealmMessageDto>,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -82,7 +84,7 @@ export class RealmsService implements OnApplicationBootstrap {
           message: `Processing realm: ${id}:${name}`,
         });
 
-        const message = {
+        const dto = RealmMessageDto.create({
           id: id,
           name: name,
           slug: slug,
@@ -90,14 +92,11 @@ export class RealmsService implements OnApplicationBootstrap {
           clientId: keyEntity.client,
           clientSecret: keyEntity.secret,
           accessToken: keyEntity.token,
-        };
-
-        const realmMessage = RealmMessageDto.create({
-          data: message,
-          priority: 5,
         });
 
-        await this.publisher.publishMessage(realmsQueue.exchange, realmMessage);
+        await this.realmsQueue.add(dto.id, dto, {
+          priority: 5,
+        });
       }
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });
