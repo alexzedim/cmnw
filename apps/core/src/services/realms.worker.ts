@@ -5,11 +5,25 @@ import chalk from 'chalk';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { getRandomProxy, RealmsMessageDto, realmsQueue } from '@app/resources';
-import { KeysEntity } from '@app/pg';
-import { coreConfig } from '@app/configuration';
+import {
+  API_HEADERS_ENUM,
+  apiConstParams,
+  BlizzardApiResponse,
+  IConnectedRealm,
+  isFieldNamed,
+  OSINT_TIMEOUT_TOLERANCE,
+  REALM_TICKER,
+  RealmMessageDto,
+  realmsQueue,
+  toLocale,
+  toSlug,
+  transformConnectedRealmId,
+  transformNamedField,
+} from '@app/resources';
+import { KeysEntity, RealmsEntity } from '@app/pg';
 
-import { RealmsService } from '.';
+import { Job } from 'bullmq';
+import { get } from 'lodash';
 
 @Injectable()
 @Processor(realmsQueue)
@@ -32,61 +46,121 @@ export class RealmsWorker extends WorkerHost {
   constructor(
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
-    private readonly realmsService: RealmsService,
+    @InjectRepository(RealmsEntity)
+    private readonly realmsRepository: Repository<RealmsEntity>,
   ) {
     super();
   }
 
-  async process(job: any): Promise<void> {
-    const message: RealmsMessageDto = job.data;
+  async process(job: Job<RealmMessageDto>): Promise<void> {
+    const message = job.data;
     const startTime = Date.now();
     this.stats.total++;
 
     try {
-      const { data: args } = message;
+      await job.updateProgress(1);
 
-      // Step 1: Find or create realm entity
-      const { realmEntity, isNew } = await this.realmsService.findOrCreate(args);
+      let realmEntity = await this.realmsRepository.findOneBy({ id: message.id });
 
-      if (!isNew) {
-        this.stats.skipped++;
-        this.logger.warn(
-          `${chalk.yellow('⊘')} Skipped [${chalk.bold(this.stats.total)}] ${realmEntity.guid} ${chalk.dim('(not new)')}`,
-        );
-        return;
+      await job.updateProgress(5);
+
+      if (!realmEntity) {
+        realmEntity = this.realmsRepository.create({
+          id: message.id,
+        });
       }
 
-      // Step 2: Initialize Blizzard API client
       this.BNet = new BlizzAPI({
-        region: args.region || 'eu',
-        clientId: args.clientId,
-        clientSecret: args.clientSecret,
-        accessToken: args.accessToken,
-        httpsAgent: coreConfig.useProxy
-          ? await getRandomProxy(this.keysRepository)
-          : undefined,
+        region: message.region,
+        clientId: message.clientId,
+        clientSecret: message.clientSecret,
+        accessToken: message.accessToken,
       });
 
-      if (args.updatedBy) {
-        realmEntity.updatedBy = args.updatedBy;
+      await job.updateProgress(10);
+
+      const response: Record<string, any> = await this.BNet.query(
+        `/data/wow/realm/${args.slug}`,
+        apiConstParams(API_HEADERS_ENUM.DYNAMIC, OSINT_TIMEOUT_TOLERANCE),
+      );
+
+      await job.updateProgress(20);
+
+      realmEntity.id = get(response, 'id', null);
+      realmEntity.slug = get(response, 'slug', null);
+
+      await job.updateProgress(25);
+
+      const name = isFieldNamed(response.name)
+        ? get(response, 'name.name', null)
+        : response.name;
+
+      if (name) realmEntity.name = name;
+
+      const ticker = REALM_TICKER.has(realmEntity.name)
+        ? REALM_TICKER.get(realmEntity.name)
+        : null;
+
+      if (ticker) realmEntity.ticker = ticker;
+
+      await job.updateProgress(30);
+
+      realmEntity.locale = response.locale ? response.locale : null;
+
+      if (realmEntity.locale != 'enGB') {
+        const realmLocale = await this.BNet.query<BlizzardApiResponse>(
+          `/data/wow/realm/${message.slug}`,
+          apiConstParams(API_HEADERS_ENUM.DYNAMIC, OSINT_TIMEOUT_TOLERANCE, true),
+        );
+
+        await job.updateProgress(40);
+        const locale = toLocale(realmEntity.locale);
+
+        const localeName = get(realmLocale, `name.${locale}`, null);
+        if (localeName) {
+          realmEntity.localeName = localeName;
+          realmEntity.localeSlug = toSlug(localeName);
+        }
+      } else {
+        const localeNameSlug = get(response, 'name', null);
+        if (localeNameSlug) {
+          realmEntity.localeName = localeNameSlug;
+          realmEntity.localeSlug = toSlug(localeNameSlug);
+        }
+        await job.updateProgress(45);
       }
 
-      // Step 3: Fetch realm data from API
-      const realmData = await this.realmsService.fetchRealm(
-        args.realmSlug,
-        this.BNet,
-      );
+      const region = transformNamedField(response.region);
+      if (region) realmEntity.region = region;
+      if (response.timezone) realmEntity.timezone = response.timezone;
 
-      Object.assign(realmEntity, realmData);
+      const category = get(response, 'category', null);
+      if (category) realmEntity.category = category;
 
-      // Step 4: Save realm entity
-      await this.realmsService.save(realmEntity);
+      const connectedRealmId = transformConnectedRealmId(response);
+      if (connectedRealmId) {
+        const connectedRealm = await this.BNet.query<IConnectedRealm>(
+          `/data/wow/connected-realm/${connectedRealmId}`,
+          apiConstParams(API_HEADERS_ENUM.DYNAMIC),
+        );
 
-      this.stats.success++;
-      const duration = Date.now() - startTime;
-      this.logger.log(
-        `${chalk.green('✓')} [${chalk.bold(this.stats.total)}] ${realmEntity.guid} ${chalk.dim(`(${duration}ms)`)}`,
-      );
+        realmEntity.connectedRealmId = get(connectedRealm, 'id', null);
+        realmEntity.status = get(connectedRealm, 'status.name', null);
+        realmEntity.populationStatus = get(connectedRealm, 'population.name', null);
+        await job.updateProgress(50);
+
+        const isRealmsExists =
+          'realms' in connectedRealm && Array.isArray(connectedRealm.realms);
+
+        if (isRealmsExists) {
+          realmEntity.connectedRealms = connectedRealm.realms.map(
+            ({ slug }) => slug,
+          );
+        }
+      }
+
+      await this.realmsRepository.save(realmEntity);
+      await job.updateProgress(100);
 
       // Progress report every 25 realms
       if (this.stats.total % 25 === 0) {
