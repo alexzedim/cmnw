@@ -1,4 +1,6 @@
-import { IQueueMessageBase, QueueMessageDto } from '@app/resources/dto/queue';
+import { Logger } from '@nestjs/common';
+import { JobsOptions } from 'bullmq';
+import { auctionsQueue } from '../../queues/auctions.queue';
 
 /**
  * Base interface for creating auction job data
@@ -14,66 +16,38 @@ export interface IAuctionMessageBase {
   accessToken?: string;
 }
 
-/**
- * Auction Message DTO for BullMQ
- *
- * Wraps ItemJobQueue with BullMQ-specific properties.
- * Used for auction data synchronization from Blizzard API.
- */
-export class AuctionMessageDto extends QueueMessageDto<IAuctionMessageBase> {
-  private static isQueueMessageBase<T>(params: any): params is IQueueMessageBase<T> {
-    return !!params && typeof params === 'object' && 'data' in (params as any);
-  }
+export class AuctionMessageDto {
+  public readonly name: string;
+  public readonly data: IAuctionMessageBase;
+  public readonly opts?: JobsOptions;
 
-  private static isAuctionCreateParams(
-    params: any,
-  ): params is Omit<Partial<AuctionMessageDto>, 'connectedRealmId'> &
-    Pick<IAuctionMessageBase, 'connectedRealmId'> {
-    return !!params && typeof params === 'object' && 'connectedRealmId' in params;
-  }
+  private static readonly auctionLogger = new Logger(AuctionMessageDto.name);
 
-  constructor(params: any) {
-    const messageParams = params ?? {};
-    const { data, priority, source, attempts, metadata, ...rest } = messageParams;
-    const auctionData = data ? { ...rest, ...data } : rest;
-
-    super({
-      data: auctionData,
-      priority: priority ?? 5,
-      source: source ?? 'dma',
-      attempts,
-      metadata,
-    });
+  /**
+   * Constructor - creates a validated Auction Message with BullMQ properties
+   * @param name - Queue name (e.g., 'dma.auctions')
+   * @param data - Auction message data
+   * @param opts - BullMQ job options (optional)
+   */
+  constructor(name: string, data: IAuctionMessageBase, opts?: JobsOptions) {
+    this.name = name;
+    this.data = data;
+    this.opts = opts;
   }
 
   /**
    * Create from auction data with BullMQ options
+   * @param data - Auction data
+   * @param opts - Optional job options
+   * @returns New AuctionMessageDto instance
    */
-  static create<T>(params: IQueueMessageBase<T>): QueueMessageDto<T>;
-  static create(
-    params: Omit<Partial<AuctionMessageDto>, 'connectedRealmId'> &
-      Pick<IAuctionMessageBase, 'connectedRealmId'>,
-  ): AuctionMessageDto;
-  static create(
-    params:
-      | IQueueMessageBase<IAuctionMessageBase>
-      | (Omit<Partial<AuctionMessageDto>, 'connectedRealmId'> &
-          Pick<IAuctionMessageBase, 'connectedRealmId'>),
-  ): QueueMessageDto<IAuctionMessageBase> | AuctionMessageDto {
-    if (AuctionMessageDto.isQueueMessageBase(params)) {
-      return QueueMessageDto.create(params);
-    }
+  static create(data: IAuctionMessageBase, opts?: JobsOptions): AuctionMessageDto {
+    const mergedOpts = {
+      ...auctionsQueue.defaultJobOptions,
+      ...opts,
+    };
 
-    if (!AuctionMessageDto.isAuctionCreateParams(params)) {
-      throw new Error(
-        'AuctionMessageDto.create expected auction params with connectedRealmId.',
-      );
-    }
-
-    return new AuctionMessageDto({
-      data: params,
-      priority: params.priority ?? 5,
-      source: params.source ?? 'dma',
-    });
+    const dto = new AuctionMessageDto(auctionsQueue.name, data, mergedOpts);
+    return dto;
   }
 }
