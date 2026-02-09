@@ -51,7 +51,7 @@ export const BULLMQ_QUEUES: Record<string, IQueueConfig> = {
   CHARACTERS: {
     name: 'osint.characters',
     domain: 'osint',
-    jobType: 'CharacterJobQueue',
+    jobType: 'ICharacterMessageBase',
     options: {
       name: 'osint.characters',
       connection: REDIS_CONNECTION,
@@ -65,7 +65,7 @@ export const BULLMQ_QUEUES: Record<string, IQueueConfig> = {
   CHARACTERS_REQUESTS: {
     name: 'osint.characters.requests',
     domain: 'osint',
-    jobType: 'CharacterJobQueue',
+    jobType: 'ICharacterMessageBase',
     options: {
       name: 'osint.characters.requests',
       connection: REDIS_CONNECTION,
@@ -79,7 +79,7 @@ export const BULLMQ_QUEUES: Record<string, IQueueConfig> = {
   CHARACTERS_RESPONSES: {
     name: 'osint.characters.responses',
     domain: 'osint',
-    jobType: 'CharacterJobQueue',
+    jobType: 'ICharacterMessageBase',
     options: {
       name: 'osint.characters.responses',
       connection: REDIS_CONNECTION,
@@ -180,7 +180,7 @@ export const BULLMQ_QUEUES: Record<string, IQueueConfig> = {
   DLQ: {
     name: 'dlx.dlq',
     domain: 'dlx',
-    jobType: 'CharacterJobQueue',
+    jobType: 'ICharacterMessageBase',
     options: {
       name: 'dlx.dlq',
       connection: REDIS_CONNECTION,

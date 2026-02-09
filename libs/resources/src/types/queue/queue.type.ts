@@ -94,7 +94,7 @@ export interface IQueueConfig {
   options: IBullMQQueueOptions;
   /** Job data type for this queue */
   jobType:
-    | 'CharacterJobQueue'
+    | 'ICharacterMessageBase'
     | 'ProfileJobQueue'
     | 'RealmJobQueue'
     | 'GuildJobQueue'
@@ -154,14 +154,8 @@ export interface IBullMQSchedulerOptions {
 }
 
 // ============================================================================
-// Job Queue Types (Existing - Preserved for compatibility)
+// Job Queue Types
 // ============================================================================
-
-// @todo research don't move
-export type CharacterJobQueue = Readonly<IQCharacter> &
-  Omit<CharactersEntity, 'uuid' | 'realmName' | 'realmId'> &
-  Readonly<IQCharacterOptions> &
-  BattleNetOptions;
 
 export type ProfileJobQueue = Pick<CharactersEntity, 'name' | 'realm'> &
   Readonly<IQCharacterProfile>;
@@ -176,19 +170,3 @@ export type GuildJobQueue = Readonly<IQGuild> &
 export type AuctionJobQueue = Partial<IQAuction> & BattleNetOptions;
 
 export type ItemJobQueue = Readonly<IQItem> & BattleNetOptions;
-
-// ============================================================================
-// BullMQ Job Data Types (Union type for type safety)
-// ============================================================================
-
-/**
- * Union type of all BullMQ job data types
- * Used for generic job processing handlers
- */
-export type BullMQJobData =
-  | CharacterJobQueue
-  | ProfileJobQueue
-  | RealmJobQueue
-  | GuildJobQueue
-  | AuctionJobQueue
-  | ItemJobQueue;

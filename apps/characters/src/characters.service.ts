@@ -18,6 +18,7 @@ import {
   GLOBAL_OSINT_KEY,
   OSINT_CHARACTER_LIMIT,
   CharacterMessageDto,
+  ICharacterMessageBase,
 } from '@app/resources';
 
 @Injectable()
@@ -36,7 +37,7 @@ export class CharactersService implements OnApplicationBootstrap {
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
     @InjectQueue(charactersQueue.name)
-    private readonly charactersQueue: Queue<CharacterMessageDto>,
+    private readonly charactersQueue: Queue<ICharacterMessageBase>,
     private readonly s3Service: S3Service,
   ) {}
 
@@ -89,7 +90,7 @@ export class CharactersService implements OnApplicationBootstrap {
               accessToken: token,
             });
 
-            await this.charactersQueue.add(dto.data.guid, dto);
+            await this.charactersQueue.add(dto.name, dto.data, dto.opts);
 
             characterIteration = characterIteration + 1;
             const isKeyRequest = characterIteration % 1000 == 0;
@@ -186,7 +187,7 @@ export class CharactersService implements OnApplicationBootstrap {
           accessToken: token,
         });
 
-        await this.charactersQueue.add(dto.data.guid, dto);
+        await this.charactersQueue.add(dto.name, dto.data, dto.opts);
 
         characterIteration = characterIteration + 1;
       }
