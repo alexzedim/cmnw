@@ -4,8 +4,26 @@ import chalk from 'chalk';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { isItemMedia, itemsQueue } from '@app/resources';
+import {
+  API_HEADERS_ENUM,
+  apiConstParams,
+  BlizzardApiItem,
+  DMA_SOURCE,
+  IItem,
+  IItemMessageBase,
+  isItem,
+  isItemMedia,
+  isNamedField,
+  ITEM_FIELD_MAPPING,
+  itemsQueue,
+  toGold,
+  TOLERANCE_ENUM,
+  VALUATION_TYPE,
+} from '@app/resources';
 import { ItemsEntity } from '@app/pg';
+import { Job } from 'bullmq';
+import { BlizzAPI } from '@alexzedim/blizzapi';
+import { get } from 'lodash';
 
 @Injectable()
 @Processor(itemsQueue)
@@ -14,10 +32,13 @@ export class ItemsWorker extends WorkerHost {
     timestamp: true,
   });
 
+  private BNet: BlizzAPI;
+
   private stats = {
     total: 0,
     success: 0,
     rateLimit: 0,
+    notFound: 0,
     errors: 0,
     skipped: 0,
     startTime: Date.now(),
@@ -26,9 +47,11 @@ export class ItemsWorker extends WorkerHost {
   constructor(
     @InjectRepository(ItemsEntity)
     private readonly itemsRepository: Repository<ItemsEntity>,
-  ) {}
+  ) {
+    super();
+  }
 
-  public async process(message: ItemMessageDto): Promise<void> {
+  public async process(message: Job<IItemMessageBase>): Promise<void> {
     const startTime = Date.now();
     this.stats.total++;
 
