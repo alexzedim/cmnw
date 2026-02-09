@@ -24,6 +24,7 @@ import {
   REALM_ENTITY_ANY,
   realmsQueue,
   RealmMessageDto,
+  IRealmMessageBase,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
 import { LoggerService } from '@app/logger';
@@ -41,7 +42,7 @@ export class RealmsService implements OnApplicationBootstrap {
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectQueue(realmsQueue.name)
-    private readonly realmsQueue: Queue<RealmMessageDto>,
+    private readonly realmsQueue: Queue<IRealmMessageBase>,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -94,7 +95,7 @@ export class RealmsService implements OnApplicationBootstrap {
           accessToken: keyEntity.token,
         });
 
-        await this.realmsQueue.add(dto.id, dto, {
+        await this.realmsQueue.add(dto.name, dto.data, {
           priority: 5,
         });
       }
