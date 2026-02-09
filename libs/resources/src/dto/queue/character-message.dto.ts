@@ -7,6 +7,7 @@ import { JobsOptions } from 'bullmq';
 /**
  * Base interface for character job data payload
  * Contains all character-specific data that travels in job.data field
+ * Combines database entity, processing options, and API credentials
  */
 export interface ICharacterMessageBase {
   // Essential identification
@@ -16,17 +17,13 @@ export interface ICharacterMessageBase {
   realm: string;
   region: 'eu';
 
-  // Realm info
+  // CharactersEntity properties
   realmId?: number;
   realmName?: string;
-
-  // Guild info
   guild?: string;
   guildGuid?: string;
   guildId?: number;
   guildRank?: number;
-
-  // Character attributes
   class?: string;
   race?: string;
   faction?: string;
@@ -34,31 +31,18 @@ export interface ICharacterMessageBase {
   specialization?: string;
   gender?: string;
   lookingForGuild?: string;
-
-  // Update flags
-  updateRIO?: boolean;
-  updateWCL?: boolean;
-  updateWP?: boolean;
-
-  // Timestamps
   createdAt?: Date;
   updatedAt?: Date;
   lastModified?: Date;
-
-  // Profile data
   achievementPoints?: number;
   averageItemLevel?: number;
   equippedItemLevel?: number;
   covenantId?: number;
   mountsNumber?: number;
   petsNumber?: number;
-
-  // Media
   avatarImage?: string;
   insetImage?: string;
   mainImage?: string;
-
-  // Status
   statusCode?: number;
   hashA?: string;
   hashB?: string;
@@ -70,7 +54,7 @@ export interface ICharacterMessageBase {
   updatedBy: OSINT_SOURCE;
   createdBy?: OSINT_SOURCE;
 
-  // API credentials
+  // BattleNetOptions
   clientId: string;
   clientSecret: string;
   accessToken: string;
