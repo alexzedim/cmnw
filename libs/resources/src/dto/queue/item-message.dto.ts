@@ -7,10 +7,10 @@ import { itemsQueue } from '../../queues/items.queue';
  */
 export interface IItemMessageBase {
   itemId: number;
-  name?: string;
-  realmId?: number;
   region?: 'eu' | 'us' | 'kr' | 'tw';
-  source?: string;
+  clientId: string;
+  clientSecret: string;
+  accessToken: string;
 }
 
 export class ItemMessageDto {
