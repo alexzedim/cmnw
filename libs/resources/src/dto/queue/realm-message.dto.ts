@@ -10,8 +10,9 @@ export interface IRealmMessageBase {
   name: string;
   slug: string;
   region: 'eu' | 'us' | 'kr' | 'tw';
-  connectedRealmId?: number;
-  source?: string;
+  clientId: string;
+  clientSecret: string;
+  accessToken: string;
 }
 
 export class RealmMessageDto {
@@ -45,7 +46,7 @@ export class RealmMessageDto {
       ...opts,
     };
 
-    const dto = new RealmMessageDto(realmsQueue.name, data, mergedOpts);
+    const dto = new RealmMessageDto(`${data.id}`, data, mergedOpts);
     return dto;
   }
 }
