@@ -27,9 +27,11 @@ import {
   toGold,
   transformPrice,
   formatBytes,
+  IAuctionMessageBase,
 } from '@app/resources';
 import { createHash } from 'crypto';
 import { isAxiosError, AxiosError } from 'axios';
+import { Job } from 'bullmq';
 
 @Injectable()
 @Processor(auctionsQueue)
@@ -76,43 +78,43 @@ export class AuctionsWorker extends WorkerHost {
     super();
   }
 
-  async process(job: any): Promise<void> {
+  async process(job: Job<IAuctionMessageBase>): Promise<void> {
     const startTime = Date.now();
     this.stats.total++;
 
     // Extract data from message wrapper if present
-    const args = job.data || job;
+    const message = job.data;
 
     try {
       this.logger.debug({
         logTag: 'handleAuctionMessage',
         message: 'Received auction message',
-        data: args,
+        data: message,
       });
 
       this.BNet = new BlizzAPI({
-        region: args.region,
-        clientId: args.clientId,
-        clientSecret: args.clientSecret,
-        accessToken: args.accessToken,
+        region: message.region,
+        clientId: message.clientId,
+        clientSecret: message.clientSecret,
+        accessToken: message.accessToken,
       });
       /**
        * @description If no connected realm passed, then deal with it, as COMMODITY
        * @description Else, it's an auctions' request
        */
-      const isCommodity = args.connectedRealmId === REALM_ENTITY_ANY.id;
+      const isCommodity = message.connectedRealmId === REALM_ENTITY_ANY.id;
 
       const previousTimestamp = isCommodity
-        ? args.commoditiesTimestamp
-        : args.auctionsTimestamp;
+        ? message.commoditiesTimestamp
+        : message.auctionsTimestamp;
 
       if (!previousTimestamp) {
         this.logger.error({
           logTag: 'handleAuctionMessage',
           message: `Missing timestamp for ${isCommodity ? 'commodity' : 'auctions'}`,
-          connectedRealmId: args.connectedRealmId,
-          auctionsTimestamp: args.auctionsTimestamp,
-          commoditiesTimestamp: args.commoditiesTimestamp,
+          connectedRealmId: message.connectedRealmId,
+          auctionsTimestamp: message.auctionsTimestamp,
+          commoditiesTimestamp: message.commoditiesTimestamp,
         });
         throw new Error(
           `Missing ${isCommodity ? 'commoditiesTimestamp' : 'auctionsTimestamp'} in message`,
@@ -122,7 +124,7 @@ export class AuctionsWorker extends WorkerHost {
       const ifModifiedSince = DateTime.fromMillis(previousTimestamp).toHTTP();
       const getMarketApiEndpoint = isCommodity
         ? '/data/wow/auctions/commodities'
-        : `/data/wow/connected-realm/${args.connectedRealmId}/auctions`;
+        : `/data/wow/connected-realm/${message.connectedRealmId}/auctions`;
 
       const marketResponse = await this.BNet.query<BlizzardApiAuctions>(
         getMarketApiEndpoint,
@@ -138,7 +140,7 @@ export class AuctionsWorker extends WorkerHost {
       if (!isAuctionsValid) {
         this.stats.notModified++;
         const duration = Date.now() - startTime;
-        const realmId = args.connectedRealmId;
+        const realmId = message.connectedRealmId;
         this.logger.warn(
           `${chalk.blue('ℹ')} ${chalk.blue('304')} [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms) Not modified`)}`,
         );
@@ -147,7 +149,7 @@ export class AuctionsWorker extends WorkerHost {
 
       const connectedRealmId = isCommodity
         ? REALM_ENTITY_ANY.id
-        : args.connectedRealmId;
+        : message.connectedRealmId;
 
       const timestamp = DateTime.fromRFC2822(marketResponse.lastModified).toMillis();
 
@@ -252,7 +254,7 @@ export class AuctionsWorker extends WorkerHost {
         // Handle HTTP errors
         const isHandled = await this.handleHttpError(
           errorOrException,
-          args.realmId,
+          message.connectedRealmId,
           duration,
         );
 
@@ -264,7 +266,7 @@ export class AuctionsWorker extends WorkerHost {
         // Fatal HTTP errors (5xx, 4xx except handled ones) are re-thrown
         this.stats.errors++;
         this.logProcessingError(
-          args.realmId,
+          message.connectedRealmId,
           duration,
           `HTTP ${errorOrException.response?.status}: ${errorOrException.message}`,
         );
@@ -272,7 +274,7 @@ export class AuctionsWorker extends WorkerHost {
         // Handle non-HTTP errors
         this.stats.errors++;
         this.logProcessingError(
-          args.realmId,
+          message.connectedRealmId,
           duration,
           errorOrException instanceof Error
             ? errorOrException.message
