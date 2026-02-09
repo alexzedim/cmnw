@@ -10,10 +10,10 @@ import {
   apiConstParams,
   BlizzardApiResponse,
   IConnectedRealm,
+  IRealmMessageBase,
   isFieldNamed,
   OSINT_TIMEOUT_TOLERANCE,
   REALM_TICKER,
-  RealmMessageDto,
   realmsQueue,
   toLocale,
   toSlug,
@@ -52,7 +52,7 @@ export class RealmsWorker extends WorkerHost {
     super();
   }
 
-  async process(job: Job<RealmMessageDto>): Promise<void> {
+  async process(job: Job<IRealmMessageBase>): Promise<void> {
     const message = job.data;
     const startTime = Date.now();
     this.stats.total++;
@@ -80,7 +80,7 @@ export class RealmsWorker extends WorkerHost {
       await job.updateProgress(10);
 
       const response: Record<string, any> = await this.BNet.query(
-        `/data/wow/realm/${args.slug}`,
+        `/data/wow/realm/${message.slug}`,
         apiConstParams(API_HEADERS_ENUM.DYNAMIC, OSINT_TIMEOUT_TOLERANCE),
       );
 
@@ -169,7 +169,7 @@ export class RealmsWorker extends WorkerHost {
     } catch (errorOrException) {
       this.stats.errors++;
       const duration = Date.now() - startTime;
-      const guid = message.data?.realmSlug || 'unknown';
+      const guid = message.id || 'unknown';
 
       this.logger.error(
         `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`,
