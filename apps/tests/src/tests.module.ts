@@ -11,13 +11,10 @@ import {
   RealmsEntity,
 } from '@app/pg';
 import { HttpModule } from '@nestjs/axios';
-import { RabbitMQModule } from '@app/rabbitmq';
-import { TestsCharactersQueueService } from './tests.characters.queue.service';
 
 @Module({
   imports: [
     HttpModule,
-    RabbitMQModule,
     TypeOrmModule.forRoot(postgresConfig),
     TypeOrmModule.forFeature([
       CharactersEntity,
@@ -37,7 +34,6 @@ import { TestsCharactersQueueService } from './tests.characters.queue.service';
     // TestsBench,
     // TestsCommunity,
     // TestsWorker,
-    TestsCharactersQueueService,
     // TestsCharactersQueueWorker,
   ],
 })

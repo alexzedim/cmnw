@@ -11,7 +11,7 @@ import { auctionsQueue, itemsQueue } from '@app/resources/queues';
   imports: [
     TypeOrmModule.forRoot(postgresConfig),
     TypeOrmModule.forFeature([KeysEntity, RealmsEntity, ItemsEntity, MarketEntity]),
-    BullMQModule.forRoot({ connection: getRedisConnection() }),
+    BullModule.forRoot({ connection: getRedisConnection() }),
     BullModule.registerQueue({
       name: auctionsQueue.name,
       connection: auctionsQueue.connection,

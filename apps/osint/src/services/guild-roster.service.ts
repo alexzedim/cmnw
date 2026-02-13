@@ -31,9 +31,11 @@ import {
   TRACKED_ERROR_STATUS_CODES,
   ApiKeyErrorContext,
   KeyErrorTracker,
+  ICharacterMessageBase,
 } from '@app/resources';
 import { CharactersEntity, GuildsEntity, KeysEntity, RealmsEntity } from '@app/pg';
-import { RabbitMQPublisherService } from '@app/rabbitmq';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class GuildRosterService {
@@ -44,7 +46,8 @@ export class GuildRosterService {
   private readonly keyErrorTracker: KeyErrorTracker;
 
   constructor(
-    private readonly publisher: RabbitMQPublisherService,
+    @InjectQueue(charactersQueue.name)
+    private readonly characterQueue: Queue<ICharacterMessageBase>,
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(RealmsEntity)
@@ -242,7 +245,7 @@ export class GuildRosterService {
       accessToken: BNet.accessTokenObject.access_token,
     });
 
-    await this.publisher.publishMessage(charactersQueue.exchange, dto);
+    await this.characterQueue.add(dto.name, dto.data, dto.opts);
   }
 
   private async saveCharacterAsGuildMember(

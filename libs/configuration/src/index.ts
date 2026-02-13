@@ -2,7 +2,6 @@ export { valuationsConfig } from './valuations.config';
 export { postgresConfig } from './postgres.config';
 export { redisConfig } from './redis.config';
 export { osintConfig } from './osint.config';
-export { bullConfig } from './bull.config';
 export { coreConfig } from './core.config';
 export { cmnwConfig } from './cmnw.config';
 export { lokiConfig } from './loki.config';

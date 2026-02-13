@@ -18,7 +18,7 @@
     <img src="https://img.shields.io/badge/PostgreSQL-316192?style=flat-square&logo=postgresql&logoColor=white" alt="PostgreSQL">
     <img src="https://img.shields.io/badge/MongoDB-4EA94B?style=flat-square&logo=mongodb&logoColor=white" alt="MongoDB">
     <img src="https://img.shields.io/badge/Redis-DC382D?style=flat-square&logo=redis&logoColor=white" alt="Redis">
-    <img src="https://img.shields.io/badge/RabbitMQ-FF6600?style=flat-square&logo=rabbitmq&logoColor=white" alt="RabbitMQ">
+    <img src="https://img.shields.io/badge/BullMQ-DC382D?style=flat-square&logo=redis&logoColor=white" alt="BullMQ">
     <img src="https://img.shields.io/badge/Docker-2496ED?style=flat-square&logo=docker&logoColor=white" alt="Docker">
   </p>
 </div>
@@ -34,7 +34,7 @@
 - 🕵️ **Advanced OSINT Capabilities**: Comprehensive character and guild intelligence gathering with Battle.net API integration
 - 📊 **Real-Time Market Analysis**: Auction house monitoring with historical price tracking and trend detection
 - 💰 **XVA Financial Valuations**: Sophisticated pricing engine with risk assessment and portfolio analytics
-- 🔄 **Distributed Job Processing**: RabbitMQ-based message queuing with priority queues and dead letter exchanges
+- 🔄 **Distributed Job Processing**: BullMQ-based message queuing with Redis, priority queues, and retry mechanisms
 - 🐳 **Cloud-Native Architecture**: Full Docker containerization with multi-platform support (ARM64 & x64)
 - 🔒 **Enterprise Authentication**: Battle.net OAuth and Discord OAuth integration via Passport
 - 📈 **Monitoring & Observability**: Prometheus metrics, Loki logging, and Bull Board queue monitoring
@@ -53,21 +53,21 @@
 
 CMNW operates as a **pnpm monorepo** with 13 specialized microservices:
 
-| Service | Port | Description | Key Features |
-|---------|------|-------------|-------------|
-| 🎯 **Core** | 3000 | Central management service | Realms & Keys management, Authentication, System configuration |
-| 🌐 **API Gateway** | 8080 | REST API gateway | Request routing, Swagger docs at `/api/docs`, Rate limiting |
-| 🕵️ **OSINT** | 3000 | Intelligence gathering | 3 workers (characters, guilds, profile), Battle.net integration |
-| 📊 **DMA** | 3004 | Data Market Analysis | 2 workers (auctions, items), Real-time AH monitoring |
-| 💰 **Market** | 3002 | Market operations | XVA calculations, Contracts, Gold tracking, Evaluation |
-| 👤 **Characters** | - | Character management | Player profiles, Statistics tracking, Entity indexing |
-| 🏰 **Guilds** | - | Guild analytics | Member tracking, Roster management, Activity logs |
-| 📈 **Analytics** | - | Metrics aggregation | Character/Guild/Market/Contract metrics services |
-| 🏆 **Ladder** | - | Ranking system | Competitive rankings, Leaderboards |
-| 🧪 **Tests** | - | Testing infrastructure | E2E tests, Mock data, Benchmarking |
-| 📊 **Warcraft Logs** | - | Raid analytics | Combat log parsing, Performance metrics |
-| 🌍 **WoW Progress** | - | Progress tracking | Guild progression, Raid completion tracking |
-| 💎 **Valuations** | - | Financial modeling | XVA calculations, Risk assessments, Portfolio analytics |
+| Service              | Port | Description                | Key Features                                                    |
+| -------------------- | ---- | -------------------------- | --------------------------------------------------------------- |
+| 🎯 **Core**          | 3000 | Central management service | Realms & Keys management, Authentication, System configuration  |
+| 🌐 **API Gateway**   | 8080 | REST API gateway           | Request routing, Swagger docs at `/api/docs`, Rate limiting     |
+| 🕵️ **OSINT**         | 3000 | Intelligence gathering     | 3 workers (characters, guilds, profile), Battle.net integration |
+| 📊 **DMA**           | 3004 | Data Market Analysis       | 2 workers (auctions, items), Real-time AH monitoring            |
+| 💰 **Market**        | 3002 | Market operations          | XVA calculations, Contracts, Gold tracking, Evaluation          |
+| 👤 **Characters**    | -    | Character management       | Player profiles, Statistics tracking, Entity indexing           |
+| 🏰 **Guilds**        | -    | Guild analytics            | Member tracking, Roster management, Activity logs               |
+| 📈 **Analytics**     | -    | Metrics aggregation        | Character/Guild/Market/Contract metrics services                |
+| 🏆 **Ladder**        | -    | Ranking system             | Competitive rankings, Leaderboards                              |
+| 🧪 **Tests**         | -    | Testing infrastructure     | E2E tests, Mock data, Benchmarking                              |
+| 📊 **Warcraft Logs** | -    | Raid analytics             | Combat log parsing, Performance metrics                         |
+| 🌍 **WoW Progress**  | -    | Progress tracking          | Guild progression, Raid completion tracking                     |
+| 💎 **Valuations**    | -    | Financial modeling         | XVA calculations, Risk assessments, Portfolio analytics         |
 
 ### 📚 Shared Libraries
 
@@ -78,7 +78,7 @@ CMNW operates as a **pnpm monorepo** with 13 specialized microservices:
 - **[@app/pg](libs/pg)** - PostgreSQL connection and TypeORM utilities
 - **[@app/mongo](libs/mongo)** - MongoDB connection and Mongoose schemas
 - **[@app/resources](libs/resources)** - Shared resources and constants
-- **[@app/rabbitmq](libs/rabbitmq)** - RabbitMQ messaging patterns
+- **[@app/bullmq](libs/bullmq)** - BullMQ job queue patterns with Redis
 - **[@app/s3](libs/s3)** - AWS S3 storage integration
 
 ---
@@ -86,45 +86,52 @@ CMNW operates as a **pnpm monorepo** with 13 specialized microservices:
 ## 🛠️ Technology Stack
 
 ### 🎯 Backend Framework
+
 - **[NestJS](https://nestjs.com)** 11.1.9 - Progressive Node.js framework
 - **TypeScript** 5.9.3 - Type-safe JavaScript development
 - **Node.js** >=24.0.0 - JavaScript runtime
 - **RxJS** 7.8.2 - Reactive programming with observables
 
 ### 🗄️ Data Layer
+
 - **PostgreSQL** 17.4 - Primary relational database with SnakeNamingStrategy
 - **MongoDB** - Document store with Mongoose 9.0.1
 - **Redis** 7.4.3 - In-memory caching and session storage
 - **TypeORM** 0.3.28 - Database ORM with migration support
 
 ### 🔄 Message Queuing
-- **RabbitMQ** - Primary distributed message broker with [@golevelup/nestjs-rabbitmq](https://www.npmjs.com/package/@golevelup/nestjs-rabbitmq)@7.1.1
-- **BullMQ** 5.66.0 - Redis-based job queue for secondary processing
+
+- **BullMQ** 5.66.0 - Redis-based job queue with priority support and retry mechanisms
 - **Bull Board** 6.15.0 - Queue monitoring dashboard
 
 ### 🔌 External Integrations
+
 - **[@alexzedim/blizzapi](https://www.npmjs.com/package/@alexzedim/blizzapi)** 2.7.0 - Battle.net API client
 - **Warcraft Logs API** - Combat log analytics
 - **Raider.IO API** - Mythic+ and raid progress
 - **AWS S3** - Object storage with @aws-sdk/client-s3@3.948.0
 
 ### 🔐 Authentication & Security
+
 - **Passport** 0.7.0 - Authentication middleware
 - **Battle.net OAuth** - Blizzard authentication
 - **Discord OAuth** - Discord integration via passport-discord@0.1.4
 
 ### 🐳 DevOps & Deployment
+
 - **Docker** - Containerization with multi-platform builds
 - **GitHub Actions** - CI/CD pipeline with self-hosted runners
 - **pnpm** 10.28.1 - Fast, disk space efficient package manager
 
 ### 🔧 Development Tools
+
 - **Jest** 30.2.0 - Testing framework with comprehensive coverage
 - **Playwright** 1.57.0 - End-to-end testing automation
 - **ESLint & Prettier** - Code quality and formatting
 - **Swagger/OpenAPI** - API documentation with @nestjs/swagger@11.2.3
 
 ### 📊 Monitoring & Observability
+
 - **Prometheus** - Metrics collection with @willsoto/nestjs-prometheus@6.0.2
 - **Loki** - Log aggregation
 - **Bull Board** - Queue monitoring and management
@@ -141,7 +148,6 @@ CMNW operates as a **pnpm monorepo** with 13 specialized microservices:
 - **PostgreSQL** 17+
 - **MongoDB** (latest)
 - **Redis** 7.4+
-- **RabbitMQ** (latest)
 
 > **Note**: This project uses **pnpm 10.28.1**. The correct version is managed via corepack and specified in [`package.json`](package.json).
 
@@ -168,7 +174,7 @@ cp .env.docker.example .env.docker
 Start infrastructure services and microservices using Docker Compose:
 
 ```bash
-# Start database services (PostgreSQL, MongoDB, Redis, RabbitMQ)
+# Start database services (PostgreSQL, MongoDB, Redis)
 docker-compose -f docker-compose.db.yml up -d
 
 # Start core services
@@ -227,17 +233,20 @@ After starting the services:
 Comprehensive character and guild intelligence gathering with Battle.net API integration:
 
 **Architecture:**
+
 - **3 Specialized Workers**: [`characters.worker.ts`](apps/osint/src/workers/characters.worker.ts), [`guilds.worker.ts`](apps/osint/src/workers/guilds.worker.ts), [`profile.worker.ts`](apps/osint/src/workers/profile.worker.ts)
-- **RabbitMQ Integration**: Priority queues with dead letter exchanges
+- **BullMQ Integration**: Priority queues with Redis and retry mechanisms
 - **Real-time Updates**: Character lifecycle tracking and entity indexing
 
 **Key Features:**
+
 - **Character Analysis**: Player profiles, equipment, achievements, professions
 - **Guild Monitoring**: Member tracking via [`guild-member.service.ts`](apps/osint/src/services/guild-member.service.ts), roster management, activity logs
 - **Raid Progress**: Warcraft Logs and Raider.IO integration
 - **Collection System**: Character collection management via [`character-collection.service.ts`](apps/osint/src/services/character-collection.service.ts)
 
 **Services:**
+
 - [`character.service.ts`](apps/osint/src/services/character.service.ts) - Character data processing
 - [`guild.service.ts`](apps/osint/src/services/guild.service.ts) - Guild data aggregation
 - [`character-lifecycle.service.ts`](apps/osint/src/services/character-lifecycle.service.ts) - Lifecycle management
@@ -248,11 +257,13 @@ Comprehensive character and guild intelligence gathering with Battle.net API int
 Real-time auction house monitoring and market intelligence:
 
 **Architecture:**
+
 - **2 Specialized Workers**: [`auctions.worker.ts`](apps/dma/src/workers/auctions.worker.ts), [`items.worker.ts`](apps/dma/src/workers/items.worker.ts)
 - **High-Frequency Updates**: Real-time auction house snapshots
 - **Historical Analysis**: Price trend detection and forecasting
 
 **Key Features:**
+
 - **Price Tracking**: Historical price analysis with technical indicators
 - **Market Charts**: Interactive price visualization
 - **Cross-Realm Analysis**: Server population and pricing comparisons
@@ -269,6 +280,7 @@ Real-time auction house monitoring and market intelligence:
 Advanced financial modeling with XVA (X-Value Adjustments) calculations:
 
 **Services:**
+
 - [`xva.service.ts`](apps/market/src/services/xva.service.ts) - XVA calculations engine
 - [`contracts.service.ts`](apps/market/src/services/contracts.service.ts) - Contract management
 - [`gold.service.ts`](apps/market/src/services/gold.service.ts) - Gold price tracking
@@ -277,6 +289,7 @@ Advanced financial modeling with XVA (X-Value Adjustments) calculations:
 - [`items.service.ts`](apps/market/src/services/items.service.ts) - Item valuation
 
 **Key Features:**
+
 - **Risk Assessment**: Credit, funding, and capital value adjustments
 - **Price Discovery**: Dynamic pricing based on market conditions
 - **Portfolio Analytics**: Multi-asset risk and return analysis
@@ -287,12 +300,14 @@ Advanced financial modeling with XVA (X-Value Adjustments) calculations:
 Comprehensive metrics aggregation and monitoring:
 
 **Services:**
+
 - [`character-metrics.service.ts`](apps/analytics/src/services/character-metrics.service.ts) - Character analytics
 - [`guild-metrics.service.ts`](apps/analytics/src/services/guild-metrics.service.ts) - Guild analytics
 - [`market-metrics.service.ts`](apps/analytics/src/services/market-metrics.service.ts) - Market analytics
 - [`contract-metrics.service.ts`](apps/analytics/src/services/contract-metrics.service.ts) - Contract analytics
 
 **Monitoring:**
+
 - **Prometheus Metrics**: Custom metrics collection
 - **Queue Monitoring**: Bull Board dashboard at `/queues`
 - **Worker Statistics**: Real-time worker performance tracking via [`worker-stats.listener.ts`](apps/osint/src/listeners/worker-stats.listener.ts)
@@ -332,8 +347,9 @@ Extensive test suites with mock data:
 ### 🧪 Test Services
 
 Dedicated testing microservice with:
+
 - **[Benchmark Suite](apps/tests/src/tests.bench.ts)** - Performance benchmarking
-- **[Queue Testing](apps/tests/src/tests.characters.queue.service.ts)** - RabbitMQ queue testing
+- **[Queue Testing](apps/tests/src/tests.characters.queue.service.ts)** - BullMQ queue testing
 - **[Worker Testing](apps/tests/src/tests.worker.ts)** - Worker performance testing
 
 ---
@@ -345,6 +361,7 @@ Dedicated testing microservice with:
 Automated deployment via **GitHub Actions** with self-hosted runners:
 
 **Workflows:**
+
 - ✅ Docker Image Builds (ARM64 & x64)
 - ✅ Automated Testing (Jest + Playwright)
 - ✅ Security Scanning
@@ -354,6 +371,7 @@ Automated deployment via **GitHub Actions** with self-hosted runners:
 ### 🐳 Production Deployment
 
 **1. Environment Setup:**
+
 ```bash
 # Configure production environment
 cp .env.production .env
@@ -365,6 +383,7 @@ export BNET_CLIENT_SECRET="your_client_secret"
 ```
 
 **2. Container Registry:**
+
 ```bash
 # Build multi-platform images
 docker buildx build --platform linux/amd64,linux/arm64 \
@@ -377,6 +396,7 @@ docker pull ghcr.io/alexzedim/cmnw:latest
 ```
 
 **3. Service Orchestration:**
+
 ```bash
 # Deploy infrastructure
 docker-compose -f docker-compose.db.yml up -d
@@ -395,6 +415,7 @@ docker-compose -f docker-compose.analytics.yml up -d
 ```
 
 **4. Health Checks:**
+
 ```bash
 # Verify service health
 curl http://localhost:8080/health
@@ -412,21 +433,25 @@ curl http://localhost:3004/health
 The **API Gateway** (port 8080) provides comprehensive REST API access:
 
 **OSINT Endpoints:**
+
 - `GET /osint/character/:realm/:name` - Character intelligence
 - `GET /osint/guild/:realm/:name` - Guild intelligence
 - `GET /osint/realm/:slug` - Realm information
 
 **DMA Endpoints:**
+
 - `GET /dma/auctions/:connectedRealmId` - Auction house data
 - `GET /dma/items/:itemId` - Item market data
 - `GET /dma/commodities` - Commodity prices
 
 **Market Endpoints:**
+
 - `GET /market/contracts` - Active contracts
 - `GET /market/gold/:region` - Gold prices
 - `GET /market/evaluation/:itemId` - Item evaluation
 
 **Queue Monitoring:**
+
 - `GET /queues` - Bull Board dashboard
 - `GET /queue/metrics` - Queue metrics
 - `GET /queue/workers` - Worker status
@@ -434,10 +459,12 @@ The **API Gateway** (port 8080) provides comprehensive REST API access:
 ### 📖 Interactive Documentation
 
 **Swagger/OpenAPI** documentation available at:
+
 - **Development**: http://localhost:8080/api/docs
 - **Production**: https://api.cmnw.me/docs
 
 The API documentation is automatically generated from NestJS decorators and includes:
+
 - 📝 Request/Response schemas
 - 🔐 Authentication requirements
 - 🧪 Interactive API testing
@@ -510,18 +537,21 @@ pnpm test:debug
 ### 📈 Metrics Collection
 
 **Prometheus Integration:**
+
 - Custom metrics via [@willsoto/nestjs-prometheus](https://www.npmjs.com/package/@willsoto/nestjs-prometheus)@6.0.2
 - Service health metrics
 - Queue performance metrics
 - Database connection pool metrics
 
 **Metrics Endpoints:**
+
 - `GET /metrics` - Prometheus metrics
 - `GET /health` - Health check endpoint
 
 ### 📝 Logging
 
 **Structured Logging:**
+
 - Centralized logging via [@app/logger](libs/logger)
 - Loki integration for log aggregation
 - Contextual logging with request tracing
@@ -530,6 +560,7 @@ pnpm test:debug
 ### 🔍 Queue Monitoring
 
 **Bull Board Dashboard:**
+
 - Real-time queue monitoring at `/queues`
 - Job status tracking
 - Failed job inspection
@@ -539,6 +570,7 @@ pnpm test:debug
 ### 🎯 Worker Statistics
 
 Real-time worker performance tracking:
+
 - Job processing rates
 - Success/failure ratios
 - Average processing times

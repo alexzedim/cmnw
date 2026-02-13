@@ -1,3 +1,8 @@
+/**
+ * @deprecated This file contains RabbitMQ-specific interfaces that are no longer used.
+ * The project has migrated to BullMQ with Redis.
+ * Kept for reference only.
+ */
 export interface IRabbitMQExchange {
   name: string;
   type: 'direct' | 'topic' | 'fanout' | 'headers';

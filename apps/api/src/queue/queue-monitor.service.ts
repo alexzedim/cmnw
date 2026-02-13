@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { RabbitMQMonitorService } from '@app/rabbitmq';
+import { Queue } from 'bullmq';
+import { InjectQueue } from '@nestjs/bullmq';
 import {
   IAllQueuesStats,
   IJobCounts,
@@ -32,7 +33,55 @@ export class QueueMonitorService {
     realms: 'core.realms',
   };
 
-  constructor(private readonly rabbitMQMonitorService: RabbitMQMonitorService) {}
+  constructor(
+    @InjectQueue('dma.auctions') private readonly dmaAuctionsQueue: Queue,
+    @InjectQueue('osint.characters')
+    private readonly osintCharactersQueue: Queue,
+    @InjectQueue('osint.guilds') private readonly osintGuildsQueue: Queue,
+    @InjectQueue('core.realms') private readonly coreRealmsQueue: Queue,
+    @InjectQueue('dma.items') private readonly dmaItemsQueue: Queue,
+    @InjectQueue('dma.valuations') private readonly dmaValuationsQueue: Queue,
+    @InjectQueue('osint.profiles') private readonly osintProfilesQueue: Queue,
+  ) {}
+
+  private getQueueByName(queueName: string): Queue | undefined {
+    switch (queueName) {
+      case 'dma.auctions':
+        return this.dmaAuctionsQueue;
+      case 'osint.characters':
+        return this.osintCharactersQueue;
+      case 'osint.guilds':
+        return this.osintGuildsQueue;
+      case 'core.realms':
+        return this.coreRealmsQueue;
+      case 'dma.items':
+        return this.dmaItemsQueue;
+      case 'dma.valuations':
+        return this.dmaValuationsQueue;
+      case 'osint.profiles':
+        return this.osintProfilesQueue;
+      default:
+        return undefined;
+    }
+  }
+
+  private getEmptyQueueStats(queueName: string): IQueueStats {
+    return {
+      queueName,
+      counts: {
+        waiting: 0,
+        active: 0,
+        completed: 0,
+        failed: 0,
+        delayed: 0,
+        paused: 0,
+      },
+      activeJobs: [],
+      estimatedCompletion: undefined,
+      processingRate: 0,
+      averageProcessingTime: 0,
+    };
+  }
 
   async getAllQueuesStats(): Promise<IAllQueuesStats> {
     const queuesStats: IQueueStats[] = [];
@@ -66,61 +115,47 @@ export class QueueMonitorService {
   }
 
   async getQueueStats(queueName: string): Promise<IQueueStats> {
-    // Get queue stats from RabbitMQ monitor service
-    const queueStats = await this.rabbitMQMonitorService.getQueueStats(queueName);
-    if (!queueStats) {
-      this.logger.warn(`Queue stats unavailable for ${queueName}`);
-      return {
-        queueName,
-        counts: {
-          waiting: 0,
-          active: 0,
-          completed: 0,
-          failed: 0,
-          delayed: 0,
-          paused: 0,
-        },
-        activeJobs: [],
-        estimatedCompletion: undefined,
-        processingRate: 0,
-        averageProcessingTime: 0,
-      };
+    const queue = this.getQueueByName(queueName);
+    if (!queue) {
+      this.logger.warn(`Queue not found: ${queueName}`);
+      return this.getEmptyQueueStats(queueName);
     }
+
+    const [waiting, active, completed, delayed, failed, paused] =
+      await Promise.all([
+        queue.getWaitingCount(),
+        queue.getActiveCount(),
+        queue.getCompletedCount(),
+        queue.getDelayedCount(),
+        queue.getFailedCount(),
+        queue.isPaused().then((p) => (p ? 1 : 0)),
+      ]);
 
     const counts: IJobCounts = {
-      waiting: queueStats.waiting || 0,
-      active: queueStats.active || 0,
-      completed: queueStats.completed || 0,
-      failed: queueStats.failed || 0,
-      delayed: 0, // RabbitMQ doesn't have delayed state like BullMQ
-      paused: 0, // RabbitMQ doesn't have paused state like BullMQ
+      waiting,
+      active,
+      completed,
+      failed,
+      delayed,
+      paused,
     };
-
-    const processingRate = queueStats.processingRate ?? 0;
-    const averageProcessingTime = queueStats.avgProcessingTime ?? 0;
-
-    let estimatedCompletion: string | undefined;
-    const isActiveProcessing = counts.active > 0 && processingRate > 0;
-    if (isActiveProcessing) {
-      const minutesRemaining = counts.waiting / processingRate;
-      estimatedCompletion = this.formatDuration(minutesRemaining * 60 * 1000);
-    }
 
     return {
       queueName,
       counts,
-      activeJobs: queueStats.activeJobs || [],
-      estimatedCompletion,
-      processingRate,
-      averageProcessingTime,
+      activeJobs: [], // BullMQ doesn't provide active job details easily
+      estimatedCompletion: undefined,
+      processingRate: 0,
+      averageProcessingTime: 0,
     };
   }
 
   async getQueueDetailedProgress(
     queueName: string,
   ): Promise<IQueueDetailedProgress> {
-    const queueStats = await this.rabbitMQMonitorService.getQueueStats(queueName);
-    if (!queueStats) {
+    const queue = this.getQueueByName(queueName);
+    if (!queue) {
+      this.logger.warn(`Queue not found: ${queueName}`);
       return {
         queueName,
         current: 0,
@@ -132,35 +167,25 @@ export class QueueMonitorService {
       };
     }
 
-    const counts = {
-      waiting: queueStats.waiting || 0,
-      active: queueStats.active || 0,
-      completed: queueStats.completed || 0,
-      failed: queueStats.failed || 0,
-    };
+    const [waiting, active, completed] = await Promise.all([
+      queue.getWaitingCount(),
+      queue.getActiveCount(),
+      queue.getCompletedCount(),
+    ]);
 
-    const total = counts.waiting + counts.active + counts.completed;
-    const current = counts.completed;
-    const completionPercentage = total > 0 ? Math.round((current / total) * 100) : 0;
-
-    // Calculate estimated time remaining
-    let estimatedTimeRemaining: string | undefined;
-    const processingRate = queueStats.processingRate ?? 0;
-
-    const isRateCalculable = processingRate > 0 && counts.waiting > 0;
-    if (isRateCalculable) {
-      const minutesRemaining = counts.waiting / processingRate;
-      estimatedTimeRemaining = this.formatDuration(minutesRemaining * 60 * 1000);
-    }
+    const total = waiting + active + completed;
+    const current = completed;
+    const completionPercentage =
+      total > 0 ? Math.round((current / total) * 100) : 0;
 
     return {
       queueName,
       current,
       total,
       completionPercentage,
-      estimatedTimeRemaining,
-      activeWorkers: counts.active,
-      jobs: queueStats.activeJobs || [],
+      estimatedTimeRemaining: undefined,
+      activeWorkers: active,
+      jobs: [],
     };
   }
 
@@ -177,14 +202,21 @@ export class QueueMonitorService {
   }
 
   async pauseQueue(queueName: string): Promise<void> {
-    // RabbitMQ doesn't have a pause concept like BullMQ
-    // Instead, we can stop consumers for this queue
-    await this.rabbitMQMonitorService.pauseQueue(queueName);
+    const queue = this.getQueueByName(queueName);
+    if (!queue) {
+      this.logger.warn(`Queue not found: ${queueName}`);
+      return;
+    }
+    await queue.pause();
   }
 
   async resumeQueue(queueName: string): Promise<void> {
-    // Resume consumers for this queue
-    await this.rabbitMQMonitorService.resumeQueue(queueName);
+    const queue = this.getQueueByName(queueName);
+    if (!queue) {
+      this.logger.warn(`Queue not found: ${queueName}`);
+      return;
+    }
+    await queue.resume();
   }
 
   async getWorkerStats(workerName: string): Promise<any> {
@@ -197,8 +229,8 @@ export class QueueMonitorService {
       };
     }
 
-    const stats = await this.rabbitMQMonitorService.getQueueStats(queueName);
-    if (!stats) {
+    const queue = this.getQueueByName(queueName);
+    if (!queue) {
       return {
         workerName,
         queueName,
@@ -207,14 +239,21 @@ export class QueueMonitorService {
       };
     }
 
+    const [waiting, active, completed, failed] = await Promise.all([
+      queue.getWaitingCount(),
+      queue.getActiveCount(),
+      queue.getCompletedCount(),
+      queue.getFailedCount(),
+    ]);
+
     return {
       workerName,
       queueName,
       timestamp: new Date().toISOString(),
-      consumers: stats.consumerCount,
-      depth: stats.messageCount,
-      processingRate: stats.processingRate ?? 0,
-      averageProcessingTime: stats.avgProcessingTime ?? 0,
+      consumers: active,
+      depth: waiting,
+      processingRate: 0,
+      averageProcessingTime: 0,
     };
   }
 

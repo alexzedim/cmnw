@@ -1,9 +1,10 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
+import { InjectQueue } from '@nestjs/bullmq';
 import Redis from 'ioredis';
+import { Queue } from 'bullmq';
 import { CharactersWorker, GuildsWorker, ProfileWorker } from '../workers';
 import chalk from 'chalk';
-import { RabbitMQMonitorService } from '@app/rabbitmq';
 
 @Injectable()
 export class WorkerStatsListener implements OnModuleInit {
@@ -11,10 +12,12 @@ export class WorkerStatsListener implements OnModuleInit {
 
   constructor(
     @InjectRedis() private readonly redis: Redis,
+    @InjectQueue('osint.characters') private readonly charactersQueue: Queue,
+    @InjectQueue('osint.guilds') private readonly guildsQueue: Queue,
+    @InjectQueue('osint.profiles') private readonly profilesQueue: Queue,
     private readonly charactersWorker: CharactersWorker,
     private readonly guildsWorker: GuildsWorker,
     private readonly profileWorker: ProfileWorker,
-    private readonly rabbitMQMonitorService: RabbitMQMonitorService,
   ) {}
 
   onModuleInit() {
@@ -25,8 +28,8 @@ export class WorkerStatsListener implements OnModuleInit {
   }
 
   private setupCharactersQueueListener() {
-    // Monitor characters queue via RabbitMQ
-    this.rabbitMQMonitorService.onQueueDrained('osint.characters', async () => {
+    // Monitor characters queue via BullMQ
+    this.charactersQueue.on('drained' as any, async () => {
       this.logger.log(
         chalk.cyan('\n🏁 Characters queue drained - all jobs completed!'),
       );
@@ -38,9 +41,11 @@ export class WorkerStatsListener implements OnModuleInit {
   }
 
   private setupGuildsQueueListener() {
-    // Monitor guilds queue via RabbitMQ
-    this.rabbitMQMonitorService.onQueueDrained('osint.guilds', async () => {
-      this.logger.log(chalk.cyan('\n🏁 Guilds queue drained - all jobs completed!'));
+    // Monitor guilds queue via BullMQ
+    this.guildsQueue.on('drained' as any, async () => {
+      this.logger.log(
+        chalk.cyan('\n🏁 Guilds queue drained - all jobs completed!'),
+      );
       this.guildsWorker.logFinalSummary();
 
       // Publish stats to Redis for API access
@@ -57,7 +62,9 @@ export class WorkerStatsListener implements OnModuleInit {
         ...stats,
         uptime: Date.now() - stats.startTime,
         successRate:
-          stats.total > 0 ? ((stats.success / stats.total) * 100).toFixed(1) : '0.0',
+          stats.total > 0
+            ? ((stats.success / stats.total) * 100).toFixed(1)
+            : '0.0',
         rate:
           stats.total > 0
             ? (stats.total / ((Date.now() - stats.startTime) / 1000)).toFixed(2)
@@ -72,7 +79,10 @@ export class WorkerStatsListener implements OnModuleInit {
       );
 
       // Publish to Redis pub/sub for real-time updates
-      await this.redis.publish('worker:stats:update', JSON.stringify(statsData));
+      await this.redis.publish(
+        'worker:stats:update',
+        JSON.stringify(statsData),
+      );
 
       this.logger.log(chalk.dim(`📊 Published ${workerName} stats to Redis`));
     } catch (error) {
@@ -81,8 +91,8 @@ export class WorkerStatsListener implements OnModuleInit {
   }
 
   private setupProfileQueueListener() {
-    // Monitor profile queue via RabbitMQ
-    this.rabbitMQMonitorService.onQueueDrained('osint.profiles', async () => {
+    // Monitor profile queue via BullMQ
+    this.profilesQueue.on('drained' as any, async () => {
       this.logger.log(
         chalk.cyan('\n🏁 Profile queue drained - all jobs completed!'),
       );

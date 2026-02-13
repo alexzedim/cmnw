@@ -162,7 +162,7 @@ export class ItemsWorker extends WorkerHost {
     } catch (errorOrException) {
       this.stats.errors++;
       const duration = Date.now() - startTime;
-      const itemId = message.payload?.itemId || 'unknown';
+      const itemId = message.data.itemId || 'unknown';
 
       this.logger.error(
         `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] item ${itemId} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`,

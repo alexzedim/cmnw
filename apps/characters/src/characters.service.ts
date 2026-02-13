@@ -127,6 +127,7 @@ export class CharactersService implements OnApplicationBootstrap {
 
       // Load characters from S3 cmnw bucket
       let charactersJson: string;
+
       try {
         charactersJson = await this.s3Service.readFile('characters.json', 'cmnw');
         this.logger.log({
@@ -180,16 +181,17 @@ export class CharactersService implements OnApplicationBootstrap {
         const { client, secret, token } =
           this.keyEntities[characterIteration % length];
 
+        characterIteration = characterIteration + 1;
+
         const dto = CharacterMessageDto.fromMigrationFile({
           guid: character.guid,
+          iteration: characterIteration,
           clientId: client,
           clientSecret: secret,
           accessToken: token,
         });
 
         await this.charactersQueue.add(dto.name, dto.data, dto.opts);
-
-        characterIteration = characterIteration + 1;
       }
 
       this.logger.log({

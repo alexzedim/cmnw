@@ -6,8 +6,6 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 
-import { RabbitMQPublisherService } from '@app/rabbitmq';
-import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   CharactersEntity,
@@ -28,7 +26,10 @@ import {
   guildsQueue,
   toGuid,
   findRealm,
+  IGuildMessageBase,
 } from '@app/resources';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class GuildOsintService {
@@ -50,8 +51,8 @@ export class GuildOsintService {
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(CharactersGuildsLogsEntity)
     private readonly logsRepository: Repository<CharactersGuildsLogsEntity>,
-    private readonly amqpConnection: AmqpConnection,
-    private readonly rabbitMQPublisherService: RabbitMQPublisherService,
+    @InjectQueue(guildsQueue.name)
+    private readonly queueGuild: Queue<IGuildMessageBase>,
   ) {}
 
   private async requestGuildFromQueue(params: {
@@ -63,7 +64,11 @@ export class GuildOsintService {
     let requestedGuild: GuildsEntity | null = null;
 
     try {
-      const [keyEntity] = await getKeys(this.keysRepository, this.clearance, true);
+      const [keyEntity] = await getKeys(
+        this.keysRepository,
+        this.clearance,
+        true,
+      );
 
       const guildMessage = GuildMessageDto.fromGuildRequest({
         name: params.name,
@@ -73,15 +78,14 @@ export class GuildOsintService {
         accessToken: keyEntity.token,
       });
 
-      requestedGuild = await this.amqpConnection.request<GuildsEntity>({
-        exchange: guildsQueue.exchange,
-        routingKey: 'osint.guilds.request.high',
-        payload: guildMessage,
-        timeout: 5000,
-        publishOptions: {
-          priority: 10,
-        },
-      });
+      const job = await this.queueGuild.add(
+        guildMessage.name,
+        guildMessage.data,
+        guildMessage.opts,
+      );
+
+      // @todo
+      requestedGuild = await job.waitUntilFinished(undefined, 60000);
     } catch (errorOrException) {
       this.logger.warn({
         logTag: params.logTag,
@@ -174,7 +178,11 @@ export class GuildOsintService {
           : false;
 
       if (isStale) {
-        const [keyEntity] = await getKeys(this.keysRepository, this.clearance, true);
+        const [keyEntity] = await getKeys(
+          this.keysRepository,
+          this.clearance,
+          true,
+        );
         const dto = GuildMessageDto.fromGuildRequest({
           name: nameSlug,
           realm: realmEntity.slug,
@@ -183,10 +191,7 @@ export class GuildOsintService {
           accessToken: keyEntity.token,
         });
 
-        await this.rabbitMQPublisherService.publishMessage(
-          guildsQueue.exchange,
-          dto,
-        );
+        await this.queueGuild.add(dto.name, dto.data, dto.opts);
 
         this.logger.log({
           logTag,
@@ -195,10 +200,12 @@ export class GuildOsintService {
         });
       }
 
-      const guildMemberships = await this.charactersGuildMembersRepository.find({
-        where: { guildGuid: guid },
-        take: 1_000,
-      });
+      const guildMemberships = await this.charactersGuildMembersRepository.find(
+        {
+          where: { guildGuid: guid },
+          take: 1_000,
+        },
+      );
 
       let members: CharactersEntity[];
 

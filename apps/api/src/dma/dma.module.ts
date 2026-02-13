@@ -1,6 +1,11 @@
 import { Module } from '@nestjs/common';
-import { postgresConfig, redisConfig } from '@app/configuration';
-import { RabbitMQModule } from '@app/rabbitmq';
+import {
+  postgresConfig,
+  redisConfig,
+  getRedisConnection,
+} from '@app/configuration';
+import { BullModule } from '@nestjs/bullmq';
+import { valuationsQueue, itemsQueue, auctionsQueue } from '@app/resources';
 import { DmaController } from './dma.controller';
 import { DmaService } from './dma.service';
 import { RedisModule } from '@nestjs-modules/ioredis';
@@ -24,7 +29,8 @@ import { ItemsEntity, KeysEntity, MarketEntity, ContractEntity } from '@app/pg';
         password: redisConfig.password,
       },
     }),
-    RabbitMQModule,
+    BullModule.forRoot({ connection: getRedisConnection() }),
+    BullModule.registerQueue(valuationsQueue, itemsQueue, auctionsQueue),
   ],
   controllers: [DmaController],
   providers: [DmaService],

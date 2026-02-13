@@ -1,16 +1,16 @@
 import { BlizzAPI } from '@alexzedim/blizzapi';
-import { InjectQueue, Processor, WorkerHost } from '@nestjs/bullmq';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Injectable, Logger } from '@nestjs/common';
 import chalk from 'chalk';
+import { Job } from 'bullmq';
 import { coreConfig } from '@app/configuration';
 import {
   CHARACTER_SUMMARY_FIELD_MAPPING,
   charactersQueue,
   getRandomProxy,
   toSlug,
-  CharacterMessageDto,
   ICharacterMessageBase,
   setStatusString,
   CharacterStatusState,
@@ -47,8 +47,6 @@ export class CharactersWorker extends WorkerHost {
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
-    @InjectQueue(charactersQueue.name)
-    private readonly charactersQueue: any,
     private readonly characterService: CharacterService,
     private readonly lifecycleService: CharacterLifecycleService,
     private readonly collectionSyncService: CharacterCollectionService,
@@ -56,22 +54,14 @@ export class CharactersWorker extends WorkerHost {
     super();
   }
 
-  async process(job: any): Promise<CharactersEntity> {
-    const message: CharacterMessageDto = job.data;
-    return this.processCharacterMessage(message);
-  }
-
-  private async processCharacterMessage(
-    message: CharacterMessageDto,
-  ): Promise<CharactersEntity> {
+  async process(job: Job<ICharacterMessageBase>): Promise<CharactersEntity> {
+    const message = job.data;
     const startTime = Date.now();
     this.stats.total++;
 
     try {
-      const { data: args } = message;
-
       const { characterEntity, isNew, isCreateOnlyUnique, isNotReadyToUpdate } =
-        await this.lifecycleService.findOrCreateCharacter(args);
+        await this.lifecycleService.findOrCreateCharacter(message);
 
       const shouldSkipUpdate = isNotReadyToUpdate || isCreateOnlyUnique;
       if (shouldSkipUpdate) {
@@ -86,9 +76,9 @@ export class CharactersWorker extends WorkerHost {
         this.charactersRepository.create(characterEntity);
       const nameSlug = toSlug(characterEntity.name);
 
-      this.inheritSafeValuesFromArgs(characterEntity, args);
+      this.inheritSafeValuesFromArgs(characterEntity, message);
 
-      this.BNet = await this.initializeApiClient(args);
+      this.BNet = await this.initializeApiClient(message);
 
       const status = await this.characterService.getStatus(
         nameSlug,
@@ -128,10 +118,10 @@ export class CharactersWorker extends WorkerHost {
       this.stats.errors++;
       const duration = Date.now() - startTime;
       const guid =
-        message.data?.name && message.data?.realm
-          ? `${message.data.name}@${message.data.realm}`
+        message.name && message.realm
+          ? `${message.name}@${message.realm}`
           : 'unknown';
-      const updatedBy = message.data?.updatedBy || 'unknown';
+      const updatedBy = message.updatedBy || 'unknown';
 
       this.logger.error(
         `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)} [${chalk.bold(updatedBy)}] - ${errorOrException.message}`,

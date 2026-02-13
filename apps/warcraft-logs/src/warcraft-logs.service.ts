@@ -30,7 +30,6 @@ import { DateTime } from 'luxon';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import * as cheerio from 'cheerio';
 import Redis from 'ioredis';
-import { RabbitMQPublisherService } from '@app/rabbitmq';
 import { InjectRepository } from '@nestjs/typeorm';
 
 @Injectable()
@@ -64,7 +63,6 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
 
   constructor(
     private httpService: HttpService,
-    private readonly publisher: RabbitMQPublisherService,
     @InjectRedis()
     private readonly redisService: Redis,
     @InjectRepository(CharactersRaidLogsEntity)

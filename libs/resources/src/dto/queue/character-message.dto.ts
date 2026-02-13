@@ -167,6 +167,7 @@ export class CharacterMessageDto {
     };
 
     const opts: JobsOptions = {
+      jobId: characterData.guid,
       ...charactersQueue.defaultJobOptions,
       priority: 7,
     };
@@ -208,6 +209,7 @@ export class CharacterMessageDto {
     };
 
     const opts: JobsOptions = {
+      jobId: characterData.guid,
       ...charactersQueue.defaultJobOptions,
       priority: 7,
     };
@@ -245,6 +247,7 @@ export class CharacterMessageDto {
     };
 
     const opts: JobsOptions = {
+      jobId: characterData.guid,
       ...charactersQueue.defaultJobOptions,
       priority: 8,
     };
@@ -286,6 +289,7 @@ export class CharacterMessageDto {
     };
 
     const opts: JobsOptions = {
+      jobId: characterData.guid,
       ...charactersQueue.defaultJobOptions,
       priority: 6,
     };
@@ -343,6 +347,7 @@ export class CharacterMessageDto {
     };
 
     const opts: JobsOptions = {
+      jobId: characterData.guid,
       ...charactersQueue.defaultJobOptions,
       priority: 9,
     };
@@ -385,6 +390,7 @@ export class CharacterMessageDto {
     };
 
     const opts: JobsOptions = {
+      jobId: characterData.guid,
       ...charactersQueue.defaultJobOptions,
       priority: 5,
     };
@@ -444,6 +450,7 @@ export class CharacterMessageDto {
     };
 
     const opts: JobsOptions = {
+      jobId: characterData.guid,
       ...charactersQueue.defaultJobOptions,
       priority: 3,
     };
@@ -460,6 +467,7 @@ export class CharacterMessageDto {
    */
   static fromMigrationFile(params: {
     guid: string;
+    iteration?: number;
     clientId: string;
     clientSecret: string;
     accessToken: string;
@@ -469,6 +477,7 @@ export class CharacterMessageDto {
       guid: params.guid,
       name: nameSlug,
       realm: realmSlug,
+      iteration: params.iteration,
       region: 'eu',
       forceUpdate: TIME_MS.IMMEDIATE,
       createOnlyUnique: true,
@@ -480,6 +489,7 @@ export class CharacterMessageDto {
     };
 
     const opts: JobsOptions = {
+      jobId: characterData.guid,
       ...charactersQueue.defaultJobOptions,
       priority: 2,
     };
@@ -517,6 +527,7 @@ export class CharacterMessageDto {
     };
 
     const opts: JobsOptions = {
+      jobId: characterData.guid,
       ...charactersQueue.defaultJobOptions,
       priority: 10,
     };

@@ -12,12 +12,14 @@ import {
   getKey,
   GLOBAL_KEY,
   GOLD_ITEM_ENTITY,
+  IItemMessageBase,
   IItemsParse,
   ItemMessageDto,
   itemsQueue,
   toStringOrNumber,
 } from '@app/resources';
-import { RabbitMQPublisherService } from '@app/rabbitmq';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class ItemsService implements OnApplicationBootstrap {
@@ -28,7 +30,8 @@ export class ItemsService implements OnApplicationBootstrap {
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(ItemsEntity)
     private readonly itemsRepository: Repository<ItemsEntity>,
-    private readonly publisher: RabbitMQPublisherService,
+    @InjectQueue(itemsQueue.name)
+    private readonly queue: Queue<IItemMessageBase>,
     private readonly s3Service: S3Service,
   ) {}
 
@@ -81,20 +84,19 @@ export class ItemsService implements OnApplicationBootstrap {
               if (isItemExists) return;
             }
 
-            const message = {
+            const itemMessage = ItemMessageDto.create({
               itemId: itemId,
               region: 'eu',
               clientId: key.client,
               clientSecret: key.secret,
               accessToken: key.token,
-            };
-
-            const itemMessage = ItemMessageDto.create({
-              data: message,
-              priority: 5,
             });
 
-            await this.publisher.publishMessage(itemsQueue.exchange, itemMessage);
+            await this.queue.add(
+              itemMessage.name,
+              itemMessage.data,
+              itemMessage.opts,
+            );
 
             this.logger.log({
               logTag,

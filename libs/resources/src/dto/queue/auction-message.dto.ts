@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { JobsOptions } from 'bullmq';
 import { auctionsQueue } from '../../queues/auctions.queue';
+import { REALM_ENTITY_ANY } from '@app/resources/constants';
 
 /**
  * Base interface for creating auction job data
@@ -42,12 +43,18 @@ export class AuctionMessageDto {
    * @returns New AuctionMessageDto instance
    */
   static create(data: IAuctionMessageBase, opts?: JobsOptions): AuctionMessageDto {
+    const jobId =
+      data.connectedRealmId === REALM_ENTITY_ANY.connectedRealmId
+        ? `commodity-${data.connectedRealmId}`
+        : `auctions-${data.connectedRealmId}`;
+
     const mergedOpts = {
+      jobId: jobId,
       ...auctionsQueue.defaultJobOptions,
       ...opts,
     };
 
-    const dto = new AuctionMessageDto(auctionsQueue.name, data, mergedOpts);
+    const dto = new AuctionMessageDto(jobId, data, mergedOpts);
     return dto;
   }
 }

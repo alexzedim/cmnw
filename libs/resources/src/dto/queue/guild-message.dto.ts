@@ -102,7 +102,7 @@ export class GuildMessageDto {
       ...opts,
     };
 
-    const dto = new GuildMessageDto(guildsQueue.name, guildData, mergedOpts);
+    const dto = new GuildMessageDto(guid, guildData, mergedOpts);
     dto.validate(false, 'GuildMessageDto.create');
     return dto;
   }
@@ -115,6 +115,7 @@ export class GuildMessageDto {
   static fromGuildCharactersUnique(params: {
     name: string;
     realm: string;
+    iteration?: number;
     clientId: string;
     clientSecret: string;
     accessToken: string;
@@ -135,11 +136,12 @@ export class GuildMessageDto {
     };
 
     const opts: JobsOptions = {
+      jobId: guid,
       ...guildsQueue.defaultJobOptions,
       priority: 7,
     };
 
-    const dto = new GuildMessageDto(guildsQueue.name, guildData, opts);
+    const dto = new GuildMessageDto(guid, guildData, opts);
     dto.validate(false, 'GuildMessageDto.fromGuildCharactersUnique');
     return dto;
   }
@@ -153,7 +155,7 @@ export class GuildMessageDto {
     guid: string;
     name: string;
     realm: string;
-    iteration: number;
+    iteration?: number;
     clientId: string;
     clientSecret: string;
     accessToken: string;
@@ -174,11 +176,12 @@ export class GuildMessageDto {
     };
 
     const opts: JobsOptions = {
+      jobId: guildData.guid,
       ...guildsQueue.defaultJobOptions,
       priority: 5,
     };
 
-    const dto = new GuildMessageDto(guildsQueue.name, guildData, opts);
+    const dto = new GuildMessageDto(guildData.guid, guildData, opts);
     dto.validate(false, 'GuildMessageDto.fromGuildIndex');
     return dto;
   }
@@ -203,15 +206,7 @@ export class GuildMessageDto {
     accessToken: string;
   }): GuildMessageDto {
     const guid = toGuid(params.name, params.realm);
-    // Log warning if non-EU region was provided
-    if (params.region && params.region !== 'eu') {
-      GuildMessageDto.guildLogger.warn({
-        logTag: 'GuildMessageDto.fromHallOfFame',
-        message: `Non-EU region '${params.region}' provided but only EU is supported. Defaulting to 'eu'.`,
-        guid,
-        providedRegion: params.region,
-      });
-    }
+
     const guildData: IGuildMessageBase = {
       guid,
       id: params.id,
@@ -232,11 +227,12 @@ export class GuildMessageDto {
     };
 
     const opts: JobsOptions = {
+      jobId: guid,
       ...guildsQueue.defaultJobOptions,
       priority: 9,
     };
 
-    const dto = new GuildMessageDto(guildsQueue.name, guildData, opts);
+    const dto = new GuildMessageDto(guid, guildData, opts);
     dto.validate(false, 'GuildMessageDto.fromHallOfFame');
     return dto;
   }
@@ -271,11 +267,12 @@ export class GuildMessageDto {
     };
 
     const opts: JobsOptions = {
+      jobId: guid,
       ...guildsQueue.defaultJobOptions,
       priority: 6,
     };
 
-    const dto = new GuildMessageDto(guildsQueue.name, guildData, opts);
+    const dto = new GuildMessageDto(guid, guildData, opts);
     dto.validate(false, 'GuildMessageDto.fromWowProgress');
     return dto;
   }
@@ -308,6 +305,7 @@ export class GuildMessageDto {
     };
 
     const opts: JobsOptions = {
+      jobId: guid,
       ...guildsQueue.defaultJobOptions,
       priority: 8,
     };
@@ -357,6 +355,16 @@ export class GuildMessageDto {
           forceUpdate: guildData?.forceUpdate,
         });
       }
+    }
+
+    // Log warning if non-EU region was provided
+    if (guildData.region && guildData.region !== 'eu') {
+      GuildMessageDto.guildLogger.warn({
+        logTag: 'GuildMessageDto.fromHallOfFame',
+        message: `Non-EU region '${guildData.region}' provided but only EU is supported. Defaulting to 'eu'.`,
+        guid: guildData.guid,
+        providedRegion: guildData.region,
+      });
     }
 
     // Warn about missing optional credentials (non-blocking)

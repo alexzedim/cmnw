@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { postgresConfig, redisConfig } from '@app/configuration';
+import { getRedisConnection, postgresConfig, redisConfig } from '@app/configuration';
 import {
   AuctionsService,
   ContractsService,
@@ -8,7 +8,7 @@ import {
   XvaService,
   ItemsService,
 } from './services';
-import { RabbitMQModule } from '@app/rabbitmq';
+
 import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { RedisModule } from '@nestjs-modules/ioredis';
@@ -29,6 +29,8 @@ import {
 import { HttpModule } from '@nestjs/axios';
 import { S3Module } from '@app/s3';
 import { s3Config } from '@app/configuration';
+import { auctionsQueue, itemsQueue } from '@app/resources';
+import { BullModule } from '@nestjs/bullmq';
 
 @Module({
   imports: [
@@ -57,7 +59,18 @@ import { s3Config } from '@app/configuration';
         password: redisConfig.password,
       },
     }),
-    RabbitMQModule,
+    BullModule.forRoot({
+      connection: getRedisConnection(),
+    }),
+    BullModule.registerQueue({
+      name: auctionsQueue.name,
+      connection: auctionsQueue.connection,
+      defaultJobOptions: auctionsQueue.defaultJobOptions,
+    }),
+    BullModule.registerQueue({
+      name: itemsQueue.name,
+      defaultJobOptions: itemsQueue.defaultJobOptions,
+    }),
   ],
   controllers: [],
   providers: [

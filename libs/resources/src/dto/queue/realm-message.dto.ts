@@ -42,11 +42,12 @@ export class RealmMessageDto {
    */
   static create(data: IRealmMessageBase, opts?: JobsOptions): RealmMessageDto {
     const mergedOpts = {
+      jobId: `${data.id}`,
       ...realmsQueue.defaultJobOptions,
       ...opts,
     };
 
-    const dto = new RealmMessageDto(`${data.id}`, data, mergedOpts);
+    const dto = new RealmMessageDto(`${data.slug}`, data, mergedOpts);
     return dto;
   }
 }
