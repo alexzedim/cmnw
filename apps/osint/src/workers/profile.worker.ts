@@ -26,7 +26,7 @@ import {
 import { findRealm } from '@app/resources/dao/realms.dao';
 
 @Injectable()
-@Processor(profileQueue.name)
+@Processor(profileQueue.name, profileQueue.workerOptions)
 export class ProfileWorker extends WorkerHost {
   private readonly logger = new Logger(ProfileWorker.name, {
     timestamp: true,

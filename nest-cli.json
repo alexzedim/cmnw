@@ -131,15 +131,6 @@
         "tsConfigPath": "libs/pg/tsconfig.lib.json"
       }
     },
-    "rabbitmq": {
-      "type": "library",
-      "root": "libs/rabbitmq",
-      "entryFile": "index",
-      "sourceRoot": "libs/rabbitmq/src",
-      "compilerOptions": {
-        "tsConfigPath": "libs/rabbitmq/tsconfig.lib.json"
-      }
-    },
     "resources": {
       "type": "library",
       "root": "libs/resources",

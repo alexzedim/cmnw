@@ -1,12 +1,13 @@
 import { Module } from '@nestjs/common';
-import { postgresConfig, redisConfig } from '@app/configuration';
+import { getRedisConnection, postgresConfig, redisConfig } from '@app/configuration';
 import { LadderService } from './ladder.service';
 import { HttpModule } from '@nestjs/axios';
 import { ScheduleModule } from '@nestjs/schedule';
 import { RedisModule } from '@nestjs-modules/ioredis';
-import { RabbitMQModule } from '@app/rabbitmq';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { KeysEntity, RealmsEntity } from '@app/pg';
+import { charactersQueue, guildsQueue } from '@app/resources';
+import { BullModule } from '@nestjs/bullmq';
 
 @Module({
   imports: [
@@ -22,7 +23,19 @@ import { KeysEntity, RealmsEntity } from '@app/pg';
         password: redisConfig.password,
       },
     }),
-    RabbitMQModule,
+    BullModule.forRoot({
+      connection: getRedisConnection(),
+    }),
+    BullModule.registerQueue({
+      name: charactersQueue.name,
+      connection: charactersQueue.connection,
+      defaultJobOptions: charactersQueue.defaultJobOptions,
+    }),
+    BullModule.registerQueue({
+      name: guildsQueue.name,
+      connection: guildsQueue.connection,
+      defaultJobOptions: guildsQueue.defaultJobOptions,
+    }),
   ],
   controllers: [],
   providers: [LadderService],

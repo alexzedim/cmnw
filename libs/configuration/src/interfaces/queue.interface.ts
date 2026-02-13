@@ -1,14 +1,21 @@
 export interface IQueueConfig {
   name: string;
-  exchange: string;
-  routingKeys: string[];
-  options: {
-    durable: boolean;
-    arguments: {
-      'x-max-priority'?: number;
-      'x-message-ttl'?: number;
-      'x-dead-letter-exchange'?: string;
-      'x-dead-letter-routing-key'?: string;
+  defaultJobOptions?: {
+    removeOnComplete?: number;
+    removeOnFail?: number;
+    attempts?: number;
+    backoff?: {
+      type: 'exponential' | 'fixed';
+      delay: number;
+    };
+    delay?: number;
+    priority?: number;
+  };
+  workerOptions?: {
+    concurrency?: number;
+    limiter?: {
+      max: number;
+      duration: number;
     };
   };
 }

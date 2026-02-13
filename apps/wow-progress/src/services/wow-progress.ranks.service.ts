@@ -1,5 +1,6 @@
-import { RabbitMQPublisherService } from '@app/rabbitmq';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Queue } from 'bullmq';
+import { InjectQueue } from '@nestjs/bullmq';
 import { KeysEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { chromium } from 'playwright-extra';
@@ -20,6 +21,7 @@ import chalk from 'chalk';
 import {
   delay,
   GuildMessageDto,
+  IGuildMessageBase,
   guildsQueue,
   WowProgressLink,
   DownloadSummary,
@@ -66,13 +68,16 @@ export class WowProgressRanksService
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
-    private readonly rabbitMQPublisherService: RabbitMQPublisherService,
+    @InjectQueue('osint.guilds')
+    private readonly guildsQueue: Queue<IGuildMessageBase>,
   ) {
     chromium.use(stealth());
   }
 
   async onApplicationBootstrap(): Promise<void> {
-    this.logger.log(chalk.cyan('\n🚀 Initializing WoW Progress Ranks Service...'));
+    this.logger.log(
+      chalk.cyan('\n🚀 Initializing WoW Progress Ranks Service...'),
+    );
 
     try {
       await this.initializeBrowser();
@@ -354,7 +359,9 @@ export class WowProgressRanksService
       const linksCount = filesToDownload.length;
 
       this.logger.log(
-        chalk.cyan(`📥 Downloading ${chalk.bold(filesToDownload.length)} files...`),
+        chalk.cyan(
+          `📥 Downloading ${chalk.bold(filesToDownload.length)} files...`,
+        ),
       );
 
       const results: DownloadResult[] = [];
@@ -449,14 +456,21 @@ export class WowProgressRanksService
         ),
       );
 
-      this.keyEntities = await getKeys(this.keysRepository, clearance, false, true);
+      this.keyEntities = await getKeys(
+        this.keysRepository,
+        clearance,
+        false,
+        true,
+      );
 
       for (const fileName of listWowProgressGzipFiles) {
         const realmName = extractRealmName(fileName);
         if (!realmName) {
           this.stats.realmsSkipped++;
           this.logger.warn(
-            chalk.yellow(`⚠ Unable to extract realm from ${chalk.dim(fileName)}`),
+            chalk.yellow(
+              `⚠ Unable to extract realm from ${chalk.dim(fileName)}`,
+            ),
           );
           continue;
         }
@@ -486,7 +500,9 @@ export class WowProgressRanksService
 
         // Calculate file checksum and check if already imported
         const fileContent = JSON.stringify(jsonRankings);
-        const fileChecksum = createHash('md5').update(fileContent).digest('hex');
+        const fileChecksum = createHash('md5')
+          .update(fileContent)
+          .digest('hex');
         const redisKey = `WP_RANKS_FILE_IMPORTED:${fileChecksum}`;
 
         const isAlreadyImported = await this.redisService.exists(redisKey);
@@ -503,9 +519,12 @@ export class WowProgressRanksService
             this.transformWowProgressToGuildJobs(wowProgressGuild, realm.slug),
           );
 
-        await this.rabbitMQPublisherService.publishBulk(
-          guildsQueue.exchange,
-          guildRankings,
+        await this.guildsQueue.addBulk(
+          guildRankings.map((dto) => ({
+            name: dto.name,
+            data: dto.data,
+            opts: dto.opts,
+          })),
         );
         this.stats.guildsQueued += guildRankings.length;
         this.logger.log(
@@ -513,7 +532,12 @@ export class WowProgressRanksService
         );
 
         // Mark file as imported with checksum
-        await this.redisService.set(redisKey, Date.now(), 'EX', 60 * 60 * 24 * 30); // 30 days TTL
+        await this.redisService.set(
+          redisKey,
+          Date.now(),
+          'EX',
+          60 * 60 * 24 * 30,
+        ); // 30 days TTL
       }
 
       const duration = Date.now() - startTime;

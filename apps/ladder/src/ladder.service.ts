@@ -41,14 +41,15 @@ import {
   IPvPLeaderboardResponse,
   isPvPLeaderboardResponse,
   PvPSeason,
+  ICharacterMessageBase,
 } from '@app/resources';
-import { RabbitMQPublisherService } from '@app/rabbitmq';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 // Constants for M+ indexing
 /** Initial delay for rate limiter in milliseconds (2 seconds) */
 const M_PLUS_BASE_DELAY_MS = TIME_MS.FIVE_MINUTES / 150; // ~2 seconds
 /** Maximum delay for rate limiter in milliseconds (30 seconds) */
-const M_PLUS_MAX_DELAY_MS = TIME_MS.ONE_MINUTE / 2; // ~30 seconds
 const M_PLUS_PARALLEL_REQUESTS = 3; // Number of parallel mergeMap requests
 
 @Injectable()
@@ -65,7 +66,8 @@ export class LadderService implements OnApplicationBootstrap {
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
-    private readonly publisher: RabbitMQPublisherService,
+    @InjectQueue(charactersQueue.name)
+    private readonly queueCharacters: Queue<ICharacterMessageBase>,
   ) {
     this.rateLimiter = new AdaptiveRateLimiter(
       {
@@ -260,7 +262,7 @@ export class LadderService implements OnApplicationBootstrap {
       return;
     }
 
-    await this.publisher.publishBulk(charactersQueue.exchange, characterJobs);
+    await this.queueCharacters.addBulk(characterJobs);
 
     this.logger.log({
       logTag,
@@ -704,10 +706,7 @@ export class LadderService implements OnApplicationBootstrap {
         continue;
       }
 
-      await this.publisher.publishBulk(
-        charactersQueue.exchange,
-        characterJobMembers,
-      );
+      await this.queueCharacters.addBulk(characterJobMembers);
 
       this.logger.log({
         logTag,

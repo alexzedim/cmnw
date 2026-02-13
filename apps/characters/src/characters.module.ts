@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { CharactersService } from './characters.service';
-import { RabbitMQModule } from '@app/rabbitmq';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CharactersEntity, KeysEntity } from '@app/pg';
@@ -35,7 +34,6 @@ import { charactersQueue } from '@app/resources/queues';
       connection: charactersQueue.connection,
       defaultJobOptions: charactersQueue.defaultJobOptions,
     }),
-    RabbitMQModule,
   ],
   controllers: [],
   providers: [CharactersService],

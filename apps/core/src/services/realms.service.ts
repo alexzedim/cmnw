@@ -65,6 +65,8 @@ export class RealmsService implements OnApplicationBootstrap {
     try {
       const [keyEntity] = await getKeys(this.keysRepository, clearance);
 
+      await this.realmsQueue.drain(true);
+
       this.BNet = new BlizzAPI({
         region: 'eu',
         clientId: keyEntity.client,

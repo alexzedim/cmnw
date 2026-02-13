@@ -1,9 +1,15 @@
-import { Injectable, OnModuleInit, Logger, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleInit,
+  Logger,
+  OnModuleDestroy,
+} from '@nestjs/common';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Gauge, Counter } from 'prom-client';
 import { workerConfig } from '@app/configuration';
-import { RabbitMQMonitorService } from '@app/rabbitmq';
 import { getStatusChar } from '@app/resources';
+import { Queue } from 'bullmq';
+import { InjectQueue } from '@nestjs/bullmq';
 
 @Injectable()
 export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
@@ -20,6 +26,8 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
     'dma.valuations',
     'osint.profiles',
   ];
+
+  private queues: Record<string, Queue> = {};
 
   constructor(
     @InjectMetric('rabbitmq_queue_messages_ready')
@@ -38,9 +46,25 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
     private readonly jobsByStatusCodeCounter: Counter<string>,
     @InjectMetric('rabbitmq_jobs_by_source')
     private readonly jobsBySourceCounter: Counter<string>,
-    private readonly rabbitMQMonitorService: RabbitMQMonitorService,
+    @InjectQueue('dma.auctions') private readonly dmaAuctionsQueue: Queue,
+    @InjectQueue('osint.characters')
+    private readonly osintCharactersQueue: Queue,
+    @InjectQueue('osint.guilds') private readonly osintGuildsQueue: Queue,
+    @InjectQueue('core.realms') private readonly coreRealmsQueue: Queue,
+    @InjectQueue('dma.items') private readonly dmaItemsQueue: Queue,
+    @InjectQueue('dma.valuations') private readonly dmaValuationsQueue: Queue,
+    @InjectQueue('osint.profiles') private readonly osintProfilesQueue: Queue,
   ) {
     this.workerId = workerConfig.workerId;
+    this.queues = {
+      'dma.auctions': dmaAuctionsQueue,
+      'osint.characters': osintCharactersQueue,
+      'osint.guilds': osintGuildsQueue,
+      'core.realms': coreRealmsQueue,
+      'dma.items': dmaItemsQueue,
+      'dma.valuations': dmaValuationsQueue,
+      'osint.profiles': osintProfilesQueue,
+    };
   }
 
   async onModuleInit() {
@@ -54,9 +78,6 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
     // Initial metrics collection
     await this.updateMetrics();
 
-    // Set up event listeners for job completions/failures via RabbitMQ
-    this.setupQueueEventListeners();
-
     // Update metrics every 15 seconds (aligned with Prometheus scrape interval)
     this.updateInterval = setInterval(() => {
       this.updateMetrics().catch((error) => {
@@ -65,80 +86,47 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
     }, 15000);
   }
 
-  private setupQueueEventListeners() {
-    for (const queueName of this.queueNames) {
-      // Listen for completed messages via RabbitMQ
-      this.rabbitMQMonitorService.onMessageCompleted(queueName, async (message) => {
-        this.jobsTotalCounter.inc({
-          queue: queueName,
-          status: 'completed',
-          worker_id: this.workerId,
-        });
-
-        // Track message metadata
-        try {
-          await this.trackMessageMetadata(queueName, message);
-        } catch (error) {
-          this.logger.error(
-            `Failed to track message metadata for ${queueName}:`,
-            error,
-          );
-        }
-      });
-
-      // Listen for failed messages via RabbitMQ
-      this.rabbitMQMonitorService.onMessageFailed(queueName, async () => {
-        this.jobsTotalCounter.inc({
-          queue: queueName,
-          status: 'failed',
-          worker_id: this.workerId,
-        });
-      });
-    }
-  }
-
   async updateMetrics() {
     for (const queueName of this.queueNames) {
       try {
-        const stats = await this.rabbitMQMonitorService.getQueueStats(queueName);
-        if (!stats) {
-          this.logger.warn(`Queue stats unavailable for ${queueName}`);
+        const queue = this.getQueueByName(queueName);
+        if (!queue) {
+          this.logger.warn(`Queue not found: ${queueName}`);
           continue;
         }
 
-        this.messagesReadyGauge
-          .labels(queueName, this.workerId)
-          .set(stats.messageCount ?? stats.waiting ?? 0);
-        this.messagesUnackedGauge.labels(queueName, this.workerId).set(0);
-        this.consumersGauge
-          .labels(queueName)
-          .set(stats.consumerCount ?? stats.active ?? 0);
+        const [waiting, active, completed, failed] = await Promise.all([
+          queue.getWaitingCount(),
+          queue.getActiveCount(),
+          queue.getCompletedCount(),
+          queue.getFailedCount(),
+        ]);
 
-        // Calculate processing rate
-        const processingRate = await this.calculateProcessingRate(queueName);
+        this.messagesReadyGauge.labels(queueName, this.workerId).set(waiting);
+        this.messagesUnackedGauge.labels(queueName, this.workerId).set(0);
+        this.consumersGauge.labels(queueName).set(active);
+
+        // For BullMQ, processing rate and avg time require tracking
+        const processingRate = 0; // TODO: implement rate tracking
+        const avgTime = 0; // TODO: implement avg time tracking
+
         this.processingRateGauge
           .labels(queueName, this.workerId)
           .set(processingRate);
-
-        // Calculate average processing time
-        const avgTime = await this.calculateAverageProcessingTime(queueName);
-        this.avgProcessingTimeGauge.labels(queueName, this.workerId).set(avgTime);
+        this.avgProcessingTimeGauge
+          .labels(queueName, this.workerId)
+          .set(avgTime);
       } catch (error) {
-        console.error(`Failed to update metrics for queue ${queueName}:`, error);
+        console.error(
+          `Failed to update metrics for queue ${queueName}:`,
+          error,
+        );
       }
     }
   }
 
-  private async calculateProcessingRate(queueName: string): Promise<number> {
-    // Get recent completion stats from RabbitMQ monitor
-    const stats = await this.rabbitMQMonitorService.getQueueStats(queueName);
-    return stats.processingRate || 0;
-  }
-
-  private async calculateAverageProcessingTime(queueName: string): Promise<number> {
-    // Get average processing time from RabbitMQ monitor
-    const stats = await this.rabbitMQMonitorService.getQueueStats(queueName);
-    return stats.avgProcessingTime || 0;
+  private getQueueByName(queueName: string): Queue | undefined {
+    return this.queues[queueName];
   }
 
   /**
@@ -153,7 +141,10 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
 
       // Track status code if available
       if (typeof messageData.statusCode === 'number') {
-        const statusLabel = getStatusChar(messageData.status || '------', 'STATUS');
+        const statusLabel = getStatusChar(
+          messageData.status || '------',
+          'STATUS',
+        );
 
         this.jobsByStatusCodeCounter.inc({
           queue: queueName,

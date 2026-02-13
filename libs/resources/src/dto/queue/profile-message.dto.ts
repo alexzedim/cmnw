@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { JobsOptions } from 'bullmq';
 import { profileQueue } from '../../queues/profile.queue';
+import { toGuid } from '@app/resources/transformers';
 
 /**
  * Base interface for creating profile job data
@@ -64,7 +65,10 @@ export class ProfileMessageDto {
    * @returns New ProfileMessageDto instance
    */
   static create(data: IProfileMessageBase, opts?: JobsOptions): ProfileMessageDto {
+    const guid = toGuid(data.name, data.realm);
+
     const mergedOpts = {
+      jobId: guid,
       ...profileQueue.defaultJobOptions,
       ...opts,
     };

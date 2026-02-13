@@ -5,7 +5,6 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { KeysService, RealmsWorker, RealmsService } from './services';
 import { S3Module } from '@app/s3';
-import { RabbitMQModule } from '@app/rabbitmq';
 import { KeysEntity, RealmsEntity } from '@app/pg';
 
 @Module({
@@ -15,7 +14,6 @@ import { KeysEntity, RealmsEntity } from '@app/pg';
     S3Module.forRoot(s3Config),
     TypeOrmModule.forRoot(postgresConfig),
     TypeOrmModule.forFeature([KeysEntity, RealmsEntity]),
-    RabbitMQModule,
   ],
   controllers: [],
   providers: [KeysService, RealmsService, RealmsWorker],

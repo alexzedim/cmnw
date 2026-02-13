@@ -39,12 +39,15 @@ export class ItemMessageDto {
    * @returns New ItemMessageDto instance
    */
   static create(data: IItemMessageBase, opts?: JobsOptions): ItemMessageDto {
+    const jobId = `item-${data.itemId}`;
+
     const mergedOpts = {
+      jobId,
       ...itemsQueue.defaultJobOptions,
       ...opts,
     };
 
-    const dto = new ItemMessageDto(itemsQueue.name, data, mergedOpts);
+    const dto = new ItemMessageDto(jobId, data, mergedOpts);
     return dto;
   }
 }

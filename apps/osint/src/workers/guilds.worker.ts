@@ -9,12 +9,12 @@ import {
   getRandomProxy,
   isEuRegion,
   toSlug,
-  GuildMessageDto,
   hasAnyGuildErrorInString,
   isAllGuildSuccessInString,
   setGuildStatusString,
   GuildStatusState,
   guildsQueue,
+  IGuildMessageBase,
 } from '@app/resources';
 import { KeysEntity } from '@app/pg';
 import { coreConfig } from '@app/configuration';
@@ -27,6 +27,7 @@ import {
   GuildLogService,
   GuildMasterService,
 } from '../services';
+import { Job } from 'bullmq';
 
 @Injectable()
 @Processor(guildsQueue)
@@ -61,17 +62,15 @@ export class GuildsWorker extends WorkerHost {
     super();
   }
 
-  async process(job: any): Promise<void> {
-    const message: GuildMessageDto = job.data;
+  async process(job: Job<IGuildMessageBase>): Promise<void> {
+    const message = job.data;
     const startTime = Date.now();
     this.stats.total++;
 
     try {
-      const { data: args } = message;
-
       // Step 1: Find or create guild entity
       const { guildEntity, isNew, isNotReadyToUpdate, isCreateOnlyUnique } =
-        await this.guildService.findOrCreate(args);
+        await this.guildService.findOrCreate(message);
 
       if (isNotReadyToUpdate) {
         this.stats.skipped++;
@@ -94,7 +93,7 @@ export class GuildsWorker extends WorkerHost {
       const nameSlug = toSlug(guildEntity.name);
 
       // Step 3: Check region
-      const isNotEuRegion = !isEuRegion(args.region);
+      const isNotEuRegion = !isEuRegion(message.region);
       if (isNotEuRegion) {
         this.stats.notEuRegion++;
         this.logger.warn(
@@ -105,17 +104,17 @@ export class GuildsWorker extends WorkerHost {
 
       // Step 4: Initialize Blizzard API client
       this.BNet = new BlizzAPI({
-        region: args.region || 'eu',
-        clientId: args.clientId,
-        clientSecret: args.clientSecret,
-        accessToken: args.accessToken,
+        region: message.region || 'eu',
+        clientId: message.clientId,
+        clientSecret: message.clientSecret,
+        accessToken: message.accessToken,
         httpsAgent: coreConfig.useProxy
           ? await getRandomProxy(this.keysRepository)
           : undefined,
       });
 
-      if (args.updatedBy) {
-        guildEntity.updatedBy = args.updatedBy;
+      if (message.updatedBy) {
+        guildEntity.updatedBy = message.updatedBy;
       }
 
       // Step 5: Fetch guild summary from API
@@ -198,10 +197,10 @@ export class GuildsWorker extends WorkerHost {
       this.stats.errors++;
       const duration = Date.now() - startTime;
       const guid =
-        message.data?.name && message.data?.realm
-          ? `${message.data.name}@${message.data.realm}`
+        message.name && message.realm
+          ? `${message.name}@${message.realm}`
           : 'unknown';
-      const updatedBy = message.data?.updatedBy || 'unknown';
+      const updatedBy = message.updatedBy || 'unknown';
 
       this.logger.error(
         `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)} [${chalk.bold(updatedBy)}] - ${errorOrException.message}`,

@@ -16,6 +16,7 @@ import {
   getKey,
   getKeys,
   GLOBAL_DMA_KEY,
+  IAuctionMessageBase,
   isWowToken,
   MARKET_TYPE,
   REALM_ENTITY_ANY,
@@ -23,7 +24,8 @@ import {
   TOLERANCE_ENUM,
   WOW_TOKEN_ITEM_ID,
 } from '@app/resources';
-import { RabbitMQPublisherService } from '@app/rabbitmq';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class AuctionsService implements OnApplicationBootstrap {
@@ -39,7 +41,8 @@ export class AuctionsService implements OnApplicationBootstrap {
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
-    private readonly publisher: RabbitMQPublisherService,
+    @InjectQueue(auctionsQueue.name)
+    private readonly queue: Queue<IAuctionMessageBase>,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -59,6 +62,8 @@ export class AuctionsService implements OnApplicationBootstrap {
       });
       if (!isIndexAuctions) return;
 
+      await this.queue.drain(true);
+
       const [keyEntity] = await getKeys(this.keysRepository, clearance, true);
       const offsetTime = DateTime.now().minus({ minutes: 30 }).toMillis();
 
@@ -72,7 +77,7 @@ export class AuctionsService implements OnApplicationBootstrap {
       await lastValueFrom(
         from(realmsEntity).pipe(
           mergeMap(async (realmEntity) => {
-            const message = {
+            const message = AuctionMessageDto.create({
               connectedRealmId: realmEntity.connectedRealmId,
               auctionsTimestamp: realmEntity.auctionsTimestamp,
               region: 'eu',
@@ -80,16 +85,9 @@ export class AuctionsService implements OnApplicationBootstrap {
               clientSecret: keyEntity.secret,
               accessToken: keyEntity.token,
               isAssetClassIndex: true,
-            };
+            });
 
-            await this.publisher.publishMessage(
-              auctionsQueue.exchange,
-              AuctionMessageDto.create({
-                data: message,
-                priority: 5,
-                routingKey: 'dma.auctions.index',
-              }),
-            );
+            await this.queue.add(message.name, message.data, message.opts);
 
             this.logger.debug({
               logTag,
@@ -124,7 +122,7 @@ export class AuctionsService implements OnApplicationBootstrap {
         connectedRealmId: REALM_ENTITY_ANY.id,
       });
 
-      const message = {
+      const message = AuctionMessageDto.create({
         region: 'eu',
         clientId: keyEntity.client,
         clientSecret: keyEntity.secret,
@@ -132,16 +130,9 @@ export class AuctionsService implements OnApplicationBootstrap {
         connectedRealmId: realmEntity.connectedRealmId,
         commoditiesTimestamp: realmEntity.commoditiesTimestamp,
         isAssetClassIndex: true,
-      };
+      });
 
-      await this.publisher.publishMessage(
-        auctionsQueue.exchange,
-        AuctionMessageDto.create({
-          data: message,
-          priority: 10,
-          routingKey: 'dma.auctions.commodity',
-        }),
-      );
+      await this.queue.add(message.name, message.data, message.opts);
 
       this.logger.debug({
         logTag,

@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Queue } from 'bullmq';
 import { CharactersEntity, GuildsEntity, KeysEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { BlizzAPI } from '@alexzedim/blizzapi';
@@ -15,6 +16,7 @@ import {
   GuildMessageDto,
   guildsQueue,
   HALL_OF_FAME_RAIDS,
+  IGuildMessageBase,
   IHallOfFame,
   isEuRegion,
   isHallOfFame,
@@ -22,9 +24,8 @@ import {
   OSINT_GUILD_LIMIT,
   RAID_FACTIONS,
 } from '@app/resources';
-import { bufferCount, concatMap } from 'rxjs/operators';
 import { osintConfig } from '@app/configuration';
-import { RabbitMQPublisherService } from '@app/rabbitmq';
+import { InjectQueue } from '@nestjs/bullmq';
 
 @Injectable()
 export class GuildsService implements OnApplicationBootstrap {
@@ -40,7 +41,8 @@ export class GuildsService implements OnApplicationBootstrap {
     private readonly guildsRepository: Repository<GuildsEntity>,
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
-    private readonly rabbitMQPublisherService: RabbitMQPublisherService,
+    @InjectQueue(guildsQueue.name)
+    private readonly queueGuilds: Queue<IGuildMessageBase>,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -56,6 +58,7 @@ export class GuildsService implements OnApplicationBootstrap {
     isIndexGuildsFromCharacters: boolean,
   ) {
     const logTag = this.indexGuildCharactersUnique.name;
+
     let uniqueGuildGuidsCount = 0;
     let guildJobsItx = 0;
     let guildJobsSuccessItx = 0;
@@ -91,54 +94,27 @@ export class GuildsService implements OnApplicationBootstrap {
 
         const [name, realm] = guild.guildGuid.split('@');
 
+        guildJobsItx = guildJobsItx + 1;
+
         const dto = GuildMessageDto.fromGuildCharactersUnique({
           name,
           realm,
+          iteration: guildJobsItx,
           clientId: client,
           clientSecret: secret,
           accessToken: token,
         });
 
-        guildJobsItx = guildJobsItx + 1;
-
         return dto;
       });
+
+      await this.queueGuilds.addBulk(guildJobs);
 
       this.logger.log({
         logTag,
         guildJobsItx,
         message: `Created ${guildJobsItx} guild jobs`,
       });
-      await lastValueFrom(
-        from(guildJobs).pipe(
-          bufferCount(500),
-          concatMap(async (guildJobsBatch) => {
-            try {
-              await this.rabbitMQPublisherService.publishBulk(
-                guildsQueue.exchange,
-                guildJobsBatch,
-              );
-              this.logger.log({
-                logTag,
-                currentBatch: guildJobsBatch.length,
-                totalJobs: guildJobsItx,
-                processed: guildJobsSuccessItx,
-                message: `Added ${guildJobsBatch.length} guild jobs to queue`,
-              });
-              guildJobsSuccessItx = guildJobsBatch.length;
-            } catch (errorOrException) {
-              this.logger.error({
-                logTag: 'guildJobsBatch',
-                uniqueGuildGuidsCount,
-                guildJobsItx,
-                guildJobsSuccessItx,
-                errorOrException,
-                message: 'Error adding guild jobs batch to queue',
-              });
-            }
-          }),
-        ),
-      );
 
       this.logger.log({
         logTag,
@@ -193,6 +169,8 @@ export class GuildsService implements OnApplicationBootstrap {
             const { client, secret, token } =
               this.keyEntities[guildIteration % length];
 
+            guildIteration = guildIteration + 1;
+
             const dto = GuildMessageDto.fromGuildIndex({
               id: guild.id,
               guid: guild.guid,
@@ -205,12 +183,8 @@ export class GuildsService implements OnApplicationBootstrap {
               ...guild,
             });
 
-            await this.rabbitMQPublisherService.publishMessage(
-              guildsQueue.exchange,
-              dto,
-            );
+            await this.queueGuilds.add(dto.name, dto.data, dto.opts);
 
-            guildIteration = guildIteration + 1;
             const isKeyRequest = guildIteration % 100 == 0;
             if (isKeyRequest) {
               this.keyEntities = await getKeys(this.keysRepository, clearance);
@@ -296,10 +270,7 @@ export class GuildsService implements OnApplicationBootstrap {
             })
             .filter(notNull);
 
-          await this.rabbitMQPublisherService.publishBulk(
-            guildsQueue.exchange,
-            guildJobs,
-          );
+          await this.queueGuilds.addBulk(guildJobs);
 
           this.logger.log(
             `${logTag}: Raid ${raid} | Faction ${raidFaction} | Guilds ${guildJobs.length}`,

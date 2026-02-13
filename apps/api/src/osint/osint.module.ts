@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common';
-import { postgresConfig } from '@app/configuration';
-import { RabbitMQModule } from '@app/rabbitmq';
+import { getRedisConnection, postgresConfig } from '@app/configuration';
 import { OsintController } from './osint.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
@@ -24,6 +23,8 @@ import {
   GuildOsintService,
   RealmOsintService,
 } from './services';
+import { charactersQueue, guildsQueue } from '@app/resources';
+import { BullModule } from '@nestjs/bullmq';
 
 @Module({
   imports: [
@@ -44,7 +45,17 @@ import {
       RealmsEntity,
       CharactersGuildsLogsEntity,
     ]),
-    RabbitMQModule,
+    BullModule.forRoot({
+      connection: getRedisConnection(),
+    }),
+    BullModule.registerQueue({
+      name: charactersQueue.name,
+      defaultJobOptions: charactersQueue.defaultJobOptions,
+    }),
+    BullModule.registerQueue({
+      name: guildsQueue.name,
+      defaultJobOptions: guildsQueue.defaultJobOptions,
+    }),
   ],
   controllers: [OsintController],
   providers: [CharacterOsintService, GuildOsintService, RealmOsintService],

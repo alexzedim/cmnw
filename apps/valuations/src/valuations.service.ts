@@ -1,14 +1,15 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { InjectQueue } from '@nestjs/bullmq';
 import { Market, Item, Pricing, RealmConnected } from '@app/mongo';
 import { Model } from 'mongoose';
+import { Queue } from 'bullmq';
 import {
   ASSET_EVALUATION_PRIORITY,
   IVAAuctions,
   IVARealm,
   VALUATION_TYPE,
 } from '@app/resources';
-import { RabbitMQPublisherService } from '@app/rabbitmq';
 import { valuationsConfig } from '@app/configuration';
 // import { Cron, CronExpression } from '@nestjs/schedule';
 
@@ -27,7 +28,8 @@ export class ValuationsService implements OnApplicationBootstrap {
     private readonly PricingModel: Model<Pricing>,
     @InjectModel(Market.name)
     private readonly AuctionsModel: Model<Market>,
-    private readonly rabbitMQPublisherService: RabbitMQPublisherService,
+    @InjectQueue('dma.valuations')
+    private readonly valuationsQueue: Queue<any>,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -39,7 +41,7 @@ export class ValuationsService implements OnApplicationBootstrap {
   }
 
   async clearQueue(): Promise<void> {
-    await this.queue.obliterate({ force: true });
+    await this.valuationsQueue.drain();
   }
 
   // @Cron(CronExpression.EVERY_10_MINUTES)
@@ -79,7 +81,8 @@ export class ValuationsService implements OnApplicationBootstrap {
           .eachAsync(
             async (item) => {
               const _id = `${item._id}@${connected_realm_id}_${timestamp}`;
-              await this.rabbitMQPublisherService.publishMessage(
+              await this.valuationsQueue.add(
+                'valuation',
                 {
                   _id: item._id,
                   last_modified: timestamp,
@@ -87,7 +90,7 @@ export class ValuationsService implements OnApplicationBootstrap {
                   iteration: 0,
                 },
                 {
-                  priority: priority,
+                  priority,
                 },
               );
             },
@@ -274,15 +277,18 @@ export class ValuationsService implements OnApplicationBootstrap {
           .cursor()
           .eachAsync(
             async (item: Item) => {
-              if (item.sell_price) item.asset_class.addToSet(VALUATION_TYPE.VSP);
-              if (item.expansion) item.tags.addToSet(item.expansion.toLowerCase());
+              if (item.sell_price)
+                item.asset_class.addToSet(VALUATION_TYPE.VSP);
+              if (item.expansion)
+                item.tags.addToSet(item.expansion.toLowerCase());
               if (item.profession_class)
                 item.tags.addToSet(item.profession_class.toLowerCase());
               if (item.asset_class)
                 item.asset_class.map((asset_class) =>
                   item.tags.addToSet(asset_class.toLowerCase()),
                 );
-              if (item.item_class) item.tags.addToSet(item.item_class.toLowerCase());
+              if (item.item_class)
+                item.tags.addToSet(item.item_class.toLowerCase());
               if (item.item_subclass)
                 item.tags.addToSet(item.item_subclass.toLowerCase());
               if (item.quality) item.tags.addToSet(item.quality.toLowerCase());
@@ -296,7 +302,9 @@ export class ValuationsService implements OnApplicationBootstrap {
                   item.tags.addToSet(t);
                 });
               }
-              this.logger.debug(`item: ${item._id}, tags: ${item.tags.join(', ')}`);
+              this.logger.debug(
+                `item: ${item._id}, tags: ${item.tags.join(', ')}`,
+              );
               await item.save();
             },
             { parallel: 20 },

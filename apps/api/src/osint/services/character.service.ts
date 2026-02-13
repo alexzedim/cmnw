@@ -6,8 +6,6 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 
-import { RabbitMQPublisherService } from '@app/rabbitmq';
-import { AmqpConnection } from '@golevelup/nestjs-rabbitmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   AnalyticsEntity,
@@ -34,7 +32,10 @@ import {
   LFG_STATUS,
   toGuid,
   findRealm,
+  ICharacterMessageBase,
 } from '@app/resources';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class CharacterOsintService {
@@ -56,8 +57,8 @@ export class CharacterOsintService {
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(CharactersGuildsLogsEntity)
     private readonly logsRepository: Repository<CharactersGuildsLogsEntity>,
-    private readonly amqpConnection: AmqpConnection,
-    private readonly rabbitMQPublisherService: RabbitMQPublisherService,
+    @InjectQueue(charactersQueue.name)
+    private readonly queueCharacter: Queue<ICharacterMessageBase>,
   ) {}
 
   private async requestCharacterFromQueue(params: {
@@ -69,7 +70,11 @@ export class CharacterOsintService {
     let requestedCharacter: CharactersEntity | null = null;
 
     try {
-      const [keyEntity] = await getKeys(this.keysRepository, this.clearance, true);
+      const [keyEntity] = await getKeys(
+        this.keysRepository,
+        this.clearance,
+        true,
+      );
 
       const characterMessage = await CharacterMessageDto.fromCharacterRequest({
         name: params.name,
@@ -79,15 +84,14 @@ export class CharacterOsintService {
         accessToken: keyEntity.token,
       });
 
-      requestedCharacter = await this.amqpConnection.request<CharactersEntity>({
-        exchange: charactersQueue.exchange,
-        routingKey: 'osint.characters.request.high',
-        payload: characterMessage,
-        timeout: 5000,
-        publishOptions: {
-          priority: 10,
-        },
-      });
+      const job = await this.queueCharacter.add(
+        characterMessage.name,
+        characterMessage.data,
+        characterMessage.opts,
+      );
+
+      // @todo
+      requestedCharacter = await job.waitUntilFinished(undefined, 60000);
     } catch (errorOrException) {
       this.logger.warn({
         logTag: params.logTag,
@@ -171,9 +175,13 @@ export class CharacterOsintService {
           : false;
 
       if (isStale) {
-        const [keyEntity] = await getKeys(this.keysRepository, this.clearance, true);
+        const [keyEntity] = await getKeys(
+          this.keysRepository,
+          this.clearance,
+          true,
+        );
 
-        const characterMessage = await CharacterMessageDto.fromCharacterRequest({
+        const characterMessage = CharacterMessageDto.fromCharacterRequest({
           name: nameSlug,
           realm: realmEntity.slug,
           clientId: keyEntity.client,
@@ -181,9 +189,10 @@ export class CharacterOsintService {
           accessToken: keyEntity.token,
         });
 
-        await this.rabbitMQPublisherService.publishMessage(
-          charactersQueue.exchange,
-          characterMessage,
+        await this.queueCharacter.add(
+          characterMessage.name,
+          characterMessage.data,
+          characterMessage.opts,
         );
 
         this.logger.log({
@@ -375,8 +384,10 @@ export class CharacterOsintService {
 
       if (input.raiderIoScore)
         where.raiderIoScore = MoreThanOrEqual(input.raiderIoScore);
-      if (input.mythicLogs) where.mythicLogs = MoreThanOrEqual(input.mythicLogs);
-      if (input.heroicLogs) where.heroicLogs = MoreThanOrEqual(input.heroicLogs);
+      if (input.mythicLogs)
+        where.mythicLogs = MoreThanOrEqual(input.mythicLogs);
+      if (input.heroicLogs)
+        where.heroicLogs = MoreThanOrEqual(input.heroicLogs);
       if (input.realmsId) {
         where.realmId = In(input.realmsId);
       }
