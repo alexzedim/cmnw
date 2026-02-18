@@ -8,6 +8,8 @@ import { HttpModule } from '@nestjs/axios';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { AppInfoModule } from './app/app.module';
 import { BullModule } from '@nestjs/bullmq';
+import { BullBoardModule } from '@bull-board/nestjs';
+import { ExpressAdapter } from '@bull-board/express';
 
 @Module({
   imports: [
@@ -20,6 +22,10 @@ import { BullModule } from '@nestjs/bullmq';
         port: redisConfig.port,
         password: redisConfig.password,
       },
+    }),
+    BullBoardModule.forRoot({
+      route: '/queues',
+      adapter: ExpressAdapter,
     }),
     OsintModule,
     DmaModule,
