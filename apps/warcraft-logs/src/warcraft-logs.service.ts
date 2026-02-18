@@ -11,6 +11,7 @@ import {
   getRandomizedHeaders,
   GLOBAL_OSINT_KEY,
   GLOBAL_WCL_KEY_V2,
+  ICharacterMessageBase,
   isCharacterRaidLogResponse,
   KEY_LOCK,
   RaidCharacter,
@@ -31,6 +32,8 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import * as cheerio from 'cheerio';
 import Redis from 'ioredis';
 import { InjectRepository } from '@nestjs/typeorm';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @Injectable()
 export class WarcraftLogsService implements OnApplicationBootstrap {
@@ -71,6 +74,8 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
+    @InjectQueue('osint.characters')
+    private readonly charactersQueue: Queue<ICharacterMessageBase>,
   ) {
     // Initialize headers on service creation
     this.refreshHeaders();
@@ -90,7 +95,9 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
     // Random chance to skip (makes rotation less predictable: ~1-2 hour interval)
     const shouldSkip = Math.random() < 0.5;
     if (shouldSkip) {
-      this.logger.log(chalk.dim('⏭️ Header refresh skipped (randomized timing)'));
+      this.logger.log(
+        chalk.dim('⏭️ Header refresh skipped (randomized timing)'),
+      );
       return;
     }
 
@@ -98,7 +105,9 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
     this.cachedXHRHeaders = {}; // XHR headers need referer, will be generated per-request
 
     this.logger.log(
-      chalk.dim('🔄 Headers refreshed (next check in 1h, ~50% chance to refresh)'),
+      chalk.dim(
+        '🔄 Headers refreshed (next check in 1h, ~50% chance to refresh)',
+      ),
     );
   }
 
@@ -130,13 +139,22 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
   async indexWarcraftLogs(): Promise<void> {
     const startTime = Date.now();
     try {
-      const lock = Boolean(await this.redisService.exists(KEY_LOCK.WARCRAFT_LOGS));
+      const lock = Boolean(
+        await this.redisService.exists(KEY_LOCK.WARCRAFT_LOGS),
+      );
       if (lock) {
-        this.logger.warn(chalk.yellow('⚠ indexWarcraftLogs is already running'));
+        this.logger.warn(
+          chalk.yellow('⚠ indexWarcraftLogs is already running'),
+        );
         return;
       }
 
-      await this.redisService.set(KEY_LOCK.WARCRAFT_LOGS, '1', 'EX', 60 * 60 * 23);
+      await this.redisService.set(
+        KEY_LOCK.WARCRAFT_LOGS,
+        '1',
+        'EX',
+        60 * 60 * 23,
+      );
 
       const realmsEntities = await this.realmsRepository.findBy({
         warcraftLogsId: Not(IsNull()),
@@ -189,7 +207,10 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
       // Use handleResponse for proper rate limit detection
       const isRateLimited = this.fightsAPIRateLimiter.handleResponse({
         status: response.status,
-        headers: response.headers as Record<string, string | number | undefined>,
+        headers: response.headers as Record<
+          string,
+          string | number | undefined
+        >,
       });
       if (isRateLimited) {
         this.logger.warn(
@@ -222,7 +243,9 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
           const matchResult = hrefString.match(/(.{16})\s*$/g);
           if (matchResult && matchResult[0]) {
             const logId = matchResult[0];
-            const createdAt = DateTime.fromSeconds(Number(momentFormat)).toJSDate();
+            const createdAt = DateTime.fromSeconds(
+              Number(momentFormat),
+            ).toJSDate();
             warcraftLogsMap.set(logId, { logId, createdAt });
           }
         }
@@ -302,9 +325,10 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         }
 
         for (const { logId, createdAt } of wclLogsFromPage) {
-          const characterRaidLog = await this.charactersRaidLogsRepository.exists({
-            where: { logId },
-          });
+          const characterRaidLog =
+            await this.charactersRaidLogsRepository.exists({
+              where: { logId },
+            });
           // --- If exists counter --- //
           if (characterRaidLog) {
             logsAlreadyExists += 1;
@@ -342,7 +366,9 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
   async indexLogs(): Promise<void> {
     const startTime = Date.now();
     try {
-      const isJobLocked = Boolean(await this.redisService.exists(GLOBAL_WCL_KEY_V2));
+      const isJobLocked = Boolean(
+        await this.redisService.exists(GLOBAL_WCL_KEY_V2),
+      );
       if (isJobLocked) {
         this.logger.warn(chalk.yellow('⚠ indexLogs is already running'));
         return;
@@ -363,7 +389,9 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
       }
 
       this.logger.log(
-        chalk.cyan(`🔄 Processing ${chalk.bold(characterRaidLog.length)} raid logs`),
+        chalk.cyan(
+          `🔄 Processing ${chalk.bold(characterRaidLog.length)} raid logs`,
+        ),
       );
 
       // Reduced concurrency from 5 to 2 to avoid rate limiting on Fights API
@@ -371,7 +399,10 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         from(characterRaidLog).pipe(
           mergeMap(
             (characterRaidLogEntity) =>
-              this.indexLogAndPushCharactersToQueue(characterRaidLogEntity, wclKey),
+              this.indexLogAndPushCharactersToQueue(
+                characterRaidLogEntity,
+                wclKey,
+              ),
             2,
           ),
         ),
@@ -414,7 +445,10 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
 
     try {
       // Attempt to fetch characters using primary and fallback APIs
-      const raidCharacters = await this.fetchCharactersWithFallback(logId, wclKey);
+      const raidCharacters = await this.fetchCharactersWithFallback(
+        logId,
+        wclKey,
+      );
 
       // Mark log as indexed regardless of character count (prevents re-processing)
       await this.markLogAsIndexed(logId);
@@ -490,7 +524,10 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
    * @throws Database errors are propagated
    */
   private async markLogAsIndexed(logId: string): Promise<void> {
-    await this.charactersRaidLogsRepository.update({ logId }, { isIndexed: true });
+    await this.charactersRaidLogsRepository.update(
+      { logId },
+      { isIndexed: true },
+    );
   }
 
   /**
@@ -529,7 +566,9 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
    * @param logId - The 16-character report ID
    * @returns Array of RaidCharacter objects with name, realm, and timestamp
    */
-  async getCharactersFromFightsAPI(logId: string): Promise<Array<RaidCharacter>> {
+  async getCharactersFromFightsAPI(
+    logId: string,
+  ): Promise<Array<RaidCharacter>> {
     try {
       // Use adaptive rate limiter - automatically adjusts based on 403 errors
       await this.fightsAPIRateLimiter.wait();
@@ -563,7 +602,10 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
       // Use handleResponse for proper rate limit detection
       const isRateLimited = this.fightsAPIRateLimiter.handleResponse({
         status: response.status,
-        headers: response.headers as Record<string, string | number | undefined>,
+        headers: response.headers as Record<
+          string,
+          string | number | undefined
+        >,
       });
 
       // Handle 404 separately (not a rate limit)
@@ -672,7 +714,10 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
       // Use handleResponse for proper rate limit detection
       const isRateLimited = this.fightsAPIRateLimiter.handleResponse({
         status: response.status,
-        headers: response.headers as Record<string, string | number | undefined>,
+        headers: response.headers as Record<
+          string,
+          string | number | undefined
+        >,
       });
 
       if (isRateLimited) {
@@ -688,14 +733,20 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
       const characters = new Map<string, { name: string; realm?: string }>();
 
       // Extract report creator name
-      const creatorName = $('.report-title-details-text .gold.bold').text().trim();
+      const creatorName = $('.report-title-details-text .gold.bold')
+        .text()
+        .trim();
       if (creatorName) {
         characters.set(creatorName.toLowerCase(), { name: creatorName });
       }
 
       // Try to extract guild/team name if present
       const guildName = $('.guild-reports-guildName').text().trim();
-      if (guildName && guildName !== 'Personal Logs' && guildName !== creatorName) {
+      if (
+        guildName &&
+        guildName !== 'Personal Logs' &&
+        guildName !== creatorName
+      ) {
         characters.set(guildName.toLowerCase(), { name: guildName });
       }
 
@@ -751,7 +802,10 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
       // Use adaptive rate limiter for GraphQL API
       await this.fightsAPIRateLimiter.wait();
 
-      const response = await this.httpService.axiosRef.request<unknown, unknown>({
+      const response = await this.httpService.axiosRef.request<
+        unknown,
+        unknown
+      >({
         method: 'post',
         url: 'https://www.warcraftlogs.com/api/v2/client',
         headers: { Authorization: `Bearer ${token}` },
@@ -807,7 +861,11 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
       if (!isGuard) return [];
 
       // --- Take both characters ranked & playable --- //
-      const timestamp = get(response, 'data.data.reportData.report.startTime', 1);
+      const timestamp = get(
+        response,
+        'data.data.reportData.report.startTime',
+        1,
+      );
       const rankedCharacters: Array<RaidCharacter> = get(
         response,
         'data.data.reportData.report.rankedCharacters',
@@ -882,7 +940,9 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
     }
   }
 
-  async charactersToQueue(raidCharacters: Array<RaidCharacter>): Promise<boolean> {
+  async charactersToQueue(
+    raidCharacters: Array<RaidCharacter>,
+  ): Promise<boolean> {
     try {
       let itx = 0;
       const keys = await getKeys(this.keysRepository, GLOBAL_OSINT_KEY, false);
@@ -900,7 +960,13 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         });
       });
 
-      await this.publisher.publishBulk(charactersQueue.exchange, charactersToJobs);
+      await this.charactersQueue.addBulk(
+        charactersToJobs.map((job) => ({
+          name: job.name,
+          data: job.data,
+          opts: job.opts,
+        })),
+      );
       this.stats.charactersQueued += charactersToJobs.length;
       this.logger.log(
         `${chalk.cyan('→')} Queued ${chalk.bold(charactersToJobs.length)} characters to characterQueue`,
