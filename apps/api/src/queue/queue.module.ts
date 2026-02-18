@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
+import { BullBoardModule } from '@bull-board/nestjs';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import { getRedisConnection } from '@app/configuration';
 import {
   charactersQueue,
@@ -48,6 +50,34 @@ import { queueMetricsProviders } from './queue-metrics.provider';
       name: realmsQueue.name,
       defaultJobOptions: realmsQueue.defaultJobOptions,
     }),
+    BullBoardModule.forFeature({
+      name: charactersQueue.name,
+      adapter: BullMQAdapter,
+    }),
+    BullBoardModule.forFeature({
+      name: guildsQueue.name,
+      adapter: BullMQAdapter,
+    }),
+    BullBoardModule.forFeature({
+      name: profileQueue.name,
+      adapter: BullMQAdapter,
+    }),
+    BullBoardModule.forFeature({
+      name: auctionsQueue.name,
+      adapter: BullMQAdapter,
+    }),
+    BullBoardModule.forFeature({
+      name: itemsQueue.name,
+      adapter: BullMQAdapter,
+    }),
+    BullBoardModule.forFeature({
+      name: valuationsQueue.name,
+      adapter: BullMQAdapter,
+    }),
+    BullBoardModule.forFeature({
+      name: realmsQueue.name,
+      adapter: BullMQAdapter,
+    }),
     PrometheusModule.register({
       path: '/metrics',
       defaultMetrics: {
@@ -61,5 +91,6 @@ import { queueMetricsProviders } from './queue-metrics.provider';
     QueueMetricsService,
     ...queueMetricsProviders,
   ],
+  exports: [],
 })
 export class QueueModule {}

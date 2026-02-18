@@ -10,6 +10,7 @@ This module provides monitoring and management capabilities for BullMQ queues in
 - **Estimated Completion**: Estimate remaining time based on current rate
 - **Queue Management**: Purge queues via API (use with caution)
 - **BullMQ Monitoring**: Dedicated monitoring endpoints for BullMQ
+- **Bull Board UI**: Visual dashboard for monitoring and managing queues
 
 ## Monitored Queues
 
@@ -19,7 +20,7 @@ This module provides monitoring and management capabilities for BullMQ queues in
 - `dma.auctions` - Auction data processing
 - `dma.items` - Item data processing
 - `core.realms` - Realm data processing
-- `dlx.dlq` - Dead Letter Queue
+- `dma.valuations` - Valuation data processing
 
 ## API Endpoints
 
@@ -40,6 +41,37 @@ Prometheus metrics are available at:
 ```http
 GET /metrics
 ```
+
+### Bull Board UI
+
+The Bull Board UI provides a visual dashboard for monitoring and managing BullMQ queues. It is implemented using the official `@bull-board/nestjs` module.
+
+**Implementation:**
+
+- **Root Module Configuration**: Routes are automatically configured via `BullBoardModule.forRoot()` in the root module
+- **Queue Registration**: Queues are registered via `BullBoardModule.forFeature()` in the QueueModule
+- **No Custom Service**: The implementation uses the official NestJS module directly; no custom `BullBoardService` is required
+
+```http
+GET /queues
+```
+
+**Features:**
+
+- Visual dashboard showing all queues
+- Real-time job details and status
+- Retry failed jobs with one click
+- Remove or pause jobs
+- View job data and stack traces
+- Filter jobs by status (waiting, active, completed, failed, delayed)
+
+**Access:**
+
+```
+http://localhost:3000/queues
+```
+
+**Note:** The Bull Board UI provides full management capabilities. Use caution when performing operations like retrying or removing jobs in production.
 
 ## Notes
 
