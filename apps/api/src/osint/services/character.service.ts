@@ -35,7 +35,8 @@ import {
   ICharacterMessageBase,
 } from '@app/resources';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { Queue, QueueEvents } from 'bullmq';
+import { getRedisConnection } from '@app/configuration';
 
 @Injectable()
 export class CharacterOsintService {
@@ -43,6 +44,7 @@ export class CharacterOsintService {
     timestamp: true,
   });
   private readonly clearance: string = GLOBAL_OSINT_KEY;
+  private readonly queueEvents: QueueEvents;
 
   constructor(
     @InjectRepository(AnalyticsEntity)
@@ -59,7 +61,11 @@ export class CharacterOsintService {
     private readonly logsRepository: Repository<CharactersGuildsLogsEntity>,
     @InjectQueue(charactersQueue.name)
     private readonly queueCharacter: Queue<ICharacterMessageBase>,
-  ) {}
+  ) {
+    this.queueEvents = new QueueEvents(charactersQueue.name, {
+      connection: getRedisConnection(),
+    });
+  }
 
   private async requestCharacterFromQueue(params: {
     name: string;
@@ -90,8 +96,7 @@ export class CharacterOsintService {
         characterMessage.opts,
       );
 
-      // @todo
-      requestedCharacter = await job.waitUntilFinished(undefined, 60000);
+      requestedCharacter = await job.waitUntilFinished(this.queueEvents, 60000);
     } catch (errorOrException) {
       this.logger.warn({
         logTag: params.logTag,

@@ -29,7 +29,8 @@ import {
   IGuildMessageBase,
 } from '@app/resources';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { Queue, QueueEvents } from 'bullmq';
+import { getRedisConnection } from '@app/configuration';
 
 @Injectable()
 export class GuildOsintService {
@@ -37,6 +38,7 @@ export class GuildOsintService {
     timestamp: true,
   });
   private readonly clearance: string = GLOBAL_OSINT_KEY;
+  private readonly queueEvents: QueueEvents;
 
   constructor(
     @InjectRepository(KeysEntity)
@@ -53,7 +55,11 @@ export class GuildOsintService {
     private readonly logsRepository: Repository<CharactersGuildsLogsEntity>,
     @InjectQueue(guildsQueue.name)
     private readonly queueGuild: Queue<IGuildMessageBase>,
-  ) {}
+  ) {
+    this.queueEvents = new QueueEvents(guildsQueue.name, {
+      connection: getRedisConnection(),
+    });
+  }
 
   private async requestGuildFromQueue(params: {
     name: string;
@@ -84,8 +90,7 @@ export class GuildOsintService {
         guildMessage.opts,
       );
 
-      // @todo
-      requestedGuild = await job.waitUntilFinished(undefined, 60000);
+      requestedGuild = await job.waitUntilFinished(this.queueEvents, 60000);
     } catch (errorOrException) {
       this.logger.warn({
         logTag: params.logTag,
