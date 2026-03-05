@@ -89,7 +89,9 @@ export class CharacterMessageDto {
   public readonly data: ICharacterMessageBase;
   public readonly opts?: JobsOptions;
 
-  private static readonly characterLogger = new Logger(CharacterMessageDto.name);
+  private static readonly characterLogger = new Logger(
+    CharacterMessageDto.name,
+  );
 
   /**
    * Constructor - creates a validated Character Message with BullMQ properties
@@ -494,7 +496,11 @@ export class CharacterMessageDto {
       priority: 2,
     };
 
-    const dto = new CharacterMessageDto(characterData.guid, characterData, opts);
+    const dto = new CharacterMessageDto(
+      characterData.guid,
+      characterData,
+      opts,
+    );
     dto.validate(false, 'CharacterMessageDto.fromMigrationFile');
     return dto;
   }
@@ -532,7 +538,11 @@ export class CharacterMessageDto {
       priority: 10,
     };
 
-    const dto = new CharacterMessageDto(charactersQueue.name, characterData, opts);
+    const dto = new CharacterMessageDto(
+      charactersQueue.name,
+      characterData,
+      opts,
+    );
     dto.validate(false, 'CharacterMessageDto.fromCharacterRequest');
     return dto;
   }
@@ -584,7 +594,8 @@ export class CharacterMessageDto {
     if (!strict) {
       const credentials = ['clientId', 'clientSecret', 'accessToken'];
       const missingCredentials = credentials.filter(
-        (field) => !characterData?.[field] || characterData?.[field] === undefined,
+        (field) =>
+          !characterData?.[field] || characterData?.[field] === undefined,
       );
       if (missingCredentials.length > 0) {
         CharacterMessageDto.characterLogger.warn({

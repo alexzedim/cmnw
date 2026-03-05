@@ -2,7 +2,6 @@ import Redis from 'ioredis';
 import { Injectable, Logger } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { BlizzAPI } from '@alexzedim/blizzapi';
-import chalk from 'chalk';
 import { bufferCount, concatMap } from 'rxjs/operators';
 import { from, lastValueFrom } from 'rxjs';
 import { DateTime } from 'luxon';
@@ -29,8 +28,16 @@ import {
   formatBytes,
   IAuctionMessageBase,
 } from '@app/resources';
+import {
+  formatWorkerLog,
+  formatWorkerErrorLog,
+  formatProgressReport,
+  formatFinalSummary,
+  WorkerLogStatus,
+  WorkerStats,
+} from '@app/logger';
 import { createHash } from 'crypto';
-import { isAxiosError, AxiosError } from 'axios';
+import { isAxiosError } from 'axios';
 import { Job } from 'bullmq';
 
 @Injectable()
@@ -40,11 +47,11 @@ export class AuctionsWorker extends WorkerHost {
     timestamp: true,
   });
 
-  private stats = {
+  private stats: WorkerStats = {
     total: 0,
     success: 0,
-    rateLimit: 0,
     errors: 0,
+    rateLimit: 0,
     notModified: 0,
     noData: 0,
     forbidden: 0,
@@ -57,12 +64,6 @@ export class AuctionsWorker extends WorkerHost {
     NOT_MODIFIED: 304,
     FORBIDDEN: 403,
     RATE_LIMITED: 429,
-  } as const;
-
-  private readonly ERROR_STATS_MAP = {
-    304: 'notModified',
-    403: 'forbidden',
-    429: 'rateLimit',
   } as const;
 
   constructor(
@@ -82,7 +83,6 @@ export class AuctionsWorker extends WorkerHost {
     const startTime = Date.now();
     this.stats.total++;
 
-    // Extract data from message wrapper if present
     const message = job.data;
 
     try {
@@ -98,10 +98,7 @@ export class AuctionsWorker extends WorkerHost {
         clientSecret: message.clientSecret,
         accessToken: message.accessToken,
       });
-      /**
-       * @description If no connected realm passed, then deal with it, as COMMODITY
-       * @description Else, it's an auctions' request
-       */
+
       const isCommodity = message.connectedRealmId === REALM_ENTITY_ANY.id;
 
       const previousTimestamp = isCommodity
@@ -141,8 +138,14 @@ export class AuctionsWorker extends WorkerHost {
         this.stats.notModified++;
         const duration = Date.now() - startTime;
         const realmId = message.connectedRealmId;
-        this.logger.warn(
-          `${chalk.blue('ℹ')} ${chalk.blue('304')} [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms) Not modified`)}`,
+        this.logger.log(
+          formatWorkerLog(
+            WorkerLogStatus.NOT_MODIFIED,
+            this.stats.total,
+            `realm ${realmId}`,
+            duration,
+            'Not modified',
+          ),
         );
         return;
       }
@@ -151,7 +154,9 @@ export class AuctionsWorker extends WorkerHost {
         ? REALM_ENTITY_ANY.id
         : message.connectedRealmId;
 
-      const timestamp = DateTime.fromRFC2822(marketResponse.lastModified).toMillis();
+      const timestamp = DateTime.fromRFC2822(
+        marketResponse.lastModified,
+      ).toMillis();
 
       const { auctions } = marketResponse;
 
@@ -165,8 +170,14 @@ export class AuctionsWorker extends WorkerHost {
       if (previouslyPersistedHash) {
         this.stats.notModified++;
         const duration = Date.now() - startTime;
-        this.logger.warn(
-          `${chalk.yellow('⚠')} ${chalk.yellow('HASH')} [${chalk.bold(this.stats.total)}] realm ${connectedRealmId} ${chalk.dim(`(${duration}ms) Duplicate payload hash ${auctionsHash} ${formatBytes(payloadBytes)}`)}`,
+        this.logger.log(
+          formatWorkerLog(
+            WorkerLogStatus.NOT_MODIFIED,
+            this.stats.total,
+            `realm ${connectedRealmId}`,
+            duration,
+            `Duplicate hash ${auctionsHash} ${formatBytes(payloadBytes)}`,
+          ),
         );
         return;
       }
@@ -174,12 +185,17 @@ export class AuctionsWorker extends WorkerHost {
       let iterator = 0;
       let hasPersistedOrders = false;
 
-      // Handle empty auctions array to prevent EmptyError
       if (auctions.length === 0) {
         this.stats.noData++;
         const duration = Date.now() - startTime;
-        this.logger.warn(
-          `${chalk.yellow('⊘')} Empty [${chalk.bold(this.stats.total)}] realm ${connectedRealmId} ${chalk.dim(`(${duration}ms) No auctions`)}`,
+        this.logger.log(
+          formatWorkerLog(
+            WorkerLogStatus.SKIPPED,
+            this.stats.total,
+            `realm ${connectedRealmId}`,
+            duration,
+            'No auctions',
+          ),
         );
       } else {
         await lastValueFrom(
@@ -201,9 +217,12 @@ export class AuctionsWorker extends WorkerHost {
                 }
 
                 iterator += ordersBulkAuctions.length;
-                this.logger.log(
-                  `${chalk.cyan('→')} realm ${connectedRealmId} ${chalk.dim('|')} ${chalk.bold(iterator)} orders ${chalk.dim('|')} ${timestamp}`,
-                );
+                this.logger.log({
+                  logTag: 'ordersBatch',
+                  connectedRealmId,
+                  iterator,
+                  timestamp,
+                });
               } catch (errorOrException) {
                 this.logger.error({
                   logTag: 'ordersBatch',
@@ -240,10 +259,15 @@ export class AuctionsWorker extends WorkerHost {
       const duration = Date.now() - startTime;
       this.stats.success++;
       this.logger.log(
-        `${chalk.green('✓')} ${chalk.green('200')} [${chalk.bold(this.stats.total)}] realm ${connectedRealmId} ${chalk.dim(`(${duration}ms)`)} ${chalk.dim(`${iterator} orders`)}`,
+        formatWorkerLog(
+          WorkerLogStatus.SUCCESS,
+          this.stats.total,
+          `realm ${connectedRealmId}`,
+          duration,
+          `${iterator} orders`,
+        ),
       );
 
-      // Progress report every 10 realms
       if (this.stats.total % 10 === 0) {
         this.logProgress();
       }
@@ -251,34 +275,70 @@ export class AuctionsWorker extends WorkerHost {
       const duration = Date.now() - startTime;
 
       if (isAxiosError(errorOrException)) {
-        // Handle HTTP errors
-        const isHandled = await this.handleHttpError(
-          errorOrException,
-          message.connectedRealmId,
-          duration,
-        );
+        const statusCode = errorOrException.response?.status;
 
-        // Non-fatal HTTP errors (304, 429, 403) are handled and don't re-throw
-        if (isHandled) {
+        if (statusCode === this.HTTP_STATUS_CODES.NOT_MODIFIED) {
+          this.stats.notModified++;
+          this.logger.log(
+            formatWorkerLog(
+              WorkerLogStatus.NOT_MODIFIED,
+              this.stats.total,
+              `realm ${message.connectedRealmId}`,
+              duration,
+              'Not modified',
+            ),
+          );
           return;
         }
 
-        // Fatal HTTP errors (5xx, 4xx except handled ones) are re-thrown
+        if (statusCode === this.HTTP_STATUS_CODES.RATE_LIMITED) {
+          this.stats.rateLimit++;
+          this.logger.log(
+            formatWorkerLog(
+              WorkerLogStatus.RATE_LIMITED,
+              this.stats.total,
+              `realm ${message.connectedRealmId}`,
+              duration,
+              'Rate limited',
+            ),
+          );
+          return;
+        }
+
+        if (statusCode === this.HTTP_STATUS_CODES.FORBIDDEN) {
+          this.stats.forbidden++;
+          this.logger.log(
+            formatWorkerLog(
+              WorkerLogStatus.WARNING,
+              this.stats.total,
+              `realm ${message.connectedRealmId}`,
+              duration,
+              'Forbidden',
+            ),
+          );
+          return;
+        }
+
         this.stats.errors++;
-        this.logProcessingError(
-          message.connectedRealmId,
-          duration,
-          `HTTP ${errorOrException.response?.status}: ${errorOrException.message}`,
+        this.logger.error(
+          formatWorkerErrorLog(
+            this.stats.total,
+            `realm ${message.connectedRealmId}`,
+            duration,
+            `HTTP ${statusCode}: ${errorOrException.message}`,
+          ),
         );
       } else {
-        // Handle non-HTTP errors
         this.stats.errors++;
-        this.logProcessingError(
-          message.connectedRealmId,
-          duration,
-          errorOrException instanceof Error
-            ? errorOrException.message
-            : String(errorOrException),
+        this.logger.error(
+          formatWorkerErrorLog(
+            this.stats.total,
+            `realm ${message.connectedRealmId}`,
+            duration,
+            errorOrException instanceof Error
+              ? errorOrException.message
+              : String(errorOrException),
+          ),
         );
       }
 
@@ -294,7 +354,6 @@ export class AuctionsWorker extends WorkerHost {
   ): MarketEntity[] {
     return orders
       .map((order) => {
-        // Skip orders without valid item.id
         if (!order.item.id) {
           this.logger.debug(`Skipping order ${order.id} - missing item.id`);
           return null;
@@ -310,7 +369,8 @@ export class AuctionsWorker extends WorkerHost {
 
         const isPetOrder = marketEntity.itemId === 82800;
 
-        const bid = 'bid' in order ? toGold((order as IAuctionsOrder).bid) : null;
+        const bid =
+          'bid' in order ? toGold((order as IAuctionsOrder).bid) : null;
 
         const price = transformPrice(order);
         if (!price) {
@@ -324,7 +384,6 @@ export class AuctionsWorker extends WorkerHost {
           }
 
           if (isPetOrder) {
-            // TODO pet fix for pet cage item
             const petList: Partial<IPetList> = {};
             for (const [path, key] of PETS_KEY_GUARD.entries()) {
               if (path in order.item) petList[key] = order.item[path];
@@ -346,131 +405,17 @@ export class AuctionsWorker extends WorkerHost {
 
         return marketEntity;
       })
-      .filter((entity): entity is MarketEntity => entity !== null); // Filter out null values and provide type guard
+      .filter((entity): entity is MarketEntity => entity !== null);
   }
 
   private logProgress(): void {
-    const uptime = Date.now() - this.stats.startTime;
-    const rate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
-
     this.logger.log(
-      `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
-        `${chalk.magenta('📊 AUCTIONS PROGRESS REPORT')}\n` +
-        `${chalk.dim('  Total:')} ${chalk.bold(this.stats.total)} realms processed\n` +
-        `${chalk.green('  ✓ Success:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
-        `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
-        `${chalk.blue('  ℹ Not Modified:')} ${chalk.blue.bold(this.stats.notModified)}\n` +
-        `${chalk.yellow('  ⊘ No Data:')} ${chalk.yellow.bold(this.stats.noData)}\n` +
-        `${chalk.red('  ✗ Errors:')} ${chalk.red.bold(this.stats.errors)}\n` +
-        `${chalk.dim('  Rate:')} ${chalk.bold(rate)} realms/sec\n` +
-        `${chalk.magenta.bold('━'.repeat(60))}`,
+      formatProgressReport('AuctionsWorker', this.stats, 'realms'),
     );
   }
 
   public logFinalSummary(): void {
-    const uptime = Date.now() - this.stats.startTime;
-    const avgRate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
-
-    this.logger.log(
-      `\n${chalk.cyan.bold('═'.repeat(60))}\n` +
-        `${chalk.cyan.bold('  🎯 AUCTIONS FINAL SUMMARY')}\n` +
-        `${chalk.cyan.bold('═'.repeat(60))}\n` +
-        `${chalk.dim('  Total Realms:')} ${chalk.bold.white(this.stats.total)}\n` +
-        `${chalk.green('  ✓ Successful:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
-        `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
-        `${chalk.blue('  ℹ Not Modified:')} ${chalk.blue.bold(this.stats.notModified)}\n` +
-        `${chalk.yellow('  ⊘ No Data:')} ${chalk.yellow.bold(this.stats.noData)}\n` +
-        `${chalk.red('  ✗ Failed:')} ${chalk.red.bold(this.stats.errors)}\n` +
-        `${chalk.dim('  Total Time:')} ${chalk.bold((uptime / 1000).toFixed(1))}s\n` +
-        `${chalk.dim('  Avg Rate:')} ${chalk.bold(avgRate)} realms/sec\n` +
-        `${chalk.cyan.bold('═'.repeat(60))}`,
-    );
-  }
-
-  /**
-   * Logs HTTP error responses with consistent formatting
-   */
-  private logHttpError(
-    statusCode: number,
-    realmId: string | number,
-    duration: number,
-    statusText?: string,
-  ): void {
-    const logConfig = this.getHttpErrorLogConfig(statusCode);
-
-    const message = statusText
-      ? `${logConfig.icon} ${chalk[logConfig.color](statusCode)} [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)} - ${statusText}`
-      : `${logConfig.icon} ${chalk[logConfig.color](statusCode)} [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)}`;
-
-    this.logger.warn(message);
-  }
-
-  /**
-   * Logs non-HTTP errors with consistent formatting
-   */
-  private logProcessingError(
-    realmId: string | number,
-    duration: number,
-    errorMessage: string,
-  ): void {
-    this.logger.error(
-      `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] realm ${realmId} ${chalk.dim(`(${duration}ms)`)} - ${errorMessage}`,
-    );
-  }
-
-  /**
-   * Returns configuration for HTTP error logging
-   */
-  private getHttpErrorLogConfig(statusCode: number): {
-    icon: string;
-    color: 'blue' | 'yellow' | 'red';
-    label: string;
-  } {
-    switch (statusCode) {
-      case this.HTTP_STATUS_CODES.NOT_MODIFIED:
-        return { icon: chalk.blue('ℹ'), color: 'blue', label: 'Not modified' };
-      case this.HTTP_STATUS_CODES.RATE_LIMITED:
-        return { icon: chalk.yellow('⚠'), color: 'yellow', label: 'Rate limited' };
-      case this.HTTP_STATUS_CODES.FORBIDDEN:
-        return { icon: chalk.blue('ℹ'), color: 'blue', label: 'Forbidden' };
-      default:
-        return { icon: chalk.red('✗'), color: 'red', label: 'Error' };
-    }
-  }
-
-  /**
-   * Handles Axios HTTP errors with proper stats tracking and logging
-   * @returns true if error was handled (non-fatal), false if should be re-thrown
-   */
-  private handleHttpError(
-    error: AxiosError,
-    realmId: string | number,
-    duration: number,
-  ): boolean {
-    const statusCode = error.response?.status;
-
-    if (!statusCode) {
-      return false; // Not a valid HTTP error, should be re-thrown
-    }
-
-    // Update stats based on status code
-    const statKey =
-      this.ERROR_STATS_MAP[statusCode as keyof typeof this.ERROR_STATS_MAP];
-    if (statKey) {
-      this.stats[statKey]++;
-    }
-
-    // Log the error
-    this.logHttpError(statusCode, realmId, duration, error.response?.statusText);
-
-    // Return true for non-fatal errors (304,429,403)
-    return [
-      this.HTTP_STATUS_CODES.NOT_MODIFIED,
-      this.HTTP_STATUS_CODES.RATE_LIMITED,
-      this.HTTP_STATUS_CODES.FORBIDDEN,
-    ].includes(statusCode as 304 | 403 | 429);
+    this.logger.log(formatFinalSummary('AuctionsWorker', this.stats, 'realms'));
   }
 
   private computeAuctionsPayloadHash(

@@ -1,7 +1,8 @@
+export * from './logger.guard';
 export * from './logger.module';
 export * from './logger.service';
 export * from './logger.type';
-export * from './logger.guard';
+export * from './logger.worker';
 
 // The LoggerService now includes the following methods that handle both strings and objects:
 // - error(input, trace?, context?, labels?, logTag?, additionalInfo?)

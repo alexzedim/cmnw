@@ -3,7 +3,6 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Injectable, Logger } from '@nestjs/common';
-import chalk from 'chalk';
 import { Job } from 'bullmq';
 import { coreConfig } from '@app/configuration';
 import {
@@ -15,6 +14,14 @@ import {
   setStatusString,
   CharacterStatusState,
 } from '@app/resources';
+import {
+  formatWorkerLog,
+  formatWorkerErrorLog,
+  formatProgressReport,
+  formatFinalSummary,
+  WorkerLogStatus,
+  WorkerStats,
+} from '@app/logger';
 
 import { CharactersEntity, KeysEntity } from '@app/pg';
 import {
@@ -30,13 +37,13 @@ export class CharactersWorker extends WorkerHost {
     timestamp: true,
   });
 
-  private stats = {
+  private stats: WorkerStats = {
     total: 0,
     success: 0,
-    rateLimit: 0,
     errors: 0,
-    skipped: 0,
+    rateLimit: 0,
     notFound: 0,
+    skipped: 0,
     startTime: Date.now(),
   };
 
@@ -66,8 +73,15 @@ export class CharactersWorker extends WorkerHost {
       const shouldSkipUpdate = isNotReadyToUpdate || isCreateOnlyUnique;
       if (shouldSkipUpdate) {
         this.stats.skipped++;
+        const duration = Date.now() - startTime;
         this.logger.warn(
-          `${chalk.yellow('⊘')} Skipped [${chalk.bold(this.stats.total)}] ${characterEntity.guid} ${chalk.dim('(createOnly or notReady)')}`,
+          formatWorkerLog(
+            WorkerLogStatus.SKIPPED,
+            this.stats.total,
+            characterEntity.guid,
+            duration,
+            'createOnly or notReady',
+          ),
         );
         return characterEntity;
       }
@@ -124,74 +138,71 @@ export class CharactersWorker extends WorkerHost {
       const updatedBy = message.updatedBy || 'unknown';
 
       this.logger.error(
-        `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)} [${chalk.bold(updatedBy)}] - ${errorOrException.message}`,
+        formatWorkerErrorLog(
+          this.stats.total,
+          guid,
+          duration,
+          errorOrException.message,
+          updatedBy,
+        ),
       );
 
       throw errorOrException;
     }
   }
 
-  private logCharacterResult(character: CharactersEntity, duration: number): void {
+  private logCharacterResult(
+    character: CharactersEntity,
+    duration: number,
+  ): void {
     const status = character.status || '------';
     const guid = character.guid;
-
     const isAllSuccess = status === 'SU-MPVR';
     const hasAnyError = /[a-z]/.test(status);
 
     if (isAllSuccess) {
       this.stats.success++;
       this.logger.log(
-        `${chalk.green('✓')} ${chalk.green(status)} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`,
+        formatWorkerLog(
+          WorkerLogStatus.SUCCESS,
+          this.stats.total,
+          guid,
+          duration,
+          status,
+        ),
       );
     } else if (hasAnyError) {
-      this.stats.errors++;
       this.logger.warn(
-        `${chalk.yellow('⚠')} ${chalk.yellow(status)} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`,
+        formatWorkerLog(
+          WorkerLogStatus.PARTIAL,
+          this.stats.total,
+          guid,
+          duration,
+          status,
+        ),
       );
     } else {
       this.logger.log(
-        `${chalk.cyan('ℹ')} ${status} [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)}`,
+        formatWorkerLog(
+          WorkerLogStatus.INFO,
+          this.stats.total,
+          guid,
+          duration,
+          status,
+        ),
       );
     }
   }
 
   private logProgress(): void {
-    const uptime = Date.now() - this.stats.startTime;
-    const rate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
-
     this.logger.log(
-      `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
-        `${chalk.magenta('📊 PROGRESS REPORT')}\n` +
-        `${chalk.dim('  Total:')} ${chalk.bold(this.stats.total)} characters processed\n` +
-        `${chalk.green('  ✓ Success:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
-        `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
-        `${chalk.blue('  ℹ Not Found:')} ${chalk.blue.bold(this.stats.notFound)}\n` +
-        `${chalk.yellow('  ⊘ Skipped:')} ${chalk.yellow.bold(this.stats.skipped)}\n` +
-        `${chalk.red('  ✗ Errors:')} ${chalk.red.bold(this.stats.errors)}\n` +
-        `${chalk.dim('  Rate:')} ${chalk.bold(rate)} chars/sec\n` +
-        `${chalk.magenta.bold('━'.repeat(60))}`,
+      formatProgressReport('CharactersWorker', this.stats, 'characters'),
     );
   }
 
   public logFinalSummary(): void {
-    const uptime = Date.now() - this.stats.startTime;
-    const avgRate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
-
     this.logger.log(
-      `\n${chalk.cyan.bold('═'.repeat(60))}\n` +
-        `${chalk.cyan.bold('  🎯 FINAL SUMMARY')}\n` +
-        `${chalk.cyan.bold('═'.repeat(60))}\n` +
-        `${chalk.dim('  Total Characters:')} ${chalk.bold.white(this.stats.total)}\n` +
-        `${chalk.green('  ✓ Successful:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
-        `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
-        `${chalk.blue('  ℹ Not Found:')} ${chalk.blue.bold(this.stats.notFound)}\n` +
-        `${chalk.yellow('  ⊘ Skipped:')} ${chalk.yellow.bold(this.stats.skipped)}\n` +
-        `${chalk.red('  ✗ Failed:')} ${chalk.red.bold(this.stats.errors)}\n` +
-        `${chalk.dim('  Total Time:')} ${chalk.bold((uptime / 1000).toFixed(1))}s\n` +
-        `${chalk.dim('  Avg Rate:')} ${chalk.bold(avgRate)} chars/sec\n` +
-        `${chalk.cyan.bold('═'.repeat(60))}`,
+      formatFinalSummary('CharactersWorker', this.stats, 'characters'),
     );
   }
 
@@ -207,7 +218,9 @@ export class CharactersWorker extends WorkerHost {
     }
   }
 
-  private async initializeApiClient(args: ICharacterMessageBase): Promise<BlizzAPI> {
+  private async initializeApiClient(
+    args: ICharacterMessageBase,
+  ): Promise<BlizzAPI> {
     return new BlizzAPI({
       region: args.region || 'eu',
       clientId: args.clientId,
@@ -228,10 +241,18 @@ export class CharactersWorker extends WorkerHost {
 
     const [summary, petsCollection, mountsCollection, media, professions] =
       await Promise.allSettled([
-        this.characterService.getSummary(nameSlug, characterEntity.realm, this.BNet),
+        this.characterService.getSummary(
+          nameSlug,
+          characterEntity.realm,
+          this.BNet,
+        ),
         this.fetchAndSyncPets(nameSlug, characterEntity.realm),
         this.fetchAndSyncMounts(nameSlug, characterEntity.realm),
-        this.characterService.getMedia(nameSlug, characterEntity.realm, this.BNet),
+        this.characterService.getMedia(
+          nameSlug,
+          characterEntity.realm,
+          this.BNet,
+        ),
         this.fetchAndSyncProfessions(nameSlug, characterEntity.realm),
       ]);
 
@@ -271,9 +292,17 @@ export class CharactersWorker extends WorkerHost {
     const isProfessionsFulfilled = professions.status === 'fulfilled';
     if (isProfessionsFulfilled) {
       Object.assign(characterEntity, professions.value);
-      status = setStatusString(status, 'PROFESSIONS', CharacterStatusState.SUCCESS);
+      status = setStatusString(
+        status,
+        'PROFESSIONS',
+        CharacterStatusState.SUCCESS,
+      );
     } else {
-      status = setStatusString(status, 'PROFESSIONS', CharacterStatusState.ERROR);
+      status = setStatusString(
+        status,
+        'PROFESSIONS',
+        CharacterStatusState.ERROR,
+      );
     }
 
     // Update entity with status string
@@ -348,11 +377,12 @@ export class CharactersWorker extends WorkerHost {
       return {};
     }
 
-    const professions = await this.collectionSyncService.syncCharacterProfessions(
-      nameSlug,
-      realmSlug,
-      professionsResponse,
-    );
+    const professions =
+      await this.collectionSyncService.syncCharacterProfessions(
+        nameSlug,
+        realmSlug,
+        professionsResponse,
+      );
 
     return { professions };
   }
