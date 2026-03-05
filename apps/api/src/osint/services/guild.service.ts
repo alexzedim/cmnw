@@ -70,11 +70,7 @@ export class GuildOsintService {
     let requestedGuild: GuildsEntity | null = null;
 
     try {
-      const [keyEntity] = await getKeys(
-        this.keysRepository,
-        this.clearance,
-        true,
-      );
+      const [keyEntity] = await getKeys(this.keysRepository, this.clearance, true);
 
       const guildMessage = GuildMessageDto.fromGuildRequest({
         name: params.name,
@@ -183,11 +179,7 @@ export class GuildOsintService {
           : false;
 
       if (isStale) {
-        const [keyEntity] = await getKeys(
-          this.keysRepository,
-          this.clearance,
-          true,
-        );
+        const [keyEntity] = await getKeys(this.keysRepository, this.clearance, true);
         const dto = GuildMessageDto.fromGuildRequest({
           name: nameSlug,
           realm: realmEntity.slug,
@@ -205,12 +197,10 @@ export class GuildOsintService {
         });
       }
 
-      const guildMemberships = await this.charactersGuildMembersRepository.find(
-        {
-          where: { guildGuid: guid },
-          take: 1_000,
-        },
-      );
+      const guildMemberships = await this.charactersGuildMembersRepository.find({
+        where: { guildGuid: guid },
+        take: 1_000,
+      });
 
       let members: CharactersEntity[];
 
