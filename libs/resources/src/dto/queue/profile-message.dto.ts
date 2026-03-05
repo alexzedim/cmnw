@@ -64,7 +64,10 @@ export class ProfileMessageDto {
    * @param opts - Optional job options
    * @returns New ProfileMessageDto instance
    */
-  static create(data: IProfileMessageBase, opts?: JobsOptions): ProfileMessageDto {
+  static create(
+    data: IProfileMessageBase,
+    opts?: JobsOptions,
+  ): ProfileMessageDto {
     const guid = toGuid(data.name, data.realm);
 
     const mergedOpts = {

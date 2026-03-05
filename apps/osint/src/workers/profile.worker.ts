@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import chalk from 'chalk';
 import { Browser, BrowserContext, chromium, devices } from 'playwright';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -8,6 +7,15 @@ import { Repository } from 'typeorm';
 import { HttpService } from '@nestjs/axios';
 import cheerio from 'cheerio';
 
+import {
+  formatWorkerLog,
+  formatWorkerLogWithDetails,
+  formatWorkerErrorLog,
+  formatProgressReport,
+  formatFinalSummary,
+  WorkerLogStatus,
+  WorkerStats,
+} from '@app/logger';
 import {
   CHARACTER_RAID_DIFFICULTY,
   OSINT_SOURCE_RAIDER_IO,
@@ -32,15 +40,16 @@ export class ProfileWorker extends WorkerHost {
     timestamp: true,
   });
 
-  private stats = {
+  private stats: WorkerStats = {
     total: 0,
     success: 0,
     errors: 0,
-    rioUpdated: 0,
-    wclUpdated: 0,
-    wpUpdated: 0,
     startTime: Date.now(),
   };
+
+  private rioUpdated = 0;
+  private wclUpdated = 0;
+  private wpUpdated = 0;
 
   browser: Browser;
   browserContext: BrowserContext;
@@ -83,14 +92,10 @@ export class ProfileWorker extends WorkerHost {
 
       if (args.lookingForGuild) profileEntity.lfgStatus = args.lookingForGuild;
 
-      /**
-       * update RIO, WCL & Progress
-       * by request from args
-       */
       if (args.updateRIO) {
         const raiderIo = await this.getRaiderIoProfile(args.name, args.realm);
         Object.assign(profileEntity, raiderIo);
-        this.stats.rioUpdated++;
+        this.rioUpdated++;
       }
 
       if (args.updateWCL) {
@@ -99,25 +104,34 @@ export class ProfileWorker extends WorkerHost {
           args.realm,
         );
         Object.assign(profileEntity, warcraftLogs);
-        this.stats.wclUpdated++;
+        this.wclUpdated++;
       }
 
       if (args.updateWP) {
-        const wowProgress = await this.getWowProgressProfile(args.name, args.realm);
+        const wowProgress = await this.getWowProgressProfile(
+          args.name,
+          args.realm,
+        );
         Object.assign(profileEntity, wowProgress);
-        this.stats.wpUpdated++;
+        this.wpUpdated++;
       }
 
       await this.charactersProfileRepository.save(profileEntity);
 
       this.stats.success++;
       const duration = Date.now() - startTime;
+      const context =
+        `${args.updateRIO ? 'RIO' : ''}${args.updateWCL ? ' WCL' : ''}${args.updateWP ? ' WP' : ''}`.trim();
       this.logger.log(
-        `${chalk.green('✓')} [${chalk.bold(this.stats.total)}] ${args.guid} ${chalk.dim(`(${duration}ms)`)} ` +
-          `${args.updateRIO ? chalk.blue('RIO') : ''}${args.updateWCL ? chalk.magenta(' WCL') : ''}${args.updateWP ? chalk.cyan(' WP') : ''}`,
+        formatWorkerLog(
+          WorkerLogStatus.SUCCESS,
+          this.stats.total,
+          args.guid,
+          duration,
+          context || undefined,
+        ),
       );
 
-      // Progress report every 25 profiles
       if (this.stats.total % 25 === 0) {
         this.logProgress();
       }
@@ -126,7 +140,12 @@ export class ProfileWorker extends WorkerHost {
       const duration = Date.now() - startTime;
 
       this.logger.error(
-        `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${message.data?.guid} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`,
+        formatWorkerErrorLog(
+          this.stats.total,
+          message.data?.guid,
+          duration,
+          errorOrException.message,
+        ),
       );
 
       throw errorOrException;
@@ -134,42 +153,14 @@ export class ProfileWorker extends WorkerHost {
   }
 
   private logProgress(): void {
-    const uptime = Date.now() - this.stats.startTime;
-    const rate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
-
     this.logger.log(
-      `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
-        `${chalk.magenta('📊 PROFILES PROGRESS REPORT')}\n` +
-        `${chalk.dim('  Total:')} ${chalk.bold(this.stats.total)} profiles processed\n` +
-        `${chalk.green('  ✓ Success:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
-        `${chalk.blue('  RIO Updated:')} ${chalk.blue.bold(this.stats.rioUpdated)}\n` +
-        `${chalk.magenta('  WCL Updated:')} ${chalk.magenta.bold(this.stats.wclUpdated)}\n` +
-        `${chalk.cyan('  WP Updated:')} ${chalk.cyan.bold(this.stats.wpUpdated)}\n` +
-        `${chalk.red('  ✗ Errors:')} ${chalk.red.bold(this.stats.errors)}\n` +
-        `${chalk.dim('  Rate:')} ${chalk.bold(rate)} profiles/sec\n` +
-        `${chalk.magenta.bold('━'.repeat(60))}`,
+      formatProgressReport('ProfileWorker', this.stats, 'profiles'),
     );
   }
 
   public logFinalSummary(): void {
-    const uptime = Date.now() - this.stats.startTime;
-    const avgRate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
-
     this.logger.log(
-      `\n${chalk.cyan.bold('═'.repeat(60))}\n` +
-        `${chalk.cyan.bold('  🎯 PROFILES FINAL SUMMARY')}\n` +
-        `${chalk.cyan.bold('═'.repeat(60))}\n` +
-        `${chalk.dim('  Total Profiles:')} ${chalk.bold.white(this.stats.total)}\n` +
-        `${chalk.green('  ✓ Successful:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
-        `${chalk.blue('  RIO Updated:')} ${chalk.blue.bold(this.stats.rioUpdated)}\n` +
-        `${chalk.magenta('  WCL Updated:')} ${chalk.magenta.bold(this.stats.wclUpdated)}\n` +
-        `${chalk.cyan('  WP Updated:')} ${chalk.cyan.bold(this.stats.wpUpdated)}\n` +
-        `${chalk.red('  ✗ Failed:')} ${chalk.red.bold(this.stats.errors)}\n` +
-        `${chalk.dim('  Total Time:')} ${chalk.bold((uptime / 1000).toFixed(1))}s\n` +
-        `${chalk.dim('  Avg Rate:')} ${chalk.bold(avgRate)} profiles/sec\n` +
-        `${chalk.cyan.bold('═'.repeat(60))}`,
+      formatFinalSummary('ProfileWorker', this.stats, 'profiles'),
     );
   }
 
@@ -200,7 +191,9 @@ export class ProfileWorker extends WorkerHost {
       );
 
       await page.goto(url);
-      const getBestPerfAvg = await page.getByText('Best Perf. Avg').allInnerTexts();
+      const getBestPerfAvg = await page
+        .getByText('Best Perf. Avg')
+        .allInnerTexts();
       const [getBestPerfAvgValue] = getBestPerfAvg;
 
       const [_text, value] = getBestPerfAvgValue.trim().split('\n');
@@ -209,11 +202,23 @@ export class ProfileWorker extends WorkerHost {
       if (isLogsNumberValid) {
         warcraftLogsProfile[difficulty.fieldName] = parseFloat(value);
         this.logger.log(
-          `${chalk.magenta('✓ WCL')} ${guid} - ${difficulty.fieldName}: ${chalk.bold(value)}`,
+          formatWorkerLogWithDetails(
+            WorkerLogStatus.SUCCESS,
+            this.stats.total,
+            guid,
+            0,
+            { source: 'WCL', value: difficulty.fieldName },
+          ),
         );
       } else {
         this.logger.warn(
-          `${chalk.yellow('⚠ WCL')} ${guid} - No valid logs data found`,
+          formatWorkerLog(
+            WorkerLogStatus.WARNING,
+            this.stats.total,
+            guid,
+            0,
+            'WCL - No valid logs data found',
+          ),
         );
       }
 
@@ -222,7 +227,13 @@ export class ProfileWorker extends WorkerHost {
       return warcraftLogsProfile;
     } catch (errorOrException) {
       this.logger.error(
-        `${chalk.red('✗ WCL')} ${guid} - ${errorOrException.message}`,
+        formatWorkerErrorLog(
+          this.stats.total,
+          guid,
+          0,
+          errorOrException.message,
+          'WCL',
+        ),
       );
 
       return warcraftLogsProfile;
@@ -244,7 +255,15 @@ export class ProfileWorker extends WorkerHost {
       );
 
       if (!data) {
-        this.logger.warn(`${chalk.yellow('⚠ WP')} ${guid} - No data received`);
+        this.logger.warn(
+          formatWorkerLog(
+            WorkerLogStatus.WARNING,
+            this.stats.total,
+            guid,
+            0,
+            'WP - No data received',
+          ),
+        );
         return wowProgressProfile;
       }
 
@@ -262,7 +281,8 @@ export class ProfileWorker extends WorkerHost {
 
           const fieldValueName = CHARACTER_PROFILE_MAPPING.get(key);
           if (fieldValueName === 'readyToTransfer')
-            wowProgressProfile.readyToTransfer = value.includes('ready to transfer');
+            wowProgressProfile.readyToTransfer =
+              value.includes('ready to transfer');
 
           if (fieldValueName === 'raidDays' && value) {
             const [from, to] = value.split(' - ');
@@ -292,15 +312,37 @@ export class ProfileWorker extends WorkerHost {
         wowProgressProfile.playRole ||
         wowProgressProfile.languages?.length > 0;
       if (hasData) {
-        this.logger.log(`${chalk.cyan('✓ WP')} ${guid} - Profile updated`);
+        this.logger.log(
+          formatWorkerLog(
+            WorkerLogStatus.SUCCESS,
+            this.stats.total,
+            guid,
+            0,
+            'WP - Profile updated',
+          ),
+        );
       } else {
-        this.logger.warn(`${chalk.yellow('⚠ WP')} ${guid} - No profile data found`);
+        this.logger.warn(
+          formatWorkerLog(
+            WorkerLogStatus.WARNING,
+            this.stats.total,
+            guid,
+            0,
+            'WP - No profile data found',
+          ),
+        );
       }
 
       return wowProgressProfile;
     } catch (errorOrException) {
       this.logger.error(
-        `${chalk.red('✗ WP')} ${guid} - ${errorOrException.message}`,
+        formatWorkerErrorLog(
+          this.stats.total,
+          guid,
+          0,
+          errorOrException.message,
+          'WP',
+        ),
       );
 
       return wowProgressProfile;
@@ -321,7 +363,15 @@ export class ProfileWorker extends WorkerHost {
 
       const isRaiderIoProfileValid = isRaiderIoProfile(raiderIoProfile);
       if (!isRaiderIoProfileValid) {
-        this.logger.warn(`${chalk.yellow('⚠ RIO')} ${guid} - Invalid profile data`);
+        this.logger.warn(
+          formatWorkerLog(
+            WorkerLogStatus.WARNING,
+            this.stats.total,
+            guid,
+            0,
+            'RIO - Invalid profile data',
+          ),
+        );
         return rioProfileCharacter;
       }
 
@@ -352,13 +402,25 @@ export class ProfileWorker extends WorkerHost {
       rioProfileCharacter.updatedByRaiderIo = new Date();
 
       this.logger.log(
-        `${chalk.blue('✓ RIO')} ${guid} - Score: ${chalk.bold(season.scores.all)}`,
+        formatWorkerLogWithDetails(
+          WorkerLogStatus.SUCCESS,
+          this.stats.total,
+          guid,
+          0,
+          { source: 'RIO', score: season.scores.all },
+        ),
       );
 
       return rioProfileCharacter;
     } catch (errorOrException) {
       this.logger.error(
-        `${chalk.red('✗ RIO')} ${guid} - ${errorOrException.message}`,
+        formatWorkerErrorLog(
+          this.stats.total,
+          guid,
+          0,
+          errorOrException.message,
+          'RIO',
+        ),
       );
 
       return rioProfileCharacter;

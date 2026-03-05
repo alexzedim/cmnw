@@ -1,6 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import chalk from 'chalk';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
@@ -24,6 +23,15 @@ import { ItemsEntity } from '@app/pg';
 import { Job } from 'bullmq';
 import { BlizzAPI } from '@alexzedim/blizzapi';
 import { get } from 'lodash';
+import {
+  formatWorkerLog,
+  formatWorkerLogWithDetails,
+  formatWorkerErrorLog,
+  formatProgressReport,
+  formatFinalSummary,
+  WorkerLogStatus,
+  WorkerStats,
+} from '@app/logger';
 
 @Injectable()
 @Processor(itemsQueue)
@@ -34,13 +42,11 @@ export class ItemsWorker extends WorkerHost {
 
   private BNet: BlizzAPI;
 
-  private stats = {
+  private stats: WorkerStats = {
     total: 0,
     success: 0,
-    rateLimit: 0,
-    notFound: 0,
     errors: 0,
-    skipped: 0,
+    notFound: 0,
     startTime: Date.now(),
   };
 
@@ -82,7 +88,11 @@ export class ItemsWorker extends WorkerHost {
       const [getItemSummary, getItemMedia] = await Promise.allSettled([
         this.BNet.query<BlizzardApiItem>(
           `/data/wow/item/${args.itemId}`,
-          apiConstParams(API_HEADERS_ENUM.STATIC, TOLERANCE_ENUM.DMA, isMultiLocale),
+          apiConstParams(
+            API_HEADERS_ENUM.STATIC,
+            TOLERANCE_ENUM.DMA,
+            isMultiLocale,
+          ),
         ),
         this.BNet.query(
           `/data/wow/media/item/${args.itemId}`,
@@ -95,7 +105,12 @@ export class ItemsWorker extends WorkerHost {
         this.stats.notFound++;
         const duration = Date.now() - startTime;
         this.logger.warn(
-          `${chalk.blue('ℹ')} ${chalk.blue('404')} [${chalk.bold(this.stats.total)}] item ${args.itemId} ${chalk.dim(`(${duration}ms)`)}`,
+          formatWorkerLog(
+            WorkerLogStatus.NOT_FOUND,
+            this.stats.total,
+            `item-${args.itemId}`,
+            duration,
+          ),
         );
         return;
       }
@@ -114,7 +129,9 @@ export class ItemsWorker extends WorkerHost {
         if (isKeyInPath) {
           const property = ITEM_FIELD_MAPPING.get(key);
           let value = get(getItemSummary.value, property.path, null);
-          const isFieldName = namedFields.has(key) ? isNamedField(value) : false;
+          const isFieldName = namedFields.has(key)
+            ? isNamedField(value)
+            : false;
 
           if (isFieldName) value = get(value, `en_GB`, null);
 
@@ -138,7 +155,9 @@ export class ItemsWorker extends WorkerHost {
           !itemEntity.assetClass.includes(VALUATION_TYPE.VSP));
 
       if (isVSP) {
-        const assetClass = new Set(itemEntity.assetClass).add(VALUATION_TYPE.VSP);
+        const assetClass = new Set(itemEntity.assetClass).add(
+          VALUATION_TYPE.VSP,
+        );
         itemEntity.assetClass = Array.from(assetClass);
       }
 
@@ -149,10 +168,17 @@ export class ItemsWorker extends WorkerHost {
       }
 
       await this.itemsRepository.save(itemEntity);
+      this.stats.success++;
 
       const duration = Date.now() - startTime;
       this.logger.log(
-        `${chalk.green('✓')} ${chalk.green('200')} [${chalk.bold(this.stats.total)}] ${isNew ? chalk.cyan('created') : chalk.yellow('updated')} item ${itemEntity.id} ${chalk.dim('|')} ${itemEntity.name} ${chalk.dim(`(${duration}ms)`)}`,
+        formatWorkerLogWithDetails(
+          WorkerLogStatus.SUCCESS,
+          this.stats.total,
+          `item-${itemEntity.id}`,
+          duration,
+          { isNew, name: itemEntity.name },
+        ),
       );
 
       // Progress report every 50 items
@@ -165,7 +191,12 @@ export class ItemsWorker extends WorkerHost {
       const itemId = message.data.itemId || 'unknown';
 
       this.logger.error(
-        `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] item ${itemId} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`,
+        formatWorkerErrorLog(
+          this.stats.total,
+          `item-${itemId}`,
+          duration,
+          errorOrException.message,
+        ),
       );
 
       throw errorOrException;
@@ -173,40 +204,10 @@ export class ItemsWorker extends WorkerHost {
   }
 
   private logProgress(): void {
-    const uptime = Date.now() - this.stats.startTime;
-    const rate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
-
-    this.logger.log(
-      `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
-        `${chalk.magenta('📊 ITEMS PROGRESS REPORT')}\n` +
-        `${chalk.dim('  Total:')} ${chalk.bold(this.stats.total)} items processed\n` +
-        `${chalk.green('  ✓ Success:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
-        `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
-        `${chalk.yellow('  ⊘ Skipped:')} ${chalk.yellow.bold(this.stats.skipped)}\n` +
-        `${chalk.red('  ✗ Errors:')} ${chalk.red.bold(this.stats.errors)}\n` +
-        `${chalk.dim('  Rate:')} ${chalk.bold(rate)} items/sec\n` +
-        `${chalk.magenta.bold('━'.repeat(60))}`,
-    );
+    this.logger.log(formatProgressReport('ItemsWorker', this.stats, 'items'));
   }
 
   public logFinalSummary(): void {
-    const uptime = Date.now() - this.stats.startTime;
-    const avgRate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
-
-    this.logger.log(
-      `\n${chalk.cyan.bold('═'.repeat(60))}\n` +
-        `${chalk.cyan.bold('  🎯 ITEMS FINAL SUMMARY')}\n` +
-        `${chalk.cyan.bold('═'.repeat(60))}\n` +
-        `${chalk.dim('  Total Items:')} ${chalk.bold.white(this.stats.total)}\n` +
-        `${chalk.green('  ✓ Successful:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
-        `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
-        `${chalk.yellow('  ⊘ Skipped:')} ${chalk.yellow.bold(this.stats.skipped)}\n` +
-        `${chalk.red('  ✗ Failed:')} ${chalk.red.bold(this.stats.errors)}\n` +
-        `${chalk.dim('  Total Time:')} ${chalk.bold((uptime / 1000).toFixed(1))}s\n` +
-        `${chalk.dim('  Avg Rate:')} ${chalk.bold(avgRate)} items/sec\n` +
-        `${chalk.cyan.bold('═'.repeat(60))}`,
-    );
+    this.logger.log(formatFinalSummary('ItemsWorker', this.stats, 'items'));
   }
 }
