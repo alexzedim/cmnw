@@ -9,6 +9,7 @@ import { from, lastValueFrom, mergeMap } from 'rxjs';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
+  BlizzardApiService,
   delay,
   FACTION,
   getKeys,
@@ -43,6 +44,7 @@ export class GuildsService implements OnApplicationBootstrap {
     private readonly charactersRepository: Repository<CharactersEntity>,
     @InjectQueue(guildsQueue.name)
     private readonly queueGuilds: Queue<IGuildMessageBase>,
+    private readonly blizzardApiService: BlizzardApiService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -71,7 +73,12 @@ export class GuildsService implements OnApplicationBootstrap {
       });
       if (isIndexGuildsFromCharacters) return;
 
-      this.keyEntities = await getKeys(this.keysRepository, clearance, false, true);
+      this.keyEntities = await getKeys(
+        this.keysRepository,
+        clearance,
+        false,
+        true,
+      );
 
       const length = this.keyEntities.length;
 
@@ -90,7 +97,8 @@ export class GuildsService implements OnApplicationBootstrap {
       });
 
       const guildJobs = uniqueGuildGuids.map((guild) => {
-        const { client, secret, token } = this.keyEntities[guildJobsItx % length];
+        const { client, secret, token } =
+          this.keyEntities[guildJobsItx % length];
 
         const [name, realm] = guild.guildGuid.split('@');
 
@@ -139,7 +147,12 @@ export class GuildsService implements OnApplicationBootstrap {
     const logTag = this.indexGuilds.name;
     try {
       let guildIteration = 0;
-      this.keyEntities = await getKeys(this.keysRepository, clearance, false, true);
+      this.keyEntities = await getKeys(
+        this.keysRepository,
+        clearance,
+        false,
+        true,
+      );
 
       let length = this.keyEntities.length;
 
@@ -218,16 +231,17 @@ export class GuildsService implements OnApplicationBootstrap {
 
       const length = this.keyEntities.length;
 
-      this.BNet = new BlizzAPI({
-        region: 'eu',
+      this.BNet = this.blizzardApiService.createClient({
         clientId: key.client,
         clientSecret: key.secret,
         accessToken: key.token,
+        region: 'eu',
       });
 
       for (const raid of HALL_OF_FAME_RAIDS) {
         const isOnlyLast =
-          onlyLast && raid !== HALL_OF_FAME_RAIDS[HALL_OF_FAME_RAIDS.length - 1];
+          onlyLast &&
+          raid !== HALL_OF_FAME_RAIDS[HALL_OF_FAME_RAIDS.length - 1];
 
         if (isOnlyLast) continue;
 
