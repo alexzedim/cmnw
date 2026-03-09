@@ -2,7 +2,6 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import chalk from 'chalk';
 import { AxiosError } from 'axios';
 import {
-  AdaptiveRateLimiter,
   CharacterMessageDto,
   FightsAPIResponse,
   getKey,
@@ -16,7 +15,6 @@ import {
   RaidCharacter,
   toGuid,
   toSlug,
-  WCL_RATE_LIMITER_CONFIG,
 } from '@app/resources';
 
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -49,9 +47,6 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
     errors: 0,
     startTime: Date.now(),
   };
-
-  // Adaptive rate limiter for Fights API (2-30 second delays)
-  private readonly fightsAPIRateLimiter = new AdaptiveRateLimiter(WCL_RATE_LIMITER_CONFIG, this.logger);
 
   // Cached headers that rotate via cron task
   private cachedBrowserHeaders: Record<string, string> = {};
@@ -156,27 +151,13 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
 
   async getLogsFromPage(realmId = 1, page = 1) {
     try {
-      // Use adaptive rate limiter for intelligent delay management
-      await this.fightsAPIRateLimiter.wait();
-
       const warcraftLogsURI = 'https://www.warcraftlogs.com/zone/reports';
-      // --- add if necessary @todo zone=${this.config.raidTier}& --- //
       const params = `server=${realmId}&`;
 
       const response = await this.httpService.axiosRef.get<string>(`${warcraftLogsURI}?${params}page=${page}`, {
         headers: this.getBrowserHeaders(),
         timeout: 10_000,
       });
-
-      // Use handleResponse for proper rate limit detection
-      const isRateLimited = this.fightsAPIRateLimiter.handleResponse({
-        status: response.status,
-        headers: response.headers as Record<string, string | number | undefined>,
-      });
-      if (isRateLimited) {
-        this.logger.warn(chalk.yellow(`⚠ Rate limited while fetching logs page ${page} for realm ${realmId}`));
-        return [];
-      }
 
       const wclHTML = cheerio.load(response.data);
       const wclTable = wclHTML.html('tbody > tr');
@@ -199,27 +180,10 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
 
       return Array.from(warcraftLogsMap.values());
     } catch (errorOrException) {
-      // Only call onRateLimit for actual rate limit errors
-      if (errorOrException instanceof AxiosError) {
-        const detection = this.fightsAPIRateLimiter.detectRateLimit({
-          status: errorOrException.response?.status || 0,
-          headers: errorOrException.response?.headers as Record<string, string | number | undefined>,
-        });
-        if (detection.isRateLimited) {
-          this.fightsAPIRateLimiter.onRateLimit(detection);
-          this.logger.warn(chalk.yellow(`⚠ Rate limit error while fetching logs page ${page} for realm ${realmId}`));
-        } else {
-          this.logger.error({
-            logTag: 'getLogsFromPage',
-            errorOrException,
-          });
-        }
-      } else {
-        this.logger.error({
-          logTag: 'getLogsFromPage',
-          errorOrException,
-        });
-      }
+      this.logger.error({
+        logTag: 'getLogsFromPage',
+        errorOrException,
+      });
 
       return [];
     }
@@ -473,23 +437,8 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
    */
   async getCharactersFromFightsAPI(logId: string): Promise<Array<RaidCharacter>> {
     try {
-      // Use adaptive rate limiter - automatically adjusts based on 403 errors
-      await this.fightsAPIRateLimiter.wait();
-
-      const rateLimiterStats = this.fightsAPIRateLimiter.getStats();
-      const isConditionThrottled = rateLimiterStats.isThrottled;
-
-      if (isConditionThrottled) {
-        this.logger.warn(
-          chalk.yellow(
-            `⚠ Rate limiter active: ${Math.round(rateLimiterStats.currentDelayMs / 1000)}s delay, ${rateLimiterStats.rateLimitCount} rate limits`,
-          ),
-        );
-      }
-
       const apiUrl = `https://www.warcraftlogs.com/reports/fights-and-participants/${logId}/0`;
 
-      // Use cached XHR headers with referer to appear human
       const headers = this.getXHRHeaders(`https://www.warcraftlogs.com/reports/${logId}`);
 
       const response = await this.httpService.axiosRef.get<FightsAPIResponse>(apiUrl, {
@@ -497,27 +446,9 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         timeout: 15_000,
       });
 
-      // Use handleResponse for proper rate limit detection
-      const isRateLimited = this.fightsAPIRateLimiter.handleResponse({
-        status: response.status,
-        headers: response.headers as Record<string, string | number | undefined>,
-      });
-
-      // Handle 404 separately (not a rate limit)
       const isConditionNotFound = response.status === 404;
       if (isConditionNotFound) {
         this.logger.warn(chalk.yellow(`⚠ Log not found (404) for ${logId}`));
-        return [];
-      }
-
-      // If rate limited, return early
-      if (isRateLimited) {
-        const stats = this.fightsAPIRateLimiter.getStats();
-        this.logger.warn(
-          chalk.yellow(
-            `⚠ Rate limited (${response.status}) for ${logId} - delay increased to ${Math.round(stats.currentDelayMs / 1000)}s`,
-          ),
-        );
         return [];
       }
 
@@ -533,12 +464,12 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         .map((character) => {
           // Normalize character name and realm to match database standards
           const normalizedName = character.name.trim();
-          const normalizedRealm = toSlug(character.server); // Already lowercase from toSlug
+          const normalizedRealm = toSlug(character.server);
 
           return {
-            guid: toGuid(normalizedName, normalizedRealm), // Use normalizedRealm for consistency
-            name: normalizedName, // Will be capitalized by lifecycle service
-            realm: normalizedRealm, // lowercase realm slug
+            guid: toGuid(normalizedName, normalizedRealm),
+            name: normalizedName,
+            realm: normalizedRealm,
           };
         });
 
@@ -556,21 +487,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
 
       return Array.from(characters.values());
     } catch (errorOrException) {
-      // Only call onRateLimit for actual rate limit errors
-      if (errorOrException instanceof AxiosError) {
-        const detection = this.fightsAPIRateLimiter.detectRateLimit({
-          status: errorOrException.response?.status || 0,
-          headers: errorOrException.response?.headers as Record<string, string | number | undefined>,
-        });
-        if (detection.isRateLimited) {
-          this.fightsAPIRateLimiter.onRateLimit(detection);
-          this.logger.warn(chalk.yellow(`⚠ Rate limit error (${errorOrException.response?.status}) for ${logId}`));
-        } else {
-          this.handleFightsAPIError(errorOrException, logId);
-        }
-      } else {
-        this.handleFightsAPIError(errorOrException, logId);
-      }
+      this.handleFightsAPIError(errorOrException, logId);
       return [];
     }
   }
@@ -586,25 +503,11 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
    */
   async getCharactersFromReportHtml(logId: string): Promise<Array<{ name: string; realm?: string }>> {
     try {
-      // Use adaptive rate limiter for HTML endpoint
-      await this.fightsAPIRateLimiter.wait();
-
       const reportUrl = `https://www.warcraftlogs.com/reports/${logId}`;
       const response = await this.httpService.axiosRef.get<string>(reportUrl, {
         headers: this.getBrowserHeaders(),
         timeout: 15000,
       });
-
-      // Use handleResponse for proper rate limit detection
-      const isRateLimited = this.fightsAPIRateLimiter.handleResponse({
-        status: response.status,
-        headers: response.headers as Record<string, string | number | undefined>,
-      });
-
-      if (isRateLimited) {
-        this.logger.warn(chalk.yellow(`⚠ Rate limited (${response.status}) while fetching HTML for ${logId}`));
-        return [];
-      }
 
       const $ = cheerio.load(response.data);
       const characters = new Map<string, { name: string; realm?: string }>();
@@ -629,40 +532,17 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
 
       return Array.from(characters.values());
     } catch (errorOrException) {
-      // Only call onRateLimit for actual rate limit errors
-      if (errorOrException instanceof AxiosError) {
-        const detection = this.fightsAPIRateLimiter.detectRateLimit({
-          status: errorOrException.response?.status || 0,
-          headers: errorOrException.response?.headers as Record<string, string | number | undefined>,
-        });
-        if (detection.isRateLimited) {
-          this.fightsAPIRateLimiter.onRateLimit(detection);
-          this.logger.warn(
-            chalk.yellow(`⚠ Rate limit error (${errorOrException.response?.status}) while fetching HTML for ${logId}`),
-          );
-        } else {
-          this.logger.error({
-            logTag: 'getCharactersFromReportHtml',
-            logId,
-            error: errorOrException.message,
-          });
-        }
-      } else {
-        this.logger.error({
-          logTag: 'getCharactersFromReportHtml',
-          logId,
-          error: errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
-        });
-      }
+      this.logger.error({
+        logTag: 'getCharactersFromReportHtml',
+        logId,
+        error: errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
+      });
       return [];
     }
   }
 
   async getCharactersFromLogs(token: string, logId: string) {
     try {
-      // Use adaptive rate limiter for GraphQL API
-      await this.fightsAPIRateLimiter.wait();
-
       const response = await this.httpService.axiosRef.request<unknown, unknown>({
         method: 'post',
         url: 'https://www.warcraftlogs.com/api/v2/client',
@@ -696,17 +576,6 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
             }`,
         },
       });
-
-      // Use handleResponse for proper rate limit detection
-      const isRateLimited = this.fightsAPIRateLimiter.handleResponse({
-        status: (response as any).status,
-        headers: (response as any).headers as Record<string, string | number | undefined>,
-      });
-
-      if (isRateLimited) {
-        this.logger.warn(chalk.yellow(`⚠ Rate limited (${(response as any).status}) on GraphQL API for ${logId}`));
-        return [];
-      }
 
       const isGuard = isCharacterRaidLogResponse(response);
       if (!isGuard) return [];
@@ -750,31 +619,11 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
 
       return Array.from(characters.values());
     } catch (errorOrException) {
-      // Only call onRateLimit for actual rate limit errors
-      if (errorOrException instanceof AxiosError) {
-        const detection = this.fightsAPIRateLimiter.detectRateLimit({
-          status: errorOrException.response?.status || 0,
-          headers: errorOrException.response?.headers as Record<string, string | number | undefined>,
-        });
-        if (detection.isRateLimited) {
-          this.fightsAPIRateLimiter.onRateLimit(detection);
-          this.logger.warn(
-            chalk.yellow(`⚠ Rate limit error (${errorOrException.response?.status}) on GraphQL API for ${logId}`),
-          );
-        } else {
-          this.logger.error({
-            logTag: 'getCharactersFromLogs',
-            logId,
-            error: errorOrException.message,
-          });
-        }
-      } else {
-        this.logger.error({
-          logTag: 'getCharactersFromLogs',
-          logId,
-          error: errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
-        });
-      }
+      this.logger.error({
+        logTag: 'getCharactersFromLogs',
+        logId,
+        error: errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
+      });
       return [];
     }
   }
@@ -819,9 +668,6 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
     const hours = Math.floor(uptime / (1000 * 60 * 60));
     const minutes = Math.floor((uptime % (1000 * 60 * 60)) / (1000 * 60));
 
-    const rateLimiterStats = this.fightsAPIRateLimiter.getStats();
-    const delaySeconds = Math.round(rateLimiterStats.currentDelayMs / 1000);
-
     this.logger.log(
       `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
         `${chalk.magenta('📊 WCL SERVICE PROGRESS')}\n` +
@@ -831,7 +677,6 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         `${chalk.cyan('  → Characters Queued:')} ${chalk.cyan.bold(this.stats.charactersQueued)}\n` +
         `${chalk.red('  ✗ Errors:')} ${chalk.red.bold(this.stats.errors)}\n` +
         `${chalk.dim('  Uptime:')} ${chalk.bold(`${hours}h ${minutes}m`)}\n` +
-        `${chalk.blue('  🕒 Rate Limiter:')} ${rateLimiterStats.isThrottled ? chalk.yellow.bold(`${delaySeconds}s (throttled)`) : chalk.green.bold(`${delaySeconds}s`)}\n` +
         `${chalk.magenta.bold('━'.repeat(60))}`,
     );
   }
