@@ -6,6 +6,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { KeysService, RealmsWorker, RealmsService } from './services';
 import { S3Module } from '@app/s3';
 import { KeysEntity, RealmsEntity } from '@app/pg';
+import { BlizzardApiService } from '@app/resources';
 
 @Module({
   imports: [
@@ -16,6 +17,6 @@ import { KeysEntity, RealmsEntity } from '@app/pg';
     TypeOrmModule.forFeature([KeysEntity, RealmsEntity]),
   ],
   controllers: [],
-  providers: [KeysService, RealmsService, RealmsWorker],
+  providers: [BlizzardApiService, KeysService, RealmsService, RealmsWorker],
 })
 export class CoreModule {}
