@@ -29,8 +29,6 @@ import {
   GuildStatusState,
   setGuildStatusString,
   ICharacterMessageBase,
-  AdaptiveRateLimiter,
-  DEFAULT_RATE_LIMITER_CONFIG,
 } from '@app/resources';
 import { CharactersEntity, GuildsEntity, KeysEntity, RealmsEntity } from '@app/pg';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -42,8 +40,6 @@ export class GuildRosterService {
     timestamp: true,
   });
 
-  private readonly rateLimiter: AdaptiveRateLimiter;
-
   constructor(
     @InjectQueue(charactersQueue.name)
     private readonly characterQueue: Queue<ICharacterMessageBase>,
@@ -51,22 +47,17 @@ export class GuildRosterService {
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
-  ) {
-    this.rateLimiter = new AdaptiveRateLimiter(DEFAULT_RATE_LIMITER_CONFIG, this.logger);
-  }
+  ) {}
 
   async fetchRoster(guildEntity: GuildsEntity, BNet: BlizzAPI): Promise<IGuildRoster> {
     const roster: IGuildRoster = { members: [] };
 
     try {
       const guildNameSlug = toSlug(guildEntity.name);
-      await this.rateLimiter.wait();
       const response = await BNet.query<Readonly<IRGuildRoster>>(
         `/data/wow/guild/${guildEntity.realm}/${guildNameSlug}/roster`,
         apiConstParams(API_HEADERS_ENUM.PROFILE),
       );
-
-      this.rateLimiter.handleResponse({ status: 200 });
 
       if (!isGuildRoster(response)) {
         return roster;
@@ -252,8 +243,6 @@ export class GuildRosterService {
     const statusCode = isAxiosError(errorOrException)
       ? errorOrException.response?.status
       : get(errorOrException, 'status', 400);
-
-    this.rateLimiter.handleResponse({ status: statusCode || 400 });
 
     roster.statusCode = statusCode || 400;
     roster.status = setGuildStatusString('-----', 'ROSTER', GuildStatusState.ERROR);

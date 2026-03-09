@@ -1,7 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
 import chalk from 'chalk';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { BlizzAPI } from '@alexzedim/blizzapi';
 import { isAxiosError } from 'axios';
 import { get } from 'lodash';
@@ -28,8 +26,6 @@ import {
   isCharacterProfessions,
   setStatusString,
   CharacterStatusState,
-  AdaptiveRateLimiter,
-  DEFAULT_RATE_LIMITER_CONFIG,
 } from '@app/resources';
 
 @Injectable()
@@ -38,23 +34,14 @@ export class CharacterService {
     timestamp: true,
   });
 
-  private readonly rateLimiter: AdaptiveRateLimiter;
-
-  constructor() {
-    this.rateLimiter = new AdaptiveRateLimiter(DEFAULT_RATE_LIMITER_CONFIG, this.logger);
-  }
-
   async getStatus(nameSlug: string, realmSlug: string, BNet: BlizzAPI): Promise<Partial<CharacterStatus>> {
     const characterStatus: Partial<CharacterStatus> = {};
 
     try {
-      await this.rateLimiter.wait();
       const statusResponse = (await BNet.query<IBlizzardStatusResponse>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/status`,
         apiConstParams(API_HEADERS_ENUM.PROFILE),
       )) as IBlizzardStatusResponse;
-
-      this.rateLimiter.handleResponse({ status: 200 });
 
       characterStatus.isValid = false;
 
@@ -88,8 +75,6 @@ export class CharacterService {
 
       const statusCode = isAxiosError(errorOrException) ? errorOrException.response?.status : errorOrException.status;
 
-      this.rateLimiter.handleResponse({ status: statusCode || 400 });
-
       const isStatusNotFound = statusCode === 404;
       if (isStatusNotFound) {
         this.logger.debug(`${chalk.blue('404')} Not found: ${nameSlug}@${realmSlug}`);
@@ -110,13 +95,10 @@ export class CharacterService {
     const summary: Partial<CharacterSummary> = {};
 
     try {
-      await this.rateLimiter.wait();
       const response = await BNet.query<BlizzardApiCharacterSummary>(
         `/profile/wow/character/${realmSlug}/${nameSlug}`,
         apiConstParams(API_HEADERS_ENUM.PROFILE),
       );
-
-      this.rateLimiter.handleResponse({ status: 200 });
 
       const isValidSummary = isCharacterSummary(response);
       if (!isValidSummary) {
@@ -159,8 +141,6 @@ export class CharacterService {
 
       const statusCode = isAxiosError(errorOrException) ? errorOrException.response?.status : errorOrException.status;
 
-      this.rateLimiter.handleResponse({ status: statusCode || 400 });
-
       if (statusCode === 429) {
         this.logger.debug(`${chalk.yellow('429')} Rate limited (getSummary): ${nameSlug}@${realmSlug}`);
       } else {
@@ -177,13 +157,10 @@ export class CharacterService {
     const media: Partial<Media> = {};
 
     try {
-      await this.rateLimiter.wait();
       const response = await BNet.query<BlizzardApiCharacterMedia>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/character-media`,
         apiConstParams(API_HEADERS_ENUM.PROFILE),
       );
-
-      this.rateLimiter.handleResponse({ status: 200 });
 
       const isValidMedia = isCharacterMedia(response);
       if (!isValidMedia) return media;
@@ -207,8 +184,6 @@ export class CharacterService {
         ? errorOrException.response?.status
         : get(errorOrException, 'status', 400);
 
-      this.rateLimiter.handleResponse({ status: statusCode || 400 });
-
       if (statusCode === 429) {
         this.logger.debug(`${chalk.yellow('429')} Rate limited (getMedia): ${nameSlug}@${realmSlug}`);
       } else {
@@ -225,13 +200,10 @@ export class CharacterService {
     const mounts: Partial<BlizzardApiMountsCollection> = {};
 
     try {
-      await this.rateLimiter.wait();
       const response = await BNet.query<BlizzardApiMountsCollection>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/collections/mounts`,
         apiConstParams(API_HEADERS_ENUM.PROFILE),
       );
-
-      this.rateLimiter.handleResponse({ status: 200 });
 
       const isValidCollection = isMountCollection(response);
       if (!isValidCollection) {
@@ -250,8 +222,6 @@ export class CharacterService {
       const statusCode = isAxiosError(errorOrException)
         ? errorOrException.response?.status
         : get(errorOrException, 'status', 400);
-
-      this.rateLimiter.handleResponse({ status: statusCode || 400 });
 
       if (statusCode === 429) {
         this.logger.debug(`${chalk.yellow('429')} Rate limited (getMountsCollection): ${nameSlug}@${realmSlug}`);
@@ -273,13 +243,10 @@ export class CharacterService {
     const pets: Partial<BlizzardApiPetsCollection> = {};
 
     try {
-      await this.rateLimiter.wait();
       const response = await BNet.query<BlizzardApiPetsCollection>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/collections/pets`,
         apiConstParams(API_HEADERS_ENUM.PROFILE),
       );
-
-      this.rateLimiter.handleResponse({ status: 200 });
 
       const isValidCollection = isPetsCollection(response);
       if (!isValidCollection) {
@@ -298,8 +265,6 @@ export class CharacterService {
       const statusCode = isAxiosError(errorOrException)
         ? errorOrException.response?.status
         : get(errorOrException, 'status', 400);
-
-      this.rateLimiter.handleResponse({ status: statusCode || 400 });
 
       if (statusCode === 429) {
         this.logger.debug(`${chalk.yellow('429')} Rate limited (getPetsCollection): ${nameSlug}@${realmSlug}`);
@@ -321,13 +286,10 @@ export class CharacterService {
     const professions: Partial<BlizzardApiCharacterProfessions> = {};
 
     try {
-      await this.rateLimiter.wait();
       const response = await BNet.query<BlizzardApiCharacterProfessions>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/professions`,
         apiConstParams(API_HEADERS_ENUM.PROFILE),
       );
-
-      this.rateLimiter.handleResponse({ status: 200 });
 
       const isValidProfessions = isCharacterProfessions(response);
       if (!isValidProfessions) {
@@ -346,8 +308,6 @@ export class CharacterService {
       const statusCode = isAxiosError(errorOrException)
         ? errorOrException.response?.status
         : get(errorOrException, 'status', 400);
-
-      this.rateLimiter.handleResponse({ status: statusCode || 400 });
 
       if (statusCode === 429) {
         this.logger.debug(`${chalk.yellow('429')} Rate limited (getProfessions): ${nameSlug}@${realmSlug}`);

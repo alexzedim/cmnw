@@ -27,8 +27,6 @@ import {
   isMythicLeaderboardResponse,
   MythicLeaderboardGroup,
   transformFaction,
-  AdaptiveRateLimiter,
-  WCL_RATE_LIMITER_CONFIG,
   TIME_MS,
   REALM_ENTITY_ANY,
   M_PLUS_REALM_DUNGEON_PREFIX,
@@ -52,7 +50,6 @@ export class LadderService implements OnApplicationBootstrap {
   private readonly logger = new Logger(LadderService.name, { timestamp: true });
 
   private BNet: BlizzAPI;
-  private rateLimiter: AdaptiveRateLimiter;
 
   constructor(
     @InjectRedis()
@@ -64,9 +61,7 @@ export class LadderService implements OnApplicationBootstrap {
     @InjectQueue(charactersQueue.name)
     private readonly queueCharacters: Queue<ICharacterMessageBase>,
     private readonly blizzardApiService: BlizzardApiService,
-  ) {
-    this.rateLimiter = new AdaptiveRateLimiter(WCL_RATE_LIMITER_CONFIG, this.logger);
-  }
+  ) {}
 
   async onApplicationBootstrap(): Promise<void> {
     await this.indexMythicPlusLadder(GLOBAL_OSINT_KEY);
@@ -126,8 +121,6 @@ export class LadderService implements OnApplicationBootstrap {
             continue;
           }
 
-          await this.rateLimiter.wait();
-
           const pvpLeaderboard = await this.fetchPvPLeaderboard(season.id, bracket);
 
           if (pvpLeaderboard.entries.length === 0) {
@@ -147,15 +140,11 @@ export class LadderService implements OnApplicationBootstrap {
           // Mark season-bracket as processed in Redis
           await this.markPvPLeaderboardAsProcessed(season.id, bracket);
 
-          this.rateLimiter.onSuccess();
-
           // Log progress periodically
           if (processedCount % 5 === 0) {
-            const stats = this.rateLimiter.getStats();
             this.logger.debug({
               logTag,
               progress: `${processedCount}/${totalRequests}`,
-              rateLimiterStats: stats,
             });
           }
         } catch (error) {
@@ -244,34 +233,13 @@ export class LadderService implements OnApplicationBootstrap {
   }
 
   /**
-   * Handle errors during PvP leaderboard fetching with adaptive rate limiting
+   * Handle errors during PvP leaderboard fetching
    */
   private handlePvPLeaderboardError(error: unknown, seasonId: number, bracket: string, logTag: string): void {
-    // Use proper rate limit detection instead of string matching
     if (error instanceof Error) {
-      // Try to extract status code from error message or response
       const statusMatch = error.message.match(/(\d{3})/);
       const statusCode = statusMatch ? parseInt(statusMatch[1], 10) : 0;
 
-      // Create a minimal response object for detection
-      const detection = this.rateLimiter.detectRateLimit({
-        status: statusCode,
-        headers: {},
-      });
-
-      if (detection.isRateLimited) {
-        this.rateLimiter.onRateLimit(detection);
-        this.logger.warn({
-          logTag,
-          seasonId,
-          bracket,
-          message: 'Rate limit encountered during PvP leaderboard fetch, backing off',
-          rateLimiterStats: this.rateLimiter.getStats(),
-        });
-        return;
-      }
-
-      // Check for 404 errors
       if (statusCode === 404) {
         this.logger.debug({
           logTag,
@@ -283,7 +251,6 @@ export class LadderService implements OnApplicationBootstrap {
       }
     }
 
-    // Log other errors
     this.logger.error({
       logTag,
       seasonId,
@@ -486,8 +453,6 @@ export class LadderService implements OnApplicationBootstrap {
         return { skipped: true };
       }
 
-      await this.rateLimiter.wait();
-
       const leadingGroups = await this.fetchLeaderboardGroups(
         request.connectedRealmId,
         request.dungeonId,
@@ -512,15 +477,11 @@ export class LadderService implements OnApplicationBootstrap {
       // Mark realm-dungeon as processed in Redis
       await this.markRealmDungeonAsProcessed(request.connectedRealmId, request.dungeonId);
 
-      this.rateLimiter.onSuccess();
-
       // Log progress periodically
       if (processedCount % 10 === 0) {
-        const stats = this.rateLimiter.getStats();
         this.logger.debug({
           logTag,
           progress: `${processedCount}/${totalRequests}`,
-          rateLimiterStats: stats,
         });
       }
 
@@ -665,7 +626,7 @@ export class LadderService implements OnApplicationBootstrap {
   }
 
   /**
-   * Handle errors during leaderboard fetching with adaptive rate limiting
+   * Handle errors during leaderboard fetching
    */
   private handleLeaderboardError(
     error: unknown,
@@ -674,33 +635,6 @@ export class LadderService implements OnApplicationBootstrap {
     period: number,
     logTag: string,
   ): void {
-    // Use proper rate limit detection instead of string matching
-    if (error instanceof Error) {
-      // Try to extract status code from error message or response
-      const statusMatch = error.message.match(/(\d{3})/);
-      const statusCode = statusMatch ? parseInt(statusMatch[1], 10) : 0;
-
-      // Create a minimal response object for detection
-      const detection = this.rateLimiter.detectRateLimit({
-        status: statusCode,
-        headers: {},
-      });
-
-      if (detection.isRateLimited) {
-        this.rateLimiter.onRateLimit(detection);
-        this.logger.warn({
-          logTag,
-          connectedRealmId,
-          dungeonId,
-          period,
-          message: 'Rate limit encountered, backing off',
-          rateLimiterStats: this.rateLimiter.getStats(),
-        });
-        return;
-      }
-    }
-
-    // Log other errors
     this.logger.debug({
       logTag,
       connectedRealmId,

@@ -1,7 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { BlizzAPI } from '@alexzedim/blizzapi';
-import { Repository } from 'typeorm';
 import { isAxiosError } from 'axios';
 import * as changeCase from 'change-case';
 import { get } from 'lodash';
@@ -15,8 +13,6 @@ import {
   transformFaction,
   GuildStatusState,
   setGuildStatusString,
-  AdaptiveRateLimiter,
-  DEFAULT_RATE_LIMITER_CONFIG,
 } from '@app/resources';
 import { GUILD_SUMMARY_KEYS } from '@app/resources';
 
@@ -26,23 +22,14 @@ export class GuildSummaryService {
     timestamp: true,
   });
 
-  private readonly rateLimiter: AdaptiveRateLimiter;
-
-  constructor() {
-    this.rateLimiter = new AdaptiveRateLimiter(DEFAULT_RATE_LIMITER_CONFIG, this.logger);
-  }
-
   async getSummary(guildNameSlug: string, realmSlug: string, BNet: BlizzAPI): Promise<Partial<IGuildSummary>> {
     const summary: Partial<IGuildSummary> = {};
 
     try {
-      await this.rateLimiter.wait();
       const response: Record<string, any> = await BNet.query(
         `/data/wow/guild/${realmSlug}/${guildNameSlug}`,
         apiConstParams(API_HEADERS_ENUM.PROFILE),
       );
-
-      this.rateLimiter.handleResponse({ status: 200 });
 
       if (!isGuildSummary(response)) {
         return summary;
@@ -99,8 +86,6 @@ export class GuildSummaryService {
     const statusCode = isAxiosError(errorOrException)
       ? errorOrException.response?.status
       : get(errorOrException, 'status', 400);
-
-    this.rateLimiter.handleResponse({ status: statusCode || 400 });
 
     summary.status = setGuildStatusString('-----', 'SUMMARY', GuildStatusState.ERROR);
 

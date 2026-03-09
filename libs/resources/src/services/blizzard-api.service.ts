@@ -7,7 +7,6 @@ import Redis from 'ioredis';
 import { Repository } from 'typeorm';
 
 import { DEFAULT_AXIOS_RETRY_CONFIG, IAxiosRetryConfig } from '../utils/axios-retry.config';
-import { AdaptiveRateLimiter } from '../utils/adaptive-rate-limiter';
 import { KeyPoolService } from './key-pool.service';
 import { KeysEntity } from '@app/pg';
 
@@ -81,16 +80,6 @@ export class BlizzardApiService {
 
     const axiosInstance = (client as unknown as { axios: AxiosInstance }).axios;
 
-    const rateLimiter = new AdaptiveRateLimiter(
-      {
-        initialDelayMs: 100,
-        backoffMultiplier: 1.5,
-        recoveryDivisor: 1.1,
-        maxDelayMs: 60000,
-      },
-      this.logger,
-    );
-
     axiosRetry(axiosInstance, {
       retries: mergedRetryConfig.retries,
       retryDelay: (retryCount, error) => {
@@ -105,12 +94,6 @@ export class BlizzardApiService {
             this.logger.debug(`Failed to rotate key: ${err}`);
           });
         }
-
-        rateLimiter.onRateLimit({
-          isRateLimited: true,
-          statusCode: error.response?.status,
-          detectionSource: 'status-code',
-        });
 
         const baseDelay = mergedRetryConfig.baseDelayMs * Math.pow(2, retryCount - 1);
         const cappedDelay = Math.min(baseDelay, mergedRetryConfig.maxDelayMs);
