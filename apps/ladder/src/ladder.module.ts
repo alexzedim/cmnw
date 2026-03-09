@@ -1,12 +1,20 @@
 import { Module } from '@nestjs/common';
-import { getRedisConnection, postgresConfig, redisConfig } from '@app/configuration';
+import {
+  getRedisConnection,
+  postgresConfig,
+  redisConfig,
+} from '@app/configuration';
 import { LadderService } from './ladder.service';
 import { HttpModule } from '@nestjs/axios';
 import { ScheduleModule } from '@nestjs/schedule';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { KeysEntity, RealmsEntity } from '@app/pg';
-import { charactersQueue, guildsQueue } from '@app/resources';
+import {
+  BlizzardApiService,
+  charactersQueue,
+  guildsQueue,
+} from '@app/resources';
 import { BullModule } from '@nestjs/bullmq';
 
 @Module({
@@ -38,6 +46,6 @@ import { BullModule } from '@nestjs/bullmq';
     }),
   ],
   controllers: [],
-  providers: [LadderService],
+  providers: [BlizzardApiService, LadderService],
 })
 export class LadderModule {}
