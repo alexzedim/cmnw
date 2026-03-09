@@ -234,13 +234,8 @@ export interface IBlizzardApiServiceConfig {
 }
 
 export interface ICreateClientOptions {
-  /** Custom retry configuration */
   retryConfig?: Partial<IAxiosRetryConfig>;
-  /** Key pool service for key rotation on 429 */
-  keyPoolService?: any; // Reference to KeyPoolService from services
-  /** Keys repository for direct error tracking */
   keysRepository?: Repository<KeysEntity>;
-  /** Tag to identify key in pool */
   keyTag?: string;
 }
 
