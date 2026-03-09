@@ -1,5 +1,9 @@
 import { Module } from '@nestjs/common';
-import { getRedisConnection, postgresConfig, redisConfig } from '@app/configuration';
+import {
+  getRedisConnection,
+  postgresConfig,
+  redisConfig,
+} from '@app/configuration';
 import {
   AuctionsService,
   ContractsService,
@@ -9,6 +13,7 @@ import {
   ItemsService,
 } from './services';
 
+import { BlizzardApiService } from '@app/resources';
 import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { RedisModule } from '@nestjs-modules/ioredis';
@@ -74,6 +79,7 @@ import { BullModule } from '@nestjs/bullmq';
   ],
   controllers: [],
   providers: [
+    BlizzardApiService,
     RealmsCacheService,
     AuctionsService,
     GoldService,

@@ -21,6 +21,7 @@ import {
 import { Repository } from 'typeorm';
 import { dmaConfig } from '@app/configuration';
 import {
+  BlizzardApiService,
   DMA_SOURCE,
   GLOBAL_DMA_KEY,
   PRICING_TYPE,
@@ -77,6 +78,7 @@ export class XvaService implements OnApplicationBootstrap {
     @InjectRepository(ValuationEntity)
     private readonly valuationRepository: Repository<ValuationEntity>,
     private readonly s3Service: S3Service,
+    private readonly blizzardApiService: BlizzardApiService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -201,7 +203,11 @@ export class XvaService implements OnApplicationBootstrap {
     isDisenchant?: boolean;
   }): Promise<void> {
     const logTag = 'libPricing';
-    const { isProspect = false, isMilling = false, isDisenchant = false } = options;
+    const {
+      isProspect = false,
+      isMilling = false,
+      isDisenchant = false,
+    } = options;
 
     try {
       if (!isProspect && !isMilling && !isDisenchant) {
@@ -242,7 +248,9 @@ export class XvaService implements OnApplicationBootstrap {
   /**
    * Generic method to process any lab pricing method (prospecting, milling, disenchanting)
    */
-  private async processLabPricingMethod(config: LabPricingMethod): Promise<void> {
+  private async processLabPricingMethod(
+    config: LabPricingMethod,
+  ): Promise<void> {
     const logTag = 'processLabPricingMethod';
     try {
       const reversePricingMethod = this.pricingRepository.create({
@@ -315,20 +323,21 @@ export class XvaService implements OnApplicationBootstrap {
 
       const key = await getKey(this.keysRepository, clearance);
 
-      this.BNet = new BlizzAPI({
-        region: 'eu',
+      this.BNet = this.blizzardApiService.createClient({
         clientId: key.client,
         clientSecret: key.secret,
         accessToken: key.token,
+        region: 'eu',
       });
 
-      const professionIndexResponse = await this.BNet.query<IProfessionResponse>(
-        '/data/wow/profession/index',
-        {
-          timeout: 10000,
-          headers: { 'Battlenet-Namespace': 'static-eu' },
-        },
-      );
+      const professionIndexResponse =
+        await this.BNet.query<IProfessionResponse>(
+          '/data/wow/profession/index',
+          {
+            timeout: 10000,
+            headers: { 'Battlenet-Namespace': 'static-eu' },
+          },
+        );
 
       if (!isBnetProfessionIndexResponse(professionIndexResponse)) {
         this.logger.error({
@@ -373,13 +382,14 @@ export class XvaService implements OnApplicationBootstrap {
             return false;
           });
 
-          const skillTierDetailResponse = await this.BNet.query<ISkillTieryResponse>(
-            `/data/wow/profession/${profession.id}/skill-tier/${tier.id}`,
-            {
-              timeout: 10000,
-              headers: { 'Battlenet-Namespace': 'static-eu' },
-            },
-          );
+          const skillTierDetailResponse =
+            await this.BNet.query<ISkillTieryResponse>(
+              `/data/wow/profession/${profession.id}/skill-tier/${tier.id}`,
+              {
+                timeout: 10000,
+                headers: { 'Battlenet-Namespace': 'static-eu' },
+              },
+            );
 
           if (!isBnetSkillTierDetailResponse(skillTierDetailResponse)) {
             this.logger.warn({
@@ -600,7 +610,9 @@ export class XvaService implements OnApplicationBootstrap {
     }
 
     try {
-      const spellReagentsCsv = await this.readCsvFile(CsvFileName.SpellReagents);
+      const spellReagentsCsv = await this.readCsvFile(
+        CsvFileName.SpellReagents,
+      );
 
       const isProcessed = await this.isFileProcessed(
         CsvFileName.SpellReagents,
@@ -676,7 +688,10 @@ export class XvaService implements OnApplicationBootstrap {
         message: `Saved ${spellReagentsCount} spell reagent entities`,
       });
 
-      await this.markFileAsProcessed(CsvFileName.SpellReagents, spellReagentsCsv);
+      await this.markFileAsProcessed(
+        CsvFileName.SpellReagents,
+        spellReagentsCsv,
+      );
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });
     }
@@ -906,7 +921,8 @@ export class XvaService implements OnApplicationBootstrap {
         .createQueryBuilder()
         .update(ItemsEntity)
         .set({
-          assetClass: () => `array_append(asset_class, '${VALUATION_TYPE.MARKET}')`,
+          assetClass: () =>
+            `array_append(asset_class, '${VALUATION_TYPE.MARKET}')`,
         })
         .where('id = ANY(:ids)', { ids: allItemIds })
         .andWhere('NOT (:market = ANY(asset_class))', {
@@ -949,7 +965,8 @@ export class XvaService implements OnApplicationBootstrap {
         .createQueryBuilder()
         .update(ItemsEntity)
         .set({
-          assetClass: () => `array_append(asset_class, '${VALUATION_TYPE.COMMDTY}')`,
+          assetClass: () =>
+            `array_append(asset_class, '${VALUATION_TYPE.COMMDTY}')`,
         })
         .where('id = ANY(:ids)', { ids: commodityIds })
         .andWhere('NOT (:commdty = ANY(asset_class))', {
@@ -991,7 +1008,8 @@ export class XvaService implements OnApplicationBootstrap {
         .createQueryBuilder()
         .update(ItemsEntity)
         .set({
-          assetClass: () => `array_append(asset_class, '${VALUATION_TYPE.ITEM}')`,
+          assetClass: () =>
+            `array_append(asset_class, '${VALUATION_TYPE.ITEM}')`,
         })
         .where('id = ANY(:ids)', { ids: auctionIds })
         .andWhere('NOT (:item = ANY(asset_class))', {
