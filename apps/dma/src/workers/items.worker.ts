@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import {
+  AdaptiveRateLimiter,
   API_HEADERS_ENUM,
   apiConstParams,
   BlizzardApiItem,
@@ -15,6 +16,7 @@ import {
   isNamedField,
   ITEM_FIELD_MAPPING,
   itemsQueue,
+  RateLimitStatusCode,
   toGold,
   TOLERANCE_ENUM,
   VALUATION_TYPE,
@@ -23,6 +25,7 @@ import { ItemsEntity } from '@app/pg';
 import { Job } from 'bullmq';
 import { BlizzAPI } from '@alexzedim/blizzapi';
 import { get } from 'lodash';
+import { isAxiosError } from 'axios';
 import {
   formatWorkerLog,
   formatWorkerLogWithDetails,
@@ -50,11 +53,23 @@ export class ItemsWorker extends WorkerHost {
     startTime: Date.now(),
   };
 
+  private readonly rateLimiter: AdaptiveRateLimiter;
+
   constructor(
     @InjectRepository(ItemsEntity)
     private readonly itemsRepository: Repository<ItemsEntity>,
   ) {
     super();
+    this.rateLimiter = new AdaptiveRateLimiter(
+      {
+        initialDelayMs: 100,
+        backoffMultiplier: 1.5,
+        recoveryDivisor: 1.1,
+        successThresholdForRecovery: 5,
+        enableJitter: true,
+      },
+      this.logger,
+    );
   }
 
   public async process(message: Job<IItemMessageBase>): Promise<void> {
@@ -85,14 +100,11 @@ export class ItemsWorker extends WorkerHost {
 
       // --- Request item data --- //
       const isMultiLocale = true;
+      await this.rateLimiter.wait();
       const [getItemSummary, getItemMedia] = await Promise.allSettled([
         this.BNet.query<BlizzardApiItem>(
           `/data/wow/item/${args.itemId}`,
-          apiConstParams(
-            API_HEADERS_ENUM.STATIC,
-            TOLERANCE_ENUM.DMA,
-            isMultiLocale,
-          ),
+          apiConstParams(API_HEADERS_ENUM.STATIC, TOLERANCE_ENUM.DMA, isMultiLocale),
         ),
         this.BNet.query(
           `/data/wow/media/item/${args.itemId}`,
@@ -129,9 +141,7 @@ export class ItemsWorker extends WorkerHost {
         if (isKeyInPath) {
           const property = ITEM_FIELD_MAPPING.get(key);
           let value = get(getItemSummary.value, property.path, null);
-          const isFieldName = namedFields.has(key)
-            ? isNamedField(value)
-            : false;
+          const isFieldName = namedFields.has(key) ? isNamedField(value) : false;
 
           if (isFieldName) value = get(value, `en_GB`, null);
 
@@ -155,9 +165,7 @@ export class ItemsWorker extends WorkerHost {
           !itemEntity.assetClass.includes(VALUATION_TYPE.VSP));
 
       if (isVSP) {
-        const assetClass = new Set(itemEntity.assetClass).add(
-          VALUATION_TYPE.VSP,
-        );
+        const assetClass = new Set(itemEntity.assetClass).add(VALUATION_TYPE.VSP);
         itemEntity.assetClass = Array.from(assetClass);
       }
 
@@ -169,6 +177,7 @@ export class ItemsWorker extends WorkerHost {
 
       await this.itemsRepository.save(itemEntity);
       this.stats.success++;
+      this.rateLimiter.onSuccess();
 
       const duration = Date.now() - startTime;
       this.logger.log(
@@ -186,10 +195,36 @@ export class ItemsWorker extends WorkerHost {
         this.logProgress();
       }
     } catch (errorOrException) {
-      this.stats.errors++;
       const duration = Date.now() - startTime;
       const itemId = message.data.itemId || 'unknown';
 
+      if (isAxiosError(errorOrException)) {
+        const statusCode = errorOrException.response?.status;
+
+        if (
+          statusCode === RateLimitStatusCode.TOO_MANY_REQUESTS ||
+          statusCode === RateLimitStatusCode.FORBIDDEN ||
+          statusCode === RateLimitStatusCode.SERVICE_UNAVAILABLE
+        ) {
+          this.rateLimiter.onRateLimit({
+            isRateLimited: true,
+            statusCode,
+            detectionSource: 'status-code',
+          });
+          this.logger.warn(
+            formatWorkerLog(
+              WorkerLogStatus.RATE_LIMITED,
+              this.stats.total,
+              `item-${itemId}`,
+              duration,
+              `Rate limited (${statusCode})`,
+            ),
+          );
+          return;
+        }
+      }
+
+      this.stats.errors++;
       this.logger.error(
         formatWorkerErrorLog(
           this.stats.total,

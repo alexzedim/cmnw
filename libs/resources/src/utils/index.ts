@@ -5,3 +5,4 @@ export * from './headers';
 export * from './percentile';
 export * from './character-status.utils';
 export * from './key-error-tracker';
+export * from './axios-retry.config';

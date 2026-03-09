@@ -11,6 +11,7 @@ import { Repository } from 'typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import {
   API_HEADERS_ENUM,
+  AdaptiveRateLimiter,
   apiConstParams,
   auctionsQueue,
   BlizzardApiAuctions,
@@ -66,6 +67,8 @@ export class AuctionsWorker extends WorkerHost {
     RATE_LIMITED: 429,
   } as const;
 
+  private readonly rateLimiter: AdaptiveRateLimiter;
+
   constructor(
     @InjectRedis()
     private readonly redisService: Redis,
@@ -77,6 +80,16 @@ export class AuctionsWorker extends WorkerHost {
     private readonly marketRepository: Repository<MarketEntity>,
   ) {
     super();
+    this.rateLimiter = new AdaptiveRateLimiter(
+      {
+        initialDelayMs: 100,
+        backoffMultiplier: 1.5,
+        recoveryDivisor: 1.1,
+        successThresholdForRecovery: 5,
+        enableJitter: true,
+      },
+      this.logger,
+    );
   }
 
   async process(job: Job<IAuctionMessageBase>): Promise<void> {
@@ -123,6 +136,8 @@ export class AuctionsWorker extends WorkerHost {
         ? '/data/wow/auctions/commodities'
         : `/data/wow/connected-realm/${message.connectedRealmId}/auctions`;
 
+      await this.rateLimiter.wait();
+
       const marketResponse = await this.BNet.query<BlizzardApiAuctions>(
         getMarketApiEndpoint,
         apiConstParams(
@@ -154,9 +169,7 @@ export class AuctionsWorker extends WorkerHost {
         ? REALM_ENTITY_ANY.id
         : message.connectedRealmId;
 
-      const timestamp = DateTime.fromRFC2822(
-        marketResponse.lastModified,
-      ).toMillis();
+      const timestamp = DateTime.fromRFC2822(marketResponse.lastModified).toMillis();
 
       const { auctions } = marketResponse;
 
@@ -258,6 +271,7 @@ export class AuctionsWorker extends WorkerHost {
 
       const duration = Date.now() - startTime;
       this.stats.success++;
+      this.rateLimiter.onSuccess();
       this.logger.log(
         formatWorkerLog(
           WorkerLogStatus.SUCCESS,
@@ -293,6 +307,11 @@ export class AuctionsWorker extends WorkerHost {
 
         if (statusCode === this.HTTP_STATUS_CODES.RATE_LIMITED) {
           this.stats.rateLimit++;
+          this.rateLimiter.onRateLimit({
+            isRateLimited: true,
+            statusCode,
+            detectionSource: 'status-code',
+          });
           this.logger.log(
             formatWorkerLog(
               WorkerLogStatus.RATE_LIMITED,
@@ -307,6 +326,11 @@ export class AuctionsWorker extends WorkerHost {
 
         if (statusCode === this.HTTP_STATUS_CODES.FORBIDDEN) {
           this.stats.forbidden++;
+          this.rateLimiter.onRateLimit({
+            isRateLimited: true,
+            statusCode,
+            detectionSource: 'status-code',
+          });
           this.logger.log(
             formatWorkerLog(
               WorkerLogStatus.WARNING,
@@ -369,8 +393,7 @@ export class AuctionsWorker extends WorkerHost {
 
         const isPetOrder = marketEntity.itemId === 82800;
 
-        const bid =
-          'bid' in order ? toGold((order as IAuctionsOrder).bid) : null;
+        const bid = 'bid' in order ? toGold((order as IAuctionsOrder).bid) : null;
 
         const price = transformPrice(order);
         if (!price) {
@@ -409,9 +432,7 @@ export class AuctionsWorker extends WorkerHost {
   }
 
   private logProgress(): void {
-    this.logger.log(
-      formatProgressReport('AuctionsWorker', this.stats, 'realms'),
-    );
+    this.logger.log(formatProgressReport('AuctionsWorker', this.stats, 'realms'));
   }
 
   public logFinalSummary(): void {
