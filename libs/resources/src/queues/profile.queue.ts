@@ -2,7 +2,6 @@
  * BullMQ Queue Configuration for Profiles
  *
  * Defines BullMQ queue configuration for profile-related jobs.
- * Replaces RabbitMQ profile queue.
  */
 import { getRedisConnection } from '@app/configuration';
 import type { IBullMQQueueOptions } from '@app/resources/types/queue/queue.type';

@@ -67,10 +67,7 @@ export const blizzardConfig: IBlizzardConfig = {
   },
   circuitBreaker: {
     timeout: parseInt(process.env.BLIZZARD_CB_TIMEOUT || '30000', 10),
-    errorThresholdPercentage: parseInt(
-      process.env.BLIZZARD_CB_ERROR_THRESHOLD || '50',
-      10,
-    ),
+    errorThresholdPercentage: parseInt(process.env.BLIZZARD_CB_ERROR_THRESHOLD || '50', 10),
     resetTimeout: parseInt(process.env.BLIZZARD_CB_RESET || '60000', 10),
     volumeThreshold: parseInt(process.env.BLIZZARD_CB_VOLUME || '10', 10),
   },

@@ -2,19 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Repository, IsNull, Not } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import {
-  ACTION_LOG,
-  IGuildRoster,
-  OSINT_GM_RANK,
-  GuildStatusState,
-  setGuildStatusString,
-} from '@app/resources';
-import {
-  CharactersEntity,
-  CharactersGuildsMembersEntity,
-  CharactersGuildsLogsEntity,
-  GuildsEntity,
-} from '@app/pg';
+import { ACTION_LOG, IGuildRoster, OSINT_GM_RANK, GuildStatusState, setGuildStatusString } from '@app/resources';
+import { CharactersEntity, CharactersGuildsMembersEntity, CharactersGuildsLogsEntity, GuildsEntity } from '@app/pg';
 
 @Injectable()
 export class GuildMasterService {
@@ -31,10 +20,7 @@ export class GuildMasterService {
     private readonly logsRepository: Repository<CharactersGuildsLogsEntity>,
   ) {}
 
-  async detectAndLogGuildMasterChange(
-    guildEntity: GuildsEntity,
-    updatedRoster: IGuildRoster,
-  ): Promise<string> {
+  async detectAndLogGuildMasterChange(guildEntity: GuildsEntity, updatedRoster: IGuildRoster): Promise<string> {
     try {
       const originalGM = await this.guildMembersRepository.findOneBy({
         guildGuid: guildEntity.guid,
@@ -45,9 +31,7 @@ export class GuildMasterService {
         return setGuildStatusString('-----', 'MASTER', GuildStatusState.SUCCESS);
       }
 
-      const newGM = updatedRoster.members.find(
-        (member) => member.rank === OSINT_GM_RANK,
-      );
+      const newGM = updatedRoster.members.find((member) => member.rank === OSINT_GM_RANK);
 
       if (!newGM) {
         this.logger.warn(`No new Guild Master found for ${guildEntity.guid}`);
@@ -57,18 +41,11 @@ export class GuildMasterService {
       const isGMChanged = Number(originalGM.characterId) !== Number(newGM.id);
 
       if (!isGMChanged) {
-        this.logger.debug(
-          `No GM change for ${guildEntity.guid} | GM: ${originalGM.characterId}`,
-        );
+        this.logger.debug(`No GM change for ${guildEntity.guid} | GM: ${originalGM.characterId}`);
         return setGuildStatusString('-----', 'MASTER', GuildStatusState.SUCCESS);
       }
 
-      await this.logGuildMasterTransition(
-        guildEntity,
-        originalGM.characterGuid,
-        newGM.guid,
-        updatedRoster.updatedAt,
-      );
+      await this.logGuildMasterTransition(guildEntity, originalGM.characterGuid, newGM.guid, updatedRoster.updatedAt);
 
       return setGuildStatusString('-----', 'MASTER', GuildStatusState.SUCCESS);
     } catch (errorOrException) {
@@ -123,15 +100,10 @@ export class GuildMasterService {
 
     await this.logsRepository.save(logEntities);
 
-    this.logger.debug(
-      `Guild ${guildEntity.guid} GM transition logged: ${action} (${originalGMGuid} → ${newGMGuid})`,
-    );
+    this.logger.debug(`Guild ${guildEntity.guid} GM transition logged: ${action} (${originalGMGuid} → ${newGMGuid})`);
   }
 
-  private determineGMTransitionAction(
-    originalGM: CharactersEntity | null,
-    newGM: CharactersEntity | null,
-  ): ACTION_LOG {
+  private determineGMTransitionAction(originalGM: CharactersEntity | null, newGM: CharactersEntity | null): ACTION_LOG {
     const areBothGMsFound = Boolean(originalGM) && Boolean(newGM);
 
     if (areBothGMsFound) {

@@ -92,9 +92,7 @@ describe('OSINT', () => {
       expect(Array.isArray(response.members)).toBeTruthy();
       expect(response).toMatchObject(guildRosterObj);
       expect(['Alliance', 'Horde']).toContain(response.guild.faction.name);
-      response.members.map((member) =>
-        expect(member).toMatchObject(guildMembersRosterObj),
-      );
+      response.members.map((member) => expect(member).toMatchObject(guildMembersRosterObj));
     });
   });
 });

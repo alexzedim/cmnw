@@ -54,10 +54,7 @@ export async function trackApiKeyError(
  * @param clearance - The clearance tag to filter by
  * @returns The first KeysEntity matching the clearance tag, or null if not found
  */
-export async function getKey(
-  keysRepository: Repository<KeysEntity>,
-  clearance: string,
-): Promise<KeysEntity | null> {
+export async function getKey(keysRepository: Repository<KeysEntity>, clearance: string): Promise<KeysEntity | null> {
   return keysRepository.findOne({
     where: { tags: clearance },
   });

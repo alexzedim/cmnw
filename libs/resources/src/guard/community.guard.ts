@@ -1,9 +1,7 @@
 import { CharacterRaidLogResponse } from '@app/resources/types';
 import { get } from 'lodash';
 
-export const isCharacterRaidLogResponse = (
-  response: unknown,
-): response is Readonly<CharacterRaidLogResponse> =>
+export const isCharacterRaidLogResponse = (response: unknown): response is Readonly<CharacterRaidLogResponse> =>
   typeof response === 'object' &&
   !('error' in response) &&
   'data' in response &&

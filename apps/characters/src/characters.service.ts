@@ -47,9 +47,7 @@ export class CharactersService implements OnApplicationBootstrap {
   }
 
   @Cron(CronExpression.EVERY_10_MINUTES)
-  private async indexCharacters(
-    clearance: string = GLOBAL_OSINT_KEY,
-  ): Promise<void> {
+  private async indexCharacters(clearance: string = GLOBAL_OSINT_KEY): Promise<void> {
     const logTag = this.indexCharacters.name;
     try {
       let characterIteration = 0;
@@ -79,8 +77,7 @@ export class CharactersService implements OnApplicationBootstrap {
       await lastValueFrom(
         from(characters).pipe(
           mergeMap(async (character) => {
-            const { client, secret, token } =
-              this.keyEntities[characterIteration % length];
+            const { client, secret, token } = this.keyEntities[characterIteration % length];
 
             const dto = CharacterMessageDto.fromCharacterIndex({
               ...character,
@@ -113,9 +110,7 @@ export class CharactersService implements OnApplicationBootstrap {
     }
   }
 
-  private async indexFromFile(
-    isIndexCharactersFromFile: boolean = osintConfig.isIndexCharactersFromFile,
-  ) {
+  private async indexFromFile(isIndexCharactersFromFile: boolean = osintConfig.isIndexCharactersFromFile) {
     const logTag = this.indexFromFile.name;
     try {
       this.logger.log({
@@ -161,8 +156,7 @@ export class CharactersService implements OnApplicationBootstrap {
         return;
       }
 
-      const characters: Array<Pick<CharactersEntity, 'guid'>> =
-        JSON.parse(charactersJson);
+      const characters: Array<Pick<CharactersEntity, 'guid'>> = JSON.parse(charactersJson);
 
       this.keyEntities = await getKeys(this.keysRepository, GLOBAL_OSINT_KEY, false);
 
@@ -178,8 +172,7 @@ export class CharactersService implements OnApplicationBootstrap {
       });
 
       for (const character of characters) {
-        const { client, secret, token } =
-          this.keyEntities[characterIteration % length];
+        const { client, secret, token } = this.keyEntities[characterIteration % length];
 
         characterIteration = characterIteration + 1;
 

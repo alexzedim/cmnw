@@ -266,9 +266,7 @@ export class AdaptiveRateLimiter {
         detectionSource: 'none',
       };
     } catch (_error) {
-      this.logger?.warn(
-        `${chalk.yellow('⚠')} Failed to detect rate limit: ${chalk.dim((_error as Error).message)}`,
-      );
+      this.logger?.warn(`${chalk.yellow('⚠')} Failed to detect rate limit: ${chalk.dim((_error as Error).message)}`);
       return {
         isRateLimited: false,
         detectionSource: 'none',
@@ -297,18 +295,13 @@ export class AdaptiveRateLimiter {
 
     // Use Retry-After if available and larger than calculated delay
     if (detection?.retryAfterMs) {
-      this.currentDelayMs = Math.max(
-        this.currentDelayMs,
-        detection.retryAfterMs,
-      );
+      this.currentDelayMs = Math.max(this.currentDelayMs, detection.retryAfterMs);
     }
 
     // Cap to maximum delay
     if (this.currentDelayMs > this.maxDelayMs) {
       this.currentDelayMs = this.maxDelayMs;
-      this.logger?.warn(
-        `${chalk.yellow('⚠')} Max delay cap reached [${chalk.bold(this.maxDelayMs)}ms]`,
-      );
+      this.logger?.warn(`${chalk.yellow('⚠')} Max delay cap reached [${chalk.bold(this.maxDelayMs)}ms]`);
     }
 
     // Reset recovery progress
@@ -359,9 +352,7 @@ export class AdaptiveRateLimiter {
       // Check if fully recovered
       if (Math.abs(this.currentDelayMs - this.initialDelayMs) < 1) {
         this.currentDelayMs = this.initialDelayMs;
-        this.logger?.log(
-          `${chalk.green('✓')} Recovered to initial delay [${chalk.bold(this.initialDelayMs)}ms]`,
-        );
+        this.logger?.log(`${chalk.green('✓')} Recovered to initial delay [${chalk.bold(this.initialDelayMs)}ms]`);
       } else {
         this.logger?.log(
           `${chalk.green('✓')} Recovery in progress [${chalk.bold(previousDelay.toFixed(0))}ms → ${chalk.bold(this.currentDelayMs.toFixed(0))}ms]`,
@@ -407,8 +398,7 @@ export class AdaptiveRateLimiter {
   getStats(): AdaptiveRateLimiterStats {
     const averageDelayMs =
       this.delayHistory.length > 0
-        ? this.delayHistory.reduce((a, b) => a + b, 0) /
-          this.delayHistory.length
+        ? this.delayHistory.reduce((a, b) => a + b, 0) / this.delayHistory.length
         : this.currentDelayMs;
 
     return {
@@ -438,9 +428,7 @@ export class AdaptiveRateLimiter {
     this.lastRequestTime = Date.now();
     this.lastRateLimitTime = undefined;
 
-    this.logger?.log(
-      `${chalk.cyan('ℹ')} Rate limiter reset to initial state [${chalk.bold(this.initialDelayMs)}ms]`,
-    );
+    this.logger?.log(`${chalk.cyan('ℹ')} Rate limiter reset to initial state [${chalk.bold(this.initialDelayMs)}ms]`);
   }
 
   /**
@@ -558,8 +546,7 @@ export class AdaptiveRateLimiter {
     if (value === undefined || value === null) return null;
 
     try {
-      const num =
-        typeof value === 'number' ? value : parseInt(String(value), 10);
+      const num = typeof value === 'number' ? value : parseInt(String(value), 10);
       return isNaN(num) ? null : num;
     } catch (_error) {
       return null;

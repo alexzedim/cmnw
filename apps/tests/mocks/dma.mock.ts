@@ -1,9 +1,4 @@
-import {
-  objectNamedProperty,
-  objectPropRef,
-  objectPropRefId,
-  propRefLink,
-} from './osint.mock';
+import { objectNamedProperty, objectPropRef, objectPropRefId, propRefLink } from './osint.mock';
 
 export const itemRef = {
   id: expect.any(Number),

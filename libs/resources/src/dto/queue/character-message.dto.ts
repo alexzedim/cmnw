@@ -110,8 +110,7 @@ export class CharacterMessageDto {
    * @returns New CharacterMessageDto instance with generated guid
    */
   static create(
-    data: Omit<Partial<ICharacterMessageBase>, 'guid'> &
-      Pick<ICharacterMessageBase, 'name' | 'realm'>,
+    data: Omit<Partial<ICharacterMessageBase>, 'guid'> & Pick<ICharacterMessageBase, 'name' | 'realm'>,
     opts?: JobsOptions,
   ): CharacterMessageDto {
     const guid = toGuid(data.name, data.realm);
@@ -126,11 +125,7 @@ export class CharacterMessageDto {
       ...opts,
     };
 
-    const dto = new CharacterMessageDto(
-      charactersQueue.name,
-      characterData,
-      mergedOpts,
-    );
+    const dto = new CharacterMessageDto(charactersQueue.name, characterData, mergedOpts);
     dto.validate(false, 'CharacterMessageDto.create');
     return dto;
   }
@@ -543,10 +538,7 @@ export class CharacterMessageDto {
    * @param logTag - Optional log tag for warnings (defaults to 'CharacterMessageDto.validate')
    * @throws Error if validation fails and strict is true
    */
-  validate(
-    strict: boolean = true,
-    logTag: string = 'CharacterMessageDto.validate',
-  ): void {
+  validate(strict: boolean = true, logTag: string = 'CharacterMessageDto.validate'): void {
     const characterData = this.data;
 
     if (characterData?.guid && !characterData.guid.includes('@')) {
@@ -564,8 +556,7 @@ export class CharacterMessageDto {
 
     if (
       characterData?.forceUpdate !== undefined &&
-      (typeof characterData.forceUpdate !== 'number' ||
-        characterData.forceUpdate < 0)
+      (typeof characterData.forceUpdate !== 'number' || characterData.forceUpdate < 0)
     ) {
       if (strict) {
         throw new Error(
@@ -605,8 +596,7 @@ export class CharacterMessageDto {
    * Create validated instance - throws if validation fails
    */
   static createValidated(
-    data: Omit<Partial<ICharacterMessageBase>, 'guid'> &
-      Pick<ICharacterMessageBase, 'name' | 'realm'>,
+    data: Omit<Partial<ICharacterMessageBase>, 'guid'> & Pick<ICharacterMessageBase, 'name' | 'realm'>,
     opts?: JobsOptions,
   ): CharacterMessageDto {
     const dto = CharacterMessageDto.create(data, opts);

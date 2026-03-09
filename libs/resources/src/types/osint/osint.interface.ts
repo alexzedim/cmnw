@@ -498,10 +498,7 @@ export interface IRaiderIoMythicPlusSegmentsValue {
 export interface IRaiderIoMythicPlus {
   season: string;
   scores: IRaiderIoMythicPlusScores;
-  segments: Record<
-    keyof IRaiderIoMythicPlusScores,
-    IRaiderIoMythicPlusSegmentsValue
-  >;
+  segments: Record<keyof IRaiderIoMythicPlusScores, IRaiderIoMythicPlusSegmentsValue>;
 }
 
 export interface ICharacterRaiderIo {

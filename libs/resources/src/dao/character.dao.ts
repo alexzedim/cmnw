@@ -1,11 +1,6 @@
 import { Repository } from 'typeorm';
 import { CharactersEntity, GuildsEntity, RealmsEntity } from '@app/pg';
-import {
-  OSINT_SOURCE,
-  toGuid,
-  ICharacterGuildMember,
-  findRealm,
-} from '@app/resources';
+import { OSINT_SOURCE, toGuid, ICharacterGuildMember, findRealm } from '@app/resources';
 import { isGuildUpdateMoreRecent } from '../utils/helpers';
 
 export const characterAsGuildMember = async (
@@ -19,10 +14,7 @@ export const characterAsGuildMember = async (
   });
 
   if (characterEntity) {
-    const isUpdateByGuild = isGuildUpdateMoreRecent(
-      guildEntity.lastModified,
-      characterEntity.lastModified,
-    );
+    const isUpdateByGuild = isGuildUpdateMoreRecent(guildEntity.lastModified, characterEntity.lastModified);
 
     if (isUpdateByGuild) {
       characterEntity.guildGuid = guildEntity.guid;

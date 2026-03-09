@@ -1,9 +1,4 @@
-import {
-  FACTION,
-  SWAGGER_CHARACTER_REALMS_ID,
-  SWAGGER_HEROIC_LOGS,
-  SWAGGER_MYTHIC_LOGS,
-} from '@app/resources/index';
+import { FACTION, SWAGGER_CHARACTER_REALMS_ID, SWAGGER_HEROIC_LOGS, SWAGGER_MYTHIC_LOGS } from '@app/resources/index';
 import { IsArray, IsNumberString, IsOptional } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
@@ -22,9 +17,7 @@ export class CharacterLfgDto {
   @IsArray()
   @Transform(
     ({ value: realmsId }) =>
-      Array.isArray(realmsId) && realmsId
-        ? realmsId.map((realmId) => Number(realmId))
-        : [realmsId],
+      Array.isArray(realmsId) && realmsId ? realmsId.map((realmId) => Number(realmId)) : [realmsId],
     { toClassOnly: true },
   )
   readonly realmsId: number[];
@@ -34,9 +27,7 @@ export class CharacterLfgDto {
   @IsArray()
   @Transform(
     ({ value: languages }) =>
-      Array.isArray(languages) && languages
-        ? languages.map((l) => l.toLowerCase())
-        : [languages],
+      Array.isArray(languages) && languages ? languages.map((l) => l.toLowerCase()) : [languages],
     { toClassOnly: true },
   )
   readonly languages: string[];

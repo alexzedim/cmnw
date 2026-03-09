@@ -17,11 +17,7 @@ export class TestsCommunity {
   /**
    * @description get Warcraft Logs Report IDs by page
    */
-  async getLogsFromPage(
-    config: IOsintConfig,
-    realmId = 1,
-    page = 1,
-  ): Promise<Array<string>> {
+  async getLogsFromPage(config: IOsintConfig, realmId = 1, page = 1): Promise<Array<string>> {
     try {
       const warcraftLogsURI = 'https://www.warcraftlogs.com/zone/reports';
 
@@ -102,11 +98,7 @@ export class TestsCommunity {
       timestamp: timestamp,
     }));
 
-    const playableCharacters: Array<RaidCharacter> = get(
-      response,
-      'data.data.reportData.report.masterData.actors',
-      [],
-    )
+    const playableCharacters: Array<RaidCharacter> = get(response, 'data.data.reportData.report.masterData.actors', [])
       .filter((character) => character.type === 'Player')
       .map((character) => ({
         guid: toGuid(character.name, character.server),

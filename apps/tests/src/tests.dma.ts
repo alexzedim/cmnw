@@ -14,10 +14,7 @@ export class TestsDma {
   });
 
   async commodity(): Promise<any> {
-    return this.BNet.query(
-      '/data/wow/auctions/commodities',
-      apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-    );
+    return this.BNet.query('/data/wow/auctions/commodities', apiConstParams(API_HEADERS_ENUM.DYNAMIC));
   }
 
   async auctions(connectedRealmId: number): Promise<any> {
@@ -28,17 +25,11 @@ export class TestsDma {
   }
 
   async wowToken(): Promise<any> {
-    return this.BNet.query(
-      '/data/wow/token/index',
-      apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-    );
+    return this.BNet.query('/data/wow/token/index', apiConstParams(API_HEADERS_ENUM.DYNAMIC));
   }
 
   async item(itemId: number): Promise<any> {
-    return this.BNet.query(
-      `/data/wow/item/${itemId}`,
-      apiConstParams(API_HEADERS_ENUM.STATIC, TOLERANCE_ENUM.DMA),
-    );
+    return this.BNet.query(`/data/wow/item/${itemId}`, apiConstParams(API_HEADERS_ENUM.STATIC, TOLERANCE_ENUM.DMA));
   }
 
   async itemMedia(itemId: number): Promise<any> {

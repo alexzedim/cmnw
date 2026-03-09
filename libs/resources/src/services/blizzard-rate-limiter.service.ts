@@ -3,15 +3,8 @@ import Redis from 'ioredis';
 import chalk from 'chalk';
 
 import { AdaptiveRateLimiter } from '../utils/adaptive-rate-limiter';
-import {
-  RedisTokenBucket,
-  TokenBucketConfig,
-  TokenConsumeResult,
-} from '../utils/redis-token-bucket';
-import {
-  DEFAULT_BLIZZARD_CONFIG,
-  IBlizzardRateLimitConfig,
-} from '@app/configuration';
+import { RedisTokenBucket, TokenBucketConfig, TokenConsumeResult } from '../utils/redis-token-bucket';
+import { DEFAULT_BLIZZARD_CONFIG, IBlizzardRateLimitConfig } from '@app/configuration';
 
 export enum RateLimiterMode {
   PROACTIVE = 'proactive',
@@ -46,10 +39,7 @@ export class BlizzardRateLimiterService implements OnModuleInit {
 
   private tokenBucket: RedisTokenBucket | null = null;
   private readonly reactiveLimiters = new Map<string, AdaptiveRateLimiter>();
-  private readonly stats = new Map<
-    string,
-    { requests: number; allowed: number; denied: number }
-  >();
+  private readonly stats = new Map<string, { requests: number; allowed: number; denied: number }>();
 
   private readonly config: IBlizzardRateLimitConfig;
   private readonly mode: RateLimiterMode;
@@ -58,9 +48,7 @@ export class BlizzardRateLimiterService implements OnModuleInit {
     this.config = config ?? DEFAULT_BLIZZARD_CONFIG.rateLimit;
 
     const redisAvailable = redis !== null;
-    this.mode = redisAvailable
-      ? RateLimiterMode.HYBRID
-      : RateLimiterMode.REACTIVE;
+    this.mode = redisAvailable ? RateLimiterMode.HYBRID : RateLimiterMode.REACTIVE;
 
     if (redisAvailable) {
       this.tokenBucket = new RedisTokenBucket(redis!, this.logger);
@@ -141,8 +129,7 @@ export class BlizzardRateLimiterService implements OnModuleInit {
 
     if (wasRateLimited) {
       this.logger.warn(
-        `${chalk.yellow('⚠')} Rate limit detected for client ` +
-          `[${chalk.dim(clientId.substring(0, 8))}...]`,
+        `${chalk.yellow('⚠')} Rate limit detected for client ` + `[${chalk.dim(clientId.substring(0, 8))}...]`,
       );
 
       if (this.tokenBucket && this.mode !== RateLimiterMode.REACTIVE) {
@@ -202,17 +189,13 @@ export class BlizzardRateLimiterService implements OnModuleInit {
     limiter.reset();
 
     if (this.tokenBucket && this.mode !== RateLimiterMode.REACTIVE) {
-      await this.tokenBucket.reset(
-        this.getBucketKey(clientId),
-        this.config.capacity,
-      );
+      await this.tokenBucket.reset(this.getBucketKey(clientId), this.config.capacity);
     }
 
     this.stats.set(clientId, { requests: 0, allowed: 0, denied: 0 });
 
     this.logger.log(
-      `${chalk.cyan('ℹ')} Reset rate limiter for client ` +
-        `[${chalk.dim(clientId.substring(0, 8))}...]`,
+      `${chalk.cyan('ℹ')} Reset rate limiter for client ` + `[${chalk.dim(clientId.substring(0, 8))}...]`,
     );
   }
 

@@ -14,10 +14,7 @@ describe('WORKER', () => {
     const app: TestingModule = await Test.createTestingModule({
       imports: [
         TypeOrmModule.forRoot(postgresConfig),
-        TypeOrmModule.forFeature([
-          CharactersGuildsLogsEntity,
-          CharactersGuildsMembersEntity,
-        ]),
+        TypeOrmModule.forFeature([CharactersGuildsLogsEntity, CharactersGuildsMembersEntity]),
       ],
       controllers: [],
       providers: [TestsWorker],
@@ -39,9 +36,7 @@ describe('WORKER', () => {
       originalRoster.set(originalMember.characterId, originalMember);
 
       // Add updated member (rank 2)
-      const updatedMember = guildUpdated.members.find(
-        (member) => member.characterGuid === 'promotedmember@stormrage',
-      );
+      const updatedMember = guildUpdated.members.find((member) => member.characterGuid === 'promotedmember@stormrage');
       updatedRoster.set(updatedMember.characterId, updatedMember);
 
       // Mock roster data
@@ -73,15 +68,11 @@ describe('WORKER', () => {
       const updatedRoster = new Map<number, any>();
 
       // Add original member (rank 3)
-      const originalMember = guildOriginal.members.find(
-        (member) => member.characterGuid === 'demotedmember@stormrage',
-      );
+      const originalMember = guildOriginal.members.find((member) => member.characterGuid === 'demotedmember@stormrage');
       originalRoster.set(originalMember.characterId, originalMember);
 
       // Add updated member (rank 6)
-      const updatedMember = guildUpdated.members.find(
-        (member) => member.characterGuid === 'demotedmember@stormrage',
-      );
+      const updatedMember = guildUpdated.members.find((member) => member.characterGuid === 'demotedmember@stormrage');
       updatedRoster.set(updatedMember.characterId, updatedMember);
 
       // Mock roster data
@@ -113,9 +104,7 @@ describe('WORKER', () => {
       const updatedRoster = new Map<number, CharactersGuildsMembersEntity>();
 
       // Add original guild master (rank 0)
-      const originalGM = guildOriginal.members.find(
-        (member) => member.characterGuid === 'oldguildmaster@stormrage',
-      );
+      const originalGM = guildOriginal.members.find((member) => member.characterGuid === 'oldguildmaster@stormrage');
       originalRoster.set(originalGM.characterId, originalGM);
 
       // Create a mock updated version where GM gets demoted to rank 1
@@ -149,9 +138,7 @@ describe('WORKER', () => {
       const updatedRoster = new Map<number, any>();
 
       // Add stable member (no rank change)
-      const stableMember = guildOriginal.members.find(
-        (member) => member.characterGuid === 'stablemember@stormrage',
-      );
+      const stableMember = guildOriginal.members.find((member) => member.characterGuid === 'stablemember@stormrage');
       originalRoster.set(stableMember.characterId, stableMember);
 
       // Add same member in updated roster (same rank)
@@ -187,9 +174,7 @@ describe('WORKER', () => {
       const updatedRoster = new Map<number, any>();
 
       // Add new member from updated roster
-      const newMember = guildUpdated.members.find(
-        (member) => member.characterGuid === 'newmember1@stormrage',
-      );
+      const newMember = guildUpdated.members.find((member) => member.characterGuid === 'newmember1@stormrage');
       updatedRoster.set(newMember.characterId, {
         id: newMember.characterId,
         guid: newMember.characterGuid,
@@ -225,9 +210,7 @@ describe('WORKER', () => {
       const updatedRoster = new Map<number, any>();
 
       // Add new member from updated roster
-      const newMember = guildUpdated.members.find(
-        (member) => member.characterGuid === 'newmember2@stormrage',
-      );
+      const newMember = guildUpdated.members.find((member) => member.characterGuid === 'newmember2@stormrage');
       updatedRoster.set(newMember.characterId, {
         id: newMember.characterId,
         guid: newMember.characterGuid,
@@ -293,9 +276,7 @@ describe('WORKER', () => {
       const originalRoster = new Map<number, CharactersGuildsMembersEntity>();
 
       // Add leaving member from original roster
-      const leavingMember = guildOriginal.members.find(
-        (member) => member.characterGuid === 'leavingmember@stormrage',
-      );
+      const leavingMember = guildOriginal.members.find((member) => member.characterGuid === 'leavingmember@stormrage');
       originalRoster.set(leavingMember.characterId, leavingMember);
 
       // Mock roster data
@@ -346,9 +327,7 @@ describe('WORKER', () => {
       expect(result.action).toBe(ACTION_LOG.LEAVE);
       expect(result.isGuildMaster).toBe(false);
       expect(result.originalMember).toBeDefined();
-      expect(result.originalMember.characterGuid).toBe(
-        'anotherleavingmember@stormrage',
-      );
+      expect(result.originalMember.characterGuid).toBe('anotherleavingmember@stormrage');
       expect(result.originalMember.rank).toBe(6); // Trial rank
       expect(result.logEntity).toBeDefined();
       expect(result.logEntity.action).toBe(ACTION_LOG.LEAVE);
@@ -360,9 +339,7 @@ describe('WORKER', () => {
       const originalRoster = new Map<number, CharactersGuildsMembersEntity>();
 
       // Add old guild master as leaving
-      const oldGM = guildOriginal.members.find(
-        (member) => member.characterGuid === 'oldguildmaster@stormrage',
-      );
+      const oldGM = guildOriginal.members.find((member) => member.characterGuid === 'oldguildmaster@stormrage');
       originalRoster.set(oldGM.characterId, oldGM);
 
       // Mock roster data

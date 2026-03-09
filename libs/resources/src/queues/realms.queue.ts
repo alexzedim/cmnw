@@ -2,7 +2,6 @@
  * BullMQ Queue Configuration for Realms
  *
  * Defines BullMQ queue configuration for realm-related jobs.
- * Replaces RabbitMQ realm queue.
  */
 import { getRedisConnection } from '@app/configuration';
 import type { IBullMQQueueOptions } from '@app/resources/types/queue/queue.type';

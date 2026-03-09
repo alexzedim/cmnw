@@ -2,7 +2,6 @@
  * BullMQ Queue Configuration for Auctions
  *
  * Defines BullMQ queue configuration for auction-related jobs.
- * Replaces RabbitMQ auction queue.
  */
 import { getRedisConnection } from '@app/configuration';
 import type { IBullMQQueueOptions } from '@app/resources/types/queue/queue.type';

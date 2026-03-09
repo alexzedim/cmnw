@@ -10,17 +10,8 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AppService } from './app.service';
-import {
-  AnalyticsMetricSnapshotDto,
-  AppHealthPayload,
-  SearchQueryDto,
-} from '@app/resources';
-import {
-  AnalyticsEntity,
-  CharactersEntity,
-  GuildsEntity,
-  ItemsEntity,
-} from '@app/pg';
+import { AnalyticsMetricSnapshotDto, AppHealthPayload, SearchQueryDto } from '@app/resources';
+import { AnalyticsEntity, CharactersEntity, GuildsEntity, ItemsEntity } from '@app/pg';
 
 @ApiTags('app')
 @Controller('app')
@@ -34,8 +25,7 @@ export class AppController {
   }
 
   @ApiOperation({
-    description:
-      'Fetch the latest analytics snapshot for a category, metric type, and optional realm.',
+    description: 'Fetch the latest analytics snapshot for a category, metric type, and optional realm.',
   })
   @ApiOkResponse({ description: 'Latest analytics metric snapshot.' })
   @ApiBadRequestResponse({ description: 'Invalid query parameters.' })

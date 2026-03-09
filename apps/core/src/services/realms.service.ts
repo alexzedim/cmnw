@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  OnApplicationBootstrap,
-} from '@nestjs/common';
+import { Injectable, NotFoundException, OnApplicationBootstrap } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 import { BlizzAPI } from '@alexzedim/blizzapi';
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -134,21 +130,14 @@ export class RealmsService implements OnApplicationBootstrap {
               },
             );
             const warcraftLogsPage = cheerio.load(response.data);
-            const warcraftLogsRealmElement =
-              warcraftLogsPage.html('.server-name');
+            const warcraftLogsRealmElement = warcraftLogsPage.html('.server-name');
             const realmName = warcraftLogsPage(warcraftLogsRealmElement).text();
-            const realmEntity = await findRealm(
-              this.realmsRepository,
-              realmName,
-            );
+            const realmEntity = await findRealm(this.realmsRepository, realmName);
             if (!realmEntity) {
               throw new NotFoundException(`${realmId}:${realmName} not found!`);
             }
 
-            await this.realmsRepository.update(
-              { id: realmEntity.id },
-              { warcraftLogsId: realmId },
-            );
+            await this.realmsRepository.update({ id: realmEntity.id }, { warcraftLogsId: realmId });
 
             this.logger.debug({
               logTag,
@@ -159,9 +148,7 @@ export class RealmsService implements OnApplicationBootstrap {
             });
           } catch (errorOrException) {
             // Skip logging for 403/404 errors to reduce noise
-            const isExpectedError =
-              errorOrException?.status === 403 ||
-              errorOrException?.status === 404;
+            const isExpectedError = errorOrException?.status === 403 || errorOrException?.status === 404;
             if (!isExpectedError) {
               this.logger.error({
                 logTag,

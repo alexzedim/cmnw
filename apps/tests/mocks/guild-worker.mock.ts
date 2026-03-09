@@ -1,4 +1,4 @@
-import { FACTION, OSINT_SOURCE, STATUS_CODES, OSINT_GM_RANK } from '@app/resources';
+import { FACTION, OSINT_SOURCE, OSINT_GM_RANK } from '@app/resources';
 
 export const mockApiKey = 'test-api-key-12345';
 export const mockClientId = 'test-client-id';
@@ -15,7 +15,7 @@ export const mockGuildData = {
   faction: FACTION.A,
   achievementPoints: 1000,
   membersCount: 10,
-  statusCode: STATUS_CODES.DEFAULT_STATUS,
+  statusCode: '-----',
   createdBy: OSINT_SOURCE.GUILD_GET,
   updatedBy: OSINT_SOURCE.GUILD_GET,
   lastModified: new Date('2025-01-01T00:00:00Z'),

@@ -67,9 +67,7 @@ export class CharacterCollectionService {
       });
 
       const updatedMountIds = new Set<number>();
-      const originalMountIds = new Set(
-        charactersMountEntities.map((charactersMount) => charactersMount.mountId),
-      );
+      const originalMountIds = new Set(charactersMountEntities.map((charactersMount) => charactersMount.mountId));
 
       if (mounts.length > 0) {
         await lastValueFrom(
@@ -114,10 +112,7 @@ export class CharacterCollectionService {
         await this.entityIndexingService.indexMounts(mountEntities);
       }
 
-      const removeMountIds = difference(
-        Array.from(originalMountIds),
-        Array.from(updatedMountIds),
-      );
+      const removeMountIds = difference(Array.from(originalMountIds), Array.from(updatedMountIds));
 
       await this.charactersMountsRepository.save(characterMountsEntities);
 
@@ -175,9 +170,7 @@ export class CharacterCollectionService {
       });
 
       const updatedPetIds = new Set<number>();
-      const originalPetIds = new Set(
-        charactersPetsEntities.map((charactersPet) => charactersPet.petId),
-      );
+      const originalPetIds = new Set(charactersPetsEntities.map((charactersPet) => charactersPet.petId));
 
       if (pets.length > 0) {
         await lastValueFrom(
@@ -187,8 +180,7 @@ export class CharacterCollectionService {
                 const isAddedToCollection = originalPetIds.has(pet.id);
                 const isNamed = 'name' in pet;
 
-                const creatureId =
-                  'creature_display' in pet ? pet.creature_display.id : null;
+                const creatureId = 'creature_display' in pet ? pet.creature_display.id : null;
                 const characterPetId = pet.id;
                 const petId = pet.species.id;
                 const petName = isNamed ? pet.name : pet.species.name;
@@ -197,27 +189,20 @@ export class CharacterCollectionService {
                 const petQuality = 'quality' in pet ? pet.quality.name : null;
                 const breedId = 'stats' in pet ? pet.stats.breed_id : null;
 
-                const shouldIndexPet =
-                  isIndex && creatureId && !petsEntities.has(creatureId);
+                const shouldIndexPet = isIndex && creatureId && !petsEntities.has(creatureId);
 
                 updatedPetIds.add(pet.id);
 
                 if (isActive) {
-                  const petIdentifier = isNamed
-                    ? `${pet.name}.${pet.species.name}`
-                    : `${pet.species.name}`;
+                  const petIdentifier = isNamed ? `${pet.name}.${pet.species.name}` : `${pet.species.name}`;
                   hashA.push(petIdentifier, pet.level);
                 }
 
-                const petIdentifier = isNamed
-                  ? `${pet.name}.${pet.species.name}`
-                  : `${pet.species.name}`;
+                const petIdentifier = isNamed ? `${pet.name}.${pet.species.name}` : `${pet.species.name}`;
                 hashB.push(petIdentifier, pet.level);
 
                 if (shouldIndexPet) {
-                  const isPetExists = Boolean(
-                    await this.redisService.exists(`PETS:${petId}`),
-                  );
+                  const isPetExists = Boolean(await this.redisService.exists(`PETS:${petId}`));
 
                   const isNewPetType = !isPetExists;
                   if (isNewPetType) {
@@ -263,10 +248,7 @@ export class CharacterCollectionService {
         await this.entityIndexingService.indexPets(petsEntities);
       }
 
-      const removePetIds = difference(
-        Array.from(originalPetIds),
-        Array.from(updatedPetIds),
-      );
+      const removePetIds = difference(Array.from(originalPetIds), Array.from(updatedPetIds));
 
       await this.charactersPetsRepository.save(characterPetsEntities);
 
@@ -279,11 +261,7 @@ export class CharacterCollectionService {
       }
 
       petsCollection.petsNumber = pets.length;
-      petsCollection.status = setStatusString(
-        petsCollection.status || '------',
-        'PETS',
-        CharacterStatusState.SUCCESS,
-      );
+      petsCollection.status = setStatusString(petsCollection.status || '------', 'PETS', CharacterStatusState.SUCCESS);
 
       const hasHashB = Boolean(hashB.length);
       if (hasHashB) {
@@ -302,11 +280,7 @@ export class CharacterCollectionService {
         guid: `${nameSlug}@${realmSlug}`,
         error: JSON.stringify(errorOrException),
       });
-      petsCollection.status = setStatusString(
-        petsCollection.status || '------',
-        'PETS',
-        CharacterStatusState.ERROR,
-      );
+      petsCollection.status = setStatusString(petsCollection.status || '------', 'PETS', CharacterStatusState.ERROR);
       return petsCollection;
     }
   }
@@ -356,9 +330,7 @@ export class CharacterCollectionService {
                 });
 
                 professionRecords.push(record);
-                professionsSummary.push(
-                  `${professionName} ${skill_points}/${max_skill_points}`,
-                );
+                professionsSummary.push(`${professionName} ${skill_points}/${max_skill_points}`);
               });
             }),
           ),

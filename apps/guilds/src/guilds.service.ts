@@ -48,17 +48,11 @@ export class GuildsService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
-    await this.indexGuildCharactersUnique(
-      GLOBAL_OSINT_KEY,
-      osintConfig.isIndexGuildsFromCharacters,
-    );
+    await this.indexGuildCharactersUnique(GLOBAL_OSINT_KEY, osintConfig.isIndexGuildsFromCharacters);
     await this.indexHallOfFame(GLOBAL_OSINT_KEY, false);
   }
 
-  async indexGuildCharactersUnique(
-    clearance: string = GLOBAL_OSINT_KEY,
-    isIndexGuildsFromCharacters: boolean,
-  ) {
+  async indexGuildCharactersUnique(clearance: string = GLOBAL_OSINT_KEY, isIndexGuildsFromCharacters: boolean) {
     const logTag = this.indexGuildCharactersUnique.name;
 
     let uniqueGuildGuidsCount = 0;
@@ -73,12 +67,7 @@ export class GuildsService implements OnApplicationBootstrap {
       });
       if (isIndexGuildsFromCharacters) return;
 
-      this.keyEntities = await getKeys(
-        this.keysRepository,
-        clearance,
-        false,
-        true,
-      );
+      this.keyEntities = await getKeys(this.keysRepository, clearance, false, true);
 
       const length = this.keyEntities.length;
 
@@ -97,8 +86,7 @@ export class GuildsService implements OnApplicationBootstrap {
       });
 
       const guildJobs = uniqueGuildGuids.map((guild) => {
-        const { client, secret, token } =
-          this.keyEntities[guildJobsItx % length];
+        const { client, secret, token } = this.keyEntities[guildJobsItx % length];
 
         const [name, realm] = guild.guildGuid.split('@');
 
@@ -129,7 +117,9 @@ export class GuildsService implements OnApplicationBootstrap {
         guildJobsSuccessItx,
         guildJobsItx,
         uniqueGuildGuidsCount,
-        message: `Completed: ${guildJobsSuccessItx} of ${guildJobsItx} guild jobs added from ${uniqueGuildGuidsCount} unique guilds`,
+        message:
+          `Completed: ${guildJobsSuccessItx} of ${guildJobsItx} guild jobs added ` +
+          `from ${uniqueGuildGuidsCount} unique guilds`,
       });
     } catch (errorOrException) {
       this.logger.error({
@@ -147,12 +137,7 @@ export class GuildsService implements OnApplicationBootstrap {
     const logTag = this.indexGuilds.name;
     try {
       let guildIteration = 0;
-      this.keyEntities = await getKeys(
-        this.keysRepository,
-        clearance,
-        false,
-        true,
-      );
+      this.keyEntities = await getKeys(this.keysRepository, clearance, false, true);
 
       let length = this.keyEntities.length;
 
@@ -179,8 +164,7 @@ export class GuildsService implements OnApplicationBootstrap {
       await lastValueFrom(
         from(guilds).pipe(
           mergeMap(async (guild) => {
-            const { client, secret, token } =
-              this.keyEntities[guildIteration % length];
+            const { client, secret, token } = this.keyEntities[guildIteration % length];
 
             guildIteration = guildIteration + 1;
 
@@ -207,9 +191,7 @@ export class GuildsService implements OnApplicationBootstrap {
         ),
       );
 
-      this.logger.log(
-        `${logTag}: offset ${this.offset} | ${guilds.length} characters`,
-      );
+      this.logger.log(`${logTag}: offset ${this.offset} | ${guilds.length} characters`);
     } catch (errorOrException) {
       this.logger.error({
         logTag: logTag,
@@ -219,10 +201,7 @@ export class GuildsService implements OnApplicationBootstrap {
   }
 
   @Cron(CronExpression.EVERY_WEEK)
-  async indexHallOfFame(
-    clearance: string = GLOBAL_OSINT_KEY,
-    onlyLast = true,
-  ): Promise<void> {
+  async indexHallOfFame(clearance: string = GLOBAL_OSINT_KEY, onlyLast = true): Promise<void> {
     const logTag = this.indexHallOfFame.name;
 
     try {
@@ -239,9 +218,7 @@ export class GuildsService implements OnApplicationBootstrap {
       });
 
       for (const raid of HALL_OF_FAME_RAIDS) {
-        const isOnlyLast =
-          onlyLast &&
-          raid !== HALL_OF_FAME_RAIDS[HALL_OF_FAME_RAIDS.length - 1];
+        const isOnlyLast = onlyLast && raid !== HALL_OF_FAME_RAIDS[HALL_OF_FAME_RAIDS.length - 1];
 
         if (isOnlyLast) continue;
 
@@ -258,8 +235,7 @@ export class GuildsService implements OnApplicationBootstrap {
 
           const guildJobs = response.entries
             .map((guildEntry, guildIteration) => {
-              const { client, secret, token } =
-                this.keyEntities[guildIteration % length];
+              const { client, secret, token } = this.keyEntities[guildIteration % length];
 
               const faction = raidFaction === 'HORDE' ? FACTION.H : FACTION.A;
 
@@ -286,9 +262,7 @@ export class GuildsService implements OnApplicationBootstrap {
 
           await this.queueGuilds.addBulk(guildJobs);
 
-          this.logger.log(
-            `${logTag}: Raid ${raid} | Faction ${raidFaction} | Guilds ${guildJobs.length}`,
-          );
+          this.logger.log(`${logTag}: Raid ${raid} | Faction ${raidFaction} | Guilds ${guildJobs.length}`);
         }
       }
     } catch (errorOrException) {

@@ -2,10 +2,7 @@ import { Repository } from 'typeorm';
 import { RealmsEntity } from '@app/pg';
 import { toSlug } from '@app/resources/transformers';
 
-export const findRealm = async (
-  repository: Repository<RealmsEntity>,
-  query: string,
-) => {
+export const findRealm = async (repository: Repository<RealmsEntity>, query: string) => {
   const slug = toSlug(query);
   return await repository.findOne({
     where: [

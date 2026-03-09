@@ -80,11 +80,7 @@ export class GuildOsintService {
         accessToken: keyEntity.token,
       });
 
-      const job = await this.queueGuild.add(
-        guildMessage.name,
-        guildMessage.data,
-        guildMessage.opts,
-      );
+      const job = await this.queueGuild.add(guildMessage.name, guildMessage.data, guildMessage.opts);
 
       requestedGuild = await job.waitUntilFinished(this.queueEvents, 60000);
     } catch (errorOrException) {
@@ -134,17 +130,13 @@ export class GuildOsintService {
       const [nameSlug, realmSlug] = decodedGuid.split('@');
 
       if (!realmSlug) {
-        throw new BadRequestException(
-          `Invalid guild GUID format: ${input.guid}. Expected format: name@realm`,
-        );
+        throw new BadRequestException(`Invalid guild GUID format: ${input.guid}. Expected format: name@realm`);
       }
 
       const realmEntity = await findRealm(this.realmsRepository, realmSlug);
 
       if (!realmEntity) {
-        throw new BadRequestException(
-          `Realm: ${realmSlug} for guild ${input.guid} not found!`,
-        );
+        throw new BadRequestException(`Realm: ${realmSlug} for guild ${input.guid} not found!`);
       }
 
       const guid = toGuid(nameSlug, realmEntity.slug);
@@ -167,16 +159,11 @@ export class GuildOsintService {
           message: `Guild not found but queued for indexing: ${guid}`,
         });
 
-        throw new NotFoundException(
-          `Guild: ${guid} not found, but will be added to OSINT-DB on existence shortly`,
-        );
+        throw new NotFoundException(`Guild: ${guid} not found, but will be added to OSINT-DB on existence shortly`);
       }
 
       const updatedAt = guild.updatedAt?.getTime?.();
-      const isStale =
-        typeof updatedAt === 'number'
-          ? Date.now() - updatedAt > 1000 * 60 * 60 * 48
-          : false;
+      const isStale = typeof updatedAt === 'number' ? Date.now() - updatedAt > 1000 * 60 * 60 * 48 : false;
 
       if (isStale) {
         const [keyEntity] = await getKeys(this.keysRepository, this.clearance, true);
@@ -226,10 +213,7 @@ export class GuildOsintService {
         memberCount: members.length,
       };
     } catch (errorOrException) {
-      if (
-        errorOrException instanceof BadRequestException ||
-        errorOrException instanceof NotFoundException
-      ) {
+      if (errorOrException instanceof BadRequestException || errorOrException instanceof NotFoundException) {
         throw errorOrException;
       }
 
@@ -240,9 +224,7 @@ export class GuildOsintService {
         message: `Error fetching guild: ${input.guid}`,
       });
 
-      throw new ServiceUnavailableException(
-        `Error fetching guild data for ${input.guid}`,
-      );
+      throw new ServiceUnavailableException(`Error fetching guild data for ${input.guid}`);
     }
   }
 
@@ -278,9 +260,7 @@ export class GuildOsintService {
         message: `Error fetching guild logs: ${input.guid}`,
       });
 
-      throw new ServiceUnavailableException(
-        `Error fetching logs for guild ${input.guid}`,
-      );
+      throw new ServiceUnavailableException(`Error fetching logs for guild ${input.guid}`);
     }
   }
 }

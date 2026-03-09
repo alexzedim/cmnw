@@ -1,24 +1,6 @@
 import { LFG_STATUS, OSINT_SOURCE } from '@app/resources/constants';
 import { GuildJobQueue } from '@app/resources/types';
 
-// RabbitMQ Queue Configuration Interface
-export interface IRabbitMQQueueOptions {
-  durable: boolean;
-  deadLetterExchange: string;
-  deadLetterRoutingKey: string;
-  messageTtl?: number;
-  maxLength?: number;
-  maxPriority: number;
-}
-
-export interface IQueue {
-  readonly name: string;
-  readonly exchange: string;
-  readonly routingKey: string;
-  readonly prefetchCount: number;
-  readonly queueOptions: IRabbitMQQueueOptions;
-}
-
 export interface IQGuildOptions {
   forceUpdate: number;
   createOnlyUnique: boolean;

@@ -83,9 +83,7 @@ export class DmaService {
 
     // TODO in case of Redis not found!
 
-    const timestamps = commodityTimestamp
-      .map((t) => Number(t))
-      .sort((a, b) => a - b);
+    const timestamps = commodityTimestamp.map((t) => Number(t)).sort((a, b) => a - b);
 
     const latestCommodityTimestamp = timestamps.slice(-1);
 
@@ -110,11 +108,7 @@ export class DmaService {
       itemId: item.id,
     });
 
-    const { dataset } = await this.buildChartDataset(
-      yPriceAxis,
-      timestamps,
-      item.id,
-    );
+    const { dataset } = await this.buildChartDataset(yPriceAxis, timestamps, item.id);
 
     const chart = JSON.stringify({
       yAxis: yPriceAxis,
@@ -146,11 +140,7 @@ export class DmaService {
       itemId: goldItemId,
     });
 
-    const { dataset } = await this.buildChartDataset(
-      yPriceAxis,
-      timestampValues,
-      goldItemId,
-    );
+    const { dataset } = await this.buildChartDataset(yPriceAxis, timestampValues, goldItemId);
 
     return { yAxis: yPriceAxis, xAxis: timestampValues, dataset };
   }
@@ -217,10 +207,7 @@ export class DmaService {
     }
 
     // Calculate total quantity
-    const totalQuantity = Array.from(quantityByPrice.values()).reduce(
-      (sum, qty) => sum + qty,
-      0,
-    );
+    const totalQuantity = Array.from(quantityByPrice.values()).reduce((sum, qty) => sum + qty, 0);
 
     if (totalQuantity === 0) {
       // Fallback to price-based filtering if no quantity data
@@ -263,12 +250,7 @@ export class DmaService {
    * Uses quantity-weighted distribution to create representative bins
    * Filters out price tails with minimal liquidity (default 5%-95% percentile)
    */
-  private async buildDecimalPriceBins(
-    itemId: number,
-    blocks: number,
-  ): Promise<number[]> {
-    const now = Date.now();
-
+  private async buildDecimalPriceBins(itemId: number, blocks: number): Promise<number[]> {
     // Fetch price and quantity data (not just distinct prices)
     const marketData = await this.marketRepository.find({
       where: {
@@ -280,9 +262,7 @@ export class DmaService {
     if (!marketData.length) return [];
 
     // Get unique sorted prices
-    const uniquePrices = Array.from(new Set(marketData.map((m) => m.price))).sort(
-      (a, b) => a - b,
-    );
+    const uniquePrices = Array.from(new Set(marketData.map((m) => m.price))).sort((a, b) => a - b);
 
     if (uniquePrices.length === 0) return [];
 
@@ -367,9 +347,7 @@ export class DmaService {
     const roundingIncrement = this.detectPriceRoundingIncrement(decimalBins);
 
     // Round the bins using the detected increment
-    return decimalBins.map((price) =>
-      parseFloat(this.roundToIncrement(price, roundingIncrement).toFixed(2)),
-    );
+    return decimalBins.map((price) => parseFloat(this.roundToIncrement(price, roundingIncrement).toFixed(2)));
   }
 
   async priceAxisCommodity(args: IBuildYAxis): Promise<number[]> {
@@ -436,16 +414,12 @@ export class DmaService {
       for (const order of marketOrders) {
         const bucketIndex = this.findPriceBucketIndex(order.price, decimalBins);
 
-        priceLevelDataset[bucketIndex].orders =
-          priceLevelDataset[bucketIndex].orders + 1;
-        priceLevelDataset[bucketIndex].oi =
-          priceLevelDataset[bucketIndex].oi + (order.value ?? 0);
-        priceLevelDataset[bucketIndex].value =
-          priceLevelDataset[bucketIndex].value + (order.quantity ?? 0);
+        priceLevelDataset[bucketIndex].orders = priceLevelDataset[bucketIndex].orders + 1;
+        priceLevelDataset[bucketIndex].oi = priceLevelDataset[bucketIndex].oi + (order.value ?? 0);
+        priceLevelDataset[bucketIndex].value = priceLevelDataset[bucketIndex].value + (order.quantity ?? 0);
         priceLevelDataset[bucketIndex].price =
           priceLevelDataset[bucketIndex].value > 0
-            ? priceLevelDataset[bucketIndex].oi /
-              priceLevelDataset[bucketIndex].value
+            ? priceLevelDataset[bucketIndex].oi / priceLevelDataset[bucketIndex].value
             : 0;
       }
 
@@ -472,11 +446,7 @@ export class DmaService {
     }
   }
 
-  async buildChartDataset(
-    yPriceAxis: number[],
-    xTimestampAxis: number[],
-    itemId: number,
-  ) {
+  async buildChartDataset(yPriceAxis: number[], xTimestampAxis: number[], itemId: number) {
     if (!yPriceAxis.length) return { dataset: [] };
 
     try {
@@ -488,19 +458,10 @@ export class DmaService {
       const dataset = await lastValueFrom(
         from(xTimestampAxis).pipe(
           mergeMap(async (timestamp, itx) => {
-            return await this.processTimestampData(
-              timestamp,
-              itx,
-              yPriceAxis,
-              decimalBins,
-              itemId,
-            );
+            return await this.processTimestampData(timestamp, itx, yPriceAxis, decimalBins, itemId);
           }),
           // Collect all arrays and flatten them
-          reduce(
-            (acc: IChartOrder[], curr: IChartOrder[]) => [...acc, ...curr],
-            [] as IChartOrder[],
-          ),
+          reduce((acc: IChartOrder[], curr: IChartOrder[]) => [...acc, ...curr], [] as IChartOrder[]),
         ),
       );
 
@@ -525,9 +486,7 @@ export class DmaService {
     const [_itemIdStr, realmSlug] = input.id.split('@');
 
     if (!realmSlug) {
-      throw new BadRequestException(
-        'Realm information required for item feed. Use format: itemId@realmSlug',
-      );
+      throw new BadRequestException('Realm information required for item feed. Use format: itemId@realmSlug');
     }
 
     // Find recent market data for this item
@@ -601,9 +560,7 @@ export class DmaService {
     const normalizedQuery = searchQuery.toLowerCase().trim();
 
     if (normalizedQuery.length < 2) {
-      throw new BadRequestException(
-        'Search query must be at least 2 characters long',
-      );
+      throw new BadRequestException('Search query must be at least 2 characters long');
     }
 
     try {
@@ -731,9 +688,7 @@ export class DmaService {
     }
 
     if (!item.hasContracts) {
-      throw new BadRequestException(
-        `Item with ID ${itemId} does not have contract data`,
-      );
+      throw new BadRequestException(`Item with ID ${itemId} does not have contract data`);
     }
 
     // Calculate time range based on period using luxon
@@ -757,9 +712,7 @@ export class DmaService {
         startTime = now.minus({ hours: 24 });
         break;
       default:
-        throw new BadRequestException(
-          'Invalid period. Use: 1m, 1w, 30d, 1d, or 24h',
-        );
+        throw new BadRequestException('Invalid period. Use: 1m, 1w, 30d, 1d, or 24h');
     }
 
     const startTimestamp = startTime.toMillis();
@@ -775,8 +728,7 @@ export class DmaService {
 
     // Filter by timestamp range
     const filtered = contracts.filter(
-      (contract) =>
-        contract.timestamp >= startTimestamp && contract.timestamp <= endTimestamp,
+      (contract) => contract.timestamp >= startTimestamp && contract.timestamp <= endTimestamp,
     );
 
     return { contracts: filtered };
@@ -857,9 +809,7 @@ export class DmaService {
         'searchItems',
       );
 
-      throw new BadRequestException(
-        `Error searching for items. Please try a different search term.`,
-      );
+      throw new BadRequestException(`Error searching for items. Please try a different search term.`);
     }
   }
 }

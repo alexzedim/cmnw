@@ -21,8 +21,7 @@ export class CharacterStatusDto {
     type: 'string',
     nullable: true,
     description: 'Detailed status description',
-    example:
-      'Status and Summary succeeded, Media pending, Pets and Mounts succeeded, Professions pending',
+    example: 'Status and Summary succeeded, Media pending, Pets and Mounts succeeded, Professions pending',
   })
   readonly statusDescription?: string;
 

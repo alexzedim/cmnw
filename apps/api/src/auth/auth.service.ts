@@ -2,12 +2,7 @@ import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AuthProvider, UsersEntity } from '@app/pg';
-import {
-  AuthResponseDto,
-  AuthUserDto,
-  DiscordProfile,
-  BattleNetProfile,
-} from '@app/resources';
+import { AuthResponseDto, AuthUserDto, DiscordProfile, BattleNetProfile } from '@app/resources';
 
 @Injectable()
 export class AuthService {
@@ -45,9 +40,7 @@ export class AuthService {
           discordDiscriminator: profile.discriminator,
           username: profile.username,
           email: profile.email,
-          avatar: profile.avatar
-            ? `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png`
-            : undefined,
+          avatar: profile.avatar ? `https://cdn.discordapp.com/avatars/${profile.id}/${profile.avatar}.png` : undefined,
           locale: profile.locale,
           primaryProvider: AuthProvider.DISCORD,
           linkedProviders: [AuthProvider.DISCORD],
@@ -88,11 +81,7 @@ export class AuthService {
         });
       }
 
-      return this.createAuthResponse(
-        user,
-        isNewUser,
-        'Discord authentication successful',
-      );
+      return this.createAuthResponse(user, isNewUser, 'Discord authentication successful');
     } catch (errorOrException) {
       this.logger.error({
         logTag,
@@ -165,11 +154,7 @@ export class AuthService {
         });
       }
 
-      return this.createAuthResponse(
-        user,
-        isNewUser,
-        'Battle.net authentication successful',
-      );
+      return this.createAuthResponse(user, isNewUser, 'Battle.net authentication successful');
     } catch (errorOrException) {
       this.logger.error({
         logTag,
@@ -205,11 +190,7 @@ export class AuthService {
   /**
    * Create standardized auth response
    */
-  private createAuthResponse(
-    user: UsersEntity,
-    isNewUser: boolean,
-    message: string,
-  ): AuthResponseDto {
+  private createAuthResponse(user: UsersEntity, isNewUser: boolean, message: string): AuthResponseDto {
     const userDto: AuthUserDto = {
       id: user.id,
       username: user.username,

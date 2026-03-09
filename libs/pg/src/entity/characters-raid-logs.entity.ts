@@ -1,10 +1,4 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
 
 @Index('ix__characters_raid__log_id', ['logId'], {})

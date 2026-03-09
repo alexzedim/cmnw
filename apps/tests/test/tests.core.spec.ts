@@ -10,10 +10,7 @@ describe('CORE', () => {
 
   beforeAll(async () => {
     const app: TestingModule = await Test.createTestingModule({
-      imports: [
-        TypeOrmModule.forRoot(postgresConfig),
-        TypeOrmModule.forFeature([KeysEntity]),
-      ],
+      imports: [TypeOrmModule.forRoot(postgresConfig), TypeOrmModule.forFeature([KeysEntity])],
       controllers: [],
       providers: [TestsCore],
     }).compile();

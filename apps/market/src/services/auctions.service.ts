@@ -53,9 +53,7 @@ export class AuctionsService implements OnApplicationBootstrap {
   }
 
   @Cron(CronExpression.EVERY_10_MINUTES)
-  private async indexAuctions(
-    clearance: string = GLOBAL_DMA_KEY,
-  ): Promise<void> {
+  private async indexAuctions(clearance: string = GLOBAL_DMA_KEY): Promise<void> {
     const logTag = this.indexAuctions.name;
     try {
       const { isIndexAuctions } = dmaConfig;
@@ -177,11 +175,7 @@ export class AuctionsService implements OnApplicationBootstrap {
         return;
       }
 
-      const {
-        price,
-        lastModified,
-        last_updated_timestamp: timestamp,
-      } = response;
+      const { price, lastModified, last_updated_timestamp: timestamp } = response;
 
       const isWowTokenExists = await this.marketRepository.exists({
         where: {
@@ -193,9 +187,7 @@ export class AuctionsService implements OnApplicationBootstrap {
       });
 
       if (isWowTokenExists) {
-        this.logger.debug(
-          `Token exists on timestamp ${timestamp} | ${lastModified}`,
-        );
+        this.logger.debug(`Token exists on timestamp ${timestamp} | ${lastModified}`);
         return;
       }
 
@@ -227,9 +219,7 @@ export class AuctionsService implements OnApplicationBootstrap {
     try {
       // Calculate the cutoff timestamp (24 hours ago from now)
       const now = new Date();
-      const twentyFourHoursAgo = new Date(
-        now.setHours(now.getHours() - 24),
-      ).getTime();
+      const twentyFourHoursAgo = new Date(now.setHours(now.getHours() - 24)).getTime();
 
       // Perform the deletion
       const deleteResult = await this.marketRepository
@@ -239,9 +229,7 @@ export class AuctionsService implements OnApplicationBootstrap {
         .where('timestamp < :cutoff', { cutoff: twentyFourHoursAgo })
         .execute();
 
-      this.logger.log(
-        `Deleted ${deleteResult.affected} rows from 'market' table.`,
-      );
+      this.logger.log(`Deleted ${deleteResult.affected} rows from 'market' table.`);
 
       // --- Important: PostgreSQL VACUUM for reclaiming space --- //
       // VACUUM operations can be resource-intensive

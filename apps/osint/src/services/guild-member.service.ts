@@ -15,12 +15,7 @@ import {
   GuildStatusState,
   setGuildStatusString,
 } from '@app/resources';
-import {
-  CharactersEntity,
-  CharactersGuildsMembersEntity,
-  CharactersGuildsLogsEntity,
-  GuildsEntity,
-} from '@app/pg';
+import { CharactersEntity, CharactersGuildsMembersEntity, CharactersGuildsLogsEntity, GuildsEntity } from '@app/pg';
 
 @Injectable()
 export class GuildMemberService {
@@ -37,48 +32,24 @@ export class GuildMemberService {
     private readonly charactersGuildsLogsRepository: Repository<CharactersGuildsLogsEntity>,
   ) {}
 
-  async updateRoster(
-    guildEntity: GuildsEntity,
-    roster: IGuildRoster,
-    isNew: boolean,
-  ): Promise<void> {
+  async updateRoster(guildEntity: GuildsEntity, roster: IGuildRoster, isNew: boolean): Promise<void> {
     try {
       const { members: updatedRosterMembers } = roster;
 
       if (!updatedRosterMembers.length) {
         this.logger.debug(`Guild roster for ${guildEntity.guid} was not found!`);
-        roster.status = setGuildStatusString(
-          '-----',
-          'MEMBERS',
-          GuildStatusState.SUCCESS,
-        );
+        roster.status = setGuildStatusString('-----', 'MEMBERS', GuildStatusState.SUCCESS);
         return;
       }
 
-      const comparison = await this.compareRosters(
-        guildEntity,
-        updatedRosterMembers,
-      );
+      const comparison = await this.compareRosters(guildEntity, updatedRosterMembers);
       const rosterUpdateAt = roster.updatedAt;
 
-      await this.processRosterChanges(
-        guildEntity,
-        comparison,
-        rosterUpdateAt,
-        isNew,
-      );
+      await this.processRosterChanges(guildEntity, comparison, rosterUpdateAt, isNew);
 
-      roster.status = setGuildStatusString(
-        '-----',
-        'MEMBERS',
-        GuildStatusState.SUCCESS,
-      );
+      roster.status = setGuildStatusString('-----', 'MEMBERS', GuildStatusState.SUCCESS);
     } catch (errorOrException) {
-      roster.status = setGuildStatusString(
-        '-----',
-        'MEMBERS',
-        GuildStatusState.ERROR,
-      );
+      roster.status = setGuildStatusString('-----', 'MEMBERS', GuildStatusState.ERROR);
       this.logger.error({
         logTag: 'updateRoster',
         guildGuid: guildEntity.guid,
@@ -91,22 +62,13 @@ export class GuildMemberService {
     guildEntity: GuildsEntity,
     updatedRosterMembers: IGuildRoster['members'],
   ): Promise<RosterComparisonResult> {
-    const guildsMembersEntities = await this.characterGuildsMembersRepository.findBy(
-      {
-        guildGuid: guildEntity.guid,
-      },
-    );
+    const guildsMembersEntities = await this.characterGuildsMembersRepository.findBy({
+      guildGuid: guildEntity.guid,
+    });
 
-    const originalRoster = new Map(
-      guildsMembersEntities.map((guildMember) => [
-        guildMember.characterId,
-        guildMember,
-      ]),
-    );
+    const originalRoster = new Map(guildsMembersEntities.map((guildMember) => [guildMember.characterId, guildMember]));
 
-    const updatedRoster = new Map<number, IGuildMember>(
-      updatedRosterMembers.map((member) => [member.id, member]),
-    );
+    const updatedRoster = new Map<number, IGuildMember>(updatedRosterMembers.map((member) => [member.id, member]));
 
     const originalRosterCharIds = Array.from(originalRoster.keys());
     const updatedRosterCharIds = Array.from(updatedRoster.keys());
@@ -140,13 +102,7 @@ export class GuildMemberService {
       await lastValueFrom(
         from(membersIntersectIds).pipe(
           mergeMap((guildMemberId) =>
-            this.processIntersectionMember(
-              guildEntity,
-              rosterUpdateAt,
-              guildMemberId,
-              originalRoster,
-              updatedRoster,
-            ),
+            this.processIntersectionMember(guildEntity, rosterUpdateAt, guildMemberId, originalRoster, updatedRoster),
           ),
         ),
       );
@@ -157,13 +113,7 @@ export class GuildMemberService {
       await lastValueFrom(
         from(membersJoinedIds).pipe(
           mergeMap((guildMemberId) =>
-            this.processJoinMember(
-              guildEntity,
-              rosterUpdateAt,
-              guildMemberId,
-              updatedRoster,
-              isFirstTimeRosterIndexed,
-            ),
+            this.processJoinMember(guildEntity, rosterUpdateAt, guildMemberId, updatedRoster, isFirstTimeRosterIndexed),
           ),
         ),
       );
@@ -173,12 +123,7 @@ export class GuildMemberService {
       await lastValueFrom(
         from(membersLeaveIds).pipe(
           mergeMap((guildMemberId) =>
-            this.processLeaveMember(
-              guildEntity,
-              rosterUpdateAt,
-              guildMemberId,
-              originalRoster,
-            ),
+            this.processLeaveMember(guildEntity, rosterUpdateAt, guildMemberId, originalRoster),
           ),
         ),
       );
@@ -262,19 +207,18 @@ export class GuildMemberService {
       const guildMemberUpdated = updatedRoster.get(guildMemberId);
       const isNotGuildMaster = guildMemberUpdated.rank !== OSINT_GM_RANK;
 
-      const charactersGuildsMembersEntity =
-        this.characterGuildsMembersRepository.create({
-          guildGuid: guildEntity.guid,
-          guildId: guildEntity.id,
-          characterId: guildMemberUpdated.id,
-          characterGuid: guildMemberUpdated.guid,
-          realmId: guildMemberUpdated.realmId,
-          realm: guildMemberUpdated.realmSlug,
-          rank: guildMemberUpdated.rank,
-          createdBy: OSINT_SOURCE.GUILD_ROSTER,
-          updatedBy: OSINT_SOURCE.GUILD_ROSTER,
-          lastModified: rosterUpdatedAt,
-        });
+      const charactersGuildsMembersEntity = this.characterGuildsMembersRepository.create({
+        guildGuid: guildEntity.guid,
+        guildId: guildEntity.id,
+        characterId: guildMemberUpdated.id,
+        characterGuid: guildMemberUpdated.guid,
+        realmId: guildMemberUpdated.realmId,
+        realm: guildMemberUpdated.realmSlug,
+        rank: guildMemberUpdated.rank,
+        createdBy: OSINT_SOURCE.GUILD_ROSTER,
+        updatedBy: OSINT_SOURCE.GUILD_ROSTER,
+        lastModified: rosterUpdatedAt,
+      });
 
       /**
        * When a guild is indexed for the first time, we don't log JOIN events
@@ -331,16 +275,14 @@ export class GuildMemberService {
       const isNotGuildMaster = guildMemberOriginal.rank !== OSINT_GM_RANK;
 
       if (isNotGuildMaster) {
-        const logEntityGuildMemberLeave = this.charactersGuildsLogsRepository.create(
-          {
-            characterGuid: guildMemberOriginal.characterGuid,
-            guildGuid: guildEntity.guid,
-            original: String(guildMemberOriginal.rank),
-            action: ACTION_LOG.LEAVE,
-            scannedAt: guildEntity.updatedAt,
-            createdAt: rosterUpdatedAt,
-          },
-        );
+        const logEntityGuildMemberLeave = this.charactersGuildsLogsRepository.create({
+          characterGuid: guildMemberOriginal.characterGuid,
+          guildGuid: guildEntity.guid,
+          original: String(guildMemberOriginal.rank),
+          action: ACTION_LOG.LEAVE,
+          scannedAt: guildEntity.updatedAt,
+          createdAt: rosterUpdatedAt,
+        });
 
         await this.charactersGuildsLogsRepository.save(logEntityGuildMemberLeave);
       }

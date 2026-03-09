@@ -74,10 +74,7 @@ export class GuildService {
     };
   }
 
-  private createNew(
-    guildJob: IGuildMessageBase,
-    realmEntity: RealmsEntity,
-  ): GuildExistsOrCreate {
+  private createNew(guildJob: IGuildMessageBase, realmEntity: RealmsEntity): GuildExistsOrCreate {
     const nameSlug = toSlug(guildJob.name);
     const guid = toGuid(nameSlug, realmEntity.slug);
     const createdBy = guildJob.createdBy || OSINT_SOURCE.GUILD_GET;

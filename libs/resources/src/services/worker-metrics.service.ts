@@ -9,7 +9,7 @@ import { InjectMetric } from '@willsoto/nestjs-prometheus';
 @Injectable()
 export class WorkerMetricsService {
   constructor(
-    @InjectMetric('rabbitmq_message_consume_total')
+    @InjectMetric('bullmq_jobs_completed_total')
     private readonly jobsTotalCounter: Counter<string>,
   ) {}
 

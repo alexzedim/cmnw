@@ -1,13 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
-import {
-  IsNotEmpty,
-  IsString,
-  MinLength,
-  IsOptional,
-  IsNumber,
-  Min,
-  Max,
-} from 'class-validator';
+import { IsNotEmpty, IsString, MinLength, IsOptional, IsNumber, Min, Max } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
 import { transformSearchQuery } from '@app/resources/transformers';
 

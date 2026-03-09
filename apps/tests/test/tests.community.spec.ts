@@ -31,15 +31,10 @@ describe.skip('COMMUNITY', () => {
 
   describe('WCL-CHARACTER-RAID-LOGS', () => {
     it('logs response', async () => {
-      const raidCharacters = await testsService.getCharactersFromLogs(
-        '',
-        '7M98VAxrmyKvZhqd',
-      );
+      const raidCharacters = await testsService.getCharactersFromLogs('', '7M98VAxrmyKvZhqd');
 
       expect(Array.isArray(raidCharacters)).toBeTruthy();
-      raidCharacters.map((character) =>
-        expect(character).toMatchObject(raidCharacter),
-      );
+      raidCharacters.map((character) => expect(character).toMatchObject(raidCharacter));
     });
   });
 });

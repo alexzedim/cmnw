@@ -84,11 +84,7 @@ export const SWAGGER_ITEM_CHART_X_AXIS: ApiPropertyOptions = {
   name: 'xAxis',
   isArray: true,
   items: {
-    oneOf: [
-      { $ref: getSchemaPath(Number) },
-      { $ref: getSchemaPath(String) },
-      { $ref: getSchemaPath(Date) },
-    ],
+    oneOf: [{ $ref: getSchemaPath(Number) }, { $ref: getSchemaPath(String) }, { $ref: getSchemaPath(Date) }],
   },
   example: [1, 'gordunni', new Date()],
 };
@@ -132,8 +128,7 @@ export const SWAGGER_CONNECTED_REALM_ID: ApiPropertyOptions = {
 
 export const SWAGGER_VALUATIONS_EVALUATIONS: ApiPropertyOptions = {
   name: 'is_evaluating',
-  description:
-    'This field represent number of missing values for each requested realm',
+  description: 'This field represent number of missing values for each requested realm',
   type: Number,
   example: 1,
 };

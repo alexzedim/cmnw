@@ -86,10 +86,7 @@ export class ProfileMessageDto {
   validate(strict: boolean = true, logTag?: string): void {
     const profileData = this.data;
 
-    if (
-      profileData?.name &&
-      (typeof profileData.name !== 'string' || profileData.name.trim() === '')
-    ) {
+    if (profileData?.name && (typeof profileData.name !== 'string' || profileData.name.trim() === '')) {
       const message = `Validation failed: name must be a non-empty string`;
       if (strict) {
         throw new Error(message);
@@ -102,10 +99,7 @@ export class ProfileMessageDto {
       }
     }
 
-    if (
-      profileData?.realm &&
-      (typeof profileData.realm !== 'string' || profileData.realm.trim() === '')
-    ) {
+    if (profileData?.realm && (typeof profileData.realm !== 'string' || profileData.realm.trim() === '')) {
       const message = `Validation failed: realm must be a non-empty string`;
       if (strict) {
         throw new Error(message);

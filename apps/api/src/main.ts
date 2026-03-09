@@ -17,20 +17,13 @@ async function bootstrap() {
 
   app.useLogger(new LoggerService(APP_LABELS.CMNW));
 
-  const corsOrigin =
-    cmnwConfig.cors.origins.length > 0 ? cmnwConfig.cors.origins : true;
+  const corsOrigin = cmnwConfig.cors.origins.length > 0 ? cmnwConfig.cors.origins : true;
 
   app.enableCors({
     origin: corsOrigin,
     credentials: cmnwConfig.cors.allowCredentials,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
-    allowedHeaders: [
-      'Content-Type',
-      'Authorization',
-      'X-Requested-With',
-      'Accept',
-      'Origin',
-    ],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
     exposedHeaders: ['Content-Disposition'],
   });
 

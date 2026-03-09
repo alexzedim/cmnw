@@ -19,17 +19,9 @@ export class DiscordStrategy extends PassportStrategy(Strategy, 'discord') {
     } as StrategyOptions);
   }
 
-  async validate(
-    _accessToken: string,
-    _refreshToken: string,
-    profile: any,
-    _done: VerifyCallback,
-  ): Promise<any> {
+  async validate(_accessToken: string, _refreshToken: string, profile: any, _done: VerifyCallback): Promise<any> {
     try {
-      this.logger.log(
-        `Discord OAuth validation for user: ${profile.id}`,
-        'validate',
-      );
+      this.logger.log(`Discord OAuth validation for user: ${profile.id}`, 'validate');
 
       const discordProfile: DiscordProfile = {
         id: profile.id,

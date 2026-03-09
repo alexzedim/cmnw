@@ -4,10 +4,7 @@
  * @param extremes Object containing max value
  * @returns Percentile (0-100) or null if value/extremes invalid
  */
-export function calculatePercentile(
-  value: number | undefined,
-  extremes: Record<string, any>,
-): number | null {
+export function calculatePercentile(value: number | undefined, extremes: Record<string, any>): number | null {
   if (value === null || value === undefined) return null;
   if (!extremes.max || extremes.max <= 0) return null;
 

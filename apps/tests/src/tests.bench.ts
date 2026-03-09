@@ -112,10 +112,7 @@ export class TestsBench implements OnApplicationBootstrap {
     // Create query builder
     const queryBuilder = this.marketRepository
       .createQueryBuilder('markets')
-      .select(
-        'PERCENTILE_DISC(0.99) WITHIN GROUP (ORDER BY markets.price)',
-        'percentile95',
-      );
+      .select('PERCENTILE_DISC(0.99) WITHIN GROUP (ORDER BY markets.price)', 'percentile95');
 
     // Add optional category filter
     queryBuilder.where('markets.item_id = :itemId', { itemId: itemId });
@@ -135,10 +132,7 @@ export class TestsBench implements OnApplicationBootstrap {
     // Create query builder
     const queryBuilder = this.marketRepository
       .createQueryBuilder('markets')
-      .select(
-        'PERCENTILE_DISC(0.05) WITHIN GROUP (ORDER BY markets.price)',
-        'percentile10',
-      );
+      .select('PERCENTILE_DISC(0.05) WITHIN GROUP (ORDER BY markets.price)', 'percentile10');
 
     // Add optional category filter
     if (itemId) {
@@ -152,12 +146,7 @@ export class TestsBench implements OnApplicationBootstrap {
   /**
    * Alternative implementation using raw SQL
    */
-  async getPercentile(
-    type: 'CONT' | 'DISC',
-    percentile: number,
-    itemId: number,
-    timestamp: number,
-  ): Promise<number> {
+  async getPercentile(type: 'CONT' | 'DISC', percentile: number, itemId: number, timestamp: number): Promise<number> {
     let query = `
         SELECT PERCENTILE_${type}(${percentile}) WITHIN GROUP (ORDER BY price) as percentile
         FROM market
@@ -303,16 +292,13 @@ export class TestsBench implements OnApplicationBootstrap {
           let priceItx = 0;
 
           for (const order of marketOrders) {
-            const isPriceItxUp =
-              order.price >= plDataset[priceItx].lt &&
-              Boolean(plDataset[priceItx + 1]);
+            const isPriceItxUp = order.price >= plDataset[priceItx].lt && Boolean(plDataset[priceItx + 1]);
             // TODO on last
             if (isPriceItxUp) priceItx = priceItx + 1;
             plDataset[priceItx].orders = plDataset[priceItx].orders + 1;
             plDataset[priceItx].oi = plDataset[priceItx].oi + order.value;
             plDataset[priceItx].value = plDataset[priceItx].value + order.quantity;
-            plDataset[priceItx].price =
-              plDataset[priceItx].oi / plDataset[priceItx].value;
+            plDataset[priceItx].price = plDataset[priceItx].oi / plDataset[priceItx].value;
           }
 
           dataset.push(...plDataset);
@@ -355,9 +341,7 @@ export class TestsBench implements OnApplicationBootstrap {
   }
 
   async getGold() {
-    const response = await this.httpService.axiosRef.get<string>(
-      'https://funpay.ru/chips/2/',
-    );
+    const response = await this.httpService.axiosRef.get<string>('https://funpay.ru/chips/2/');
 
     const exchangeListingPage = cheerio.load(response.data);
     const goldListingMarkup = exchangeListingPage.html('a.tc-item');
@@ -396,15 +380,9 @@ export class TestsBench implements OnApplicationBootstrap {
               : await findRealm(this.realmsRepository, order.realm);
 
             const connectedRealmId =
-              !realmEntity && order.realm === 'Любой'
-                ? 1
-                : realmEntity
-                  ? realmEntity.connectedRealmId
-                  : 0;
+              !realmEntity && order.realm === 'Любой' ? 1 : realmEntity ? realmEntity.connectedRealmId : 0;
 
-            const isValid = Boolean(
-              connectedRealmId && order.price && order.quantity,
-            );
+            const isValid = Boolean(connectedRealmId && order.price && order.quantity);
 
             if (!isValid) {
               this.logger.log(order.realm);
@@ -426,9 +404,7 @@ export class TestsBench implements OnApplicationBootstrap {
             let faction: FACTION = FACTION.ANY;
             const isOnline = order.status;
             const isHorde = [FACTION.H, 'Орда'].includes(order.faction);
-            const isAlliance = [FACTION.A, 'Альянсa', 'Альянс'].includes(
-              order.faction,
-            );
+            const isAlliance = [FACTION.A, 'Альянсa', 'Альянс'].includes(order.faction);
 
             if (isAlliance) faction = FACTION.A;
             if (isHorde) faction = FACTION.H;
@@ -459,9 +435,7 @@ export class TestsBench implements OnApplicationBootstrap {
   }
 
   async getWowProgress() {
-    const response = await this.httpService.axiosRef.get(
-      OSINT_SOURCE_WOW_PROGRESS_RANKS,
-    );
+    const response = await this.httpService.axiosRef.get(OSINT_SOURCE_WOW_PROGRESS_RANKS);
 
     const dirPath = path.join(__dirname, '..', '..', 'files', 'wow-progress');
     await fs.ensureDir(dirPath);
@@ -477,9 +451,7 @@ export class TestsBench implements OnApplicationBootstrap {
         const url = node.attribs.href;
         console.log(url);
 
-        const downloadLink = encodeURI(
-          decodeURI(OSINT_SOURCE_WOW_PROGRESS_RANKS + url),
-        );
+        const downloadLink = encodeURI(decodeURI(OSINT_SOURCE_WOW_PROGRESS_RANKS + url));
         const fileName = decodeURIComponent(url.substr(url.lastIndexOf('/') + 1));
         const realmMatch = fileName.match(/(?<=_)(.*?)(?=_)/g);
         const isMatchExists = realmMatch && realmMatch.length;
@@ -512,9 +484,7 @@ export class TestsBench implements OnApplicationBootstrap {
       const browser = await chromium.launch();
       const context = await browser.newContext(devices['iPhone 11']);
       const page = await context.newPage();
-      const url = encodeURI(
-        'https://www.warcraftlogs.com/character/eu/howling-fjord/хайзуро#difficulty=5',
-      );
+      const url = encodeURI('https://www.warcraftlogs.com/character/eu/howling-fjord/хайзуро#difficulty=5');
 
       await page.goto(url);
       const getBestPerfAvg = await page.getByText('Best Perf. Avg').allInnerTexts();
@@ -560,9 +530,7 @@ export class TestsBench implements OnApplicationBootstrap {
             }
 
             const buffer = await fs.readFile(`${dirPath}/${file}`);
-            const data = zlib
-              .unzipSync(buffer, { finishFlush: zlib.constants.Z_SYNC_FLUSH })
-              .toString();
+            const data = zlib.unzipSync(buffer, { finishFlush: zlib.constants.Z_SYNC_FLUSH }).toString();
 
             // TODO interface type
             const json = JSON.parse(data);
@@ -575,9 +543,7 @@ export class TestsBench implements OnApplicationBootstrap {
             for (const guild of json) {
               const isGuildValid = guild.name && !guild.name.includes('[Raid]');
               if (!isGuildValid) {
-                this.logger.log(
-                  `indexWowProgress: guild ${guild.name} have negative [Raid] pattern, skipping...`,
-                );
+                this.logger.log(`indexWowProgress: guild ${guild.name} have negative [Raid] pattern, skipping...`);
                 continue;
               }
 
@@ -594,12 +560,12 @@ export class TestsBench implements OnApplicationBootstrap {
   }
 
   async getRaiderIoProfile() {
-    const { data: raiderIoProfile } =
-      await this.httpService.axiosRef.get<ICharacterRaiderIo>(
-        encodeURI(
-          `${OSINT_SOURCE_RAIDER_IO}?region=eu&realm=howling-fjord&name=ниалайт&fields=mythic_plus_scores_by_season:current,raid_progression`,
-        ),
-      );
+    const { data: raiderIoProfile } = await this.httpService.axiosRef.get<ICharacterRaiderIo>(
+      encodeURI(
+        `${OSINT_SOURCE_RAIDER_IO}?region=eu&realm=howling-fjord&name=ниалайт` +
+          `&fields=mythic_plus_scores_by_season:current,raid_progression`,
+      ),
+    );
 
     const isRaiderIoProfileValid = isRaiderIoProfile(raiderIoProfile);
     if (!isRaiderIoProfileValid) return;

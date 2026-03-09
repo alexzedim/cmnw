@@ -28,17 +28,12 @@ import {
 export const isEuRegion = (region: string | number | undefined): boolean =>
   Boolean(region) && (region === 'eu' || region === 2);
 
-export const isBlizzardApiResponse = (
-  response: unknown,
-): response is Readonly<BlizzardApiResponse> =>
+export const isBlizzardApiResponse = (response: unknown): response is Readonly<BlizzardApiResponse> =>
   typeof response === 'object' && !('error' in response);
 
-export const isNamedField = (response: unknown) =>
-  response && typeof response === 'object' && 'en_GB' in response;
+export const isNamedField = (response: unknown) => response && typeof response === 'object' && 'en_GB' in response;
 
-export const isGuildRoster = (
-  response: unknown,
-): response is Readonly<IRGuildRoster> =>
+export const isGuildRoster = (response: unknown): response is Readonly<IRGuildRoster> =>
   typeof response === 'object' &&
   response !== null &&
   'members' in response &&
@@ -50,17 +45,10 @@ export const isGuildRoster = (
   typeof (response as any).guild.realm === 'object' &&
   'slug' in (response as any).guild.realm;
 
-export const isGuildMember = (
-  member: unknown,
-): member is Readonly<IRGuildRosterMember> =>
-  typeof member === 'object' &&
-  member !== null &&
-  'character' in member &&
-  'rank' in member;
+export const isGuildMember = (member: unknown): member is Readonly<IRGuildRosterMember> =>
+  typeof member === 'object' && member !== null && 'character' in member && 'rank' in member;
 
-export const isGuildRosterMember = (
-  member: unknown,
-): member is Readonly<IRGuildRosterMember> =>
+export const isGuildRosterMember = (member: unknown): member is Readonly<IRGuildRosterMember> =>
   typeof member === 'object' &&
   member !== null &&
   'character' in member &&
@@ -71,9 +59,7 @@ export const isGuildRosterMember = (
   'playable_class' in (member as any).character &&
   'playable_race' in (member as any).character;
 
-export const isGuildSummary = (
-  response: unknown,
-): response is BlizzardApiGuildSummary =>
+export const isGuildSummary = (response: unknown): response is BlizzardApiGuildSummary =>
   typeof response === 'object' &&
   response !== null &&
   '_links' in response &&
@@ -99,33 +85,19 @@ export const isGuildSummary = (
   'lastModified' in response &&
   typeof (response as any).lastModified === 'string';
 
-export const isPetsCollection = (
-  response: unknown,
-): response is Readonly<BlizzardApiPetsCollection> =>
-  typeof response === 'object' &&
-  'pets' in response &&
-  Array.isArray(response.pets) &&
-  Boolean(response.pets.length);
+export const isPetsCollection = (response: unknown): response is Readonly<BlizzardApiPetsCollection> =>
+  typeof response === 'object' && 'pets' in response && Array.isArray(response.pets) && Boolean(response.pets.length);
 
-export const isMountCollection = (
-  response: unknown,
-): response is Readonly<BlizzardApiMountsCollection> =>
+export const isMountCollection = (response: unknown): response is Readonly<BlizzardApiMountsCollection> =>
   typeof response === 'object' &&
   'mounts' in response &&
   Array.isArray(response.mounts) &&
   Boolean(response.mounts.length);
 
-export const isCharacterSummary = (
-  response: unknown,
-): response is BlizzardApiCharacterSummary =>
-  typeof response === 'object' &&
-  !('error' in response) &&
-  'id' in response &&
-  'name' in response;
+export const isCharacterSummary = (response: unknown): response is BlizzardApiCharacterSummary =>
+  typeof response === 'object' && !('error' in response) && 'id' in response && 'name' in response;
 
-export const isCharacterMedia = (
-  response: unknown,
-): response is BlizzardApiCharacterMedia =>
+export const isCharacterMedia = (response: unknown): response is BlizzardApiCharacterMedia =>
   typeof response === 'object' &&
   'assets' in response &&
   Array.isArray(response.assets) &&
@@ -155,13 +127,8 @@ export const isGold = (response: unknown): response is GoldApiListing =>
   'counterparty' in response &&
   typeof response.counterparty === 'string';
 
-export const isItem = (
-  response: PromiseSettledResult<any>,
-): response is PromiseFulfilledResult<BlizzardApiItem> =>
-  typeof response === 'object' &&
-  response.status === 'fulfilled' &&
-  'value' in response &&
-  Boolean(response.value);
+export const isItem = (response: PromiseSettledResult<any>): response is PromiseFulfilledResult<BlizzardApiItem> =>
+  typeof response === 'object' && response.status === 'fulfilled' && 'value' in response && Boolean(response.value);
 
 export const isItemMedia = (
   response: PromiseSettledResult<any>,
@@ -173,22 +140,16 @@ export const isItemMedia = (
   Boolean(response.value.assets) &&
   Array.isArray(response.value.assets);
 
-export const isRaiderIoProfile = (
-  response: unknown,
-): response is ICharacterRaiderIo =>
+export const isRaiderIoProfile = (response: unknown): response is ICharacterRaiderIo =>
   typeof response === 'object' &&
   'mythic_plus_scores_by_season' in response &&
   'raid_progression' in response &&
   Array.isArray(response.mythic_plus_scores_by_season);
 
 export const isHallOfFame = (response: unknown): response is IHallOfFame =>
-  typeof response === 'object' &&
-  'entries' in response &&
-  Array.isArray(response.entries);
+  typeof response === 'object' && 'entries' in response && Array.isArray(response.entries);
 
-export const isCharacterProfessions = (
-  response: unknown,
-): response is BlizzardApiCharacterProfessions =>
+export const isCharacterProfessions = (response: unknown): response is BlizzardApiCharacterProfessions =>
   typeof response === 'object' &&
   'character' in response &&
   'primaries' in response &&
@@ -197,30 +158,19 @@ export const isCharacterProfessions = (
   Array.isArray(response.secondaries);
 
 export const isResponseError = (error: unknown): error is BlizzardApiErrorResponse =>
-  typeof error === 'object' &&
-  get(error, 'response.status') &&
-  get(error, 'response.statusText');
+  typeof error === 'object' && get(error, 'response.status') && get(error, 'response.statusText');
 
-export const isMythicKeystoneDungeonResponse = (
-  response: unknown,
-): response is IMythicKeystoneDungeonResponse =>
-  typeof response === 'object' &&
-  '_links' in response &&
-  'dungeons' in response &&
-  Array.isArray(response.dungeons);
+export const isMythicKeystoneDungeonResponse = (response: unknown): response is IMythicKeystoneDungeonResponse =>
+  typeof response === 'object' && '_links' in response && 'dungeons' in response && Array.isArray(response.dungeons);
 
-export const isMythicKeystoneSeasonResponse = (
-  response: unknown,
-): response is IMythicKeystoneSeasonResponse =>
+export const isMythicKeystoneSeasonResponse = (response: unknown): response is IMythicKeystoneSeasonResponse =>
   typeof response === 'object' &&
   '_links' in response &&
   'seasons' in response &&
   Array.isArray(response.seasons) &&
   'current_season' in response;
 
-export const isMythicKeystoneSeasonDetail = (
-  response: unknown,
-): response is IMythicKeystoneSeasonDetail =>
+export const isMythicKeystoneSeasonDetail = (response: unknown): response is IMythicKeystoneSeasonDetail =>
   typeof response === 'object' &&
   '_links' in response &&
   'id' in response &&
@@ -230,9 +180,7 @@ export const isMythicKeystoneSeasonDetail = (
   'periods' in response &&
   Array.isArray((response as any).periods);
 
-export const isMythicLeaderboardResponse = (
-  response: unknown,
-): response is IMythicLeaderboardResponse =>
+export const isMythicLeaderboardResponse = (response: unknown): response is IMythicLeaderboardResponse =>
   typeof response === 'object' &&
   '_links' in response &&
   'map' in response &&
@@ -248,18 +196,14 @@ export const isMythicLeaderboardResponse = (
   'keystone_affixes' in response &&
   Array.isArray((response as any).keystone_affixes);
 
-export const isPvPSeasonIndexResponse = (
-  response: unknown,
-): response is IPvPSeasonIndexResponse =>
+export const isPvPSeasonIndexResponse = (response: unknown): response is IPvPSeasonIndexResponse =>
   typeof response === 'object' &&
   '_links' in response &&
   'seasons' in response &&
   Array.isArray(response.seasons) &&
   'current_season' in response;
 
-export const isPvPLeaderboardResponse = (
-  response: unknown,
-): response is IPvPLeaderboardResponse =>
+export const isPvPLeaderboardResponse = (response: unknown): response is IPvPLeaderboardResponse =>
   typeof response === 'object' &&
   '_links' in response &&
   'season' in response &&

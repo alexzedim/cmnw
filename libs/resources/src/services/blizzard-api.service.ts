@@ -6,20 +6,14 @@ import chalk from 'chalk';
 import Redis from 'ioredis';
 
 import { DEFAULT_RATE_LIMITER_CONFIG } from '../config/rate-limiter.config';
-import {
-  AdaptiveRateLimiter,
-  HttpResponse,
-} from '../utils/adaptive-rate-limiter';
+import { AdaptiveRateLimiter, HttpResponse } from '../utils/adaptive-rate-limiter';
 import {
   createAxiosRetryCondition,
   createAxiosRetryDelay,
   DEFAULT_AXIOS_RETRY_CONFIG,
   IAxiosRetryConfig,
 } from '../utils/axios-retry.config';
-import {
-  BlizzardRateLimiterService,
-  RateLimiterMode,
-} from './blizzard-rate-limiter.service';
+import { BlizzardRateLimiterService, RateLimiterMode } from './blizzard-rate-limiter.service';
 
 export interface IBlizzardApiServiceConfig {
   clientId: string;
@@ -44,23 +38,16 @@ export class BlizzardApiService {
     timestamp: true,
   });
   private readonly rateLimiters = new Map<string, AdaptiveRateLimiter>();
-  private readonly proactiveRateLimiters = new Map<
-    string,
-    BlizzardRateLimiterService
-  >();
+  private readonly proactiveRateLimiters = new Map<string, BlizzardRateLimiterService>();
   private readonly redisAvailable: boolean;
 
   constructor(@Optional() private readonly redis?: Redis) {
     this.redisAvailable = redis !== undefined && redis !== null;
 
     if (this.redisAvailable) {
-      this.logger.log(
-        `${chalk.green('✓')} Redis available - proactive rate limiting enabled`,
-      );
+      this.logger.log(`${chalk.green('✓')} Redis available - proactive rate limiting enabled`);
     } else {
-      this.logger.log(
-        `${chalk.yellow('⚠')} Redis not available - using reactive rate limiting only`,
-      );
+      this.logger.log(`${chalk.yellow('⚠')} Redis not available - using reactive rate limiting only`);
     }
   }
 
@@ -68,14 +55,10 @@ export class BlizzardApiService {
     let limiter = this.rateLimiters.get(clientId);
 
     if (!limiter) {
-      limiter = new AdaptiveRateLimiter(
-        DEFAULT_RATE_LIMITER_CONFIG,
-        this.logger,
-      );
+      limiter = new AdaptiveRateLimiter(DEFAULT_RATE_LIMITER_CONFIG, this.logger);
       this.rateLimiters.set(clientId, limiter);
       this.logger.log(
-        `${chalk.cyan('ℹ')} Created reactive rate limiter for client` +
-          ` [${chalk.dim(clientId.substring(0, 8))}...]`,
+        `${chalk.cyan('ℹ')} Created reactive rate limiter for client` + ` [${chalk.dim(clientId.substring(0, 8))}...]`,
       );
     }
 
@@ -101,14 +84,8 @@ export class BlizzardApiService {
     return limiter;
   }
 
-  createClient(
-    config: IBlizzardApiServiceConfig,
-    retryConfig?: Partial<IAxiosRetryConfig>,
-  ): BlizzAPI;
-  createClient(
-    config: IBlizzardApiServiceConfig,
-    options?: ICreateClientOptions,
-  ): BlizzAPI;
+  createClient(config: IBlizzardApiServiceConfig, retryConfig?: Partial<IAxiosRetryConfig>): BlizzAPI;
+  createClient(config: IBlizzardApiServiceConfig, options?: ICreateClientOptions): BlizzAPI;
   createClient(
     config: IBlizzardApiServiceConfig,
     optionsOrRetryConfig?: Partial<IAxiosRetryConfig> | ICreateClientOptions,
@@ -141,16 +118,13 @@ export class BlizzardApiService {
 
     axiosRetry(axiosInstance, {
       retries: mergedRetryConfig.retries,
-      retryDelay: (retryCount) =>
-        createAxiosRetryDelay(retryCount, mergedRetryConfig),
-      retryCondition: (error) =>
-        createAxiosRetryCondition(error, mergedRetryConfig),
+      retryDelay: (retryCount) => createAxiosRetryDelay(retryCount, mergedRetryConfig),
+      retryCondition: (error) => createAxiosRetryCondition(error, mergedRetryConfig),
     });
 
     const rateLimiterEnabled = rateLimiterOptions?.enabled ?? true;
     const rateLimiterMode =
-      rateLimiterOptions?.mode ??
-      (this.redisAvailable ? RateLimiterMode.HYBRID : RateLimiterMode.REACTIVE);
+      rateLimiterOptions?.mode ?? (this.redisAvailable ? RateLimiterMode.HYBRID : RateLimiterMode.REACTIVE);
 
     this.logger.log(
       `${chalk.green('✓')} Created BlizzAPI client [${chalk.bold(region.toUpperCase())}]` +
@@ -196,9 +170,7 @@ export class BlizzardApiService {
               ` ${chalk.bold((response as { error: string }).error)}`,
           );
 
-          throw new Error(
-            `Blizzard API error: ${(response as { error: string }).error}`,
-          );
+          throw new Error(`Blizzard API error: ${(response as { error: string }).error}`);
         }
 
         const httpResponse: HttpResponse = {
@@ -210,16 +182,13 @@ export class BlizzardApiService {
 
         if (wasRateLimited) {
           this.logger.warn(
-            `${chalk.yellow('⚠')} Rate limited on ${chalk.dim(endpoint)}` +
-              ` ${chalk.dim(`(${duration}ms)`)}`,
+            `${chalk.yellow('⚠')} Rate limited on ${chalk.dim(endpoint)}` + ` ${chalk.dim(`(${duration}ms)`)}`,
           );
           retryCount++;
           continue;
         }
 
-        this.logger.log(
-          `${chalk.green('✓')} Query ${chalk.dim(endpoint)} ${chalk.dim(`(${duration}ms)`)}`,
-        );
+        this.logger.log(`${chalk.green('✓')} Query ${chalk.dim(endpoint)} ${chalk.dim(`(${duration}ms)`)}`);
 
         return response;
       } catch (error) {
@@ -313,9 +282,7 @@ export class BlizzardApiService {
               ` ${chalk.bold((response as { error: string }).error)}`,
           );
 
-          throw new Error(
-            `Blizzard API error: ${(response as { error: string }).error}`,
-          );
+          throw new Error(`Blizzard API error: ${(response as { error: string }).error}`);
         }
 
         proactiveLimiter.recordResponse(limiterKey, {
@@ -378,14 +345,8 @@ export class BlizzardApiService {
     );
   }
 
-  getAllRateLimiterStats(): Map<
-    string,
-    ReturnType<AdaptiveRateLimiter['getStats']>
-  > {
-    const stats = new Map<
-      string,
-      ReturnType<AdaptiveRateLimiter['getStats']>
-    >();
+  getAllRateLimiterStats(): Map<string, ReturnType<AdaptiveRateLimiter['getStats']>> {
+    const stats = new Map<string, ReturnType<AdaptiveRateLimiter['getStats']>>();
 
     for (const [clientId, limiter] of this.rateLimiters) {
       stats.set(clientId, limiter.getStats());
@@ -394,14 +355,8 @@ export class BlizzardApiService {
     return stats;
   }
 
-  getAllProactiveRateLimiterStats(): Map<
-    string,
-    ReturnType<BlizzardRateLimiterService['getStats']> | null
-  > {
-    const stats = new Map<
-      string,
-      ReturnType<BlizzardRateLimiterService['getStats']> | null
-    >();
+  getAllProactiveRateLimiterStats(): Map<string, ReturnType<BlizzardRateLimiterService['getStats']> | null> {
+    const stats = new Map<string, ReturnType<BlizzardRateLimiterService['getStats']> | null>();
 
     for (const [clientId, limiter] of this.proactiveRateLimiters) {
       stats.set(clientId, limiter.getStats(clientId));
@@ -414,8 +369,7 @@ export class BlizzardApiService {
     for (const [clientId, limiter] of this.rateLimiters) {
       limiter.reset();
       this.logger.log(
-        `${chalk.cyan('ℹ')} Reset reactive rate limiter for client` +
-          ` [${chalk.dim(clientId.substring(0, 8))}...]`,
+        `${chalk.cyan('ℹ')} Reset reactive rate limiter for client` + ` [${chalk.dim(clientId.substring(0, 8))}...]`,
       );
     }
   }
@@ -437,8 +391,6 @@ export class BlizzardApiService {
   }
 
   getRateLimiterMode(): RateLimiterMode {
-    return this.redisAvailable
-      ? RateLimiterMode.HYBRID
-      : RateLimiterMode.REACTIVE;
+    return this.redisAvailable ? RateLimiterMode.HYBRID : RateLimiterMode.REACTIVE;
   }
 }

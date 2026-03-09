@@ -1,10 +1,7 @@
 import { Controller, Get, Param, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { QueueMonitorService } from './queue-monitor.service';
-import {
-  IAllQueuesStats,
-  IQueueDetailedProgress,
-} from './types/queue-monitor.types';
+import { IAllQueuesStats, IQueueDetailedProgress } from './types/queue-monitor.types';
 
 @ApiTags('queue')
 @Controller('queue-monitor')
@@ -17,9 +14,7 @@ export class QueueMonitorController {
   }
 
   @Get('stats/:queueName')
-  async getQueueDetailedProgress(
-    @Param('queueName') queueName: string,
-  ): Promise<IQueueDetailedProgress> {
+  async getQueueDetailedProgress(@Param('queueName') queueName: string): Promise<IQueueDetailedProgress> {
     return this.queueMonitorService.getQueueDetailedProgress(queueName);
   }
 

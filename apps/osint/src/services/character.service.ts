@@ -50,17 +50,10 @@ export class CharacterService {
     private readonly keysRepository: Repository<KeysEntity>,
   ) {
     this.keyErrorTracker = new KeyErrorTracker(keysRepository);
-    this.rateLimiter = new AdaptiveRateLimiter(
-      DEFAULT_RATE_LIMITER_CONFIG,
-      this.logger,
-    );
+    this.rateLimiter = new AdaptiveRateLimiter(DEFAULT_RATE_LIMITER_CONFIG, this.logger);
   }
 
-  async getStatus(
-    nameSlug: string,
-    realmSlug: string,
-    BNet: BlizzAPI,
-  ): Promise<Partial<CharacterStatus>> {
+  async getStatus(nameSlug: string, realmSlug: string, BNet: BlizzAPI): Promise<Partial<CharacterStatus>> {
     const characterStatus: Partial<CharacterStatus> = {};
 
     try {
@@ -81,8 +74,7 @@ export class CharacterService {
         }
       }
 
-      if (statusResponse.is_valid)
-        characterStatus.isValid = statusResponse.is_valid;
+      if (statusResponse.is_valid) characterStatus.isValid = statusResponse.is_valid;
 
       const hasLastModified = statusResponse.last_modified;
       if (hasLastModified) {
@@ -103,9 +95,7 @@ export class CharacterService {
         CharacterStatusState.ERROR,
       );
 
-      const statusCode = isAxiosError(errorOrException)
-        ? errorOrException.response?.status
-        : errorOrException.status;
+      const statusCode = isAxiosError(errorOrException) ? errorOrException.response?.status : errorOrException.status;
 
       this.rateLimiter.handleResponse({ status: statusCode || 400 });
 
@@ -122,16 +112,13 @@ export class CharacterService {
 
       const isStatusNotFound = statusCode === 404;
       if (isStatusNotFound) {
-        this.logger.debug(
-          `${chalk.blue('404')} Not found: ${nameSlug}@${realmSlug}`,
-        );
+        this.logger.debug(`${chalk.blue('404')} Not found: ${nameSlug}@${realmSlug}`);
       } else if (statusCode === 429) {
-        this.logger.warn(
-          `${chalk.yellow('429')} Rate limited: ${nameSlug}@${realmSlug}`,
-        );
+        this.logger.warn(`${chalk.yellow('429')} Rate limited: ${nameSlug}@${realmSlug}`);
       } else {
         this.logger.warn(
-          `${chalk.red('getStatus')} ${nameSlug}@${realmSlug} | ${characterStatus.status} - ${errorOrException.message}`,
+          `${chalk.red('getStatus')} ${nameSlug}@${realmSlug} | ${characterStatus.status} - ` +
+            `${errorOrException.message}`,
         );
       }
 
@@ -139,11 +126,7 @@ export class CharacterService {
     }
   }
 
-  async getSummary(
-    nameSlug: string,
-    realmSlug: string,
-    BNet: BlizzAPI,
-  ): Promise<Partial<CharacterSummary>> {
+  async getSummary(nameSlug: string, realmSlug: string, BNet: BlizzAPI): Promise<Partial<CharacterSummary>> {
     const summary: Partial<CharacterSummary> = {};
 
     try {
@@ -166,11 +149,7 @@ export class CharacterService {
         if (hasValue) {
           if (key === 'id') {
             const numericId = Number(value);
-            if (
-              !isNaN(numericId) &&
-              Number.isInteger(numericId) &&
-              numericId > 0
-            ) {
+            if (!isNaN(numericId) && Number.isInteger(numericId) && numericId > 0) {
               summary[key] = numericId;
             }
           } else {
@@ -192,23 +171,13 @@ export class CharacterService {
         summary.guildGuid = toGuid(summary.guild, summary.realm);
       }
 
-      summary.status = setStatusString(
-        summary.status || '------',
-        'SUMMARY',
-        CharacterStatusState.SUCCESS,
-      );
+      summary.status = setStatusString(summary.status || '------', 'SUMMARY', CharacterStatusState.SUCCESS);
 
       return summary;
     } catch (errorOrException) {
-      summary.status = setStatusString(
-        summary.status || '------',
-        'SUMMARY',
-        CharacterStatusState.ERROR,
-      );
+      summary.status = setStatusString(summary.status || '------', 'SUMMARY', CharacterStatusState.ERROR);
 
-      const statusCode = isAxiosError(errorOrException)
-        ? errorOrException.response?.status
-        : errorOrException.status;
+      const statusCode = isAxiosError(errorOrException) ? errorOrException.response?.status : errorOrException.status;
 
       this.rateLimiter.handleResponse({ status: statusCode || 400 });
 
@@ -224,9 +193,7 @@ export class CharacterService {
       }
 
       if (statusCode === 429) {
-        this.logger.debug(
-          `${chalk.yellow('429')} Rate limited (getSummary): ${nameSlug}@${realmSlug}`,
-        );
+        this.logger.debug(`${chalk.yellow('429')} Rate limited (getSummary): ${nameSlug}@${realmSlug}`);
       } else {
         this.logger.error(
           `${chalk.red('getSummary')} ${nameSlug}@${realmSlug} | ${summary.status} - ${errorOrException.message}`,
@@ -237,11 +204,7 @@ export class CharacterService {
     }
   }
 
-  async getMedia(
-    nameSlug: string,
-    realmSlug: string,
-    BNet: BlizzAPI,
-  ): Promise<Partial<Media>> {
+  async getMedia(nameSlug: string, realmSlug: string, BNet: BlizzAPI): Promise<Partial<Media>> {
     const media: Partial<Media> = {};
 
     try {
@@ -265,19 +228,11 @@ export class CharacterService {
         media[CHARACTER_MEDIA_FIELD_MAPPING.get(key)] = value;
       });
 
-      media.status = setStatusString(
-        media.status || '------',
-        'MEDIA',
-        CharacterStatusState.SUCCESS,
-      );
+      media.status = setStatusString(media.status || '------', 'MEDIA', CharacterStatusState.SUCCESS);
 
       return media;
     } catch (errorOrException) {
-      media.status = setStatusString(
-        media.status || '------',
-        'MEDIA',
-        CharacterStatusState.ERROR,
-      );
+      media.status = setStatusString(media.status || '------', 'MEDIA', CharacterStatusState.ERROR);
 
       const statusCode = isAxiosError(errorOrException)
         ? errorOrException.response?.status
@@ -297,9 +252,7 @@ export class CharacterService {
       }
 
       if (statusCode === 429) {
-        this.logger.debug(
-          `${chalk.yellow('429')} Rate limited (getMedia): ${nameSlug}@${realmSlug}`,
-        );
+        this.logger.debug(`${chalk.yellow('429')} Rate limited (getMedia): ${nameSlug}@${realmSlug}`);
       } else {
         this.logger.error(
           `${chalk.red('getMedia')} ${nameSlug}@${realmSlug} | ${statusCode} - ${errorOrException.message}`,
@@ -310,11 +263,7 @@ export class CharacterService {
     }
   }
 
-  async getMountsCollection(
-    nameSlug: string,
-    realmSlug: string,
-    BNet: BlizzAPI,
-  ): Promise<BlizzardApiMountsCollection> {
+  async getMountsCollection(nameSlug: string, realmSlug: string, BNet: BlizzAPI): Promise<BlizzardApiMountsCollection> {
     const mounts: Partial<BlizzardApiMountsCollection> = {};
 
     try {
@@ -328,29 +277,17 @@ export class CharacterService {
 
       const isValidCollection = isMountCollection(response);
       if (!isValidCollection) {
-        mounts.status = setStatusString(
-          mounts.status || '------',
-          'MOUNTS',
-          CharacterStatusState.ERROR,
-        );
+        mounts.status = setStatusString(mounts.status || '------', 'MOUNTS', CharacterStatusState.ERROR);
         return mounts as BlizzardApiMountsCollection;
       }
 
       Object.assign(mounts, response);
 
-      mounts.status = setStatusString(
-        mounts.status || '------',
-        'MOUNTS',
-        CharacterStatusState.SUCCESS,
-      );
+      mounts.status = setStatusString(mounts.status || '------', 'MOUNTS', CharacterStatusState.SUCCESS);
 
       return mounts as BlizzardApiMountsCollection;
     } catch (errorOrException) {
-      mounts.status = setStatusString(
-        mounts.status || '------',
-        'MOUNTS',
-        CharacterStatusState.ERROR,
-      );
+      mounts.status = setStatusString(mounts.status || '------', 'MOUNTS', CharacterStatusState.ERROR);
 
       const statusCode = isAxiosError(errorOrException)
         ? errorOrException.response?.status
@@ -370,9 +307,7 @@ export class CharacterService {
       }
 
       if (statusCode === 429) {
-        this.logger.debug(
-          `${chalk.yellow('429')} Rate limited (getMountsCollection): ${nameSlug}@${realmSlug}`,
-        );
+        this.logger.debug(`${chalk.yellow('429')} Rate limited (getMountsCollection): ${nameSlug}@${realmSlug}`);
       } else {
         this.logger.error(
           `${chalk.red('getMountsCollection')} ${nameSlug}@${realmSlug} | ${statusCode} - ${errorOrException.message}`,
@@ -401,29 +336,17 @@ export class CharacterService {
 
       const isValidCollection = isPetsCollection(response);
       if (!isValidCollection) {
-        pets.status = setStatusString(
-          pets.status || '------',
-          'PETS',
-          CharacterStatusState.ERROR,
-        );
+        pets.status = setStatusString(pets.status || '------', 'PETS', CharacterStatusState.ERROR);
         return pets as BlizzardApiPetsCollection;
       }
 
       Object.assign(pets, response);
 
-      pets.status = setStatusString(
-        pets.status || '------',
-        'PETS',
-        CharacterStatusState.SUCCESS,
-      );
+      pets.status = setStatusString(pets.status || '------', 'PETS', CharacterStatusState.SUCCESS);
 
       return pets as BlizzardApiPetsCollection;
     } catch (errorOrException) {
-      pets.status = setStatusString(
-        pets.status || '------',
-        'PETS',
-        CharacterStatusState.ERROR,
-      );
+      pets.status = setStatusString(pets.status || '------', 'PETS', CharacterStatusState.ERROR);
 
       const statusCode = isAxiosError(errorOrException)
         ? errorOrException.response?.status
@@ -443,9 +366,7 @@ export class CharacterService {
       }
 
       if (statusCode === 429) {
-        this.logger.debug(
-          `${chalk.yellow('429')} Rate limited (getPetsCollection): ${nameSlug}@${realmSlug}`,
-        );
+        this.logger.debug(`${chalk.yellow('429')} Rate limited (getPetsCollection): ${nameSlug}@${realmSlug}`);
       } else {
         this.logger.error(
           `${chalk.red('getPetsCollection')} ${nameSlug}@${realmSlug} | ${statusCode} - ${errorOrException.message}`,
@@ -474,29 +395,17 @@ export class CharacterService {
 
       const isValidProfessions = isCharacterProfessions(response);
       if (!isValidProfessions) {
-        professions.status = setStatusString(
-          professions.status || '------',
-          'PROFESSIONS',
-          CharacterStatusState.ERROR,
-        );
+        professions.status = setStatusString(professions.status || '------', 'PROFESSIONS', CharacterStatusState.ERROR);
         return professions as BlizzardApiCharacterProfessions;
       }
 
       Object.assign(professions, response);
 
-      professions.status = setStatusString(
-        professions.status || '------',
-        'PROFESSIONS',
-        CharacterStatusState.SUCCESS,
-      );
+      professions.status = setStatusString(professions.status || '------', 'PROFESSIONS', CharacterStatusState.SUCCESS);
 
       return professions as BlizzardApiCharacterProfessions;
     } catch (errorOrException) {
-      professions.status = setStatusString(
-        professions.status || '------',
-        'PROFESSIONS',
-        CharacterStatusState.ERROR,
-      );
+      professions.status = setStatusString(professions.status || '------', 'PROFESSIONS', CharacterStatusState.ERROR);
 
       const statusCode = isAxiosError(errorOrException)
         ? errorOrException.response?.status
@@ -516,9 +425,7 @@ export class CharacterService {
       }
 
       if (statusCode === 429) {
-        this.logger.debug(
-          `${chalk.yellow('429')} Rate limited (getProfessions): ${nameSlug}@${realmSlug}`,
-        );
+        this.logger.debug(`${chalk.yellow('429')} Rate limited (getProfessions): ${nameSlug}@${realmSlug}`);
       } else {
         this.logger.error(
           `${chalk.red('getProfessions')} ${nameSlug}@${realmSlug} | ${statusCode} - ${errorOrException.message}`,

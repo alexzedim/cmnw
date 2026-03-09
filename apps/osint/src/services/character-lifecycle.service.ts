@@ -28,9 +28,7 @@ export class CharacterLifecycleService {
     private readonly charactersGuildsLogsRepository: Repository<CharactersGuildsLogsEntity>,
   ) {}
 
-  async findOrCreateCharacter(
-    character: ICharacterMessageBase,
-  ): Promise<CharacterExistsOrCreate> {
+  async findOrCreateCharacter(character: ICharacterMessageBase): Promise<CharacterExistsOrCreate> {
     const timestampNow = new Date().getTime();
     const forceUpdate = character.forceUpdate || TIME_MS.TWENTY_FOUR_HOURS;
 
@@ -83,10 +81,7 @@ export class CharacterLifecycleService {
     };
   }
 
-  private createNewCharacter(
-    character: ICharacterMessageBase,
-    realmEntity: RealmsEntity,
-  ): CharacterExistsOrCreate {
+  private createNewCharacter(character: ICharacterMessageBase, realmEntity: RealmsEntity): CharacterExistsOrCreate {
     const characterNew = this.charactersRepository.create({
       ...character,
       id: character.id || null,
@@ -111,9 +106,7 @@ export class CharacterLifecycleService {
     const hasGuildId = character.guildId;
     if (hasGuildId) characterNew.guildId = character.guildId;
 
-    characterNew.createdBy = character.createdBy
-      ? character.createdBy
-      : OSINT_SOURCE.CHARACTER_GET;
+    characterNew.createdBy = character.createdBy ? character.createdBy : OSINT_SOURCE.CHARACTER_GET;
 
     return {
       characterEntity: characterNew,
@@ -123,17 +116,9 @@ export class CharacterLifecycleService {
     };
   }
 
-  async diffAndLogChanges(
-    original: CharactersEntity,
-    updated: CharactersEntity,
-  ): Promise<void> {
+  async diffAndLogChanges(original: CharactersEntity, updated: CharactersEntity): Promise<void> {
     try {
-      const actionLogFields = [
-        ACTION_LOG.NAME,
-        ACTION_LOG.RACE,
-        ACTION_LOG.GENDER,
-        ACTION_LOG.FACTION,
-      ];
+      const actionLogFields = [ACTION_LOG.NAME, ACTION_LOG.RACE, ACTION_LOG.GENDER, ACTION_LOG.FACTION];
 
       for (const actionLogField of actionLogFields) {
         const key = actionLogField.toLowerCase();
@@ -164,10 +149,7 @@ export class CharacterLifecycleService {
     }
   }
 
-  shouldUpdateCharacter(
-    characterEntity: CharactersEntity,
-    forceUpdate: number,
-  ): boolean {
+  shouldUpdateCharacter(characterEntity: CharactersEntity, forceUpdate: number): boolean {
     const timestampNow = new Date().getTime();
     const updateSafe = timestampNow - forceUpdate;
     const updatedAt = characterEntity.updatedAt.getTime();

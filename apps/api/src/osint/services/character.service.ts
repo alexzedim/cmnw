@@ -24,7 +24,6 @@ import {
   CharacterHashFieldType,
   CharacterIdDto,
   CharacterMessageDto,
-  CharacterResponseDto,
   CharacterLfgDto,
   charactersQueue,
   getKeys,
@@ -34,6 +33,7 @@ import {
   findRealm,
   ICharacterMessageBase,
 } from '@app/resources';
+import { CharacterResponseDto } from '@app/resources/dto/character/character-response.dto';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, QueueEvents } from 'bullmq';
 import { getRedisConnection } from '@app/configuration';

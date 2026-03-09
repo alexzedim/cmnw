@@ -64,10 +64,7 @@ export const DEFAULT_AXIOS_RETRY_CONFIG: IAxiosRetryConfig = {
  * const delay = createAxiosRetryDelay(3, DEFAULT_AXIOS_RETRY_CONFIG);
  * // Returns ~4000ms + random(0, 500) = 4000-4500ms
  */
-export function createAxiosRetryDelay(
-  retryCount: number,
-  config: IAxiosRetryConfig,
-): number {
+export function createAxiosRetryDelay(retryCount: number, config: IAxiosRetryConfig): number {
   const exponentialDelay = config.baseDelayMs * Math.pow(2, retryCount - 1);
   const cappedDelay = Math.min(exponentialDelay, config.maxDelayMs);
   const jitter = Math.random() * 500;

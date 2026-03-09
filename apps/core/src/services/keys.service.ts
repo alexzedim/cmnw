@@ -82,9 +82,7 @@ export class KeysService implements OnApplicationBootstrap {
 
       for (const keyEntity of keysEntity) {
         const isResetErrorsCount =
-          keyEntity.status != KEY_STATUS.FREE &&
-          keyEntity.resetAt &&
-          DateTime.fromJSDate(keyEntity.resetAt) < now;
+          keyEntity.status != KEY_STATUS.FREE && keyEntity.resetAt && DateTime.fromJSDate(keyEntity.resetAt) < now;
 
         if (isResetErrorsCount) {
           keyEntity.resetAt = now.toJSDate();
@@ -93,8 +91,7 @@ export class KeysService implements OnApplicationBootstrap {
         }
 
         const isTooManyErrors =
-          keyEntity.errorCounts > KEY_LOCK_ERRORS_NUM &&
-          Boolean(keyEntity.status != KEY_STATUS.TOO_MANY_REQUESTS);
+          keyEntity.errorCounts > KEY_LOCK_ERRORS_NUM && Boolean(keyEntity.status != KEY_STATUS.TOO_MANY_REQUESTS);
 
         if (isTooManyErrors) {
           keyEntity.status = KEY_STATUS.TOO_MANY_REQUESTS;
@@ -140,9 +137,7 @@ export class KeysService implements OnApplicationBootstrap {
       });
 
       for (const keyEntity of keyEntities) {
-        const { data } = await this.httpService.axiosRef.request<
-          Partial<IWarcraftLogsToken>
-        >({
+        const { data } = await this.httpService.axiosRef.request<Partial<IWarcraftLogsToken>>({
           method: 'post',
           url: 'https://www.warcraftlogs.com/oauth/token',
           data: {

@@ -1,12 +1,6 @@
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
 import { KEY_STATUS } from '@app/resources';
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  PrimaryGeneratedColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity({ name: CMNW_ENTITY_ENUM.KEYS })
 export class KeysEntity {

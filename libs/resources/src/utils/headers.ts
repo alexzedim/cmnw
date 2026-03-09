@@ -18,16 +18,12 @@ import type { RandomizedHeadersOptions } from '../types';
  *   referer: 'https://example.com/page'
  * });
  */
-export function getRandomizedHeaders(
-  options: RandomizedHeadersOptions,
-): Record<string, string> {
+export function getRandomizedHeaders(options: RandomizedHeadersOptions): Record<string, string> {
   const { type, referer } = options;
 
   // Randomize common headers
-  const randomUserAgent =
-    USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
-  const randomAcceptLanguage =
-    ACCEPT_LANGUAGES[Math.floor(Math.random() * ACCEPT_LANGUAGES.length)];
+  const randomUserAgent = USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
+  const randomAcceptLanguage = ACCEPT_LANGUAGES[Math.floor(Math.random() * ACCEPT_LANGUAGES.length)];
 
   // Base headers common to both types
   const baseHeaders: Record<string, string> = {
@@ -42,8 +38,7 @@ export function getRandomizedHeaders(
   if (type === 'browser') {
     return {
       ...baseHeaders,
-      Accept:
-        'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
       'Upgrade-Insecure-Requests': '1',
       'Sec-Fetch-Dest': 'document',
       'Sec-Fetch-Mode': 'navigate',

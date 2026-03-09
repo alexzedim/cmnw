@@ -2,11 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { DateTime } from 'luxon';
-import {
-  AnalyticsMetricCategory,
-  AnalyticsMetricType,
-  MARKET_TYPE,
-} from '@app/resources';
+import { AnalyticsMetricCategory, AnalyticsMetricType, MARKET_TYPE } from '@app/resources';
 import { analyticsMetricExists } from '@app/resources/dao';
 import {
   MarketTotalMetrics,
@@ -109,10 +105,7 @@ export class MarketMetricsService {
       }
 
       // By Connected Realm
-      savedCount += await this.computeMarketByConnectedRealm(
-        snapshotDate,
-        threshold24h,
-      );
+      savedCount += await this.computeMarketByConnectedRealm(snapshotDate, threshold24h);
 
       // By Faction (global)
       savedCount += await this.computeMarketByFaction(snapshotDate, threshold24h);
@@ -124,15 +117,10 @@ export class MarketMetricsService {
       savedCount += await this.computeMarketTopByVolume(snapshotDate, threshold24h);
 
       // Top items by auction count
-      savedCount += await this.computeMarketTopByAuctions(
-        snapshotDate,
-        threshold24h,
-      );
+      savedCount += await this.computeMarketTopByAuctions(snapshotDate, threshold24h);
 
       const duration = Date.now() - startTime;
-      this.logger.log(
-        `Market metrics computed - metricsCount: ${savedCount}, durationMs: ${duration}`,
-      );
+      this.logger.log(`Market metrics computed - metricsCount: ${savedCount}, durationMs: ${duration}`);
     } catch (errorOrException) {
       const duration = Date.now() - startTime;
       this.logger.error({
@@ -147,23 +135,14 @@ export class MarketMetricsService {
     return savedCount;
   }
 
-  private async computeMarketByConnectedRealm(
-    snapshotDate: Date,
-    threshold24h: number,
-  ): Promise<number> {
+  private async computeMarketByConnectedRealm(snapshotDate: Date, threshold24h: number): Promise<number> {
     const byConnectedRealm = await this.marketRepository
       .createQueryBuilder('m')
       .select('m.connected_realm_id')
       .addSelect('COUNT(*)', 'auctions')
       .addSelect('SUM(m.value)', 'volume')
-      .addSelect(
-        'COUNT(DISTINCT CASE WHEN m.type = :auctionsType THEN m.item_id END)',
-        'unique_items_auctions',
-      )
-      .addSelect(
-        'COUNT(DISTINCT CASE WHEN m.type = :commdtyType THEN m.item_id END)',
-        'unique_items_commdty',
-      )
+      .addSelect('COUNT(DISTINCT CASE WHEN m.type = :auctionsType THEN m.item_id END)', 'unique_items_auctions')
+      .addSelect('COUNT(DISTINCT CASE WHEN m.type = :commdtyType THEN m.item_id END)', 'unique_items_commdty')
       .where('m.timestamp > :threshold', {
         threshold: threshold24h,
         auctionsType: 'AUCTIONS',
@@ -202,10 +181,7 @@ export class MarketMetricsService {
     return savedCount;
   }
 
-  private async computeMarketByFaction(
-    snapshotDate: Date,
-    threshold24h: number,
-  ): Promise<number> {
+  private async computeMarketByFaction(snapshotDate: Date, threshold24h: number): Promise<number> {
     // Check if metric exists
     const isByFactionExists = await this.metricExists(
       AnalyticsMetricCategory.MARKET,
@@ -249,10 +225,7 @@ export class MarketMetricsService {
     return 1;
   }
 
-  private async computeMarketPriceRanges(
-    snapshotDate: Date,
-    threshold24h: number,
-  ): Promise<number> {
+  private async computeMarketPriceRanges(snapshotDate: Date, threshold24h: number): Promise<number> {
     // Check if metric exists
     const isPriceRangesExists = await this.metricExists(
       AnalyticsMetricCategory.MARKET,
@@ -267,18 +240,9 @@ export class MarketMetricsService {
     const priceRanges = await this.marketRepository
       .createQueryBuilder('m')
       .select(`SUM(CASE WHEN m.price < 1000 THEN 1 ELSE 0 END)`, 'under1k')
-      .addSelect(
-        `SUM(CASE WHEN m.price >= 1000 AND m.price < 10000 THEN 1 ELSE 0 END)`,
-        'range1k10k',
-      )
-      .addSelect(
-        `SUM(CASE WHEN m.price >= 10000 AND m.price < 100000 THEN 1 ELSE 0 END)`,
-        'range10k100k',
-      )
-      .addSelect(
-        `SUM(CASE WHEN m.price >= 100000 AND m.price < 1000000 THEN 1 ELSE 0 END)`,
-        'range100k1m',
-      )
+      .addSelect(`SUM(CASE WHEN m.price >= 1000 AND m.price < 10000 THEN 1 ELSE 0 END)`, 'range1k10k')
+      .addSelect(`SUM(CASE WHEN m.price >= 10000 AND m.price < 100000 THEN 1 ELSE 0 END)`, 'range10k100k')
+      .addSelect(`SUM(CASE WHEN m.price >= 100000 AND m.price < 1000000 THEN 1 ELSE 0 END)`, 'range100k1m')
       .addSelect(`SUM(CASE WHEN m.price >= 1000000 THEN 1 ELSE 0 END)`, 'over1m')
       .where('m.timestamp > :threshold', { threshold: threshold24h })
       .getRawOne<MarketPriceRanges>();
@@ -299,10 +263,7 @@ export class MarketMetricsService {
     return 1;
   }
 
-  private async computeMarketTopByVolume(
-    snapshotDate: Date,
-    threshold24h: number,
-  ): Promise<number> {
+  private async computeMarketTopByVolume(snapshotDate: Date, threshold24h: number): Promise<number> {
     // Check if metric exists
     const isTopByVolumeExists = await this.metricExists(
       AnalyticsMetricCategory.MARKET,
@@ -339,10 +300,7 @@ export class MarketMetricsService {
     return 1;
   }
 
-  private async computeMarketTopByAuctions(
-    snapshotDate: Date,
-    threshold24h: number,
-  ): Promise<number> {
+  private async computeMarketTopByAuctions(snapshotDate: Date, threshold24h: number): Promise<number> {
     // Check if metric exists
     const isTopByAuctionsExists = await this.metricExists(
       AnalyticsMetricCategory.MARKET,

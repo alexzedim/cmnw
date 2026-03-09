@@ -1,9 +1,5 @@
 import { Module } from '@nestjs/common';
-import {
-  getRedisConnection,
-  postgresConfig,
-  redisConfig,
-} from '@app/configuration';
+import { getRedisConnection, postgresConfig, redisConfig } from '@app/configuration';
 import {
   AuctionsService,
   ContractsService,

@@ -53,17 +53,10 @@ export class GuildMetricsService {
         .select('SUM(g.members_count)', 'sum')
         .getRawOne<GuildTotalMetrics>();
 
-      const avgMembers =
-        totalCount > 0 ? parseInt(totalMembers?.sum || '0', 10) / totalCount : 0;
+      const avgMembers = totalCount > 0 ? parseInt(totalMembers?.sum || '0', 10) / totalCount : 0;
 
       // Check if total metric exists
-      if (
-        !(await this.metricExists(
-          AnalyticsMetricCategory.GUILDS,
-          AnalyticsMetricType.TOTAL,
-          snapshotDate,
-        ))
-      ) {
+      if (!(await this.metricExists(AnalyticsMetricCategory.GUILDS, AnalyticsMetricType.TOTAL, snapshotDate))) {
         const guildTotalMetric = this.analyticsMetricRepository.create({
           category: AnalyticsMetricCategory.GUILDS,
           metricType: AnalyticsMetricType.TOTAL,
@@ -97,9 +90,7 @@ export class GuildMetricsService {
       savedCount += await this.computeGuildTopByAchievements(snapshotDate);
 
       const duration = Date.now() - startTime;
-      this.logger.log(
-        `Guild metrics computed - metricsCount: ${savedCount}, durationMs: ${duration}`,
-      );
+      this.logger.log(`Guild metrics computed - metricsCount: ${savedCount}, durationMs: ${duration}`);
     } catch (errorOrException) {
       const duration = Date.now() - startTime;
       this.logger.error({
@@ -247,22 +238,10 @@ export class GuildMetricsService {
 
     const sizeDistribution = await this.guildsRepository
       .createQueryBuilder('g')
-      .select(
-        `SUM(CASE WHEN g.members_count BETWEEN 1 AND 10 THEN 1 ELSE 0 END)`,
-        'tiny',
-      )
-      .addSelect(
-        `SUM(CASE WHEN g.members_count BETWEEN 11 AND 30 THEN 1 ELSE 0 END)`,
-        'small',
-      )
-      .addSelect(
-        `SUM(CASE WHEN g.members_count BETWEEN 31 AND 100 THEN 1 ELSE 0 END)`,
-        'medium',
-      )
-      .addSelect(
-        `SUM(CASE WHEN g.members_count BETWEEN 101 AND 300 THEN 1 ELSE 0 END)`,
-        'large',
-      )
+      .select(`SUM(CASE WHEN g.members_count BETWEEN 1 AND 10 THEN 1 ELSE 0 END)`, 'tiny')
+      .addSelect(`SUM(CASE WHEN g.members_count BETWEEN 11 AND 30 THEN 1 ELSE 0 END)`, 'small')
+      .addSelect(`SUM(CASE WHEN g.members_count BETWEEN 31 AND 100 THEN 1 ELSE 0 END)`, 'medium')
+      .addSelect(`SUM(CASE WHEN g.members_count BETWEEN 101 AND 300 THEN 1 ELSE 0 END)`, 'large')
       .addSelect(`SUM(CASE WHEN g.members_count > 300 THEN 1 ELSE 0 END)`, 'massive')
       .getRawOne<GuildSizeDistribution>();
 

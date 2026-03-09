@@ -1,11 +1,5 @@
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 @Index('ix__characters_mounts__mount_id', ['mountId'], {})
 @Index('ix__characters_mounts__character_guid', ['characterGuid'], {})

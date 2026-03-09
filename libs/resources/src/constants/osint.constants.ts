@@ -19,8 +19,7 @@ export const OSINT_TIMEOUT_TOLERANCE = 50 * 1_000;
 
 export const OSINT_SOURCE_WCL = 'https://www.warcraftlogs.com/character/eu';
 
-export const OSINT_SOURCE_WOW_PROGRESS_RANKS =
-  'https://www.wowprogress.com/export/ranks/';
+export const OSINT_SOURCE_WOW_PROGRESS_RANKS = 'https://www.wowprogress.com/export/ranks/';
 
 export const OSINT_SOURCE_WOW_PROGRESS = 'https://www.wowprogress.com/character/eu';
 
@@ -97,10 +96,7 @@ export const CHARACTER_PROFILE_MAPPING = new Map<string, keyof WowProgressProfil
   ['Languages', 'languages'],
 ]);
 
-export const CHARACTER_PROFILE_RIO_MAPPING = new Map<
-  RaiderIoCharacterMappingKey,
-  RaiderIoCharacterMappingField
->([
+export const CHARACTER_PROFILE_RIO_MAPPING = new Map<RaiderIoCharacterMappingKey, RaiderIoCharacterMappingField>([
   ['name', 'name'],
   ['realm', 'realm'],
   ['race', 'race'],
@@ -110,10 +106,7 @@ export const CHARACTER_PROFILE_RIO_MAPPING = new Map<
   ['gender', 'gender'],
 ]);
 
-export const CHARACTER_HASH_FIELDS = new Map<
-  CharacterHashFieldType,
-  CharactersHashType
->([
+export const CHARACTER_HASH_FIELDS = new Map<CharacterHashFieldType, CharactersHashType>([
   ['a', 'hashA'],
   ['b', 'hashB'],
 ]);

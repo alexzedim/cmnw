@@ -35,12 +35,7 @@ import {
   AdaptiveRateLimiter,
   DEFAULT_RATE_LIMITER_CONFIG,
 } from '@app/resources';
-import {
-  CharactersEntity,
-  GuildsEntity,
-  KeysEntity,
-  RealmsEntity,
-} from '@app/pg';
+import { CharactersEntity, GuildsEntity, KeysEntity, RealmsEntity } from '@app/pg';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 
@@ -64,16 +59,10 @@ export class GuildRosterService {
     private readonly charactersRepository: Repository<CharactersEntity>,
   ) {
     this.keyErrorTracker = new KeyErrorTracker(keysRepository);
-    this.rateLimiter = new AdaptiveRateLimiter(
-      DEFAULT_RATE_LIMITER_CONFIG,
-      this.logger,
-    );
+    this.rateLimiter = new AdaptiveRateLimiter(DEFAULT_RATE_LIMITER_CONFIG, this.logger);
   }
 
-  async fetchRoster(
-    guildEntity: GuildsEntity,
-    BNet: BlizzAPI,
-  ): Promise<IGuildRoster> {
+  async fetchRoster(guildEntity: GuildsEntity, BNet: BlizzAPI): Promise<IGuildRoster> {
     const roster: IGuildRoster = { members: [] };
 
     try {
@@ -93,32 +82,16 @@ export class GuildRosterService {
       await lastValueFrom(
         from(response.members).pipe(
           mergeMap(
-            (member) =>
-              this.processRosterMember(
-                member,
-                guildEntity,
-                guildNameSlug,
-                roster,
-                BNet,
-              ),
+            (member) => this.processRosterMember(member, guildEntity, guildNameSlug, roster, BNet),
             GUILD_WORKER_CONSTANTS.ROSTER_CONCURRENCY,
           ),
         ),
       );
 
-      roster.status = setGuildStatusString(
-        '-----',
-        'ROSTER',
-        GuildStatusState.SUCCESS,
-      );
+      roster.status = setGuildStatusString('-----', 'ROSTER', GuildStatusState.SUCCESS);
       return roster;
     } catch (errorOrException) {
-      return await this.handleRosterError(
-        errorOrException,
-        roster,
-        guildEntity,
-        BNet,
-      );
+      return await this.handleRosterError(errorOrException, roster, guildEntity, BNet);
     }
   }
 
@@ -137,23 +110,13 @@ export class GuildRosterService {
 
       const isCharacterGM = member.rank === OSINT_GM_RANK;
 
-      const characterRealmId = get(
-        member,
-        'character.realm.id',
-        guildEntity.realmId,
-      );
-      const characterRealmSlug = get(
-        member,
-        'character.realm.slug',
-        guildEntity.realm,
-      );
+      const characterRealmId = get(member, 'character.realm.id', guildEntity.realmId);
+      const characterRealmSlug = get(member, 'character.realm.slug', guildEntity.realm);
 
       const characterGuid = toGuid(member.character.name, characterRealmSlug);
 
       const level = member.character.level || null;
-      const characterClass = PLAYABLE_CLASS.has(
-        member.character.playable_class.id,
-      )
+      const characterClass = PLAYABLE_CLASS.has(member.character.playable_class.id)
         ? PLAYABLE_CLASS.get(member.character.playable_class.id)
         : null;
 
@@ -162,24 +125,17 @@ export class GuildRosterService {
         : null;
 
       // @todo
-      const factionData = get(member, 'character.faction', null) as Record<
-        string,
-        any
-      > | null;
+      const factionData = get(member, 'character.faction', null) as Record<string, any> | null;
 
       let resolvedFaction = guildEntity.faction ?? null;
 
-      const isFactionObject =
-        factionData !== null && typeof factionData === 'object';
+      const isFactionObject = factionData !== null && typeof factionData === 'object';
 
       if (isFactionObject) {
-        const hasFactionTypeWithoutName =
-          factionData.type && factionData.name === null;
+        const hasFactionTypeWithoutName = factionData.type && factionData.name === null;
 
         if (hasFactionTypeWithoutName) {
-          const factionTypeStartsWithA = factionData.type
-            .toString()
-            .startsWith('A');
+          const factionTypeStartsWithA = factionData.type.toString().startsWith('A');
           resolvedFaction = factionTypeStartsWithA ? FACTION.A : FACTION.H;
         } else if (factionData.name) {
           resolvedFaction = factionData.name;
@@ -225,7 +181,7 @@ export class GuildRosterService {
         race: characterRace,
         faction: resolvedFaction,
       });
-    } catch (errorOrException) {
+    } catch (_errorOrException) {
       this.logger.error({
         logTag: 'processRosterMember',
         member: member.character?.id,
@@ -291,12 +247,7 @@ export class GuildRosterService {
       faction,
     };
 
-    await characterAsGuildMember(
-      this.charactersRepository,
-      this.realmsRepository,
-      guildEntity,
-      guildMember,
-    );
+    await characterAsGuildMember(this.charactersRepository, this.realmsRepository, guildEntity, guildMember);
   }
 
   private async handleRosterError(
@@ -312,11 +263,7 @@ export class GuildRosterService {
     this.rateLimiter.handleResponse({ status: statusCode || 400 });
 
     roster.statusCode = statusCode || 400;
-    roster.status = setGuildStatusString(
-      '-----',
-      'ROSTER',
-      GuildStatusState.ERROR,
-    );
+    roster.status = setGuildStatusString('-----', 'ROSTER', GuildStatusState.ERROR);
 
     // Track API key errors (403, 429)
     if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {

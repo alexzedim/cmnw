@@ -1,13 +1,6 @@
 import type { BattleNetOptions } from '@alexzedim/blizzapi';
 import { CharactersEntity, GuildsEntity } from '@app/pg';
-import {
-  IQAuction,
-  IQCharacterProfile,
-  IQGuild,
-  IQGuildOptions,
-  IQItem,
-  IQRealm,
-} from '@app/resources/types';
+import { IQAuction, IQCharacterProfile, IQGuild, IQGuildOptions, IQItem, IQRealm } from '@app/resources/types';
 
 // ============================================================================
 // BullMQ Configuration Types
@@ -155,15 +148,11 @@ export interface IBullMQSchedulerOptions {
 // Job Queue Types
 // ============================================================================
 
-export type ProfileJobQueue = Pick<CharactersEntity, 'name' | 'realm'> &
-  Readonly<IQCharacterProfile>;
+export type ProfileJobQueue = Pick<CharactersEntity, 'name' | 'realm'> & Readonly<IQCharacterProfile>;
 
 export type RealmJobQueue = Readonly<IQRealm> & BattleNetOptions;
 
-export type GuildJobQueue = Readonly<IQGuild> &
-  Partial<GuildsEntity> &
-  Readonly<IQGuildOptions> &
-  BattleNetOptions;
+export type GuildJobQueue = Readonly<IQGuild> & Partial<GuildsEntity> & Readonly<IQGuildOptions> & BattleNetOptions;
 
 export type AuctionJobQueue = Partial<IQAuction> & BattleNetOptions;
 

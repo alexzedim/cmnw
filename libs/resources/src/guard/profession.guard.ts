@@ -18,9 +18,7 @@ import {
  * Validates if response is a successful profession index response
  * GET /data/wow/profession/index
  */
-export const isBnetProfessionIndexResponse = (
-  response: unknown,
-): response is Readonly<ProfessionIndex> =>
+export const isBnetProfessionIndexResponse = (response: unknown): response is Readonly<ProfessionIndex> =>
   typeof response === 'object' &&
   response !== null &&
   '_links' in response &&
@@ -40,9 +38,7 @@ export const isBnetProfessionIndexResponse = (
 /**
  * Validates profession object from profession index response
  */
-export const isBnetProfession = (
-  profession: unknown,
-): profession is Readonly<IBlizzardProfession> =>
+export const isBnetProfession = (profession: unknown): profession is Readonly<IBlizzardProfession> =>
   typeof profession === 'object' &&
   profession !== null &&
   'id' in profession &&
@@ -56,9 +52,7 @@ export const isBnetProfession = (
  * Validates if response is a successful profession detail response
  * GET /data/wow/profession/{professionId}
  */
-export const isBnetProfessionDetailResponse = (
-  response: unknown,
-): response is Readonly<ProfessionDetail> =>
+export const isBnetProfessionDetailResponse = (response: unknown): response is Readonly<ProfessionDetail> =>
   typeof response === 'object' &&
   response !== null &&
   '_links' in response &&
@@ -74,9 +68,7 @@ export const isBnetProfessionDetailResponse = (
 /**
  * Validates if response has skill_tiers (may be undefined in some cases)
  */
-export const hasBnetSkillTiers = (
-  response: unknown,
-): response is { skill_tiers: readonly any[] } =>
+export const hasBnetSkillTiers = (response: unknown): response is { skill_tiers: readonly any[] } =>
   typeof response === 'object' &&
   response !== null &&
   'skill_tiers' in response &&
@@ -85,9 +77,7 @@ export const hasBnetSkillTiers = (
 /**
  * Validates skill tier object
  */
-export const isBnetSkillTier = (
-  tier: unknown,
-): tier is Readonly<IBlizzardSkillTier> =>
+export const isBnetSkillTier = (tier: unknown): tier is Readonly<IBlizzardSkillTier> =>
   typeof tier === 'object' &&
   tier !== null &&
   'id' in tier &&
@@ -116,9 +106,7 @@ export const isNameField = (name: unknown): name is Readonly<IBlizzardNameField>
  * Validates if response is a successful skill tier detail response
  * GET /data/wow/profession/{professionId}/skill-tier/{skillTierId}
  */
-export const isBnetSkillTierDetailResponse = (
-  response: unknown,
-): response is Readonly<SkillTierDetail> =>
+export const isBnetSkillTierDetailResponse = (response: unknown): response is Readonly<SkillTierDetail> =>
   typeof response === 'object' &&
   response !== null &&
   '_links' in response &&
@@ -136,9 +124,7 @@ export const isBnetSkillTierDetailResponse = (
 /**
  * Validates if response has categories (may be undefined in some cases)
  */
-export const hasBnetCategories = (
-  response: unknown,
-): response is { categories: readonly any[] } =>
+export const hasBnetCategories = (response: unknown): response is { categories: readonly any[] } =>
   typeof response === 'object' &&
   response !== null &&
   'categories' in response &&
@@ -147,9 +133,7 @@ export const hasBnetCategories = (
 /**
  * Validates category object
  */
-export const isBnetCategory = (
-  category: unknown,
-): category is Readonly<IBlizzardCategory> =>
+export const isBnetCategory = (category: unknown): category is Readonly<IBlizzardCategory> =>
   typeof category === 'object' &&
   category !== null &&
   'id' in category &&
@@ -164,9 +148,7 @@ export const isBnetCategory = (
 /**
  * Validates if category has recipes (may be undefined in some cases)
  */
-export const hasBnetRecipes = (
-  category: unknown,
-): category is { recipes: readonly any[] } =>
+export const hasBnetRecipes = (category: unknown): category is { recipes: readonly any[] } =>
   typeof category === 'object' &&
   category !== null &&
   'recipes' in category &&

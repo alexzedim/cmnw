@@ -2,11 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { DateTime } from 'luxon';
-import {
-  AnalyticsMetricCategory,
-  AnalyticsMetricType,
-  analyticsMetricExists,
-} from '@app/resources';
+import { AnalyticsMetricCategory, AnalyticsMetricType, analyticsMetricExists } from '@app/resources';
 import {
   ContractTotalMetrics,
   ContractCommoditiesData,
@@ -89,39 +85,22 @@ export class ContractMetricsService {
       }
 
       // Commodities (connectedRealmId = 1)
-      savedCount += await this.computeContractByCommodities(
-        snapshotDate,
-        threshold24h,
-      );
+      savedCount += await this.computeContractByCommodities(snapshotDate, threshold24h);
 
       // By Connected Realm
-      savedCount += await this.computeContractByConnectedRealm(
-        snapshotDate,
-        threshold24h,
-      );
+      savedCount += await this.computeContractByConnectedRealm(snapshotDate, threshold24h);
 
       // Top items by quantity
-      savedCount += await this.computeContractTopByQuantity(
-        snapshotDate,
-        threshold24h,
-      );
+      savedCount += await this.computeContractTopByQuantity(snapshotDate, threshold24h);
 
       // Top items by open interest
-      savedCount += await this.computeContractTopByOpenInterest(
-        snapshotDate,
-        threshold24h,
-      );
+      savedCount += await this.computeContractTopByOpenInterest(snapshotDate, threshold24h);
 
       // Price volatility
-      savedCount += await this.computeContractPriceVolatility(
-        snapshotDate,
-        threshold24h,
-      );
+      savedCount += await this.computeContractPriceVolatility(snapshotDate, threshold24h);
 
       const duration = Date.now() - startTime;
-      this.logger.log(
-        `Contract metrics computed - metricsCount: ${savedCount}, durationMs: ${duration}`,
-      );
+      this.logger.log(`Contract metrics computed - metricsCount: ${savedCount}, durationMs: ${duration}`);
     } catch (errorOrException) {
       const duration = Date.now() - startTime;
       this.logger.error({
@@ -136,10 +115,7 @@ export class ContractMetricsService {
     return savedCount;
   }
 
-  private async computeContractByCommodities(
-    snapshotDate: Date,
-    threshold24h: number,
-  ): Promise<number> {
+  private async computeContractByCommodities(snapshotDate: Date, threshold24h: number): Promise<number> {
     // Check if metric exists
     const existsByCommodities = await this.metricExists(
       AnalyticsMetricCategory.CONTRACTS,
@@ -175,10 +151,7 @@ export class ContractMetricsService {
     return 1;
   }
 
-  private async computeContractByConnectedRealm(
-    snapshotDate: Date,
-    threshold24h: number,
-  ): Promise<number> {
+  private async computeContractByConnectedRealm(snapshotDate: Date, threshold24h: number): Promise<number> {
     const byConnectedRealm = await this.contractRepository
       .createQueryBuilder('c')
       .select('c.connected_realm_id')
@@ -200,19 +173,17 @@ export class ContractMetricsService {
       );
 
       if (!existsByConnectedRealm) {
-        const contractByConnectedRealmMetric = this.analyticsMetricRepository.create(
-          {
-            category: AnalyticsMetricCategory.CONTRACTS,
-            metricType: AnalyticsMetricType.BY_CONNECTED_REALM,
-            realmId: realm.connected_realm_id,
-            value: {
-              count: parseInt(realm.count, 10),
-              totalQuantity: parseInt(realm.total_quantity || '0', 10),
-              totalOpenInterest: parseFloat(realm.total_open_interest || '0'),
-            },
-            snapshotDate,
+        const contractByConnectedRealmMetric = this.analyticsMetricRepository.create({
+          category: AnalyticsMetricCategory.CONTRACTS,
+          metricType: AnalyticsMetricType.BY_CONNECTED_REALM,
+          realmId: realm.connected_realm_id,
+          value: {
+            count: parseInt(realm.count, 10),
+            totalQuantity: parseInt(realm.total_quantity || '0', 10),
+            totalOpenInterest: parseFloat(realm.total_open_interest || '0'),
           },
-        );
+          snapshotDate,
+        });
         await this.analyticsMetricRepository.save(contractByConnectedRealmMetric);
         savedCount++;
       }
@@ -220,10 +191,7 @@ export class ContractMetricsService {
     return savedCount;
   }
 
-  private async computeContractTopByQuantity(
-    snapshotDate: Date,
-    threshold24h: number,
-  ): Promise<number> {
+  private async computeContractTopByQuantity(snapshotDate: Date, threshold24h: number): Promise<number> {
     // Check if metric exists
     const existsTopByQuantity = await this.metricExists(
       AnalyticsMetricCategory.CONTRACTS,
@@ -264,10 +232,7 @@ export class ContractMetricsService {
     return 1;
   }
 
-  private async computeContractTopByOpenInterest(
-    snapshotDate: Date,
-    threshold24h: number,
-  ): Promise<number> {
+  private async computeContractTopByOpenInterest(snapshotDate: Date, threshold24h: number): Promise<number> {
     // Check if metric exists
     const existsTopByOpenInterest = await this.metricExists(
       AnalyticsMetricCategory.CONTRACTS,
@@ -308,10 +273,7 @@ export class ContractMetricsService {
     return 1;
   }
 
-  private async computeContractPriceVolatility(
-    snapshotDate: Date,
-    threshold24h: number,
-  ): Promise<number> {
+  private async computeContractPriceVolatility(snapshotDate: Date, threshold24h: number): Promise<number> {
     // Check if metric exists
     const existsPriceVolatility = await this.metricExists(
       AnalyticsMetricCategory.CONTRACTS,

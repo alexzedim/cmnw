@@ -22,10 +22,7 @@ export type BlizzardApiNamedField = Record<string, BlizzardApiValue>;
 
 export type BlizzardApiArray = Array<BlizzardApiValue | BlizzardApiNamedField>;
 
-export type BlizzardApiResponse = Record<
-  string,
-  BlizzardApiValue | BlizzardApiNamedField | BlizzardApiArray
->;
+export type BlizzardApiResponse = Record<string, BlizzardApiValue | BlizzardApiNamedField | BlizzardApiArray>;
 
 export type BlizzardApiArrayResponse = Record<string, BlizzardApiArray>;
 
@@ -33,10 +30,7 @@ export type BlizzardApiPetsCollection = Record<'pets', Array<IPetType>> & {
   status?: string;
 };
 
-export type BlizzardApiMountsCollection = Record<
-  'mounts',
-  Array<IMountsNameWithId>
-> & {
+export type BlizzardApiMountsCollection = Record<'mounts', Array<IMountsNameWithId>> & {
   status?: string;
 };
 

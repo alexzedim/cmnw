@@ -2,7 +2,6 @@
  * BullMQ Queue Configuration for Items
  *
  * Defines BullMQ queue configuration for item-related jobs.
- * Replaces RabbitMQ item queue.
  */
 import { getRedisConnection } from '@app/configuration';
 import type { IBullMQQueueOptions } from '@app/resources/types/queue/queue.type';
