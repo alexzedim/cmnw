@@ -16,6 +16,7 @@ import {
 import { IAxiosRetryConfig } from '../../utils/axios-retry.config';
 import { KeysEntity } from '@app/pg';
 import { Repository } from 'typeorm';
+import { RegionIdOrName } from '@alexzedim/blizzapi';
 
 export type BlizzardApiStringNumber = string | number;
 
@@ -229,7 +230,7 @@ export interface IBlizzardApiServiceConfig {
   clientId: string;
   clientSecret: string;
   accessToken: string;
-  region?: 'us' | 'eu' | 'kr' | 'tw' | 'cn';
+  region?: RegionIdOrName;
 }
 
 export interface ICreateClientOptions {

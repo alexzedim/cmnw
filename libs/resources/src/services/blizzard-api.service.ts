@@ -89,7 +89,7 @@ export class BlizzardApiService {
     });
 
     this.logger.log(
-      `${chalk.green('✓')} Created BlizzAPI client [${chalk.bold(region.toUpperCase())}]` +
+      `${chalk.green('✓')} Created BlizzAPI client [${chalk.bold(String(region).toUpperCase())}]` +
         ` with axios-retry [${chalk.dim(`retries=${mergedRetryConfig.retries}`)}]`,
     );
 
