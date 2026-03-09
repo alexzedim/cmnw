@@ -19,6 +19,7 @@ import {
   ApiKeyErrorContext,
   KeyErrorTracker,
   AdaptiveRateLimiter,
+  DEFAULT_RATE_LIMITER_CONFIG,
 } from '@app/resources';
 import { KeysEntity } from '@app/pg';
 import { GUILD_SUMMARY_KEYS } from '@app/resources';
@@ -38,13 +39,7 @@ export class GuildSummaryService {
   ) {
     this.keyErrorTracker = new KeyErrorTracker(keysRepository);
     this.rateLimiter = new AdaptiveRateLimiter(
-      {
-        initialDelayMs: 100,
-        backoffMultiplier: 1.5,
-        recoveryDivisor: 1.1,
-        successThresholdForRecovery: 5,
-        enableJitter: true,
-      },
+      DEFAULT_RATE_LIMITER_CONFIG,
       this.logger,
     );
   }

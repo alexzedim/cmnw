@@ -32,6 +32,7 @@ import {
   ApiKeyErrorContext,
   KeyErrorTracker,
   AdaptiveRateLimiter,
+  DEFAULT_RATE_LIMITER_CONFIG,
 } from '@app/resources';
 import { KeysEntity } from '@app/pg';
 
@@ -50,13 +51,7 @@ export class CharacterService {
   ) {
     this.keyErrorTracker = new KeyErrorTracker(keysRepository);
     this.rateLimiter = new AdaptiveRateLimiter(
-      {
-        initialDelayMs: 100,
-        backoffMultiplier: 1.5,
-        recoveryDivisor: 1.1,
-        successThresholdForRecovery: 5,
-        enableJitter: true,
-      },
+      DEFAULT_RATE_LIMITER_CONFIG,
       this.logger,
     );
   }
@@ -86,7 +81,8 @@ export class CharacterService {
         }
       }
 
-      if (statusResponse.is_valid) characterStatus.isValid = statusResponse.is_valid;
+      if (statusResponse.is_valid)
+        characterStatus.isValid = statusResponse.is_valid;
 
       const hasLastModified = statusResponse.last_modified;
       if (hasLastModified) {
@@ -170,7 +166,11 @@ export class CharacterService {
         if (hasValue) {
           if (key === 'id') {
             const numericId = Number(value);
-            if (!isNaN(numericId) && Number.isInteger(numericId) && numericId > 0) {
+            if (
+              !isNaN(numericId) &&
+              Number.isInteger(numericId) &&
+              numericId > 0
+            ) {
               summary[key] = numericId;
             }
           } else {

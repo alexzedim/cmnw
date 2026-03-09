@@ -33,8 +33,14 @@ import {
   KeyErrorTracker,
   ICharacterMessageBase,
   AdaptiveRateLimiter,
+  DEFAULT_RATE_LIMITER_CONFIG,
 } from '@app/resources';
-import { CharactersEntity, GuildsEntity, KeysEntity, RealmsEntity } from '@app/pg';
+import {
+  CharactersEntity,
+  GuildsEntity,
+  KeysEntity,
+  RealmsEntity,
+} from '@app/pg';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 
@@ -59,13 +65,7 @@ export class GuildRosterService {
   ) {
     this.keyErrorTracker = new KeyErrorTracker(keysRepository);
     this.rateLimiter = new AdaptiveRateLimiter(
-      {
-        initialDelayMs: 100,
-        backoffMultiplier: 1.5,
-        recoveryDivisor: 1.1,
-        successThresholdForRecovery: 5,
-        enableJitter: true,
-      },
+      DEFAULT_RATE_LIMITER_CONFIG,
       this.logger,
     );
   }
@@ -151,7 +151,9 @@ export class GuildRosterService {
       const characterGuid = toGuid(member.character.name, characterRealmSlug);
 
       const level = member.character.level || null;
-      const characterClass = PLAYABLE_CLASS.has(member.character.playable_class.id)
+      const characterClass = PLAYABLE_CLASS.has(
+        member.character.playable_class.id,
+      )
         ? PLAYABLE_CLASS.get(member.character.playable_class.id)
         : null;
 
@@ -175,7 +177,9 @@ export class GuildRosterService {
           factionData.type && factionData.name === null;
 
         if (hasFactionTypeWithoutName) {
-          const factionTypeStartsWithA = factionData.type.toString().startsWith('A');
+          const factionTypeStartsWithA = factionData.type
+            .toString()
+            .startsWith('A');
           resolvedFaction = factionTypeStartsWithA ? FACTION.A : FACTION.H;
         } else if (factionData.name) {
           resolvedFaction = factionData.name;
@@ -308,7 +312,11 @@ export class GuildRosterService {
     this.rateLimiter.handleResponse({ status: statusCode || 400 });
 
     roster.statusCode = statusCode || 400;
-    roster.status = setGuildStatusString('-----', 'ROSTER', GuildStatusState.ERROR);
+    roster.status = setGuildStatusString(
+      '-----',
+      'ROSTER',
+      GuildStatusState.ERROR,
+    );
 
     // Track API key errors (403, 429)
     if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
