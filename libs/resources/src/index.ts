@@ -1,3 +1,4 @@
+export * from './config';
 export * from './dto';
 export * from './dao';
 export * from './types';
