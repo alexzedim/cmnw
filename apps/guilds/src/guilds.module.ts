@@ -5,7 +5,7 @@ import { GuildsService } from './guilds.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CharactersEntity, GuildsEntity, KeysEntity } from '@app/pg';
-import { guildsQueue } from '@app/resources';
+import { BlizzardApiService, guildsQueue } from '@app/resources';
 
 @Module({
   imports: [
@@ -22,6 +22,6 @@ import { guildsQueue } from '@app/resources';
     }),
   ],
   controllers: [],
-  providers: [GuildsService],
+  providers: [BlizzardApiService, GuildsService],
 })
 export class GuildsModule {}
