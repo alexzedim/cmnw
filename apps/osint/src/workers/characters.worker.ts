@@ -4,11 +4,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
-import { coreConfig } from '@app/configuration';
 import {
+  BlizzardApiService,
   CHARACTER_SUMMARY_FIELD_MAPPING,
   charactersQueue,
-  getRandomProxy,
   toSlug,
   ICharacterMessageBase,
   setStatusString,
@@ -57,6 +56,7 @@ export class CharactersWorker extends WorkerHost {
     private readonly characterService: CharacterService,
     private readonly lifecycleService: CharacterLifecycleService,
     private readonly collectionSyncService: CharacterCollectionService,
+    private readonly blizzardApiService: BlizzardApiService,
   ) {
     super();
   }
@@ -151,7 +151,10 @@ export class CharactersWorker extends WorkerHost {
     }
   }
 
-  private logCharacterResult(character: CharactersEntity, duration: number): void {
+  private logCharacterResult(
+    character: CharactersEntity,
+    duration: number,
+  ): void {
     const status = character.status || '------';
     const guid = character.guid;
     const isAllSuccess = status === 'SU-MPVR';
@@ -215,15 +218,14 @@ export class CharactersWorker extends WorkerHost {
     }
   }
 
-  private async initializeApiClient(args: ICharacterMessageBase): Promise<BlizzAPI> {
-    return new BlizzAPI({
-      region: args.region || 'eu',
+  private async initializeApiClient(
+    args: ICharacterMessageBase,
+  ): Promise<BlizzAPI> {
+    return this.blizzardApiService.createClient({
       clientId: args.clientId,
       clientSecret: args.clientSecret,
       accessToken: args.accessToken,
-      httpsAgent: coreConfig.useProxy
-        ? await getRandomProxy(this.keysRepository)
-        : undefined,
+      region: args.region || 'eu',
     });
   }
 
@@ -236,10 +238,18 @@ export class CharactersWorker extends WorkerHost {
 
     const [summary, petsCollection, mountsCollection, media, professions] =
       await Promise.allSettled([
-        this.characterService.getSummary(nameSlug, characterEntity.realm, this.BNet),
+        this.characterService.getSummary(
+          nameSlug,
+          characterEntity.realm,
+          this.BNet,
+        ),
         this.fetchAndSyncPets(nameSlug, characterEntity.realm),
         this.fetchAndSyncMounts(nameSlug, characterEntity.realm),
-        this.characterService.getMedia(nameSlug, characterEntity.realm, this.BNet),
+        this.characterService.getMedia(
+          nameSlug,
+          characterEntity.realm,
+          this.BNet,
+        ),
         this.fetchAndSyncProfessions(nameSlug, characterEntity.realm),
       ]);
 
@@ -279,9 +289,17 @@ export class CharactersWorker extends WorkerHost {
     const isProfessionsFulfilled = professions.status === 'fulfilled';
     if (isProfessionsFulfilled) {
       Object.assign(characterEntity, professions.value);
-      status = setStatusString(status, 'PROFESSIONS', CharacterStatusState.SUCCESS);
+      status = setStatusString(
+        status,
+        'PROFESSIONS',
+        CharacterStatusState.SUCCESS,
+      );
     } else {
-      status = setStatusString(status, 'PROFESSIONS', CharacterStatusState.ERROR);
+      status = setStatusString(
+        status,
+        'PROFESSIONS',
+        CharacterStatusState.ERROR,
+      );
     }
 
     // Update entity with status string
@@ -356,11 +374,12 @@ export class CharactersWorker extends WorkerHost {
       return {};
     }
 
-    const professions = await this.collectionSyncService.syncCharacterProfessions(
-      nameSlug,
-      realmSlug,
-      professionsResponse,
-    );
+    const professions =
+      await this.collectionSyncService.syncCharacterProfessions(
+        nameSlug,
+        realmSlug,
+        professionsResponse,
+      );
 
     return { professions };
   }

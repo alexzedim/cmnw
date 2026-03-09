@@ -33,7 +33,12 @@ import {
   RealmsEntity,
 } from '@app/pg';
 import { getRedisConnection } from '@app/configuration';
-import { charactersQueue, guildsQueue, profileQueue } from '@app/resources/queues';
+import {
+  charactersQueue,
+  guildsQueue,
+  profileQueue,
+} from '@app/resources/queues';
+import { BlizzardApiService } from '@app/resources';
 
 @Module({
   imports: [
@@ -73,6 +78,7 @@ import { charactersQueue, guildsQueue, profileQueue } from '@app/resources/queue
   ],
   controllers: [],
   providers: [
+    BlizzardApiService,
     CharactersWorker,
     GuildsWorker,
     ProfileWorker,
