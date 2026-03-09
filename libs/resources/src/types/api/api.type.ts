@@ -13,6 +13,9 @@ import {
   ProfessionDetail,
   SkillTierDetail,
 } from '@app/resources/types';
+import { IAxiosRetryConfig } from '../../utils/axios-retry.config';
+import { KeysEntity } from '@app/pg';
+import { Repository } from 'typeorm';
 
 export type BlizzardApiStringNumber = string | number;
 
@@ -220,4 +223,34 @@ export interface ApiKeyErrorContext {
    * @example { realmId: 123, attempt: 2 }
    */
   additionalInfo?: Record<string, any>;
+}
+
+export interface IBlizzardApiServiceConfig {
+  clientId: string;
+  clientSecret: string;
+  accessToken: string;
+  region?: 'us' | 'eu' | 'kr' | 'tw' | 'cn';
+}
+
+export interface ICreateClientOptions {
+  /** Custom retry configuration */
+  retryConfig?: Partial<IAxiosRetryConfig>;
+  /** Key pool service for key rotation on 429 */
+  keyPoolService?: any; // Reference to KeyPoolService from services
+  /** Keys repository for direct error tracking */
+  keysRepository?: Repository<KeysEntity>;
+  /** Tag to identify key in pool */
+  keyTag?: string;
+}
+
+export interface KeyPoolOptions {
+  tag?: string;
+  region?: string;
+  skipCooldown?: boolean;
+}
+
+export interface KeyRotationResult {
+  key: KeysEntity | null;
+  previousKey: KeysEntity | null;
+  reason: 'rate_limited' | 'disabled' | 'error_threshold' | 'none';
 }

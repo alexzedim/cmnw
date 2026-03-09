@@ -7,26 +7,9 @@ import Redis from 'ioredis';
 import { Repository } from 'typeorm';
 
 import { DEFAULT_AXIOS_RETRY_CONFIG, IAxiosRetryConfig } from '../utils/axios-retry.config';
+import { IBlizzardApiServiceConfig, ICreateClientOptions } from '../types';
 import { KeyPoolService } from './key-pool.service';
 import { KeysEntity } from '@app/pg';
-
-export interface IBlizzardApiServiceConfig {
-  clientId: string;
-  clientSecret: string;
-  accessToken: string;
-  region?: 'us' | 'eu' | 'kr' | 'tw' | 'cn';
-}
-
-export interface ICreateClientOptions {
-  /** Custom retry configuration */
-  retryConfig?: Partial<IAxiosRetryConfig>;
-  /** Key pool service for key rotation on 429 */
-  keyPoolService?: KeyPoolService;
-  /** Keys repository for direct error tracking */
-  keysRepository?: Repository<KeysEntity>;
-  /** Tag to identify key in pool */
-  keyTag?: string;
-}
 
 @Injectable()
 export class BlizzardApiService {

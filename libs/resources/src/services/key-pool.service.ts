@@ -6,19 +6,8 @@ import chalk from 'chalk';
 import Redis from 'ioredis';
 
 import { KeysEntity } from '@app/pg';
+import { KeyPoolOptions, KeyRotationResult } from '@app/resources';
 import { KEY_STATUS, KEY_MAX_CONSECUTIVE_ERRORS, KEY_RATE_LIMIT_COOLDOWN_MINUTES } from '../constants/api.constants';
-
-export interface KeyPoolOptions {
-  tag?: string;
-  region?: string;
-  skipCooldown?: boolean;
-}
-
-export interface KeyRotationResult {
-  key: KeysEntity | null;
-  previousKey: KeysEntity | null;
-  reason: 'rate_limited' | 'disabled' | 'error_threshold' | 'none';
-}
 
 @Injectable()
 export class KeyPoolService {
