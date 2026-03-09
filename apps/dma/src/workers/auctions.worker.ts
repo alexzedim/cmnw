@@ -96,7 +96,7 @@ export class AuctionsWorker extends WorkerHost {
         clientId: message.clientId,
         clientSecret: message.clientSecret,
         accessToken: message.accessToken,
-        region: message.region || 'eu',
+        region: message.region,
       });
 
       const isCommodity = message.connectedRealmId === REALM_ENTITY_ANY.id;

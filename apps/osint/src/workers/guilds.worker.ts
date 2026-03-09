@@ -102,7 +102,7 @@ export class GuildsWorker extends WorkerHost {
         clientId: message.clientId,
         clientSecret: message.clientSecret,
         accessToken: message.accessToken,
-        region: (message.region || 'eu') as 'us' | 'eu' | 'kr' | 'tw' | 'cn',
+        region: message.region,
       });
 
       if (message.updatedBy) {
