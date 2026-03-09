@@ -782,7 +782,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
   async charactersToQueue(raidCharacters: Array<RaidCharacter>): Promise<boolean> {
     try {
       let itx = 0;
-      const keys = await getKeys(this.keysRepository, GLOBAL_OSINT_KEY, false);
+      const keys = await getKeys(this.keysRepository, GLOBAL_OSINT_KEY);
 
       const charactersToJobs = raidCharacters.map((raidCharacter) => {
         itx++;

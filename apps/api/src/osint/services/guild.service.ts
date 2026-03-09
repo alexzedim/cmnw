@@ -70,7 +70,7 @@ export class GuildOsintService {
     let requestedGuild: GuildsEntity | null = null;
 
     try {
-      const [keyEntity] = await getKeys(this.keysRepository, this.clearance, true);
+      const [keyEntity] = await getKeys(this.keysRepository, this.clearance);
 
       const guildMessage = GuildMessageDto.fromGuildRequest({
         name: params.name,
@@ -166,7 +166,7 @@ export class GuildOsintService {
       const isStale = typeof updatedAt === 'number' ? Date.now() - updatedAt > 1000 * 60 * 60 * 48 : false;
 
       if (isStale) {
-        const [keyEntity] = await getKeys(this.keysRepository, this.clearance, true);
+        const [keyEntity] = await getKeys(this.keysRepository, this.clearance);
         const dto = GuildMessageDto.fromGuildRequest({
           name: nameSlug,
           realm: realmEntity.slug,

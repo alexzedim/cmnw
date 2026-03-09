@@ -15,13 +15,9 @@ import {
   transformFaction,
   GuildStatusState,
   setGuildStatusString,
-  TRACKED_ERROR_STATUS_CODES,
-  ApiKeyErrorContext,
-  KeyErrorTracker,
   AdaptiveRateLimiter,
   DEFAULT_RATE_LIMITER_CONFIG,
 } from '@app/resources';
-import { KeysEntity } from '@app/pg';
 import { GUILD_SUMMARY_KEYS } from '@app/resources';
 
 @Injectable()
@@ -30,14 +26,9 @@ export class GuildSummaryService {
     timestamp: true,
   });
 
-  private readonly keyErrorTracker: KeyErrorTracker;
   private readonly rateLimiter: AdaptiveRateLimiter;
 
-  constructor(
-    @InjectRepository(KeysEntity)
-    private readonly keysRepository: Repository<KeysEntity>,
-  ) {
-    this.keyErrorTracker = new KeyErrorTracker(keysRepository);
+  constructor() {
     this.rateLimiter = new AdaptiveRateLimiter(DEFAULT_RATE_LIMITER_CONFIG, this.logger);
   }
 
@@ -112,17 +103,6 @@ export class GuildSummaryService {
     this.rateLimiter.handleResponse({ status: statusCode || 400 });
 
     summary.status = setGuildStatusString('-----', 'SUMMARY', GuildStatusState.ERROR);
-
-    // Track API key errors (403, 429)
-    if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
-      const accessToken = BNet.accessTokenObject.access_token;
-      const context: ApiKeyErrorContext = {
-        serviceName: 'GuildSummaryService',
-        methodName: 'getSummary',
-        resourceId: `${guildNameSlug}@${realmSlug}`,
-      };
-      await this.keyErrorTracker.trackError(accessToken, statusCode, context);
-    }
 
     this.logger.error({
       logTag: 'getSummary',

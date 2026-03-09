@@ -77,7 +77,7 @@ export class LadderService implements OnApplicationBootstrap {
   async indexPvPLadder(clearance: string = GLOBAL_OSINT_KEY): Promise<void> {
     const logTag = this.indexPvPLadder.name;
     try {
-      const keys = await getKeys(this.keysRepository, clearance, true, false);
+      const keys = await getKeys(this.keysRepository, clearance);
       const [key] = keys;
 
       this.initializeBlizzAPI(key);
@@ -297,7 +297,7 @@ export class LadderService implements OnApplicationBootstrap {
   async indexMythicPlusLadder(clearance: string = GLOBAL_OSINT_KEY): Promise<void> {
     const logTag = this.indexMythicPlusLadder.name;
     try {
-      const keys = await getKeys(this.keysRepository, clearance, true);
+      const keys = await getKeys(this.keysRepository, clearance);
       const [key] = keys;
 
       this.initializeBlizzAPI(key);

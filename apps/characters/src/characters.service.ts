@@ -51,7 +51,7 @@ export class CharactersService implements OnApplicationBootstrap {
     const logTag = this.indexCharacters.name;
     try {
       let characterIteration = 0;
-      this.keyEntities = await getKeys(this.keysRepository, clearance, false, true);
+      this.keyEntities = await getKeys(this.keysRepository, clearance);
 
       let length = this.keyEntities.length;
 
@@ -158,7 +158,7 @@ export class CharactersService implements OnApplicationBootstrap {
 
       const characters: Array<Pick<CharactersEntity, 'guid'>> = JSON.parse(charactersJson);
 
-      this.keyEntities = await getKeys(this.keysRepository, GLOBAL_OSINT_KEY, false);
+      this.keyEntities = await getKeys(this.keysRepository, GLOBAL_OSINT_KEY);
 
       let characterIteration = 0;
       const length = this.keyEntities.length;

@@ -396,7 +396,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
         chalk.cyan(`\n📊 Extracting guilds from ${chalk.bold(listWowProgressGzipFiles.length)} rank files...`),
       );
 
-      this.keyEntities = await getKeys(this.keysRepository, clearance, false, true);
+      this.keyEntities = await getKeys(this.keysRepository, clearance);
 
       for (const fileName of listWowProgressGzipFiles) {
         const realmName = extractRealmName(fileName);

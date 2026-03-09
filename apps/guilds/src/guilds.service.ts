@@ -67,7 +67,7 @@ export class GuildsService implements OnApplicationBootstrap {
       });
       if (isIndexGuildsFromCharacters) return;
 
-      this.keyEntities = await getKeys(this.keysRepository, clearance, false, true);
+      this.keyEntities = await getKeys(this.keysRepository, clearance);
 
       const length = this.keyEntities.length;
 
@@ -137,7 +137,7 @@ export class GuildsService implements OnApplicationBootstrap {
     const logTag = this.indexGuilds.name;
     try {
       let guildIteration = 0;
-      this.keyEntities = await getKeys(this.keysRepository, clearance, false, true);
+      this.keyEntities = await getKeys(this.keysRepository, clearance);
 
       let length = this.keyEntities.length;
 
@@ -205,7 +205,7 @@ export class GuildsService implements OnApplicationBootstrap {
     const logTag = this.indexHallOfFame.name;
 
     try {
-      this.keyEntities = await getKeys(this.keysRepository, clearance, false);
+      this.keyEntities = await getKeys(this.keysRepository, clearance);
       const [key] = this.keyEntities;
 
       const length = this.keyEntities.length;
