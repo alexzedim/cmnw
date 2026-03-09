@@ -1,5 +1,5 @@
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
-import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColumn, VersionColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
 @Index('ix__characters__guild_guild', ['guildGuid'], {})
 @Index('ix__characters__hash_a', ['hashA'], {})
@@ -261,10 +261,4 @@ export class CharactersEntity {
     default: () => 'CURRENT_TIMESTAMP',
   })
   updatedAt?: Date;
-
-  @VersionColumn({
-    type: 'int',
-    name: 'version',
-  })
-  version: number;
 }

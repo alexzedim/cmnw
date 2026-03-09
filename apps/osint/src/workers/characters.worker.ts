@@ -1,7 +1,7 @@
 import { BlizzAPI } from '@alexzedim/blizzapi';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
-import { QueryFailedError, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
 import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import {
@@ -154,19 +154,6 @@ export class CharactersWorker extends WorkerHost {
             guid,
             duration,
             `Retry after: ${errorOrException.retryAfter || 'unknown'}s`,
-          ),
-        );
-        throw errorOrException;
-      }
-
-      if (errorOrException instanceof QueryFailedError && errorOrException.message.includes('optimistic lock')) {
-        this.logger.warn(
-          formatWorkerLog(
-            WorkerLogStatus.CONFLICT,
-            this.stats.total,
-            guid,
-            duration,
-            'Optimistic lock conflict - will retry',
           ),
         );
         throw errorOrException;
