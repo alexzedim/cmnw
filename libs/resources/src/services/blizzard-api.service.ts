@@ -4,16 +4,12 @@ import { AxiosInstance } from 'axios';
 import axiosRetry from 'axios-retry';
 import chalk from 'chalk';
 import Redis from 'ioredis';
+import { Repository } from 'typeorm';
 
-import { DEFAULT_RATE_LIMITER_CONFIG } from '../config/rate-limiter.config';
-import { AdaptiveRateLimiter, HttpResponse } from '../utils/adaptive-rate-limiter';
-import {
-  createAxiosRetryCondition,
-  createAxiosRetryDelay,
-  DEFAULT_AXIOS_RETRY_CONFIG,
-  IAxiosRetryConfig,
-} from '../utils/axios-retry.config';
-import { BlizzardRateLimiterService, RateLimiterMode } from './blizzard-rate-limiter.service';
+import { DEFAULT_AXIOS_RETRY_CONFIG, IAxiosRetryConfig } from '../utils/axios-retry.config';
+import { AdaptiveRateLimiter } from '../utils/adaptive-rate-limiter';
+import { KeyPoolService } from './key-pool.service';
+import { KeysEntity } from '@app/pg';
 
 export interface IBlizzardApiServiceConfig {
   clientId: string;
@@ -22,14 +18,15 @@ export interface IBlizzardApiServiceConfig {
   region?: 'us' | 'eu' | 'kr' | 'tw' | 'cn';
 }
 
-export interface IRateLimiterOptions {
-  enabled?: boolean;
-  mode?: RateLimiterMode;
-}
-
 export interface ICreateClientOptions {
+  /** Custom retry configuration */
   retryConfig?: Partial<IAxiosRetryConfig>;
-  rateLimiter?: IRateLimiterOptions;
+  /** Key pool service for key rotation on 429 */
+  keyPoolService?: KeyPoolService;
+  /** Keys repository for direct error tracking */
+  keysRepository?: Repository<KeysEntity>;
+  /** Tag to identify key in pool */
+  keyTag?: string;
 }
 
 @Injectable()
@@ -37,70 +34,43 @@ export class BlizzardApiService {
   private readonly logger = new Logger(BlizzardApiService.name, {
     timestamp: true,
   });
-  private readonly rateLimiters = new Map<string, AdaptiveRateLimiter>();
-  private readonly proactiveRateLimiters = new Map<string, BlizzardRateLimiterService>();
-  private readonly redisAvailable: boolean;
 
-  constructor(@Optional() private readonly redis?: Redis) {
-    this.redisAvailable = redis !== undefined && redis !== null;
+  constructor(@Optional() private readonly redis?: Redis) {}
 
-    if (this.redisAvailable) {
-      this.logger.log(`${chalk.green('✓')} Redis available - proactive rate limiting enabled`);
-    } else {
-      this.logger.log(`${chalk.yellow('⚠')} Redis not available - using reactive rate limiting only`);
-    }
-  }
-
-  getRateLimiter(clientId: string): AdaptiveRateLimiter {
-    let limiter = this.rateLimiters.get(clientId);
-
-    if (!limiter) {
-      limiter = new AdaptiveRateLimiter(DEFAULT_RATE_LIMITER_CONFIG, this.logger);
-      this.rateLimiters.set(clientId, limiter);
-      this.logger.log(
-        `${chalk.cyan('ℹ')} Created reactive rate limiter for client` + ` [${chalk.dim(clientId.substring(0, 8))}...]`,
-      );
-    }
-
-    return limiter;
-  }
-
-  getProactiveRateLimiter(clientId: string): BlizzardRateLimiterService | null {
-    if (!this.redisAvailable) {
-      return null;
-    }
-
-    let limiter = this.proactiveRateLimiters.get(clientId);
-
-    if (!limiter) {
-      limiter = new BlizzardRateLimiterService(this.redis!);
-      this.proactiveRateLimiters.set(clientId, limiter);
-      this.logger.log(
-        `${chalk.green('✓')} Created proactive rate limiter for client` +
-          ` [${chalk.dim(clientId.substring(0, 8))}...]`,
-      );
-    }
-
-    return limiter;
-  }
-
-  createClient(config: IBlizzardApiServiceConfig, retryConfig?: Partial<IAxiosRetryConfig>): BlizzAPI;
-  createClient(config: IBlizzardApiServiceConfig, options?: ICreateClientOptions): BlizzAPI;
-  createClient(
-    config: IBlizzardApiServiceConfig,
-    optionsOrRetryConfig?: Partial<IAxiosRetryConfig> | ICreateClientOptions,
-  ): BlizzAPI {
+  /**
+   * Create a Blizzard API client with built-in retry and rate limiting
+   *
+   * The client automatically:
+   * - Retries on 429/503 errors with exponential backoff
+   * - Tracks requests, errors, and rate limits to KeysEntity
+   * - Supports key rotation on consecutive 429s
+   *
+   * @param config - API credentials
+   * @param options - Optional configuration for retry, key pool, and tracking
+   * @returns Configured BlizzAPI client
+   *
+   * @example
+   * // Simple usage (no key rotation)
+   * const client = blizzardApiService.createClient({
+   *   clientId: 'xxx',
+   *   clientSecret: 'xxx',
+   *   accessToken: 'xxx',
+   * });
+   *
+   * @example
+   * // With key rotation support
+   * const client = blizzardApiService.createClient(
+   *   { clientId, clientSecret, accessToken },
+   *   { keyPoolService, keysRepository, keyTag: 'blizzard' }
+   * );
+   */
+  createClient(config: IBlizzardApiServiceConfig, options?: ICreateClientOptions): BlizzAPI {
     const region = config.region ?? 'eu';
 
-    let retryConfig: Partial<IAxiosRetryConfig>;
-    let rateLimiterOptions: IRateLimiterOptions | undefined;
-
-    if (optionsOrRetryConfig && 'retryConfig' in optionsOrRetryConfig) {
-      retryConfig = optionsOrRetryConfig.retryConfig ?? {};
-      rateLimiterOptions = optionsOrRetryConfig.rateLimiter;
-    } else {
-      retryConfig = (optionsOrRetryConfig as Partial<IAxiosRetryConfig>) ?? {};
-    }
+    const mergedRetryConfig: IAxiosRetryConfig = {
+      ...DEFAULT_AXIOS_RETRY_CONFIG,
+      ...options?.retryConfig,
+    };
 
     const client = new BlizzAPI({
       region,
@@ -109,288 +79,103 @@ export class BlizzardApiService {
       accessToken: config.accessToken,
     });
 
-    const mergedRetryConfig: IAxiosRetryConfig = {
-      ...DEFAULT_AXIOS_RETRY_CONFIG,
-      ...retryConfig,
-    };
-
     const axiosInstance = (client as unknown as { axios: AxiosInstance }).axios;
+
+    const rateLimiter = new AdaptiveRateLimiter(
+      {
+        initialDelayMs: 100,
+        backoffMultiplier: 1.5,
+        recoveryDivisor: 1.1,
+        maxDelayMs: 60000,
+      },
+      this.logger,
+    );
 
     axiosRetry(axiosInstance, {
       retries: mergedRetryConfig.retries,
-      retryDelay: (retryCount) => createAxiosRetryDelay(retryCount, mergedRetryConfig),
-      retryCondition: (error) => createAxiosRetryCondition(error, mergedRetryConfig),
-    });
+      retryDelay: (retryCount, error) => {
+        if (options?.keysRepository && config.accessToken) {
+          this.trackErrorToKey(options.keysRepository, config.accessToken, error.response?.status ?? 0).catch((err) => {
+            this.logger.debug(`Failed to track error: ${err}`);
+          });
+        }
 
-    const rateLimiterEnabled = rateLimiterOptions?.enabled ?? true;
-    const rateLimiterMode =
-      rateLimiterOptions?.mode ?? (this.redisAvailable ? RateLimiterMode.HYBRID : RateLimiterMode.REACTIVE);
+        if (error.response?.status === 429 && options?.keyPoolService && config.accessToken) {
+          this.handleKeyRotation(options.keyPoolService, config.accessToken, options.keyTag).catch((err) => {
+            this.logger.debug(`Failed to rotate key: ${err}`);
+          });
+        }
+
+        rateLimiter.onRateLimit({
+          isRateLimited: true,
+          statusCode: error.response?.status,
+          detectionSource: 'status-code',
+        });
+
+        const baseDelay = mergedRetryConfig.baseDelayMs * Math.pow(2, retryCount - 1);
+        const cappedDelay = Math.min(baseDelay, mergedRetryConfig.maxDelayMs);
+        const jitter = Math.random() * 500;
+        return cappedDelay + jitter;
+      },
+      retryCondition: (error) => {
+        return mergedRetryConfig.retryableStatusCodes.includes(error.response?.status);
+      },
+    });
 
     this.logger.log(
       `${chalk.green('✓')} Created BlizzAPI client [${chalk.bold(region.toUpperCase())}]` +
-        ` with axios-retry [${chalk.dim(`retries=${mergedRetryConfig.retries}`)}]` +
-        ` rate-limiter [${chalk.dim(`${rateLimiterEnabled ? rateLimiterMode : 'disabled'}`)}]`,
+        ` with axios-retry [${chalk.dim(`retries=${mergedRetryConfig.retries}`)}]`,
     );
 
     return client;
   }
 
-  async queryWithRetry<T>(
-    BNet: BlizzAPI,
-    endpoint: string,
-    params?: Record<string, unknown>,
-    clientId?: string,
-    maxRetries: number = 3,
-  ): Promise<T> {
-    const limiterKey = clientId ?? 'default';
-    const rateLimiter = this.getRateLimiter(limiterKey);
-
-    let lastError: Error | null = null;
-    let retryCount = 0;
-
-    while (retryCount <= maxRetries) {
-      await rateLimiter.wait();
-
-      const startTime = Date.now();
-
+  /**
+   * Track error to KeysEntity
+   */
+  private async trackErrorToKey(
+    keysRepository: Repository<KeysEntity>,
+    accessToken: string,
+    statusCode: number,
+  ): Promise<void> {
+    if (statusCode === 429 || statusCode === 403) {
       try {
-        const response = await BNet.query<T>(endpoint, params);
-        const duration = Date.now() - startTime;
-
-        if (this.isResponseError(response)) {
-          const httpResponse: HttpResponse = {
-            status: 401,
-            headers: {},
-          };
-
-          rateLimiter.handleResponse(httpResponse);
-
-          this.logger.warn(
-            `${chalk.yellow('⚠')} Token error on ${chalk.dim(endpoint)}:` +
-              ` ${chalk.bold((response as { error: string }).error)}`,
-          );
-
-          throw new Error(`Blizzard API error: ${(response as { error: string }).error}`);
+        const key = await keysRepository.findOne({ where: { token: accessToken } });
+        if (key) {
+          key.errorCount += 1;
+          key.rateLimitCount += 1;
+          key.consecutiveErrors += 1;
+          key.lastErrorAt = new Date();
+          key.lastRateLimitAt = new Date();
+          await keysRepository.save(key);
         }
-
-        const httpResponse: HttpResponse = {
-          status: 200,
-          headers: {},
-        };
-
-        const wasRateLimited = rateLimiter.handleResponse(httpResponse);
-
-        if (wasRateLimited) {
-          this.logger.warn(
-            `${chalk.yellow('⚠')} Rate limited on ${chalk.dim(endpoint)}` + ` ${chalk.dim(`(${duration}ms)`)}`,
-          );
-          retryCount++;
-          continue;
-        }
-
-        this.logger.log(`${chalk.green('✓')} Query ${chalk.dim(endpoint)} ${chalk.dim(`(${duration}ms)`)}`);
-
-        return response;
       } catch (error) {
-        const duration = Date.now() - startTime;
-        const axiosError = error as {
-          response?: { status: number; headers?: Record<string, string> };
-          message: string;
-        };
-        const status = axiosError.response?.status;
-
-        if (status === 429 || status === 403 || status === 503) {
-          const httpResponse: HttpResponse = {
-            status,
-            headers: axiosError.response?.headers,
-          };
-
-          rateLimiter.handleResponse(httpResponse);
-
-          retryCount++;
-          lastError = error as Error;
-
-          this.logger.warn(
-            `${chalk.yellow('⚠')} Rate limit error [${chalk.bold(status)}] on` +
-              ` ${chalk.dim(endpoint)} ${chalk.dim(`(${duration}ms)`)} - retry` +
-              ` ${chalk.bold(retryCount)}/${chalk.bold(maxRetries)}`,
-          );
-
-          if (retryCount <= maxRetries) {
-            continue;
-          }
-        }
-
-        this.logger.error(
-          `${chalk.red('✗')} Query failed ${chalk.dim(endpoint)}` +
-            ` ${chalk.dim(`(${duration}ms)`)} - ${axiosError.message}`,
-        );
-
-        throw error;
+        this.logger.debug(`Failed to track error to key: ${(error as Error).message}`);
       }
     }
-
-    throw lastError ?? new Error('Max retries exceeded');
   }
 
-  async queryWithProactiveRateLimit<T>(
-    BNet: BlizzAPI,
-    endpoint: string,
-    params?: Record<string, unknown>,
-    clientId?: string,
-    maxRetries: number = 3,
-  ): Promise<T> {
-    const limiterKey = clientId ?? 'default';
-
-    if (!this.redisAvailable) {
-      return this.queryWithRetry(BNet, endpoint, params, clientId, maxRetries);
-    }
-
-    const proactiveLimiter = this.getProactiveRateLimiter(limiterKey);
-
-    if (!proactiveLimiter) {
-      return this.queryWithRetry(BNet, endpoint, params, clientId, maxRetries);
-    }
-
-    let lastError: Error | null = null;
-    let retryCount = 0;
-
-    while (retryCount <= maxRetries) {
-      const tokenResult = await proactiveLimiter.waitForToken(limiterKey);
-
-      if (!tokenResult.allowed && tokenResult.waitTimeMs > 0) {
+  /**
+   * Handle key rotation on 429
+   */
+  private async handleKeyRotation(keyPoolService: KeyPoolService, accessToken: string, keyTag?: string): Promise<void> {
+    try {
+      const result = await keyPoolService.rotateOnRateLimit(accessToken, { tag: keyTag });
+      if (result.key) {
         this.logger.log(
-          `${chalk.cyan('⏳')} Rate limit: waiting ${chalk.bold(tokenResult.waitTimeMs)}ms ` +
-            `[${chalk.dim(`remaining=${tokenResult.remaining}`)}]`,
+          `${chalk.yellow('↻')} Rotated to new key [${chalk.dim(result.key.client?.substring(0, 8))}...] ` +
+            `reason: ${result.reason}`,
         );
       }
-
-      const startTime = Date.now();
-
-      try {
-        const response = await BNet.query<T>(endpoint, params);
-        const duration = Date.now() - startTime;
-
-        if (this.isResponseError(response)) {
-          proactiveLimiter.recordResponse(limiterKey, {
-            status: 401,
-            headers: {},
-          });
-
-          this.logger.warn(
-            `${chalk.yellow('⚠')} Token error on ${chalk.dim(endpoint)}:` +
-              ` ${chalk.bold((response as { error: string }).error)}`,
-          );
-
-          throw new Error(`Blizzard API error: ${(response as { error: string }).error}`);
-        }
-
-        proactiveLimiter.recordResponse(limiterKey, {
-          status: 200,
-          headers: {},
-        });
-
-        this.logger.log(
-          `${chalk.green('✓')} Query ${chalk.dim(endpoint)} ${chalk.dim(`(${duration}ms)`)}` +
-            ` [${chalk.dim(`tokens=${tokenResult.remaining}`)}]`,
-        );
-
-        return response;
-      } catch (error) {
-        const duration = Date.now() - startTime;
-        const axiosError = error as {
-          response?: { status: number; headers?: Record<string, string> };
-          message: string;
-        };
-        const status = axiosError.response?.status;
-
-        if (status === 429 || status === 403 || status === 503) {
-          proactiveLimiter.recordResponse(limiterKey, {
-            status,
-            headers: axiosError.response?.headers,
-          });
-
-          retryCount++;
-          lastError = error as Error;
-
-          this.logger.warn(
-            `${chalk.yellow('⚠')} Rate limit error [${chalk.bold(status)}] on` +
-              ` ${chalk.dim(endpoint)} ${chalk.dim(`(${duration}ms)`)} - retry` +
-              ` ${chalk.bold(retryCount)}/${chalk.bold(maxRetries)}`,
-          );
-
-          if (retryCount <= maxRetries) {
-            continue;
-          }
-        }
-
-        this.logger.error(
-          `${chalk.red('✗')} Query failed ${chalk.dim(endpoint)}` +
-            ` ${chalk.dim(`(${duration}ms)`)} - ${axiosError.message}`,
-        );
-
-        throw error;
-      }
-    }
-
-    throw lastError ?? new Error('Max retries exceeded');
-  }
-
-  private isResponseError(response: unknown): response is { error: string } {
-    return (
-      response !== null &&
-      typeof response === 'object' &&
-      'error' in response &&
-      typeof (response as { error: unknown }).error === 'string'
-    );
-  }
-
-  getAllRateLimiterStats(): Map<string, ReturnType<AdaptiveRateLimiter['getStats']>> {
-    const stats = new Map<string, ReturnType<AdaptiveRateLimiter['getStats']>>();
-
-    for (const [clientId, limiter] of this.rateLimiters) {
-      stats.set(clientId, limiter.getStats());
-    }
-
-    return stats;
-  }
-
-  getAllProactiveRateLimiterStats(): Map<string, ReturnType<BlizzardRateLimiterService['getStats']> | null> {
-    const stats = new Map<string, ReturnType<BlizzardRateLimiterService['getStats']> | null>();
-
-    for (const [clientId, limiter] of this.proactiveRateLimiters) {
-      stats.set(clientId, limiter.getStats(clientId));
-    }
-
-    return stats;
-  }
-
-  resetAllRateLimiters(): void {
-    for (const [clientId, limiter] of this.rateLimiters) {
-      limiter.reset();
-      this.logger.log(
-        `${chalk.cyan('ℹ')} Reset reactive rate limiter for client` + ` [${chalk.dim(clientId.substring(0, 8))}...]`,
-      );
+    } catch (error) {
+      this.logger.debug(`Failed to rotate key: ${(error as Error).message}`);
     }
   }
 
-  async resetAllProactiveRateLimiters(): Promise<void> {
-    for (const [clientId, limiter] of this.proactiveRateLimiters) {
-      await limiter.reset(clientId);
-    }
-  }
-
-  clearAllRateLimiters(): void {
-    this.rateLimiters.clear();
-    this.proactiveRateLimiters.clear();
-    this.logger.log(`${chalk.cyan('ℹ')} Cleared all rate limiters`);
-  }
-
+  /**
+   * Check if Redis is available
+   */
   isRedisAvailable(): boolean {
-    return this.redisAvailable;
-  }
-
-  getRateLimiterMode(): RateLimiterMode {
-    return this.redisAvailable ? RateLimiterMode.HYBRID : RateLimiterMode.REACTIVE;
+    return this.redis !== undefined && this.redis !== null;
   }
 }
