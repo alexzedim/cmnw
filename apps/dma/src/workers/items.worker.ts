@@ -4,12 +4,10 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import {
-  AdaptiveRateLimiter,
   API_HEADERS_ENUM,
   apiConstParams,
   BlizzardApiItem,
   BlizzardApiService,
-  DEFAULT_RATE_LIMITER_CONFIG,
   DMA_SOURCE,
   IItem,
   IItemMessageBase,
@@ -18,7 +16,6 @@ import {
   isNamedField,
   ITEM_FIELD_MAPPING,
   itemsQueue,
-  RateLimitStatusCode,
   toGold,
   TOLERANCE_ENUM,
   VALUATION_TYPE,
@@ -55,15 +52,12 @@ export class ItemsWorker extends WorkerHost {
     startTime: Date.now(),
   };
 
-  private readonly rateLimiter: AdaptiveRateLimiter;
-
   constructor(
     @InjectRepository(ItemsEntity)
     private readonly itemsRepository: Repository<ItemsEntity>,
     private readonly blizzardApiService: BlizzardApiService,
   ) {
     super();
-    this.rateLimiter = new AdaptiveRateLimiter(DEFAULT_RATE_LIMITER_CONFIG, this.logger);
   }
 
   public async process(message: Job<IItemMessageBase>): Promise<void> {
@@ -94,7 +88,6 @@ export class ItemsWorker extends WorkerHost {
 
       // --- Request item data --- //
       const isMultiLocale = true;
-      await this.rateLimiter.wait();
       const [getItemSummary, getItemMedia] = await Promise.allSettled([
         this.BNet.query<BlizzardApiItem>(
           `/data/wow/item/${args.itemId}`,
@@ -155,7 +148,6 @@ export class ItemsWorker extends WorkerHost {
 
       await this.itemsRepository.save(itemEntity);
       this.stats.success++;
-      this.rateLimiter.onSuccess();
 
       const duration = Date.now() - startTime;
       this.logger.log(
@@ -175,32 +167,26 @@ export class ItemsWorker extends WorkerHost {
 
       if (isAxiosError(errorOrException)) {
         const statusCode = errorOrException.response?.status;
-
-        if (
-          statusCode === RateLimitStatusCode.TOO_MANY_REQUESTS ||
-          statusCode === RateLimitStatusCode.FORBIDDEN ||
-          statusCode === RateLimitStatusCode.SERVICE_UNAVAILABLE
-        ) {
-          this.rateLimiter.onRateLimit({
-            isRateLimited: true,
-            statusCode,
-            detectionSource: 'status-code',
-          });
-          this.logger.warn(
-            formatWorkerLog(
-              WorkerLogStatus.RATE_LIMITED,
-              this.stats.total,
-              `item-${itemId}`,
-              duration,
-              `Rate limited (${statusCode})`,
-            ),
-          );
-          return;
-        }
+        this.stats.errors++;
+        this.logger.error(
+          formatWorkerErrorLog(
+            this.stats.total,
+            `item-${itemId}`,
+            duration,
+            `HTTP ${statusCode}: ${errorOrException.message}`,
+          ),
+        );
+      } else {
+        this.stats.errors++;
+        this.logger.error(
+          formatWorkerErrorLog(
+            this.stats.total,
+            `item-${itemId}`,
+            duration,
+            errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
+          ),
+        );
       }
-
-      this.stats.errors++;
-      this.logger.error(formatWorkerErrorLog(this.stats.total, `item-${itemId}`, duration, errorOrException.message));
 
       throw errorOrException;
     }

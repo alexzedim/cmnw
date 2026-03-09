@@ -10,13 +10,11 @@ import { ItemsEntity, MarketEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import {
-  AdaptiveRateLimiter,
   API_HEADERS_ENUM,
   apiConstParams,
   auctionsQueue,
   BlizzardApiAuctions,
   BlizzardApiService,
-  DEFAULT_RATE_LIMITER_CONFIG,
   DMA_TIMEOUT_TOLERANCE,
   IAuctionsOrder,
   ICommodityOrder,
@@ -65,11 +63,7 @@ export class AuctionsWorker extends WorkerHost {
 
   private readonly HTTP_STATUS_CODES = {
     NOT_MODIFIED: 304,
-    FORBIDDEN: 403,
-    RATE_LIMITED: 429,
   } as const;
-
-  private readonly rateLimiter: AdaptiveRateLimiter;
 
   constructor(
     @InjectRedis()
@@ -83,7 +77,6 @@ export class AuctionsWorker extends WorkerHost {
     private readonly blizzardApiService: BlizzardApiService,
   ) {
     super();
-    this.rateLimiter = new AdaptiveRateLimiter(DEFAULT_RATE_LIMITER_CONFIG, this.logger);
   }
 
   async process(job: Job<IAuctionMessageBase>): Promise<void> {
@@ -125,8 +118,6 @@ export class AuctionsWorker extends WorkerHost {
       const getMarketApiEndpoint = isCommodity
         ? '/data/wow/auctions/commodities'
         : `/data/wow/connected-realm/${message.connectedRealmId}/auctions`;
-
-      await this.rateLimiter.wait();
 
       const marketResponse = await this.BNet.query<BlizzardApiAuctions>(
         getMarketApiEndpoint,
@@ -234,7 +225,6 @@ export class AuctionsWorker extends WorkerHost {
 
       const duration = Date.now() - startTime;
       this.stats.success++;
-      this.rateLimiter.onSuccess();
       this.logger.log(
         formatWorkerLog(
           WorkerLogStatus.SUCCESS,
@@ -263,44 +253,6 @@ export class AuctionsWorker extends WorkerHost {
               `realm ${message.connectedRealmId}`,
               duration,
               'Not modified',
-            ),
-          );
-          return;
-        }
-
-        if (statusCode === this.HTTP_STATUS_CODES.RATE_LIMITED) {
-          this.stats.rateLimit++;
-          this.rateLimiter.onRateLimit({
-            isRateLimited: true,
-            statusCode,
-            detectionSource: 'status-code',
-          });
-          this.logger.log(
-            formatWorkerLog(
-              WorkerLogStatus.RATE_LIMITED,
-              this.stats.total,
-              `realm ${message.connectedRealmId}`,
-              duration,
-              'Rate limited',
-            ),
-          );
-          return;
-        }
-
-        if (statusCode === this.HTTP_STATUS_CODES.FORBIDDEN) {
-          this.stats.forbidden++;
-          this.rateLimiter.onRateLimit({
-            isRateLimited: true,
-            statusCode,
-            detectionSource: 'status-code',
-          });
-          this.logger.log(
-            formatWorkerLog(
-              WorkerLogStatus.WARNING,
-              this.stats.total,
-              `realm ${message.connectedRealmId}`,
-              duration,
-              'Forbidden',
             ),
           );
           return;
