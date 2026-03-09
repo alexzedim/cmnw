@@ -102,7 +102,7 @@ export class CharacterCollectionService {
 
                 characterMountsEntities.push(characterMountEntity);
               }
-            }),
+            }, 5),
           ),
         );
       }
@@ -332,7 +332,7 @@ export class CharacterCollectionService {
                 professionRecords.push(record);
                 professionsSummary.push(`${professionName} ${skill_points}/${max_skill_points}`);
               });
-            }),
+            }, 5),
           ),
         );
       }

@@ -40,19 +40,16 @@ export class CharacterEntityIndexingService {
     try {
       const pets = Array.from(petEntities.values());
 
-      await Promise.allSettled(
-        pets.map(async (pet) => {
-          const isPetExists = await this.petsRepository.existsBy({
-            id: pet.id,
-          });
+      if (pets.length === 0) {
+        return;
+      }
 
-          const isNewPet = !isPetExists;
-          if (isNewPet) {
-            await this.petsRepository.save(pet);
-            await this.redisService.set(`PETS:${pet.id}`, 1);
-          }
-        }),
-      );
+      await this.petsRepository.upsert(pets, {
+        conflictPaths: ['id'],
+        skipUpdateIfNoValuesChanged: true,
+      });
+
+      await Promise.all(pets.map((pet) => this.redisService.set(`PETS:${pet.id}`, 1)));
     } catch (errorOrException) {
       this.logger.error({
         logTag: 'indexPets',
