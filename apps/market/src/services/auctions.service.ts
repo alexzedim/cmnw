@@ -66,7 +66,7 @@ export class AuctionsService implements OnApplicationBootstrap {
 
       await this.queue.drain(true);
 
-      const [keyEntity] = await getKeys(this.keysRepository, clearance, true);
+      const [keyEntity] = await getKeys(this.keysRepository, clearance);
       const offsetTime = DateTime.now().minus({ minutes: 30 }).toMillis();
 
       const realmsEntity = await this.realmsRepository
@@ -118,7 +118,7 @@ export class AuctionsService implements OnApplicationBootstrap {
       });
       if (!isIndexCommodity) return;
 
-      const [keyEntity] = await getKeys(this.keysRepository, clearance, true);
+      const [keyEntity] = await getKeys(this.keysRepository, clearance);
 
       const realmEntity = await this.realmsRepository.findOneBy({
         connectedRealmId: REALM_ENTITY_ANY.id,

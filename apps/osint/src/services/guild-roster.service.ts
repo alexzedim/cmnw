@@ -28,9 +28,6 @@ import {
   IRGuildRosterMember,
   GuildStatusState,
   setGuildStatusString,
-  TRACKED_ERROR_STATUS_CODES,
-  ApiKeyErrorContext,
-  KeyErrorTracker,
   ICharacterMessageBase,
   AdaptiveRateLimiter,
   DEFAULT_RATE_LIMITER_CONFIG,
@@ -45,20 +42,16 @@ export class GuildRosterService {
     timestamp: true,
   });
 
-  private readonly keyErrorTracker: KeyErrorTracker;
   private readonly rateLimiter: AdaptiveRateLimiter;
 
   constructor(
     @InjectQueue(charactersQueue.name)
     private readonly characterQueue: Queue<ICharacterMessageBase>,
-    @InjectRepository(KeysEntity)
-    private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
   ) {
-    this.keyErrorTracker = new KeyErrorTracker(keysRepository);
     this.rateLimiter = new AdaptiveRateLimiter(DEFAULT_RATE_LIMITER_CONFIG, this.logger);
   }
 
@@ -264,17 +257,6 @@ export class GuildRosterService {
 
     roster.statusCode = statusCode || 400;
     roster.status = setGuildStatusString('-----', 'ROSTER', GuildStatusState.ERROR);
-
-    // Track API key errors (403, 429)
-    if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
-      const accessToken = BNet.accessTokenObject.access_token;
-      const context: ApiKeyErrorContext = {
-        serviceName: 'GuildRosterService',
-        methodName: 'fetchRoster',
-        resourceId: guildEntity.guid,
-      };
-      await this.keyErrorTracker.trackError(accessToken, statusCode, context);
-    }
 
     this.logger.error({
       logTag: 'fetchRoster',

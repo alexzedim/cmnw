@@ -76,7 +76,7 @@ export class CharacterOsintService {
     let requestedCharacter: CharactersEntity | null = null;
 
     try {
-      const [keyEntity] = await getKeys(this.keysRepository, this.clearance, true);
+      const [keyEntity] = await getKeys(this.keysRepository, this.clearance);
 
       const characterMessage = await CharacterMessageDto.fromCharacterRequest({
         name: params.name,
@@ -86,11 +86,7 @@ export class CharacterOsintService {
         accessToken: keyEntity.token,
       });
 
-      const job = await this.queueCharacter.add(
-        characterMessage.name,
-        characterMessage.data,
-        characterMessage.opts,
-      );
+      const job = await this.queueCharacter.add(characterMessage.name, characterMessage.data, characterMessage.opts);
 
       requestedCharacter = await job.waitUntilFinished(this.queueEvents, 60000);
     } catch (errorOrException) {
@@ -118,9 +114,7 @@ export class CharacterOsintService {
       const realmEntity = await findRealm(this.realmsRepository, realmSlug);
 
       if (!realmEntity) {
-        throw new BadRequestException(
-          `Realm: ${realmSlug} for character ${input.guid} not found!`,
-        );
+        throw new BadRequestException(`Realm: ${realmSlug} for character ${input.guid} not found!`);
       }
 
       const guid = toGuid(nameSlug, realmEntity.slug);
@@ -164,19 +158,14 @@ export class CharacterOsintService {
           message: `Character not found but queued for indexing: ${guid}`,
         });
 
-        throw new NotFoundException(
-          `Character: ${guid} not found, but will be added to OSINT-DB on existence`,
-        );
+        throw new NotFoundException(`Character: ${guid} not found, but will be added to OSINT-DB on existence`);
       }
 
       const updatedAt = character.updatedAt?.getTime?.();
-      const isStale =
-        typeof updatedAt === 'number'
-          ? Date.now() - updatedAt > 1000 * 60 * 60 * 48
-          : false;
+      const isStale = typeof updatedAt === 'number' ? Date.now() - updatedAt > 1000 * 60 * 60 * 48 : false;
 
       if (isStale) {
-        const [keyEntity] = await getKeys(this.keysRepository, this.clearance, true);
+        const [keyEntity] = await getKeys(this.keysRepository, this.clearance);
 
         const characterMessage = CharacterMessageDto.fromCharacterRequest({
           name: nameSlug,
@@ -186,11 +175,7 @@ export class CharacterOsintService {
           accessToken: keyEntity.token,
         });
 
-        await this.queueCharacter.add(
-          characterMessage.name,
-          characterMessage.data,
-          characterMessage.opts,
-        );
+        await this.queueCharacter.add(characterMessage.name, characterMessage.data, characterMessage.opts);
 
         this.logger.log({
           logTag,
@@ -199,11 +184,7 @@ export class CharacterOsintService {
         });
       }
 
-      const characterResponse = CharacterResponseDto.fromCharacter(
-        character,
-        globalAnalytics,
-        realmAnalytics,
-      );
+      const characterResponse = CharacterResponseDto.fromCharacter(character, globalAnalytics, realmAnalytics);
 
       this.logger.log({
         logTag,
@@ -212,10 +193,7 @@ export class CharacterOsintService {
       });
       return characterResponse;
     } catch (errorOrException) {
-      if (
-        errorOrException instanceof BadRequestException ||
-        errorOrException instanceof NotFoundException
-      ) {
+      if (errorOrException instanceof BadRequestException || errorOrException instanceof NotFoundException) {
         throw errorOrException;
       }
 
@@ -226,9 +204,7 @@ export class CharacterOsintService {
         message: `Error fetching character: ${input.guid}`,
       });
 
-      throw new ServiceUnavailableException(
-        `Error fetching character data for ${input.guid}`,
-      );
+      throw new ServiceUnavailableException(`Error fetching character data for ${input.guid}`);
     }
   }
 
@@ -236,49 +212,35 @@ export class CharacterOsintService {
     const logTag = 'getCharactersByHash';
     try {
       if (!input.hashQuery || input.hashQuery.length < 2) {
-        throw new BadRequestException(
-          `Hash value must be at least 2 characters (type + hash)`,
-        );
+        throw new BadRequestException(`Hash value must be at least 2 characters (type + hash)`);
       }
 
       const hashType1 = input.hashQuery.charAt(0).toLowerCase();
       const hashValue1 = input.hashQuery.slice(1);
 
       if (!/^[ab]$/.test(hashType1)) {
-        throw new BadRequestException(
-          `Hash value must start with 'a' or 'b', got '${hashType1}'`,
-        );
+        throw new BadRequestException(`Hash value must start with 'a' or 'b', got '${hashType1}'`);
       }
 
       let characters: CharactersEntity[];
 
       if (input.hashQuery2) {
         if (input.hashQuery2.length < 2) {
-          throw new BadRequestException(
-            `Hash value 2 must be at least 2 characters (type + hash)`,
-          );
+          throw new BadRequestException(`Hash value 2 must be at least 2 characters (type + hash)`);
         }
 
         const hashType2 = input.hashQuery2.charAt(0).toLowerCase();
         const hashValue2 = input.hashQuery2.slice(1);
 
         if (!/^[ab]$/.test(hashType2)) {
-          throw new BadRequestException(
-            `Hash value 2 must start with 'a' or 'b', got '${hashType2}'`,
-          );
+          throw new BadRequestException(`Hash value 2 must start with 'a' or 'b', got '${hashType2}'`);
         }
 
-        const hashFieldType1 = CHARACTER_HASH_FIELDS.get(
-          <CharacterHashFieldType>hashType1,
-        );
-        const hashFieldType2 = CHARACTER_HASH_FIELDS.get(
-          <CharacterHashFieldType>hashType2,
-        );
+        const hashFieldType1 = CHARACTER_HASH_FIELDS.get(<CharacterHashFieldType>hashType1);
+        const hashFieldType2 = CHARACTER_HASH_FIELDS.get(<CharacterHashFieldType>hashType2);
 
         if (!hashFieldType1 || !hashFieldType2) {
-          throw new BadRequestException(
-            `Could not determine hash fields for types '${hashType1}' and '${hashType2}'`,
-          );
+          throw new BadRequestException(`Could not determine hash fields for types '${hashType1}' and '${hashType2}'`);
         }
 
         const hashLabel = `${input.hashQuery}/${input.hashQuery2}`;
@@ -295,13 +257,10 @@ export class CharacterOsintService {
 
         characters = await this.charactersRepository
           .createQueryBuilder('c')
-          .where(
-            `c.${hashFieldType1} = :hashValue1 AND c.${hashFieldType2} = :hashValue2`,
-            {
-              hashValue1,
-              hashValue2,
-            },
-          )
+          .where(`c.${hashFieldType1} = :hashValue1 AND c.${hashFieldType2} = :hashValue2`, {
+            hashValue1,
+            hashValue2,
+          })
           .take(100)
           .getMany();
 
@@ -311,14 +270,10 @@ export class CharacterOsintService {
           message: `Found ${characters.length} characters by combined hash: ${hashLabel}`,
         });
       } else {
-        const hashFieldType = CHARACTER_HASH_FIELDS.get(
-          <CharacterHashFieldType>hashType1,
-        );
+        const hashFieldType = CHARACTER_HASH_FIELDS.get(<CharacterHashFieldType>hashType1);
 
         if (!hashFieldType) {
-          throw new BadRequestException(
-            `Could not determine hash field for type '${hashType1}'`,
-          );
+          throw new BadRequestException(`Could not determine hash field for type '${hashType1}'`);
         }
 
         const hashLabel = `${input.hashQuery}`;
@@ -379,8 +334,7 @@ export class CharacterOsintService {
         lfgStatus: LFG_STATUS.NEW,
       };
 
-      if (input.raiderIoScore)
-        where.raiderIoScore = MoreThanOrEqual(input.raiderIoScore);
+      if (input.raiderIoScore) where.raiderIoScore = MoreThanOrEqual(input.raiderIoScore);
       if (input.mythicLogs) where.mythicLogs = MoreThanOrEqual(input.mythicLogs);
       if (input.heroicLogs) where.heroicLogs = MoreThanOrEqual(input.heroicLogs);
       if (input.realmsId) {
@@ -402,9 +356,7 @@ export class CharacterOsintService {
         message: 'Error fetching LFG characters',
       });
 
-      throw new ServiceUnavailableException(
-        'Error fetching characters looking for guild',
-      );
+      throw new ServiceUnavailableException('Error fetching characters looking for guild');
     }
   }
 
@@ -440,9 +392,7 @@ export class CharacterOsintService {
         message: `Error fetching character logs: ${input.guid}`,
       });
 
-      throw new ServiceUnavailableException(
-        `Error fetching logs for character ${input.guid}`,
-      );
+      throw new ServiceUnavailableException(`Error fetching logs for character ${input.guid}`);
     }
   }
 }

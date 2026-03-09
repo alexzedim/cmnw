@@ -28,13 +28,9 @@ import {
   isCharacterProfessions,
   setStatusString,
   CharacterStatusState,
-  TRACKED_ERROR_STATUS_CODES,
-  ApiKeyErrorContext,
-  KeyErrorTracker,
   AdaptiveRateLimiter,
   DEFAULT_RATE_LIMITER_CONFIG,
 } from '@app/resources';
-import { KeysEntity } from '@app/pg';
 
 @Injectable()
 export class CharacterService {
@@ -42,14 +38,9 @@ export class CharacterService {
     timestamp: true,
   });
 
-  private readonly keyErrorTracker: KeyErrorTracker;
   private readonly rateLimiter: AdaptiveRateLimiter;
 
-  constructor(
-    @InjectRepository(KeysEntity)
-    private readonly keysRepository: Repository<KeysEntity>,
-  ) {
-    this.keyErrorTracker = new KeyErrorTracker(keysRepository);
+  constructor() {
     this.rateLimiter = new AdaptiveRateLimiter(DEFAULT_RATE_LIMITER_CONFIG, this.logger);
   }
 
@@ -98,17 +89,6 @@ export class CharacterService {
       const statusCode = isAxiosError(errorOrException) ? errorOrException.response?.status : errorOrException.status;
 
       this.rateLimiter.handleResponse({ status: statusCode || 400 });
-
-      // Track API key errors (403, 429)
-      if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
-        const accessToken = BNet.accessTokenObject.access_token;
-        const context: ApiKeyErrorContext = {
-          serviceName: 'CharacterService',
-          methodName: 'getStatus',
-          resourceId: `${nameSlug}@${realmSlug}`,
-        };
-        await this.keyErrorTracker.trackError(accessToken, statusCode, context);
-      }
 
       const isStatusNotFound = statusCode === 404;
       if (isStatusNotFound) {
@@ -181,17 +161,6 @@ export class CharacterService {
 
       this.rateLimiter.handleResponse({ status: statusCode || 400 });
 
-      // Track API key errors (403, 429)
-      if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
-        const accessToken = BNet.accessTokenObject.access_token;
-        const context: ApiKeyErrorContext = {
-          serviceName: 'CharacterService',
-          methodName: 'getSummary',
-          resourceId: `${nameSlug}@${realmSlug}`,
-        };
-        await this.keyErrorTracker.trackError(accessToken, statusCode, context);
-      }
-
       if (statusCode === 429) {
         this.logger.debug(`${chalk.yellow('429')} Rate limited (getSummary): ${nameSlug}@${realmSlug}`);
       } else {
@@ -240,17 +209,6 @@ export class CharacterService {
 
       this.rateLimiter.handleResponse({ status: statusCode || 400 });
 
-      // Track API key errors (403, 429)
-      if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
-        const accessToken = BNet.accessTokenObject.access_token;
-        const context: ApiKeyErrorContext = {
-          serviceName: 'CharacterService',
-          methodName: 'getMedia',
-          resourceId: `${nameSlug}@${realmSlug}`,
-        };
-        await this.keyErrorTracker.trackError(accessToken, statusCode, context);
-      }
-
       if (statusCode === 429) {
         this.logger.debug(`${chalk.yellow('429')} Rate limited (getMedia): ${nameSlug}@${realmSlug}`);
       } else {
@@ -294,17 +252,6 @@ export class CharacterService {
         : get(errorOrException, 'status', 400);
 
       this.rateLimiter.handleResponse({ status: statusCode || 400 });
-
-      // Track API key errors (403, 429)
-      if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
-        const accessToken = BNet.accessTokenObject.access_token;
-        const context: ApiKeyErrorContext = {
-          serviceName: 'CharacterService',
-          methodName: 'getMountsCollection',
-          resourceId: `${nameSlug}@${realmSlug}`,
-        };
-        await this.keyErrorTracker.trackError(accessToken, statusCode, context);
-      }
 
       if (statusCode === 429) {
         this.logger.debug(`${chalk.yellow('429')} Rate limited (getMountsCollection): ${nameSlug}@${realmSlug}`);
@@ -354,17 +301,6 @@ export class CharacterService {
 
       this.rateLimiter.handleResponse({ status: statusCode || 400 });
 
-      // Track API key errors (403, 429)
-      if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
-        const accessToken = BNet.accessTokenObject.access_token;
-        const context: ApiKeyErrorContext = {
-          serviceName: 'CharacterService',
-          methodName: 'getPetsCollection',
-          resourceId: `${nameSlug}@${realmSlug}`,
-        };
-        await this.keyErrorTracker.trackError(accessToken, statusCode, context);
-      }
-
       if (statusCode === 429) {
         this.logger.debug(`${chalk.yellow('429')} Rate limited (getPetsCollection): ${nameSlug}@${realmSlug}`);
       } else {
@@ -412,17 +348,6 @@ export class CharacterService {
         : get(errorOrException, 'status', 400);
 
       this.rateLimiter.handleResponse({ status: statusCode || 400 });
-
-      // Track API key errors (403, 429)
-      if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
-        const accessToken = BNet.accessTokenObject.access_token;
-        const context: ApiKeyErrorContext = {
-          serviceName: 'CharacterService',
-          methodName: 'getProfessions',
-          resourceId: `${nameSlug}@${realmSlug}`,
-        };
-        await this.keyErrorTracker.trackError(accessToken, statusCode, context);
-      }
 
       if (statusCode === 429) {
         this.logger.debug(`${chalk.yellow('429')} Rate limited (getProfessions): ${nameSlug}@${realmSlug}`);

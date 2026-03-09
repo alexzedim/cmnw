@@ -86,12 +86,12 @@ export class KeysService implements OnApplicationBootstrap {
 
         if (isResetErrorsCount) {
           keyEntity.resetAt = now.toJSDate();
-          keyEntity.errorCounts = 0;
+          keyEntity.errorCount = 0;
           keyEntity.status = KEY_STATUS.FREE;
         }
 
         const isTooManyErrors =
-          keyEntity.errorCounts > KEY_LOCK_ERRORS_NUM && Boolean(keyEntity.status != KEY_STATUS.TOO_MANY_REQUESTS);
+          keyEntity.errorCount > KEY_LOCK_ERRORS_NUM && Boolean(keyEntity.status != KEY_STATUS.TOO_MANY_REQUESTS);
 
         if (isTooManyErrors) {
           keyEntity.status = KEY_STATUS.TOO_MANY_REQUESTS;
@@ -114,7 +114,7 @@ export class KeysService implements OnApplicationBootstrap {
         });
 
         keyEntity.token = data.access_token;
-        keyEntity.expiredIn = data.expires_in;
+        keyEntity.tokenExpiresIn = data.expires_in;
         this.logger.log({
           logTag,
           client: keyEntity.client,
@@ -150,7 +150,7 @@ export class KeysService implements OnApplicationBootstrap {
         });
 
         keyEntity.token = data.access_token;
-        keyEntity.expiredIn = data.expires_in;
+        keyEntity.tokenExpiresIn = data.expires_in;
 
         await this.keysRepository.save(keyEntity);
         this.logger.log({
