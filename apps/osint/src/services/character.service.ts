@@ -26,6 +26,7 @@ import {
   isCharacterProfessions,
   setStatusString,
   CharacterStatusState,
+  RateLimitError,
 } from '@app/resources';
 
 @Injectable()
@@ -79,7 +80,13 @@ export class CharacterService {
       if (isStatusNotFound) {
         this.logger.debug(`${chalk.blue('404')} Not found: ${nameSlug}@${realmSlug}`);
       } else if (statusCode === 429) {
-        this.logger.warn(`${chalk.yellow('429')} Rate limited: ${nameSlug}@${realmSlug}`);
+        const retryAfter = isAxiosError(errorOrException)
+          ? errorOrException.response?.headers?.['retry-after']
+          : undefined;
+        throw new RateLimitError(
+          `Rate limited: ${nameSlug}@${realmSlug}`,
+          retryAfter ? parseInt(retryAfter) : undefined,
+        );
       } else {
         this.logger.warn(
           `${chalk.red('getStatus')} ${nameSlug}@${realmSlug} | ${characterStatus.status} - ` +
@@ -142,7 +149,13 @@ export class CharacterService {
       const statusCode = isAxiosError(errorOrException) ? errorOrException.response?.status : errorOrException.status;
 
       if (statusCode === 429) {
-        this.logger.debug(`${chalk.yellow('429')} Rate limited (getSummary): ${nameSlug}@${realmSlug}`);
+        const retryAfter = isAxiosError(errorOrException)
+          ? errorOrException.response?.headers?.['retry-after']
+          : undefined;
+        throw new RateLimitError(
+          `Rate limited: ${nameSlug}@${realmSlug}`,
+          retryAfter ? parseInt(retryAfter) : undefined,
+        );
       } else {
         this.logger.error(
           `${chalk.red('getSummary')} ${nameSlug}@${realmSlug} | ${summary.status} - ${errorOrException.message}`,
@@ -185,7 +198,13 @@ export class CharacterService {
         : get(errorOrException, 'status', 400);
 
       if (statusCode === 429) {
-        this.logger.debug(`${chalk.yellow('429')} Rate limited (getMedia): ${nameSlug}@${realmSlug}`);
+        const retryAfter = isAxiosError(errorOrException)
+          ? errorOrException.response?.headers?.['retry-after']
+          : undefined;
+        throw new RateLimitError(
+          `Rate limited: ${nameSlug}@${realmSlug}`,
+          retryAfter ? parseInt(retryAfter) : undefined,
+        );
       } else {
         this.logger.error(
           `${chalk.red('getMedia')} ${nameSlug}@${realmSlug} | ${statusCode} - ${errorOrException.message}`,
@@ -224,7 +243,13 @@ export class CharacterService {
         : get(errorOrException, 'status', 400);
 
       if (statusCode === 429) {
-        this.logger.debug(`${chalk.yellow('429')} Rate limited (getMountsCollection): ${nameSlug}@${realmSlug}`);
+        const retryAfter = isAxiosError(errorOrException)
+          ? errorOrException.response?.headers?.['retry-after']
+          : undefined;
+        throw new RateLimitError(
+          `Rate limited: ${nameSlug}@${realmSlug}`,
+          retryAfter ? parseInt(retryAfter) : undefined,
+        );
       } else {
         this.logger.error(
           `${chalk.red('getMountsCollection')} ${nameSlug}@${realmSlug} | ${statusCode} - ${errorOrException.message}`,
@@ -267,7 +292,13 @@ export class CharacterService {
         : get(errorOrException, 'status', 400);
 
       if (statusCode === 429) {
-        this.logger.debug(`${chalk.yellow('429')} Rate limited (getPetsCollection): ${nameSlug}@${realmSlug}`);
+        const retryAfter = isAxiosError(errorOrException)
+          ? errorOrException.response?.headers?.['retry-after']
+          : undefined;
+        throw new RateLimitError(
+          `Rate limited: ${nameSlug}@${realmSlug}`,
+          retryAfter ? parseInt(retryAfter) : undefined,
+        );
       } else {
         this.logger.error(
           `${chalk.red('getPetsCollection')} ${nameSlug}@${realmSlug} | ${statusCode} - ${errorOrException.message}`,
@@ -310,7 +341,13 @@ export class CharacterService {
         : get(errorOrException, 'status', 400);
 
       if (statusCode === 429) {
-        this.logger.debug(`${chalk.yellow('429')} Rate limited (getProfessions): ${nameSlug}@${realmSlug}`);
+        const retryAfter = isAxiosError(errorOrException)
+          ? errorOrException.response?.headers?.['retry-after']
+          : undefined;
+        throw new RateLimitError(
+          `Rate limited: ${nameSlug}@${realmSlug}`,
+          retryAfter ? parseInt(retryAfter) : undefined,
+        );
       } else {
         this.logger.error(
           `${chalk.red('getProfessions')} ${nameSlug}@${realmSlug} | ${statusCode} - ${errorOrException.message}`,
