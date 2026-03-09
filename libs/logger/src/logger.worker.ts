@@ -9,7 +9,6 @@ export enum WorkerLogStatus {
   NOT_FOUND = 'NOT_FOUND',
   RATE_LIMITED = 'RATE_LIMITED',
   SKIPPED = 'SKIPPED',
-  CONFLICT = 'CONFLICT',
   ERROR = 'ERROR',
 }
 
@@ -59,11 +58,6 @@ export const LOG_CONFIGS: Record<WorkerLogStatus, LogConfig> = {
     icon: '⊘',
     color: 'yellow',
     statusText: 'SKIP',
-  },
-  [WorkerLogStatus.CONFLICT]: {
-    icon: '⚡',
-    color: 'yellow',
-    statusText: '409',
   },
   [WorkerLogStatus.ERROR]: {
     icon: '✗',
