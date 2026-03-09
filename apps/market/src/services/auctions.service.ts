@@ -12,6 +12,7 @@ import {
   apiConstParams,
   AuctionMessageDto,
   auctionsQueue,
+  BlizzardApiService,
   BlizzardApiWowToken,
   getKey,
   getKeys,
@@ -43,6 +44,7 @@ export class AuctionsService implements OnApplicationBootstrap {
     private readonly marketRepository: Repository<MarketEntity>,
     @InjectQueue(auctionsQueue.name)
     private readonly queue: Queue<IAuctionMessageBase>,
+    private readonly blizzardApiService: BlizzardApiService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -51,7 +53,9 @@ export class AuctionsService implements OnApplicationBootstrap {
   }
 
   @Cron(CronExpression.EVERY_10_MINUTES)
-  private async indexAuctions(clearance: string = GLOBAL_DMA_KEY): Promise<void> {
+  private async indexAuctions(
+    clearance: string = GLOBAL_DMA_KEY,
+  ): Promise<void> {
     const logTag = this.indexAuctions.name;
     try {
       const { isIndexAuctions } = dmaConfig;
@@ -151,11 +155,11 @@ export class AuctionsService implements OnApplicationBootstrap {
     try {
       const key = await getKey(this.keysRepository, clearance);
 
-      this.BNet = new BlizzAPI({
-        region: 'eu',
+      this.BNet = this.blizzardApiService.createClient({
         clientId: key.client,
         clientSecret: key.secret,
         accessToken: key.token,
+        region: 'eu',
       });
 
       const response = await this.BNet.query<BlizzardApiWowToken>(
@@ -173,7 +177,11 @@ export class AuctionsService implements OnApplicationBootstrap {
         return;
       }
 
-      const { price, lastModified, last_updated_timestamp: timestamp } = response;
+      const {
+        price,
+        lastModified,
+        last_updated_timestamp: timestamp,
+      } = response;
 
       const isWowTokenExists = await this.marketRepository.exists({
         where: {
@@ -231,7 +239,9 @@ export class AuctionsService implements OnApplicationBootstrap {
         .where('timestamp < :cutoff', { cutoff: twentyFourHoursAgo })
         .execute();
 
-      this.logger.log(`Deleted ${deleteResult.affected} rows from 'market' table.`);
+      this.logger.log(
+        `Deleted ${deleteResult.affected} rows from 'market' table.`,
+      );
 
       // --- Important: PostgreSQL VACUUM for reclaiming space --- //
       // VACUUM operations can be resource-intensive
