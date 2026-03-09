@@ -25,11 +25,7 @@ import { BullModule } from '@nestjs/bullmq';
       url: `redis://:${redisConfig.password}@${redisConfig.host}:${redisConfig.port}`,
     }),
     TypeOrmModule.forRoot(postgresConfig),
-    TypeOrmModule.forFeature([
-      KeysEntity,
-      RealmsEntity,
-      CharactersProfileEntity,
-    ]),
+    TypeOrmModule.forFeature([KeysEntity, RealmsEntity, CharactersProfileEntity]),
     BullModule.forRoot({
       connection: getRedisConnection(),
     }),

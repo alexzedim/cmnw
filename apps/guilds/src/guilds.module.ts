@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
-import { getRedisConnection, postgresConfig } from '@app/configuration';
+import { postgresConfig } from '@app/configuration';
 import { GuildsService } from './guilds.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';

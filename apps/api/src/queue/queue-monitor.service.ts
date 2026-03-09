@@ -121,15 +121,14 @@ export class QueueMonitorService {
       return this.getEmptyQueueStats(queueName);
     }
 
-    const [waiting, active, completed, delayed, failed, paused] =
-      await Promise.all([
-        queue.getWaitingCount(),
-        queue.getActiveCount(),
-        queue.getCompletedCount(),
-        queue.getDelayedCount(),
-        queue.getFailedCount(),
-        queue.isPaused().then((p) => (p ? 1 : 0)),
-      ]);
+    const [waiting, active, completed, delayed, failed, paused] = await Promise.all([
+      queue.getWaitingCount(),
+      queue.getActiveCount(),
+      queue.getCompletedCount(),
+      queue.getDelayedCount(),
+      queue.getFailedCount(),
+      queue.isPaused().then((p) => (p ? 1 : 0)),
+    ]);
 
     const counts: IJobCounts = {
       waiting,
@@ -175,8 +174,7 @@ export class QueueMonitorService {
 
     const total = waiting + active + completed;
     const current = completed;
-    const completionPercentage =
-      total > 0 ? Math.round((current / total) * 100) : 0;
+    const completionPercentage = total > 0 ? Math.round((current / total) * 100) : 0;
 
     return {
       queueName,

@@ -122,9 +122,7 @@ export function formatWorkerLogWithDetails(
   }
 
   const detailsStr =
-    detailsParts.length > 0
-      ? ` ${chalk.dim('|')} ${detailsParts.join(' ')}`
-      : '';
+    detailsParts.length > 0 ? ` ${chalk.dim('|')} ${detailsParts.join(' ')}` : '';
 
   return `${icon} ${statusText} [${countStr}] ${identifier} ${duration}${detailsStr}`;
 }
@@ -181,9 +179,7 @@ export function formatProgressReport(
   }
 
   if (stats.notFound !== undefined && stats.notFound > 0) {
-    lines.push(
-      `${chalk.blue('  ℹ Not Found:')} ${chalk.blue.bold(stats.notFound)}`,
-    );
+    lines.push(`${chalk.blue('  ℹ Not Found:')} ${chalk.blue.bold(stats.notFound)}`);
   }
 
   if (stats.notModified !== undefined && stats.notModified > 0) {
@@ -193,9 +189,7 @@ export function formatProgressReport(
   }
 
   if (stats.noData !== undefined && stats.noData > 0) {
-    lines.push(
-      `${chalk.yellow('  ⊘ No Data:')} ${chalk.yellow.bold(stats.noData)}`,
-    );
+    lines.push(`${chalk.yellow('  ⊘ No Data:')} ${chalk.yellow.bold(stats.noData)}`);
   }
 
   if (stats.skipped !== undefined && stats.skipped > 0) {
@@ -205,9 +199,7 @@ export function formatProgressReport(
   }
 
   if (stats.forbidden !== undefined && stats.forbidden > 0) {
-    lines.push(
-      `${chalk.red('  ✗ Forbidden:')} ${chalk.red.bold(stats.forbidden)}`,
-    );
+    lines.push(`${chalk.red('  ✗ Forbidden:')} ${chalk.red.bold(stats.forbidden)}`);
   }
 
   lines.push(`${chalk.red('  ✗ Errors:')} ${chalk.red.bold(stats.errors)}`);
@@ -245,9 +237,7 @@ export function formatFinalSummary(
   }
 
   if (stats.notFound !== undefined && stats.notFound > 0) {
-    lines.push(
-      `${chalk.blue('  ℹ Not Found:')} ${chalk.blue.bold(stats.notFound)}`,
-    );
+    lines.push(`${chalk.blue('  ℹ Not Found:')} ${chalk.blue.bold(stats.notFound)}`);
   }
 
   if (stats.notModified !== undefined && stats.notModified > 0) {
@@ -257,9 +247,7 @@ export function formatFinalSummary(
   }
 
   if (stats.noData !== undefined && stats.noData > 0) {
-    lines.push(
-      `${chalk.yellow('  ⊘ No Data:')} ${chalk.yellow.bold(stats.noData)}`,
-    );
+    lines.push(`${chalk.yellow('  ⊘ No Data:')} ${chalk.yellow.bold(stats.noData)}`);
   }
 
   if (stats.skipped !== undefined && stats.skipped > 0) {
@@ -269,15 +257,11 @@ export function formatFinalSummary(
   }
 
   if (stats.forbidden !== undefined && stats.forbidden > 0) {
-    lines.push(
-      `${chalk.red('  ✗ Forbidden:')} ${chalk.red.bold(stats.forbidden)}`,
-    );
+    lines.push(`${chalk.red('  ✗ Forbidden:')} ${chalk.red.bold(stats.forbidden)}`);
   }
 
   lines.push(`${chalk.red('  ✗ Errors:')} ${chalk.red.bold(stats.errors)}`);
-  lines.push(
-    `${chalk.dim('  Avg Rate:')} ${chalk.bold(avgRate)} ${entityName}/sec`,
-  );
+  lines.push(`${chalk.dim('  Avg Rate:')} ${chalk.bold(avgRate)} ${entityName}/sec`);
   lines.push(chalk.magenta.bold('═'.repeat(60)));
 
   return lines.join('\n');

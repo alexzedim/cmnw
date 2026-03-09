@@ -43,9 +43,7 @@ export class WorkerStatsListener implements OnModuleInit {
   private setupGuildsQueueListener() {
     // Monitor guilds queue via BullMQ
     this.guildsQueue.on('drained' as any, async () => {
-      this.logger.log(
-        chalk.cyan('\n🏁 Guilds queue drained - all jobs completed!'),
-      );
+      this.logger.log(chalk.cyan('\n🏁 Guilds queue drained - all jobs completed!'));
       this.guildsWorker.logFinalSummary();
 
       // Publish stats to Redis for API access
@@ -62,9 +60,7 @@ export class WorkerStatsListener implements OnModuleInit {
         ...stats,
         uptime: Date.now() - stats.startTime,
         successRate:
-          stats.total > 0
-            ? ((stats.success / stats.total) * 100).toFixed(1)
-            : '0.0',
+          stats.total > 0 ? ((stats.success / stats.total) * 100).toFixed(1) : '0.0',
         rate:
           stats.total > 0
             ? (stats.total / ((Date.now() - stats.startTime) / 1000)).toFixed(2)
@@ -79,10 +75,7 @@ export class WorkerStatsListener implements OnModuleInit {
       );
 
       // Publish to Redis pub/sub for real-time updates
-      await this.redis.publish(
-        'worker:stats:update',
-        JSON.stringify(statsData),
-      );
+      await this.redis.publish('worker:stats:update', JSON.stringify(statsData));
 
       this.logger.log(chalk.dim(`📊 Published ${workerName} stats to Redis`));
     } catch (error) {

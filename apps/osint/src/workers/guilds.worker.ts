@@ -164,22 +164,20 @@ export class GuildsWorker extends WorkerHost {
             guildById,
             guildEntity,
           );
-          masterStatus =
-            await this.guildMasterService.detectAndLogGuildMasterChange(
-              guildById,
-              roster,
-            );
+          masterStatus = await this.guildMasterService.detectAndLogGuildMasterChange(
+            guildById,
+            roster,
+          );
         }
       } else {
         logStatus = await this.guildLogService.detectAndLogChanges(
           guildSnapshot,
           guildEntity,
         );
-        masterStatus =
-          await this.guildMasterService.detectAndLogGuildMasterChange(
-            guildSnapshot,
-            roster,
-          );
+        masterStatus = await this.guildMasterService.detectAndLogGuildMasterChange(
+          guildSnapshot,
+          roster,
+        );
       }
 
       const operationStatuses = {
@@ -265,9 +263,8 @@ export class GuildsWorker extends WorkerHost {
 
     for (const operation of operations) {
       const hasError =
-        operation.statusString?.includes(
-          operation.errorIndicator.toLowerCase(),
-        ) ?? false;
+        operation.statusString?.includes(operation.errorIndicator.toLowerCase()) ??
+        false;
 
       aggregated = setGuildStatusString(
         aggregated,
@@ -336,12 +333,7 @@ export class GuildsWorker extends WorkerHost {
     } else if (statusCode === 404) {
       this.stats.notFound++;
       this.logger.warn(
-        formatWorkerLog(
-          WorkerLogStatus.NOT_FOUND,
-          this.stats.total,
-          guid,
-          duration,
-        ),
+        formatWorkerLog(WorkerLogStatus.NOT_FOUND, this.stats.total, guid, duration),
       );
     } else if (statusCode === 429) {
       this.stats.rateLimit++;

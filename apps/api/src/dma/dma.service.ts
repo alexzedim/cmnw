@@ -42,9 +42,7 @@ export class DmaService {
   async getItem(input: ReqGetItemDto) {
     const isNotNumber = isNaN(Number(input.id));
     if (isNotNumber) {
-      throw new BadRequestException(
-        'Please provide correct item ID in your query',
-      );
+      throw new BadRequestException('Please provide correct item ID in your query');
     }
 
     const id = typeof input.id === 'number' ? input.id : parseInt(input.id);
@@ -79,12 +77,9 @@ export class DmaService {
    * @description We receive available timestamps for COMMODITY items
    */
   async getLatestTimestampCommodity(itemId: number) {
-    const commodityTimestampKeys =
-      await this.redisService.keys('COMMODITY:TS:*');
+    const commodityTimestampKeys = await this.redisService.keys('COMMODITY:TS:*');
 
-    const commodityTimestamp = await this.redisService.mget(
-      commodityTimestampKeys,
-    );
+    const commodityTimestamp = await this.redisService.mget(commodityTimestampKeys);
 
     // TODO in case of Redis not found!
 
@@ -285,9 +280,9 @@ export class DmaService {
     if (!marketData.length) return [];
 
     // Get unique sorted prices
-    const uniquePrices = Array.from(
-      new Set(marketData.map((m) => m.price)),
-    ).sort((a, b) => a - b);
+    const uniquePrices = Array.from(new Set(marketData.map((m) => m.price))).sort(
+      (a, b) => a - b,
+    );
 
     if (uniquePrices.length === 0) return [];
 
@@ -337,8 +332,7 @@ export class DmaService {
 
     // Calculate median interval to handle outliers
     const sortedIntervals = [...intervals].sort((a, b) => a - b);
-    const medianInterval =
-      sortedIntervals[Math.floor(sortedIntervals.length / 2)];
+    const medianInterval = sortedIntervals[Math.floor(sortedIntervals.length / 2)];
 
     // Find appropriate power of 10 scale based on interval magnitude
     const magnitude = Math.floor(Math.log10(medianInterval));
@@ -350,10 +344,7 @@ export class DmaService {
 
     // Find the first increment where median fits within 1-4 increments
     for (const increment of candidateIncrements) {
-      if (
-        medianInterval >= increment * 0.8 &&
-        medianInterval <= increment * 4
-      ) {
+      if (medianInterval >= increment * 0.8 && medianInterval <= increment * 4) {
         return increment;
       }
     }
@@ -785,8 +776,7 @@ export class DmaService {
     // Filter by timestamp range
     const filtered = contracts.filter(
       (contract) =>
-        contract.timestamp >= startTimestamp &&
-        contract.timestamp <= endTimestamp,
+        contract.timestamp >= startTimestamp && contract.timestamp <= endTimestamp,
     );
 
     return { contracts: filtered };

@@ -105,13 +105,17 @@ export class QueueMessageDto<T, NameType extends string> {
     // Validate priority range in opts
     if (this.opts?.priority !== undefined) {
       if (this.opts.priority < 0 || this.opts.priority > 10) {
-        const message = `Validation failed: priority must be between 0-10, got '${this.opts.priority}'`;
         if (strict) {
-          throw new Error(message);
+          throw new Error(
+            `Validation failed: priority must be between 0-10,` +
+              ` got '${this.opts.priority}'`,
+          );
         } else {
           QueueMessageDto.logger.warn({
             logTag: 'QueueMessageDto.validate',
-            message,
+            message:
+              `Validation failed: priority must be between 0-10,` +
+              ` got '${this.opts.priority}'`,
             priority: this.opts.priority,
           });
         }
