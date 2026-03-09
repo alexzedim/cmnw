@@ -86,11 +86,7 @@ import { queueMetricsProviders } from './queue-metrics.provider';
     }),
   ],
   controllers: [QueueMonitorController, WorkersController],
-  providers: [
-    QueueMonitorService,
-    QueueMetricsService,
-    ...queueMetricsProviders,
-  ],
+  providers: [QueueMonitorService, QueueMetricsService, ...queueMetricsProviders],
   exports: [],
 })
 export class QueueModule {}

@@ -22,7 +22,6 @@ import {
   delay,
   GuildMessageDto,
   IGuildMessageBase,
-  guildsQueue,
   WowProgressLink,
   DownloadSummary,
   DownloadResult,
@@ -75,9 +74,7 @@ export class WowProgressRanksService
   }
 
   async onApplicationBootstrap(): Promise<void> {
-    this.logger.log(
-      chalk.cyan('\n🚀 Initializing WoW Progress Ranks Service...'),
-    );
+    this.logger.log(chalk.cyan('\n🚀 Initializing WoW Progress Ranks Service...'));
 
     try {
       await this.initializeBrowser();
@@ -359,9 +356,7 @@ export class WowProgressRanksService
       const linksCount = filesToDownload.length;
 
       this.logger.log(
-        chalk.cyan(
-          `📥 Downloading ${chalk.bold(filesToDownload.length)} files...`,
-        ),
+        chalk.cyan(`📥 Downloading ${chalk.bold(filesToDownload.length)} files...`),
       );
 
       const results: DownloadResult[] = [];
@@ -456,21 +451,14 @@ export class WowProgressRanksService
         ),
       );
 
-      this.keyEntities = await getKeys(
-        this.keysRepository,
-        clearance,
-        false,
-        true,
-      );
+      this.keyEntities = await getKeys(this.keysRepository, clearance, false, true);
 
       for (const fileName of listWowProgressGzipFiles) {
         const realmName = extractRealmName(fileName);
         if (!realmName) {
           this.stats.realmsSkipped++;
           this.logger.warn(
-            chalk.yellow(
-              `⚠ Unable to extract realm from ${chalk.dim(fileName)}`,
-            ),
+            chalk.yellow(`⚠ Unable to extract realm from ${chalk.dim(fileName)}`),
           );
           continue;
         }
@@ -500,9 +488,7 @@ export class WowProgressRanksService
 
         // Calculate file checksum and check if already imported
         const fileContent = JSON.stringify(jsonRankings);
-        const fileChecksum = createHash('md5')
-          .update(fileContent)
-          .digest('hex');
+        const fileChecksum = createHash('md5').update(fileContent).digest('hex');
         const redisKey = `WP_RANKS_FILE_IMPORTED:${fileChecksum}`;
 
         const isAlreadyImported = await this.redisService.exists(redisKey);
@@ -532,12 +518,7 @@ export class WowProgressRanksService
         );
 
         // Mark file as imported with checksum
-        await this.redisService.set(
-          redisKey,
-          Date.now(),
-          'EX',
-          60 * 60 * 24 * 30,
-        ); // 30 days TTL
+        await this.redisService.set(redisKey, Date.now(), 'EX', 60 * 60 * 24 * 30); // 30 days TTL
       }
 
       const duration = Date.now() - startTime;

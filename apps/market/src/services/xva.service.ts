@@ -366,7 +366,11 @@ export class XvaService implements OnApplicationBootstrap {
           let expansion: string = 'CLSC';
 
           Array.from(EXPANSION_TICKER_MAP.entries()).some(([k, v]) => {
-            tier.name.en_GB?.includes(k) ? (expansion = v) : '';
+            if (tier.name.en_GB?.includes(k)) {
+              expansion = v;
+              return true;
+            }
+            return false;
           });
 
           const skillTierDetailResponse = await this.BNet.query<ISkillTieryResponse>(

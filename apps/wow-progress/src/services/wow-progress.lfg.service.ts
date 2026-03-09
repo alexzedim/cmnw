@@ -17,7 +17,6 @@ import {
   GLOBAL_OSINT_KEY,
   ICharacterQueueWP,
   LFG_STATUS,
-  OSINT_SOURCE,
   OSINT_LFG_WOW_PROGRESS,
   toGuid,
   CharacterMessageDto,
@@ -56,24 +55,21 @@ export class WowProgressLfgService {
   ) {}
 
   @Cron(CronExpression.EVERY_5_MINUTES)
-  async indexWowProgressLfg(
-    clearance: string = GLOBAL_OSINT_KEY,
-  ): Promise<void> {
+  async indexWowProgressLfg(clearance: string = GLOBAL_OSINT_KEY): Promise<void> {
     const startTime = Date.now();
     try {
       this.logger.log(chalk.cyan('\n🔍 Starting WoW Progress LFG indexing...'));
       /**
        * Revoke character status from old NOW => to PREV
        */
-      const charactersLfgRemoveOld =
-        await this.charactersProfileRepository.update(
-          {
-            lfgStatus: LFG_STATUS.OLD,
-          },
-          {
-            lfgStatus: null,
-          },
-        );
+      const charactersLfgRemoveOld = await this.charactersProfileRepository.update(
+        {
+          lfgStatus: LFG_STATUS.OLD,
+        },
+        {
+          lfgStatus: null,
+        },
+      );
 
       this.stats.charactersRemoved += charactersLfgRemoveOld.affected || 0;
       this.logger.log(
@@ -136,10 +132,9 @@ export class WowProgressLfgService {
       this.logger.log(
         `${chalk.green('✓')} Found ${chalk.bold(charactersLfgNow.length)} characters in LFG-${LFG_STATUS.NOW}`,
       );
-      const characterProfileLfgOld =
-        await this.charactersProfileRepository.findBy({
-          lfgStatus: LFG_STATUS.OLD,
-        });
+      const characterProfileLfgOld = await this.charactersProfileRepository.findBy({
+        lfgStatus: LFG_STATUS.OLD,
+      });
       this.logger.log(
         `${chalk.blue('ℹ')} Found ${chalk.bold(characterProfileLfgOld.length)} characters in LFG-${LFG_STATUS.OLD}`,
       );
@@ -275,9 +270,7 @@ export class WowProgressLfgService {
       ]);
 
       this.stats.charactersQueued++;
-      this.logger.log(
-        `${chalk.cyan('→')} Queued ${chalk.dim(characterQueue.guid)}`,
-      );
+      this.logger.log(`${chalk.cyan('→')} Queued ${chalk.dim(characterQueue.guid)}`);
     } catch (errorOrException) {
       this.stats.errors++;
       this.logger.error(
@@ -312,21 +305,13 @@ export class WowProgressLfgService {
       const response = await this.httpService.axiosRef.get(url);
 
       const wowProgressHTML = cheerio.load(response.data);
-      const listingLookingForGuild = wowProgressHTML.html(
-        'table.rating tbody tr',
-      );
+      const listingLookingForGuild = wowProgressHTML.html('table.rating tbody tr');
 
       await Promise.allSettled(
         wowProgressHTML(listingLookingForGuild).map(async (_x, node) => {
           const tableRowElement = wowProgressHTML(node).find('td');
-          const [
-            preName,
-            preGuild,
-            preRaid,
-            preRealm,
-            preItemLevel,
-            preTimestamp,
-          ] = tableRowElement;
+          const [preName, preGuild, preRaid, preRealm, preItemLevel, preTimestamp] =
+            tableRowElement;
 
           const name = wowProgressHTML(preName).text().trim();
           const guild = wowProgressHTML(preGuild).text();

@@ -1,9 +1,4 @@
-import {
-  Injectable,
-  OnModuleInit,
-  Logger,
-  OnModuleDestroy,
-} from '@nestjs/common';
+import { Injectable, OnModuleInit, Logger, OnModuleDestroy } from '@nestjs/common';
 import { InjectMetric } from '@willsoto/nestjs-prometheus';
 import { Gauge, Counter } from 'prom-client';
 import { workerConfig } from '@app/configuration';
@@ -113,14 +108,9 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
         this.processingRateGauge
           .labels(queueName, this.workerId)
           .set(processingRate);
-        this.avgProcessingTimeGauge
-          .labels(queueName, this.workerId)
-          .set(avgTime);
+        this.avgProcessingTimeGauge.labels(queueName, this.workerId).set(avgTime);
       } catch (error) {
-        console.error(
-          `Failed to update metrics for queue ${queueName}:`,
-          error,
-        );
+        console.error(`Failed to update metrics for queue ${queueName}:`, error);
       }
     }
   }
@@ -141,10 +131,7 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
 
       // Track status code if available
       if (typeof messageData.statusCode === 'number') {
-        const statusLabel = getStatusChar(
-          messageData.status || '------',
-          'STATUS',
-        );
+        const statusLabel = getStatusChar(messageData.status || '------', 'STATUS');
 
         this.jobsByStatusCodeCounter.inc({
           queue: queueName,

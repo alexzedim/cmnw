@@ -1,9 +1,5 @@
 import { Module } from '@nestjs/common';
-import {
-  postgresConfig,
-  redisConfig,
-  getRedisConnection,
-} from '@app/configuration';
+import { postgresConfig, redisConfig, getRedisConnection } from '@app/configuration';
 import { BullModule } from '@nestjs/bullmq';
 import { valuationsQueue, itemsQueue, auctionsQueue } from '@app/resources';
 import { DmaController } from './dma.controller';

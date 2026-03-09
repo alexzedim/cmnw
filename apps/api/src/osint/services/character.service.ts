@@ -76,11 +76,7 @@ export class CharacterOsintService {
     let requestedCharacter: CharactersEntity | null = null;
 
     try {
-      const [keyEntity] = await getKeys(
-        this.keysRepository,
-        this.clearance,
-        true,
-      );
+      const [keyEntity] = await getKeys(this.keysRepository, this.clearance, true);
 
       const characterMessage = await CharacterMessageDto.fromCharacterRequest({
         name: params.name,
@@ -180,11 +176,7 @@ export class CharacterOsintService {
           : false;
 
       if (isStale) {
-        const [keyEntity] = await getKeys(
-          this.keysRepository,
-          this.clearance,
-          true,
-        );
+        const [keyEntity] = await getKeys(this.keysRepository, this.clearance, true);
 
         const characterMessage = CharacterMessageDto.fromCharacterRequest({
           name: nameSlug,
@@ -389,10 +381,8 @@ export class CharacterOsintService {
 
       if (input.raiderIoScore)
         where.raiderIoScore = MoreThanOrEqual(input.raiderIoScore);
-      if (input.mythicLogs)
-        where.mythicLogs = MoreThanOrEqual(input.mythicLogs);
-      if (input.heroicLogs)
-        where.heroicLogs = MoreThanOrEqual(input.heroicLogs);
+      if (input.mythicLogs) where.mythicLogs = MoreThanOrEqual(input.mythicLogs);
+      if (input.heroicLogs) where.heroicLogs = MoreThanOrEqual(input.heroicLogs);
       if (input.realmsId) {
         where.realmId = In(input.realmsId);
       }

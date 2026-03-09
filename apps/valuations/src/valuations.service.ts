@@ -277,18 +277,15 @@ export class ValuationsService implements OnApplicationBootstrap {
           .cursor()
           .eachAsync(
             async (item: Item) => {
-              if (item.sell_price)
-                item.asset_class.addToSet(VALUATION_TYPE.VSP);
-              if (item.expansion)
-                item.tags.addToSet(item.expansion.toLowerCase());
+              if (item.sell_price) item.asset_class.addToSet(VALUATION_TYPE.VSP);
+              if (item.expansion) item.tags.addToSet(item.expansion.toLowerCase());
               if (item.profession_class)
                 item.tags.addToSet(item.profession_class.toLowerCase());
               if (item.asset_class)
                 item.asset_class.map((asset_class) =>
                   item.tags.addToSet(asset_class.toLowerCase()),
                 );
-              if (item.item_class)
-                item.tags.addToSet(item.item_class.toLowerCase());
+              if (item.item_class) item.tags.addToSet(item.item_class.toLowerCase());
               if (item.item_subclass)
                 item.tags.addToSet(item.item_subclass.toLowerCase());
               if (item.quality) item.tags.addToSet(item.quality.toLowerCase());
@@ -302,9 +299,7 @@ export class ValuationsService implements OnApplicationBootstrap {
                   item.tags.addToSet(t);
                 });
               }
-              this.logger.debug(
-                `item: ${item._id}, tags: ${item.tags.join(', ')}`,
-              );
+              this.logger.debug(`item: ${item._id}, tags: ${item.tags.join(', ')}`);
               await item.save();
             },
             { parallel: 20 },

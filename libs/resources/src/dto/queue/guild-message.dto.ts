@@ -16,7 +16,7 @@ import { guildsQueue } from '../../queues/guilds.queue';
  * @see GuildsService.indexGuildCharactersUnique() - Guilds from character rosters (priority: 7)
  * @see GuildsService.indexGuilds() - Guild database index (priority: 5)
  * @see GuildsService.indexHallOfFame() - Top guilds from Blizzard leaderboards (priority: 9)
- * @see WowProgressRanksService.transformWowProgressToGuildJobs() - WoW Progress rankings (priority: 6)
+ * @see WowProgressRanksService.transformWowProgressToGuildJobs - WoW Progress (priority: 6)
  * @see OsintService.getGuild() - Direct guild API request (priority: 8)
  *
  * GUID FORMAT:
@@ -344,13 +344,17 @@ export class GuildMessageDto {
       guildData?.forceUpdate !== undefined &&
       (typeof guildData.forceUpdate !== 'number' || guildData.forceUpdate < 0)
     ) {
-      const message = `Validation failed: forceUpdate must be a positive number, got '${guildData.forceUpdate}' for guid '${guildData?.guid || 'unknown'}'`;
       if (strict) {
-        throw new Error(message);
+        throw new Error(
+          `Validation failed: forceUpdate must be a positive number,` +
+            ` got '${guildData.forceUpdate}' for guid '${guildData?.guid || 'unknown'}'`,
+        );
       } else {
         GuildMessageDto.guildLogger.warn({
           logTag,
-          message,
+          message:
+            `Validation failed: forceUpdate must be a positive number,` +
+            ` got '${guildData.forceUpdate}' for guid '${guildData?.guid || 'unknown'}'`,
           guid: guildData?.guid,
           forceUpdate: guildData?.forceUpdate,
         });
@@ -361,7 +365,6 @@ export class GuildMessageDto {
     if (guildData.region && guildData.region !== 'eu') {
       GuildMessageDto.guildLogger.warn({
         logTag: 'GuildMessageDto.fromHallOfFame',
-        message: `Non-EU region '${guildData.region}' provided but only EU is supported. Defaulting to 'eu'.`,
         guid: guildData.guid,
         providedRegion: guildData.region,
       });

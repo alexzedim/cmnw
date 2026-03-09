@@ -42,10 +42,7 @@ export class AuctionMessageDto {
    * @param opts - Optional job options
    * @returns New AuctionMessageDto instance
    */
-  static create(
-    data: IAuctionMessageBase,
-    opts?: JobsOptions,
-  ): AuctionMessageDto {
+  static create(data: IAuctionMessageBase, opts?: JobsOptions): AuctionMessageDto {
     const jobId =
       data.connectedRealmId === REALM_ENTITY_ANY.connectedRealmId
         ? `commodity-${data.connectedRealmId}`

@@ -108,10 +108,7 @@ export class ProfileWorker extends WorkerHost {
       }
 
       if (args.updateWP) {
-        const wowProgress = await this.getWowProgressProfile(
-          args.name,
-          args.realm,
-        );
+        const wowProgress = await this.getWowProgressProfile(args.name, args.realm);
         Object.assign(profileEntity, wowProgress);
         this.wpUpdated++;
       }
@@ -153,15 +150,11 @@ export class ProfileWorker extends WorkerHost {
   }
 
   private logProgress(): void {
-    this.logger.log(
-      formatProgressReport('ProfileWorker', this.stats, 'profiles'),
-    );
+    this.logger.log(formatProgressReport('ProfileWorker', this.stats, 'profiles'));
   }
 
   public logFinalSummary(): void {
-    this.logger.log(
-      formatFinalSummary('ProfileWorker', this.stats, 'profiles'),
-    );
+    this.logger.log(formatFinalSummary('ProfileWorker', this.stats, 'profiles'));
   }
 
   private async getWarcraftLogsProfile(
@@ -191,9 +184,7 @@ export class ProfileWorker extends WorkerHost {
       );
 
       await page.goto(url);
-      const getBestPerfAvg = await page
-        .getByText('Best Perf. Avg')
-        .allInnerTexts();
+      const getBestPerfAvg = await page.getByText('Best Perf. Avg').allInnerTexts();
       const [getBestPerfAvgValue] = getBestPerfAvg;
 
       const [_text, value] = getBestPerfAvgValue.trim().split('\n');
@@ -281,8 +272,7 @@ export class ProfileWorker extends WorkerHost {
 
           const fieldValueName = CHARACTER_PROFILE_MAPPING.get(key);
           if (fieldValueName === 'readyToTransfer')
-            wowProgressProfile.readyToTransfer =
-              value.includes('ready to transfer');
+            wowProgressProfile.readyToTransfer = value.includes('ready to transfer');
 
           if (fieldValueName === 'raidDays' && value) {
             const [from, to] = value.split(' - ');

@@ -151,10 +151,7 @@ export class CharactersWorker extends WorkerHost {
     }
   }
 
-  private logCharacterResult(
-    character: CharactersEntity,
-    duration: number,
-  ): void {
+  private logCharacterResult(character: CharactersEntity, duration: number): void {
     const status = character.status || '------';
     const guid = character.guid;
     const isAllSuccess = status === 'SU-MPVR';
@@ -218,9 +215,7 @@ export class CharactersWorker extends WorkerHost {
     }
   }
 
-  private async initializeApiClient(
-    args: ICharacterMessageBase,
-  ): Promise<BlizzAPI> {
+  private async initializeApiClient(args: ICharacterMessageBase): Promise<BlizzAPI> {
     return new BlizzAPI({
       region: args.region || 'eu',
       clientId: args.clientId,
@@ -241,18 +236,10 @@ export class CharactersWorker extends WorkerHost {
 
     const [summary, petsCollection, mountsCollection, media, professions] =
       await Promise.allSettled([
-        this.characterService.getSummary(
-          nameSlug,
-          characterEntity.realm,
-          this.BNet,
-        ),
+        this.characterService.getSummary(nameSlug, characterEntity.realm, this.BNet),
         this.fetchAndSyncPets(nameSlug, characterEntity.realm),
         this.fetchAndSyncMounts(nameSlug, characterEntity.realm),
-        this.characterService.getMedia(
-          nameSlug,
-          characterEntity.realm,
-          this.BNet,
-        ),
+        this.characterService.getMedia(nameSlug, characterEntity.realm, this.BNet),
         this.fetchAndSyncProfessions(nameSlug, characterEntity.realm),
       ]);
 
@@ -292,17 +279,9 @@ export class CharactersWorker extends WorkerHost {
     const isProfessionsFulfilled = professions.status === 'fulfilled';
     if (isProfessionsFulfilled) {
       Object.assign(characterEntity, professions.value);
-      status = setStatusString(
-        status,
-        'PROFESSIONS',
-        CharacterStatusState.SUCCESS,
-      );
+      status = setStatusString(status, 'PROFESSIONS', CharacterStatusState.SUCCESS);
     } else {
-      status = setStatusString(
-        status,
-        'PROFESSIONS',
-        CharacterStatusState.ERROR,
-      );
+      status = setStatusString(status, 'PROFESSIONS', CharacterStatusState.ERROR);
     }
 
     // Update entity with status string
@@ -377,12 +356,11 @@ export class CharactersWorker extends WorkerHost {
       return {};
     }
 
-    const professions =
-      await this.collectionSyncService.syncCharacterProfessions(
-        nameSlug,
-        realmSlug,
-        professionsResponse,
-      );
+    const professions = await this.collectionSyncService.syncCharacterProfessions(
+      nameSlug,
+      realmSlug,
+      professionsResponse,
+    );
 
     return { professions };
   }
