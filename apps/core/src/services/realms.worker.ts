@@ -9,6 +9,7 @@ import {
   API_HEADERS_ENUM,
   apiConstParams,
   BlizzardApiResponse,
+  BlizzardApiService,
   IConnectedRealm,
   IRealmMessageBase,
   isFieldNamed,
@@ -48,6 +49,7 @@ export class RealmsWorker extends WorkerHost {
     private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
+    private readonly blizzardApiService: BlizzardApiService,
   ) {
     super();
   }
@@ -60,7 +62,9 @@ export class RealmsWorker extends WorkerHost {
     try {
       await job.updateProgress(1);
 
-      let realmEntity = await this.realmsRepository.findOneBy({ id: message.id });
+      let realmEntity = await this.realmsRepository.findOneBy({
+        id: message.id,
+      });
 
       await job.updateProgress(5);
 
@@ -70,11 +74,11 @@ export class RealmsWorker extends WorkerHost {
         });
       }
 
-      this.BNet = new BlizzAPI({
-        region: message.region,
+      this.BNet = this.blizzardApiService.createClient({
         clientId: message.clientId,
         clientSecret: message.clientSecret,
         accessToken: message.accessToken,
+        region: message.region || 'eu',
       });
 
       await job.updateProgress(10);
@@ -110,7 +114,11 @@ export class RealmsWorker extends WorkerHost {
       if (realmEntity.locale != 'enGB') {
         const realmLocale = await this.BNet.query<BlizzardApiResponse>(
           `/data/wow/realm/${message.slug}`,
-          apiConstParams(API_HEADERS_ENUM.DYNAMIC, OSINT_TIMEOUT_TOLERANCE, true),
+          apiConstParams(
+            API_HEADERS_ENUM.DYNAMIC,
+            OSINT_TIMEOUT_TOLERANCE,
+            true,
+          ),
         );
 
         await job.updateProgress(40);
@@ -146,7 +154,11 @@ export class RealmsWorker extends WorkerHost {
 
         realmEntity.connectedRealmId = get(connectedRealm, 'id', null);
         realmEntity.status = get(connectedRealm, 'status.name', null);
-        realmEntity.populationStatus = get(connectedRealm, 'population.name', null);
+        realmEntity.populationStatus = get(
+          connectedRealm,
+          'population.name',
+          null,
+        );
         await job.updateProgress(50);
 
         const isRealmsExists =
@@ -182,7 +194,9 @@ export class RealmsWorker extends WorkerHost {
   private logProgress(): void {
     const uptime = Date.now() - this.stats.startTime;
     const rate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
+      1,
+    );
 
     this.logger.log(
       `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
@@ -200,7 +214,9 @@ export class RealmsWorker extends WorkerHost {
   public logFinalSummary(): void {
     const uptime = Date.now() - this.stats.startTime;
     const avgRate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
+      1,
+    );
 
     this.logger.log(
       `\n${chalk.cyan.bold('═'.repeat(60))}\n` +

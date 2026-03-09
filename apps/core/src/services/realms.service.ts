@@ -16,6 +16,7 @@ import { lastValueFrom, mergeMap, range } from 'rxjs';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
+  BlizzardApiService,
   getRandomizedHeaders,
   delay,
   getKeys,
@@ -43,6 +44,7 @@ export class RealmsService implements OnApplicationBootstrap {
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectQueue(realmsQueue.name)
     private readonly realmsQueue: Queue<IRealmMessageBase>,
+    private readonly blizzardApiService: BlizzardApiService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -67,11 +69,11 @@ export class RealmsService implements OnApplicationBootstrap {
 
       await this.realmsQueue.drain(true);
 
-      this.BNet = new BlizzAPI({
-        region: 'eu',
+      this.BNet = this.blizzardApiService.createClient({
         clientId: keyEntity.client,
         clientSecret: keyEntity.secret,
         accessToken: keyEntity.token,
+        region: 'eu',
       });
 
       const { realms: realmList }: Record<string, any> = await this.BNet.query(
@@ -132,9 +134,13 @@ export class RealmsService implements OnApplicationBootstrap {
               },
             );
             const warcraftLogsPage = cheerio.load(response.data);
-            const warcraftLogsRealmElement = warcraftLogsPage.html('.server-name');
+            const warcraftLogsRealmElement =
+              warcraftLogsPage.html('.server-name');
             const realmName = warcraftLogsPage(warcraftLogsRealmElement).text();
-            const realmEntity = await findRealm(this.realmsRepository, realmName);
+            const realmEntity = await findRealm(
+              this.realmsRepository,
+              realmName,
+            );
             if (!realmEntity) {
               throw new NotFoundException(`${realmId}:${realmName} not found!`);
             }
@@ -154,7 +160,8 @@ export class RealmsService implements OnApplicationBootstrap {
           } catch (errorOrException) {
             // Skip logging for 403/404 errors to reduce noise
             const isExpectedError =
-              errorOrException?.status === 403 || errorOrException?.status === 404;
+              errorOrException?.status === 403 ||
+              errorOrException?.status === 404;
             if (!isExpectedError) {
               this.logger.error({
                 logTag,
