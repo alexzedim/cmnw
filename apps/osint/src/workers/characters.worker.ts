@@ -1,7 +1,7 @@
 import { BlizzAPI } from '@alexzedim/blizzapi';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import {
@@ -12,6 +12,10 @@ import {
   ICharacterMessageBase,
   setStatusString,
   CharacterStatusState,
+  RateLimitError,
+  limitConcurrency,
+  CircuitBreaker,
+  CircuitState,
 } from '@app/resources';
 import {
   formatWorkerLog,
@@ -22,7 +26,7 @@ import {
   WorkerStats,
 } from '@app/logger';
 
-import { CharactersEntity } from '@app/pg';
+import { CharactersEntity, KeysEntity } from '@app/pg';
 import { CharacterService, CharacterLifecycleService, CharacterCollectionService } from '../services';
 
 @Injectable()
@@ -44,9 +48,17 @@ export class CharactersWorker extends WorkerHost {
 
   private BNet: BlizzAPI;
 
+  private readonly circuitBreaker = new CircuitBreaker({
+    failureThreshold: 3,
+    resetTimeoutMs: 30000,
+    halfOpenMaxCalls: 1,
+  });
+
   constructor(
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
+    @InjectRepository(KeysEntity)
+    private readonly keysRepository: Repository<KeysEntity>,
     private readonly characterService: CharacterService,
     private readonly lifecycleService: CharacterLifecycleService,
     private readonly collectionSyncService: CharacterCollectionService,
@@ -59,6 +71,18 @@ export class CharactersWorker extends WorkerHost {
     const message = job.data;
     const startTime = Date.now();
     this.stats.total++;
+
+    if (!this.circuitBreaker.canExecute()) {
+      const state = this.circuitBreaker.getState();
+      this.logger.warn(
+        formatWorkerLog(WorkerLogStatus.RATE_LIMITED, this.stats.total, job.id, 0, `Circuit breaker is ${state}`),
+      );
+      throw new Error(`Circuit breaker ${state}`);
+    }
+
+    if (this.circuitBreaker.getState() === CircuitState.HALF_OPEN) {
+      this.circuitBreaker.recordHalfOpenCall();
+    }
 
     try {
       const { characterEntity, isNew, isCreateOnlyUnique, isNotReadyToUpdate } =
@@ -108,18 +132,47 @@ export class CharactersWorker extends WorkerHost {
       const duration = Date.now() - startTime;
       this.logCharacterResult(characterEntity, duration);
 
-      // Progress report every 50 characters
       if (this.stats.total % 50 === 0) {
         this.logProgress();
       }
 
+      this.circuitBreaker.recordSuccess();
+
       return characterEntity;
     } catch (errorOrException) {
-      this.stats.errors++;
       const duration = Date.now() - startTime;
       const guid = message.name && message.realm ? `${message.name}@${message.realm}` : 'unknown';
       const updatedBy = message.updatedBy || 'unknown';
 
+      if (errorOrException instanceof RateLimitError) {
+        this.circuitBreaker.recordFailure();
+        this.stats.rateLimit++;
+        this.logger.warn(
+          formatWorkerLog(
+            WorkerLogStatus.RATE_LIMITED,
+            this.stats.total,
+            guid,
+            duration,
+            `Retry after: ${errorOrException.retryAfter || 'unknown'}s`,
+          ),
+        );
+        throw errorOrException;
+      }
+
+      if (errorOrException instanceof QueryFailedError && errorOrException.message.includes('optimistic lock')) {
+        this.logger.warn(
+          formatWorkerLog(
+            WorkerLogStatus.CONFLICT,
+            this.stats.total,
+            guid,
+            duration,
+            'Optimistic lock conflict - will retry',
+          ),
+        );
+        throw errorOrException;
+      }
+
+      this.stats.errors++;
       this.logger.error(formatWorkerErrorLog(this.stats.total, guid, duration, errorOrException.message, updatedBy));
 
       throw errorOrException;
@@ -160,25 +213,32 @@ export class CharactersWorker extends WorkerHost {
   }
 
   private async initializeApiClient(args: ICharacterMessageBase): Promise<BlizzAPI> {
-    return this.blizzardApiService.createClient({
-      clientId: args.clientId,
-      clientSecret: args.clientSecret,
-      accessToken: args.accessToken,
-      region: args.region || 'eu',
-    });
+    return this.blizzardApiService.createClient(
+      {
+        clientId: args.clientId,
+        clientSecret: args.clientSecret,
+        accessToken: args.accessToken,
+        region: args.region || 'eu',
+      },
+      {
+        keysRepository: this.keysRepository,
+        keyTag: 'blizzard',
+      },
+    );
   }
 
   private async fetchAndUpdateCharacterData(characterEntity: CharactersEntity, nameSlug: string): Promise<void> {
-    // Initialize status string
     let status = characterEntity.status || '------';
 
-    const [summary, petsCollection, mountsCollection, media, professions] = await Promise.allSettled([
-      this.characterService.getSummary(nameSlug, characterEntity.realm, this.BNet),
-      this.fetchAndSyncPets(nameSlug, characterEntity.realm),
-      this.fetchAndSyncMounts(nameSlug, characterEntity.realm),
-      this.characterService.getMedia(nameSlug, characterEntity.realm, this.BNet),
-      this.fetchAndSyncProfessions(nameSlug, characterEntity.realm),
-    ]);
+    const tasks = [
+      () => this.characterService.getSummary(nameSlug, characterEntity.realm, this.BNet),
+      () => this.fetchAndSyncPets(nameSlug, characterEntity.realm),
+      () => this.fetchAndSyncMounts(nameSlug, characterEntity.realm),
+      () => this.characterService.getMedia(nameSlug, characterEntity.realm, this.BNet),
+      () => this.fetchAndSyncProfessions(nameSlug, characterEntity.realm),
+    ];
+
+    const [summary, petsCollection, mountsCollection, media, professions] = await limitConcurrency(tasks, 2);
 
     // Process each result and update status
     const isSummaryFulfilled = summary.status === 'fulfilled';
