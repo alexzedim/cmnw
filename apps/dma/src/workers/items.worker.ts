@@ -8,6 +8,8 @@ import {
   API_HEADERS_ENUM,
   apiConstParams,
   BlizzardApiItem,
+  BlizzardApiService,
+  DEFAULT_RATE_LIMITER_CONFIG,
   DMA_SOURCE,
   IItem,
   IItemMessageBase,
@@ -58,16 +60,11 @@ export class ItemsWorker extends WorkerHost {
   constructor(
     @InjectRepository(ItemsEntity)
     private readonly itemsRepository: Repository<ItemsEntity>,
+    private readonly blizzardApiService: BlizzardApiService,
   ) {
     super();
     this.rateLimiter = new AdaptiveRateLimiter(
-      {
-        initialDelayMs: 100,
-        backoffMultiplier: 1.5,
-        recoveryDivisor: 1.1,
-        successThresholdForRecovery: 5,
-        enableJitter: true,
-      },
+      DEFAULT_RATE_LIMITER_CONFIG,
       this.logger,
     );
   }
@@ -91,11 +88,11 @@ export class ItemsWorker extends WorkerHost {
         });
       }
 
-      this.BNet = new BlizzAPI({
-        region: args.region,
+      this.BNet = this.blizzardApiService.createClient({
         clientId: args.clientId,
         clientSecret: args.clientSecret,
         accessToken: args.accessToken,
+        region: args.region || 'eu',
       });
 
       // --- Request item data --- //
@@ -104,7 +101,11 @@ export class ItemsWorker extends WorkerHost {
       const [getItemSummary, getItemMedia] = await Promise.allSettled([
         this.BNet.query<BlizzardApiItem>(
           `/data/wow/item/${args.itemId}`,
-          apiConstParams(API_HEADERS_ENUM.STATIC, TOLERANCE_ENUM.DMA, isMultiLocale),
+          apiConstParams(
+            API_HEADERS_ENUM.STATIC,
+            TOLERANCE_ENUM.DMA,
+            isMultiLocale,
+          ),
         ),
         this.BNet.query(
           `/data/wow/media/item/${args.itemId}`,
@@ -141,7 +142,9 @@ export class ItemsWorker extends WorkerHost {
         if (isKeyInPath) {
           const property = ITEM_FIELD_MAPPING.get(key);
           let value = get(getItemSummary.value, property.path, null);
-          const isFieldName = namedFields.has(key) ? isNamedField(value) : false;
+          const isFieldName = namedFields.has(key)
+            ? isNamedField(value)
+            : false;
 
           if (isFieldName) value = get(value, `en_GB`, null);
 
@@ -165,7 +168,9 @@ export class ItemsWorker extends WorkerHost {
           !itemEntity.assetClass.includes(VALUATION_TYPE.VSP));
 
       if (isVSP) {
-        const assetClass = new Set(itemEntity.assetClass).add(VALUATION_TYPE.VSP);
+        const assetClass = new Set(itemEntity.assetClass).add(
+          VALUATION_TYPE.VSP,
+        );
         itemEntity.assetClass = Array.from(assetClass);
       }
 

@@ -5,12 +5,17 @@ import { AuctionsWorker, ItemsWorker } from './workers';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ItemsEntity, KeysEntity, MarketEntity, RealmsEntity } from '@app/pg';
 import { getRedisConnection } from '@app/configuration';
-import { auctionsQueue, itemsQueue } from '@app/resources/queues';
+import { auctionsQueue, BlizzardApiService, itemsQueue } from '@app/resources';
 
 @Module({
   imports: [
     TypeOrmModule.forRoot(postgresConfig),
-    TypeOrmModule.forFeature([KeysEntity, RealmsEntity, ItemsEntity, MarketEntity]),
+    TypeOrmModule.forFeature([
+      KeysEntity,
+      RealmsEntity,
+      ItemsEntity,
+      MarketEntity,
+    ]),
     BullModule.forRoot({ connection: getRedisConnection() }),
     BullModule.registerQueue({
       name: auctionsQueue.name,
@@ -24,6 +29,6 @@ import { auctionsQueue, itemsQueue } from '@app/resources/queues';
     }),
   ],
   controllers: [],
-  providers: [AuctionsWorker, ItemsWorker],
+  providers: [AuctionsWorker, ItemsWorker, BlizzardApiService],
 })
 export class DmaModule {}
