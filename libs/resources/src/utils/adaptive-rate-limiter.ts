@@ -55,6 +55,7 @@ export interface AdaptiveRateLimiterConfig {
   successThresholdForRecovery?: number;
   enableJitter?: boolean;
   jitterRangeMs?: number;
+  maxDelayMs?: number;
 }
 
 /**
@@ -81,7 +82,7 @@ export interface HttpResponseWithBody extends HttpResponse {
  * Enables graceful degradation when external APIs (like Blizzard API) enforce rate limits.
  *
  * Key Characteristics:
- * - No min/max bounds on delays (unbounded scaling)
+ * - Maximum delay cap (default: 60000ms = 1 minute)
  * - Exponential backoff on rate limit detection (multiply by 1.5)
  * - Gradual recovery on success (divide by 1.1)
  * - Initial delay: 100ms
@@ -106,6 +107,7 @@ export class AdaptiveRateLimiter {
   private successThresholdForRecovery: number;
   private enableJitter: boolean;
   private jitterRangeMs: number;
+  private maxDelayMs: number;
 
   // Logger state
   private readonly logger?: Logger;
@@ -126,6 +128,7 @@ export class AdaptiveRateLimiter {
    *   successThresholdForRecovery: 5,
    *   enableJitter: true,
    *   jitterRangeMs: 50,
+   *   maxDelayMs: 60000,
    * });
    */
   constructor(config?: AdaptiveRateLimiterConfig, logger?: Logger) {
@@ -139,6 +142,7 @@ export class AdaptiveRateLimiter {
     this.successThresholdForRecovery = config?.successThresholdForRecovery ?? 5;
     this.enableJitter = config?.enableJitter ?? true;
     this.jitterRangeMs = config?.jitterRangeMs ?? 50;
+    this.maxDelayMs = config?.maxDelayMs ?? 60000;
   }
 
   /**
@@ -293,7 +297,18 @@ export class AdaptiveRateLimiter {
 
     // Use Retry-After if available and larger than calculated delay
     if (detection?.retryAfterMs) {
-      this.currentDelayMs = Math.max(this.currentDelayMs, detection.retryAfterMs);
+      this.currentDelayMs = Math.max(
+        this.currentDelayMs,
+        detection.retryAfterMs,
+      );
+    }
+
+    // Cap to maximum delay
+    if (this.currentDelayMs > this.maxDelayMs) {
+      this.currentDelayMs = this.maxDelayMs;
+      this.logger?.warn(
+        `${chalk.yellow('⚠')} Max delay cap reached [${chalk.bold(this.maxDelayMs)}ms]`,
+      );
     }
 
     // Reset recovery progress
@@ -392,7 +407,8 @@ export class AdaptiveRateLimiter {
   getStats(): AdaptiveRateLimiterStats {
     const averageDelayMs =
       this.delayHistory.length > 0
-        ? this.delayHistory.reduce((a, b) => a + b, 0) / this.delayHistory.length
+        ? this.delayHistory.reduce((a, b) => a + b, 0) /
+          this.delayHistory.length
         : this.currentDelayMs;
 
     return {
@@ -463,6 +479,9 @@ export class AdaptiveRateLimiter {
     }
     if (config.jitterRangeMs !== undefined) {
       this.jitterRangeMs = config.jitterRangeMs;
+    }
+    if (config.maxDelayMs !== undefined) {
+      this.maxDelayMs = config.maxDelayMs;
     }
 
     this.logger?.log(`${chalk.cyan('ℹ')} Rate limiter configuration updated`);
@@ -539,7 +558,8 @@ export class AdaptiveRateLimiter {
     if (value === undefined || value === null) return null;
 
     try {
-      const num = typeof value === 'number' ? value : parseInt(String(value), 10);
+      const num =
+        typeof value === 'number' ? value : parseInt(String(value), 10);
       return isNaN(num) ? null : num;
     } catch (_error) {
       return null;
