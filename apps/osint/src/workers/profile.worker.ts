@@ -99,10 +99,7 @@ export class ProfileWorker extends WorkerHost {
       }
 
       if (args.updateWCL) {
-        const warcraftLogs = await this.getWarcraftLogsProfile(
-          args.name,
-          args.realm,
-        );
+        const warcraftLogs = await this.getWarcraftLogsProfile(args.name, args.realm);
         Object.assign(profileEntity, warcraftLogs);
         this.wclUpdated++;
       }
@@ -120,13 +117,7 @@ export class ProfileWorker extends WorkerHost {
       const context =
         `${args.updateRIO ? 'RIO' : ''}${args.updateWCL ? ' WCL' : ''}${args.updateWP ? ' WP' : ''}`.trim();
       this.logger.log(
-        formatWorkerLog(
-          WorkerLogStatus.SUCCESS,
-          this.stats.total,
-          args.guid,
-          duration,
-          context || undefined,
-        ),
+        formatWorkerLog(WorkerLogStatus.SUCCESS, this.stats.total, args.guid, duration, context || undefined),
       );
 
       if (this.stats.total % 25 === 0) {
@@ -136,14 +127,7 @@ export class ProfileWorker extends WorkerHost {
       this.stats.errors++;
       const duration = Date.now() - startTime;
 
-      this.logger.error(
-        formatWorkerErrorLog(
-          this.stats.total,
-          message.data?.guid,
-          duration,
-          errorOrException.message,
-        ),
-      );
+      this.logger.error(formatWorkerErrorLog(this.stats.total, message.data?.guid, duration, errorOrException.message));
 
       throw errorOrException;
     }
@@ -169,9 +153,7 @@ export class ProfileWorker extends WorkerHost {
       const isBrowserLaunched = Boolean(this.browser && this.browserContext);
       if (!isBrowserLaunched) {
         this.browser = await chromium.launch();
-        this.browserContext = await this.browser.newContext(
-          devices['iPhone 15 Pro Max landscape'],
-        );
+        this.browserContext = await this.browser.newContext(devices['iPhone 15 Pro Max landscape']);
       }
 
       const difficulty = CHARACTER_RAID_DIFFICULTY.has(raidDifficulty)
@@ -179,9 +161,7 @@ export class ProfileWorker extends WorkerHost {
         : CHARACTER_RAID_DIFFICULTY.get('mythic');
 
       const page = await this.browserContext.newPage();
-      const url = encodeURI(
-        `${OSINT_SOURCE_WCL}/${realmSlug}/${name}#difficulty=${difficulty.wclId}`,
-      );
+      const url = encodeURI(`${OSINT_SOURCE_WCL}/${realmSlug}/${name}#difficulty=${difficulty.wclId}`);
 
       await page.goto(url);
       const getBestPerfAvg = await page.getByText('Best Perf. Avg').allInnerTexts();
@@ -193,23 +173,14 @@ export class ProfileWorker extends WorkerHost {
       if (isLogsNumberValid) {
         warcraftLogsProfile[difficulty.fieldName] = parseFloat(value);
         this.logger.log(
-          formatWorkerLogWithDetails(
-            WorkerLogStatus.SUCCESS,
-            this.stats.total,
-            guid,
-            0,
-            { source: 'WCL', value: difficulty.fieldName },
-          ),
+          formatWorkerLogWithDetails(WorkerLogStatus.SUCCESS, this.stats.total, guid, 0, {
+            source: 'WCL',
+            value: difficulty.fieldName,
+          }),
         );
       } else {
         this.logger.warn(
-          formatWorkerLog(
-            WorkerLogStatus.WARNING,
-            this.stats.total,
-            guid,
-            0,
-            'WCL - No valid logs data found',
-          ),
+          formatWorkerLog(WorkerLogStatus.WARNING, this.stats.total, guid, 0, 'WCL - No valid logs data found'),
         );
       }
 
@@ -217,15 +188,7 @@ export class ProfileWorker extends WorkerHost {
 
       return warcraftLogsProfile;
     } catch (errorOrException) {
-      this.logger.error(
-        formatWorkerErrorLog(
-          this.stats.total,
-          guid,
-          0,
-          errorOrException.message,
-          'WCL',
-        ),
-      );
+      this.logger.error(formatWorkerErrorLog(this.stats.total, guid, 0, errorOrException.message, 'WCL'));
 
       return warcraftLogsProfile;
     } finally {
@@ -233,10 +196,7 @@ export class ProfileWorker extends WorkerHost {
     }
   }
 
-  private async getWowProgressProfile(
-    name: string,
-    realmSlug: string,
-  ): Promise<WowProgressProfile> {
+  private async getWowProgressProfile(name: string, realmSlug: string): Promise<WowProgressProfile> {
     const wowProgressProfile = this.charactersProfileRepository.create();
     const guid = `${name}@${realmSlug}`;
 
@@ -246,15 +206,7 @@ export class ProfileWorker extends WorkerHost {
       );
 
       if (!data) {
-        this.logger.warn(
-          formatWorkerLog(
-            WorkerLogStatus.WARNING,
-            this.stats.total,
-            guid,
-            0,
-            'WP - No data received',
-          ),
-        );
+        this.logger.warn(formatWorkerLog(WorkerLogStatus.WARNING, this.stats.total, guid, 0, 'WP - No data received'));
         return wowProgressProfile;
       }
 
@@ -278,15 +230,12 @@ export class ProfileWorker extends WorkerHost {
             const [from, to] = value.split(' - ');
             const daysFrom = parseInt(from);
             const daysTo = parseInt(to);
-            const isNumber =
-              typeof daysFrom === 'number' && typeof daysTo === 'number';
+            const isNumber = typeof daysFrom === 'number' && typeof daysTo === 'number';
             if (isNumber) wowProgressProfile.raidDays = [daysFrom, daysTo];
           }
 
           if (fieldValueName === 'languages') {
-            wowProgressProfile.languages = value
-              .split(',')
-              .map((s) => s.toLowerCase().trim());
+            wowProgressProfile.languages = value.split(',').map((s) => s.toLowerCase().trim());
           }
 
           if (fieldValueName === 'battleTag' || fieldValueName === 'playRole') {
@@ -298,42 +247,18 @@ export class ProfileWorker extends WorkerHost {
       wowProgressProfile.updatedByWowProgress = new Date();
 
       const hasData =
-        wowProgressProfile.battleTag ||
-        wowProgressProfile.playRole ||
-        wowProgressProfile.languages?.length > 0;
+        wowProgressProfile.battleTag || wowProgressProfile.playRole || wowProgressProfile.languages?.length > 0;
       if (hasData) {
-        this.logger.log(
-          formatWorkerLog(
-            WorkerLogStatus.SUCCESS,
-            this.stats.total,
-            guid,
-            0,
-            'WP - Profile updated',
-          ),
-        );
+        this.logger.log(formatWorkerLog(WorkerLogStatus.SUCCESS, this.stats.total, guid, 0, 'WP - Profile updated'));
       } else {
         this.logger.warn(
-          formatWorkerLog(
-            WorkerLogStatus.WARNING,
-            this.stats.total,
-            guid,
-            0,
-            'WP - No profile data found',
-          ),
+          formatWorkerLog(WorkerLogStatus.WARNING, this.stats.total, guid, 0, 'WP - No profile data found'),
         );
       }
 
       return wowProgressProfile;
     } catch (errorOrException) {
-      this.logger.error(
-        formatWorkerErrorLog(
-          this.stats.total,
-          guid,
-          0,
-          errorOrException.message,
-          'WP',
-        ),
-      );
+      this.logger.error(formatWorkerErrorLog(this.stats.total, guid, 0, errorOrException.message, 'WP'));
 
       return wowProgressProfile;
     }
@@ -344,45 +269,31 @@ export class ProfileWorker extends WorkerHost {
     const guid = `${name}@${realmSlug}`;
 
     try {
-      const { data: raiderIoProfile } =
-        await this.httpService.axiosRef.get<ICharacterRaiderIo>(
-          encodeURI(
-            `${OSINT_SOURCE_RAIDER_IO}?region=eu&realm=${realmSlug}&name=${name}&fields=mythic_plus_scores_by_season:current,raid_progression`,
-          ),
-        );
+      const { data: raiderIoProfile } = await this.httpService.axiosRef.get<ICharacterRaiderIo>(
+        encodeURI(
+          `${OSINT_SOURCE_RAIDER_IO}?region=eu&realm=${realmSlug}&name=${name}` +
+            `&fields=mythic_plus_scores_by_season:current,raid_progression`,
+        ),
+      );
 
       const isRaiderIoProfileValid = isRaiderIoProfile(raiderIoProfile);
       if (!isRaiderIoProfileValid) {
         this.logger.warn(
-          formatWorkerLog(
-            WorkerLogStatus.WARNING,
-            this.stats.total,
-            guid,
-            0,
-            'RIO - Invalid profile data',
-          ),
+          formatWorkerLog(WorkerLogStatus.WARNING, this.stats.total, guid, 0, 'RIO - Invalid profile data'),
         );
         return rioProfileCharacter;
       }
 
       Object.entries(raiderIoProfile).forEach(([key, value]) => {
-        const isKeyInProfile = CHARACTER_PROFILE_RIO_MAPPING.has(
-          <RaiderIoCharacterMappingKey>key,
-        );
+        const isKeyInProfile = CHARACTER_PROFILE_RIO_MAPPING.has(<RaiderIoCharacterMappingKey>key);
 
         if (!isKeyInProfile) return;
 
-        const fieldProfile = CHARACTER_PROFILE_RIO_MAPPING.get(
-          <RaiderIoCharacterMappingKey>key,
-        );
-        rioProfileCharacter[fieldProfile] =
-          fieldProfile === 'gender' ? capitalize(value) : value;
+        const fieldProfile = CHARACTER_PROFILE_RIO_MAPPING.get(<RaiderIoCharacterMappingKey>key);
+        rioProfileCharacter[fieldProfile] = fieldProfile === 'gender' ? capitalize(value) : value;
       });
 
-      const realmEntity = await findRealm(
-        this.realmsRepository,
-        raiderIoProfile.realm,
-      );
+      const realmEntity = await findRealm(this.realmsRepository, raiderIoProfile.realm);
       if (realmEntity) rioProfileCharacter.realmId = realmEntity.id;
 
       rioProfileCharacter.raidProgress = raiderIoProfile.raid_progression;
@@ -392,26 +303,15 @@ export class ProfileWorker extends WorkerHost {
       rioProfileCharacter.updatedByRaiderIo = new Date();
 
       this.logger.log(
-        formatWorkerLogWithDetails(
-          WorkerLogStatus.SUCCESS,
-          this.stats.total,
-          guid,
-          0,
-          { source: 'RIO', score: season.scores.all },
-        ),
+        formatWorkerLogWithDetails(WorkerLogStatus.SUCCESS, this.stats.total, guid, 0, {
+          source: 'RIO',
+          score: season.scores.all,
+        }),
       );
 
       return rioProfileCharacter;
     } catch (errorOrException) {
-      this.logger.error(
-        formatWorkerErrorLog(
-          this.stats.total,
-          guid,
-          0,
-          errorOrException.message,
-          'RIO',
-        ),
-      );
+      this.logger.error(formatWorkerErrorLog(this.stats.total, guid, 0, errorOrException.message, 'RIO'));
 
       return rioProfileCharacter;
     }

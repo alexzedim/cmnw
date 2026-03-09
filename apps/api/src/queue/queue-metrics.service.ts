@@ -25,21 +25,21 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
   private queues: Record<string, Queue> = {};
 
   constructor(
-    @InjectMetric('rabbitmq_queue_messages_ready')
+    @InjectMetric('bullmq_queue_messages_waiting')
     private readonly messagesReadyGauge: Gauge<string>,
-    @InjectMetric('rabbitmq_queue_messages_unacked')
+    @InjectMetric('bullmq_queue_messages_active')
     private readonly messagesUnackedGauge: Gauge<string>,
-    @InjectMetric('rabbitmq_queue_consumers')
+    @InjectMetric('bullmq_queue_workers')
     private readonly consumersGauge: Gauge<string>,
-    @InjectMetric('rabbitmq_queue_processing_rate')
+    @InjectMetric('bullmq_queue_processing_rate')
     private readonly processingRateGauge: Gauge<string>,
-    @InjectMetric('rabbitmq_queue_avg_processing_time_ms')
+    @InjectMetric('bullmq_queue_avg_processing_time_ms')
     private readonly avgProcessingTimeGauge: Gauge<string>,
-    @InjectMetric('rabbitmq_message_consume_total')
+    @InjectMetric('bullmq_jobs_completed_total')
     private readonly jobsTotalCounter: Counter<string>,
-    @InjectMetric('rabbitmq_jobs_by_status_code')
+    @InjectMetric('bullmq_jobs_by_status_code')
     private readonly jobsByStatusCodeCounter: Counter<string>,
-    @InjectMetric('rabbitmq_jobs_by_source')
+    @InjectMetric('bullmq_jobs_by_source')
     private readonly jobsBySourceCounter: Counter<string>,
     @InjectQueue('dma.auctions') private readonly dmaAuctionsQueue: Queue,
     @InjectQueue('osint.characters')
@@ -63,12 +63,8 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleInit() {
-    this.logger.log(
-      `QueueMetricsService initialized with worker_id: ${this.workerId}`,
-    );
-    this.logger.debug(
-      `QueueMetricsService monitoring queues: ${this.queueNames.join(', ')}`,
-    );
+    this.logger.log(`QueueMetricsService initialized with worker_id: ${this.workerId}`);
+    this.logger.debug(`QueueMetricsService monitoring queues: ${this.queueNames.join(', ')}`);
 
     // Initial metrics collection
     await this.updateMetrics();
@@ -90,7 +86,7 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
           continue;
         }
 
-        const [waiting, active, completed, failed] = await Promise.all([
+        const [waiting, active, _completed, _failed] = await Promise.all([
           queue.getWaitingCount(),
           queue.getActiveCount(),
           queue.getCompletedCount(),
@@ -105,9 +101,7 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
         const processingRate = 0; // TODO: implement rate tracking
         const avgTime = 0; // TODO: implement avg time tracking
 
-        this.processingRateGauge
-          .labels(queueName, this.workerId)
-          .set(processingRate);
+        this.processingRateGauge.labels(queueName, this.workerId).set(processingRate);
         this.avgProcessingTimeGauge.labels(queueName, this.workerId).set(avgTime);
       } catch (error) {
         console.error(`Failed to update metrics for queue ${queueName}:`, error);
@@ -122,10 +116,7 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
   /**
    * Track message metadata (createdBy, updatedBy, statusCode) from message content
    */
-  private async trackMessageMetadata(
-    queueName: string,
-    message: any,
-  ): Promise<void> {
+  private async trackMessageMetadata(queueName: string, message: any): Promise<void> {
     try {
       const messageData = message.data || message;
 
@@ -161,10 +152,7 @@ export class QueueMetricsService implements OnModuleInit, OnModuleDestroy {
         });
       }
     } catch (error) {
-      this.logger.error(
-        `Failed to track message metadata for queue ${queueName}:`,
-        error,
-      );
+      this.logger.error(`Failed to track message metadata for queue ${queueName}:`, error);
     }
   }
 

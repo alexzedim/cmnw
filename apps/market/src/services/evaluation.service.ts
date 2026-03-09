@@ -1,13 +1,6 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import {
-  EvaluationEntity,
-  ItemsEntity,
-  MarketEntity,
-  PricingEntity,
-  RealmsEntity,
-  ValuationEntity,
-} from '@app/pg';
+import { EvaluationEntity, ItemsEntity, MarketEntity, PricingEntity, RealmsEntity, ValuationEntity } from '@app/pg';
 import { In, Repository } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
 import {
@@ -100,27 +93,19 @@ export class EvaluationService implements OnApplicationBootstrap {
 
       // Get crafting methods (where this item is a derivative)
       if (options.includeCrafting !== false) {
-        const craftingMethods = await this.gatherCraftingMethods(
-          itemId,
-          connectedRealmId,
-        );
+        const craftingMethods = await this.gatherCraftingMethods(itemId, connectedRealmId);
         methods.push(...craftingMethods);
       }
 
       // Get reverse pricing methods (where this item is a reagent)
       if (options.includeReverse !== false) {
-        const reverseMethods = await this.gatherReverseMethods(
-          itemId,
-          connectedRealmId,
-        );
+        const reverseMethods = await this.gatherReverseMethods(itemId, connectedRealmId);
         methods.push(...reverseMethods);
       }
 
       // Filter by confidence if specified
       const filteredMethods =
-        options.minConfidence !== undefined
-          ? methods.filter((m) => m.confidence >= options.minConfidence!)
-          : methods;
+        options.minConfidence !== undefined ? methods.filter((m) => m.confidence >= options.minConfidence!) : methods;
 
       // Rank methods
       const rankedMethods = this.rankPricingMethods(filteredMethods);
@@ -135,11 +120,7 @@ export class EvaluationService implements OnApplicationBootstrap {
       const marketVolume = await this.getMarketVolume(itemId, connectedRealmId);
 
       // Generate recommendations
-      const recommendations = this.generateRecommendations(
-        rankedMethods,
-        currentMarketPrice,
-        item.vendorSellPrice,
-      );
+      const recommendations = this.generateRecommendations(rankedMethods, currentMarketPrice, item.vendorSellPrice);
 
       return {
         itemId,
@@ -170,10 +151,7 @@ export class EvaluationService implements OnApplicationBootstrap {
   /**
    * Gather crafting methods where the item is produced (derivative)
    */
-  private async gatherCraftingMethods(
-    itemId: number,
-    connectedRealmId: number,
-  ): Promise<PricingMethod[]> {
+  private async gatherCraftingMethods(itemId: number, connectedRealmId: number): Promise<PricingMethod[]> {
     const logTag = 'gatherCraftingMethods';
     const methods: PricingMethod[] = [];
 
@@ -189,10 +167,7 @@ export class EvaluationService implements OnApplicationBootstrap {
 
       // Calculate crafting cost for each recipe
       for (const pricing of pricings) {
-        const craftingCost = await this.calculateCraftingCost(
-          pricing,
-          connectedRealmId,
-        );
+        const craftingCost = await this.calculateCraftingCost(pricing, connectedRealmId);
 
         if (craftingCost && craftingCost.costPerUnit[itemId]) {
           methods.push({
@@ -220,10 +195,7 @@ export class EvaluationService implements OnApplicationBootstrap {
   /**
    * Gather reverse pricing methods where the item is used (reagent)
    */
-  private async gatherReverseMethods(
-    itemId: number,
-    connectedRealmId: number,
-  ): Promise<PricingMethod[]> {
+  private async gatherReverseMethods(itemId: number, connectedRealmId: number): Promise<PricingMethod[]> {
     const logTag = 'gatherReverseMethods';
     const methods: PricingMethod[] = [];
 
@@ -239,17 +211,11 @@ export class EvaluationService implements OnApplicationBootstrap {
 
       // Calculate reverse value for each recipe
       for (const pricing of pricings) {
-        const reverseValue = await this.calculateReversePricingValue(
-          pricing,
-          connectedRealmId,
-        );
+        const reverseValue = await this.calculateReversePricingValue(pricing, connectedRealmId);
 
         if (reverseValue) {
           // Calculate value per input item
-          const reagentsArray =
-            typeof pricing.reagents === 'string'
-              ? JSON.parse(pricing.reagents)
-              : pricing.reagents;
+          const reagentsArray = typeof pricing.reagents === 'string' ? JSON.parse(pricing.reagents) : pricing.reagents;
 
           const reagent = reagentsArray.find((r: any) => {
             const rId = typeof r === 'object' ? r.itemId : r;
@@ -285,37 +251,24 @@ export class EvaluationService implements OnApplicationBootstrap {
   /**
    * Calculate the cost to craft an item from a recipe
    */
-  async calculateCraftingCost(
-    pricing: PricingEntity,
-    connectedRealmId: number,
-  ): Promise<CraftingCost | null> {
+  async calculateCraftingCost(pricing: PricingEntity, connectedRealmId: number): Promise<CraftingCost | null> {
     const logTag = 'calculateCraftingCost';
 
     try {
-      const reagentsArray =
-        typeof pricing.reagents === 'string'
-          ? JSON.parse(pricing.reagents)
-          : pricing.reagents;
+      const reagentsArray = typeof pricing.reagents === 'string' ? JSON.parse(pricing.reagents) : pricing.reagents;
 
       const derivativesArray =
-        typeof pricing.derivatives === 'string'
-          ? JSON.parse(pricing.derivatives)
-          : pricing.derivatives;
+        typeof pricing.derivatives === 'string' ? JSON.parse(pricing.derivatives) : pricing.derivatives;
 
       if (!reagentsArray || reagentsArray.length === 0) {
         return null;
       }
 
       // Get all reagent item IDs
-      const reagentItemIds = reagentsArray.map((r: any) =>
-        typeof r === 'object' ? r.itemId : r,
-      );
+      const reagentItemIds = reagentsArray.map((r: any) => (typeof r === 'object' ? r.itemId : r));
 
       // Batch fetch market prices
-      const marketPrices = await this.batchGetMarketPrices(
-        reagentItemIds,
-        connectedRealmId,
-      );
+      const marketPrices = await this.batchGetMarketPrices(reagentItemIds, connectedRealmId);
 
       let totalCost = 0;
       const reagentCosts: CraftingCost['reagentCosts'] = [];
@@ -345,16 +298,12 @@ export class EvaluationService implements OnApplicationBootstrap {
       }
 
       // Calculate confidence based on data availability
-      const confidence =
-        reagentsArray.length > 0
-          ? (reagentsArray.length - missingCount) / reagentsArray.length
-          : 0;
+      const confidence = reagentsArray.length > 0 ? (reagentsArray.length - missingCount) / reagentsArray.length : 0;
 
       // Calculate cost per derivative unit
       const costPerUnit: Record<number, number> = {};
       for (const derivative of derivativesArray) {
-        const itemId =
-          typeof derivative === 'object' ? derivative.itemId : derivative;
+        const itemId = typeof derivative === 'object' ? derivative.itemId : derivative;
         const quantity = typeof derivative === 'object' ? derivative.quantity : 1;
 
         if (quantity > 0) {
@@ -394,30 +343,20 @@ export class EvaluationService implements OnApplicationBootstrap {
     const logTag = 'calculateReversePricingValue';
 
     try {
-      const reagentsArray =
-        typeof pricing.reagents === 'string'
-          ? JSON.parse(pricing.reagents)
-          : pricing.reagents;
+      const reagentsArray = typeof pricing.reagents === 'string' ? JSON.parse(pricing.reagents) : pricing.reagents;
 
       const derivativesArray =
-        typeof pricing.derivatives === 'string'
-          ? JSON.parse(pricing.derivatives)
-          : pricing.derivatives;
+        typeof pricing.derivatives === 'string' ? JSON.parse(pricing.derivatives) : pricing.derivatives;
 
       if (!derivativesArray || derivativesArray.length === 0) {
         return null;
       }
 
       // Get all derivative item IDs
-      const derivativeItemIds = derivativesArray.map((d: any) =>
-        typeof d === 'object' ? d.itemId : d,
-      );
+      const derivativeItemIds = derivativesArray.map((d: any) => (typeof d === 'object' ? d.itemId : d));
 
       // Batch fetch market prices
-      const marketPrices = await this.batchGetMarketPrices(
-        derivativeItemIds,
-        connectedRealmId,
-      );
+      const marketPrices = await this.batchGetMarketPrices(derivativeItemIds, connectedRealmId);
 
       let expectedValue = 0;
       const derivatives: ReversePricingValue['derivatives'] = [];
@@ -425,8 +364,7 @@ export class EvaluationService implements OnApplicationBootstrap {
 
       // Calculate expected value for each derivative
       for (const derivative of derivativesArray) {
-        const itemId =
-          typeof derivative === 'object' ? derivative.itemId : derivative;
+        const itemId = typeof derivative === 'object' ? derivative.itemId : derivative;
         const quantity = typeof derivative === 'object' ? derivative.quantity : 0;
         const matRate = typeof derivative === 'object' ? derivative.matRate : 1;
 
@@ -459,13 +397,8 @@ export class EvaluationService implements OnApplicationBootstrap {
       }
 
       // Calculate cost of input materials
-      const reagentItemIds = reagentsArray.map((r: any) =>
-        typeof r === 'object' ? r.itemId : r,
-      );
-      const reagentPrices = await this.batchGetMarketPrices(
-        reagentItemIds,
-        connectedRealmId,
-      );
+      const reagentItemIds = reagentsArray.map((r: any) => (typeof r === 'object' ? r.itemId : r));
+      const reagentPrices = await this.batchGetMarketPrices(reagentItemIds, connectedRealmId);
 
       let totalCost = 0;
       for (const reagent of reagentsArray) {
@@ -480,9 +413,7 @@ export class EvaluationService implements OnApplicationBootstrap {
 
       // Calculate confidence based on data availability
       const confidence =
-        derivativesArray.length > 0
-          ? (derivativesArray.length - missingCount) / derivativesArray.length
-          : 0;
+        derivativesArray.length > 0 ? (derivativesArray.length - missingCount) / derivativesArray.length : 0;
 
       return {
         recipeId: pricing.recipeId,
@@ -549,36 +480,27 @@ export class EvaluationService implements OnApplicationBootstrap {
       for (const pricing of pricings) {
         try {
           const derivativesArray =
-            typeof pricing.derivatives === 'string'
-              ? JSON.parse(pricing.derivatives)
-              : pricing.derivatives;
+            typeof pricing.derivatives === 'string' ? JSON.parse(pricing.derivatives) : pricing.derivatives;
 
           if (!derivativesArray || derivativesArray.length === 0) {
             continue;
           }
 
           // Calculate crafting cost
-          const craftingCost = await this.calculateCraftingCost(
-            pricing,
-            connectedRealmId,
-          );
+          const craftingCost = await this.calculateCraftingCost(pricing, connectedRealmId);
 
           if (!craftingCost || craftingCost.confidence < 0.5) {
             continue; // Skip if we don't have enough data
           }
 
           // Filter by max crafting cost if specified
-          if (
-            options.maxCraftingCost &&
-            craftingCost.totalCost > options.maxCraftingCost
-          ) {
+          if (options.maxCraftingCost && craftingCost.totalCost > options.maxCraftingCost) {
             continue;
           }
 
           // Check each derivative for profitability
           for (const derivative of derivativesArray) {
-            const itemId =
-              typeof derivative === 'object' ? derivative.itemId : derivative;
+            const itemId = typeof derivative === 'object' ? derivative.itemId : derivative;
 
             const marketPrice = await this.getMarketPrice(itemId, connectedRealmId);
 
@@ -595,8 +517,7 @@ export class EvaluationService implements OnApplicationBootstrap {
             const profitMargin = (profit / costPerUnit) * 100;
 
             // Apply filters
-            const meetsMinMargin =
-              !options.minMargin || profitMargin >= options.minMargin;
+            const meetsMinMargin = !options.minMargin || profitMargin >= options.minMargin;
             const meetsMinProfit = !options.minProfit || profit >= options.minProfit;
 
             if (profit > 0 && meetsMinMargin && meetsMinProfit) {
@@ -647,10 +568,7 @@ export class EvaluationService implements OnApplicationBootstrap {
   /**
    * Compare market price vs crafting cost for an item
    */
-  async compareMarketVsCrafting(
-    itemId: number,
-    connectedRealmId: number,
-  ): Promise<PriceComparison | null> {
+  async compareMarketVsCrafting(itemId: number, connectedRealmId: number): Promise<PriceComparison | null> {
     const logTag = 'compareMarketVsCrafting';
 
     try {
@@ -666,10 +584,7 @@ export class EvaluationService implements OnApplicationBootstrap {
       }
 
       // Get all crafting methods
-      const craftingMethods = await this.gatherCraftingMethods(
-        itemId,
-        connectedRealmId,
-      );
+      const craftingMethods = await this.gatherCraftingMethods(itemId, connectedRealmId);
 
       if (craftingMethods.length === 0) {
         return null;
@@ -709,10 +624,7 @@ export class EvaluationService implements OnApplicationBootstrap {
   /**
    * Get market price for an item on a specific realm
    */
-  private async getMarketPrice(
-    itemId: number,
-    connectedRealmId: number,
-  ): Promise<number | undefined> {
+  private async getMarketPrice(itemId: number, connectedRealmId: number): Promise<number | undefined> {
     try {
       // Try valuation entity first (aggregated data)
       const valuation = await this.valuationRepository.findOne({
@@ -750,10 +662,7 @@ export class EvaluationService implements OnApplicationBootstrap {
   /**
    * Get market volume for an item
    */
-  private async getMarketVolume(
-    itemId: number,
-    connectedRealmId: number,
-  ): Promise<number | undefined> {
+  private async getMarketVolume(itemId: number, connectedRealmId: number): Promise<number | undefined> {
     try {
       const markets = await this.marketRepository.find({
         where: { itemId, connectedRealmId },
@@ -780,10 +689,7 @@ export class EvaluationService implements OnApplicationBootstrap {
   /**
    * Batch fetch market prices for multiple items
    */
-  private async batchGetMarketPrices(
-    itemIds: number[],
-    connectedRealmId: number,
-  ): Promise<Map<number, number>> {
+  private async batchGetMarketPrices(itemIds: number[], connectedRealmId: number): Promise<Map<number, number>> {
     const logTag = 'batchGetMarketPrices';
     const priceMap = new Map<number, number>();
 
@@ -804,10 +710,7 @@ export class EvaluationService implements OnApplicationBootstrap {
       // Group by itemId and take most recent
       const valuationMap = new Map<number, ValuationEntity>();
       for (const val of valuations) {
-        if (
-          !valuationMap.has(val.itemId) ||
-          val.timestamp > valuationMap.get(val.itemId)!.timestamp
-        ) {
+        if (!valuationMap.has(val.itemId) || val.timestamp > valuationMap.get(val.itemId)!.timestamp) {
           valuationMap.set(val.itemId, val);
         }
       }
@@ -893,9 +796,7 @@ export class EvaluationService implements OnApplicationBootstrap {
   private findBestForBuying(methods: PricingMethod[]): PricingMethod | undefined {
     if (methods.length === 0) return undefined;
 
-    return methods.reduce((min, method) =>
-      method.calculatedValue < min.calculatedValue ? method : min,
-    );
+    return methods.reduce((min, method) => (method.calculatedValue < min.calculatedValue ? method : min));
   }
 
   /**
@@ -904,9 +805,7 @@ export class EvaluationService implements OnApplicationBootstrap {
   private findBestForSelling(methods: PricingMethod[]): PricingMethod | undefined {
     if (methods.length === 0) return undefined;
 
-    return methods.reduce((max, method) =>
-      method.calculatedValue > max.calculatedValue ? method : max,
-    );
+    return methods.reduce((max, method) => (method.calculatedValue > max.calculatedValue ? method : max));
   }
 
   /**
@@ -916,19 +815,13 @@ export class EvaluationService implements OnApplicationBootstrap {
     const craftingMethods = methods.filter((m) => m.source === 'crafting');
     if (craftingMethods.length === 0) return undefined;
 
-    return craftingMethods.reduce((min, method) =>
-      method.calculatedValue < min.calculatedValue ? method : min,
-    );
+    return craftingMethods.reduce((min, method) => (method.calculatedValue < min.calculatedValue ? method : min));
   }
 
   /**
    * Generate recommendations based on pricing methods
    */
-  private generateRecommendations(
-    methods: PricingMethod[],
-    marketPrice?: number,
-    vendorSellPrice?: number,
-  ): string[] {
+  private generateRecommendations(methods: PricingMethod[], marketPrice?: number, vendorSellPrice?: number): string[] {
     const recommendations: string[] = [];
 
     if (methods.length === 0) {
@@ -941,18 +834,12 @@ export class EvaluationService implements OnApplicationBootstrap {
 
     // Check if crafting is profitable
     if (craftingMethods.length > 0 && marketPrice) {
-      const cheapestCrafting = craftingMethods.reduce((min, m) =>
-        m.calculatedValue < min.calculatedValue ? m : min,
-      );
+      const cheapestCrafting = craftingMethods.reduce((min, m) => (m.calculatedValue < min.calculatedValue ? m : min));
 
       const profit = marketPrice - cheapestCrafting.calculatedValue;
       if (profit > 0) {
-        const margin = ((profit / cheapestCrafting.calculatedValue) * 100).toFixed(
-          1,
-        );
-        recommendations.push(
-          `Crafting is profitable: ${profit.toFixed(0)}g profit (${margin}% margin)`,
-        );
+        const margin = ((profit / cheapestCrafting.calculatedValue) * 100).toFixed(1);
+        recommendations.push(`Crafting is profitable: ${profit.toFixed(0)}g profit (${margin}% margin)`);
       } else {
         recommendations.push('Crafting is not profitable - buy from AH instead');
       }
@@ -973,9 +860,7 @@ export class EvaluationService implements OnApplicationBootstrap {
     // Vendor sell price comparison
     if (vendorSellPrice && marketPrice) {
       if (marketPrice < vendorSellPrice * 0.8) {
-        recommendations.push(
-          'Market price is below 80% of vendor value - consider buying and vendoring',
-        );
+        recommendations.push('Market price is below 80% of vendor value - consider buying and vendoring');
       }
     }
 
@@ -1005,9 +890,7 @@ export class EvaluationService implements OnApplicationBootstrap {
       // Process each realm
       for (const realm of realms) {
         try {
-          const evaluationsCount = await this.evaluateRealmProfitability(
-            realm.connectedRealmId,
-          );
+          const evaluationsCount = await this.evaluateRealmProfitability(realm.connectedRealmId);
           totalEvaluations += evaluationsCount;
 
           this.logger.log({
@@ -1044,9 +927,7 @@ export class EvaluationService implements OnApplicationBootstrap {
    * Evaluate profitability for all craftable items on a realm
    * and store results in evaluation entity
    */
-  private async evaluateRealmProfitability(
-    connectedRealmId: number,
-  ): Promise<number> {
+  private async evaluateRealmProfitability(connectedRealmId: number): Promise<number> {
     const logTag = 'evaluateRealmProfitability';
     const timestamp = Date.now();
 
@@ -1079,17 +960,14 @@ export class EvaluationService implements OnApplicationBootstrap {
         const item = itemMap.get(craft.itemId);
 
         // Get full evaluation for recommendations
-        const fullEval = await this.evaluateItemPricing(
-          craft.itemId,
-          connectedRealmId,
-          { includeCrafting: true, includeReverse: true },
-        );
+        const fullEval = await this.evaluateItemPricing(craft.itemId, connectedRealmId, {
+          includeCrafting: true,
+          includeReverse: true,
+        });
 
         // Find best crafting method details
         const craftingMethod = fullEval.methods.find(
-          (m) =>
-            m.source === 'crafting' &&
-            m.pricing?.recipeId === craft.bestRecipe?.recipeId,
+          (m) => m.source === 'crafting' && m.pricing?.recipeId === craft.bestRecipe?.recipeId,
         );
 
         const evaluation = this.evaluationRepository.create({

@@ -17,8 +17,7 @@ export const dmaConfig: IDmaConfig = {
   isPricingIndexProfessions: process.env.DMA_PRICING_INDEX_PROFESSIONS === 'true',
   isPricingBuildSkillLine: process.env.DMA_PRICING_BUILD_SKILL_LINE === 'true',
   isPricingBuildSpellEffect: process.env.DMA_PRICING_BUILD_SPELL_EFFECT === 'true',
-  isPricingBuildSpellReagents:
-    process.env.DMA_PRICING_BUILD_SPELL_REAGENTS === 'true',
+  isPricingBuildSpellReagents: process.env.DMA_PRICING_BUILD_SPELL_REAGENTS === 'true',
 
   // Pricing Service - Lab Methods
   isPricingLabProspecting: process.env.DMA_PRICING_LAB_PROSPECTING === 'true',
@@ -36,9 +35,7 @@ export const dmaConfig: IDmaConfig = {
   isValuationsBuildTags: process.env.DMA_VALUATIONS_BUILD_TAGS === 'true',
 
   // Valuations Service - Auction Sub-stages
-  isValuationsMarketAssetClass:
-    process.env.DMA_VALUATIONS_MARKET_ASSET_CLASS === 'true',
-  isValuationsCommodityAssetClass:
-    process.env.DMA_VALUATIONS_COMMODITY_ASSET_CLASS === 'true',
+  isValuationsMarketAssetClass: process.env.DMA_VALUATIONS_MARKET_ASSET_CLASS === 'true',
+  isValuationsCommodityAssetClass: process.env.DMA_VALUATIONS_COMMODITY_ASSET_CLASS === 'true',
   isValuationsItemAssetClass: process.env.DMA_VALUATIONS_ITEM_ASSET_CLASS === 'true',
 };

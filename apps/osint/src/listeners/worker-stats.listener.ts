@@ -30,9 +30,7 @@ export class WorkerStatsListener implements OnModuleInit {
   private setupCharactersQueueListener() {
     // Monitor characters queue via BullMQ
     this.charactersQueue.on('drained' as any, async () => {
-      this.logger.log(
-        chalk.cyan('\n🏁 Characters queue drained - all jobs completed!'),
-      );
+      this.logger.log(chalk.cyan('\n🏁 Characters queue drained - all jobs completed!'));
       this.charactersWorker.logFinalSummary();
 
       // Publish stats to Redis for API access
@@ -59,12 +57,8 @@ export class WorkerStatsListener implements OnModuleInit {
         timestamp: new Date().toISOString(),
         ...stats,
         uptime: Date.now() - stats.startTime,
-        successRate:
-          stats.total > 0 ? ((stats.success / stats.total) * 100).toFixed(1) : '0.0',
-        rate:
-          stats.total > 0
-            ? (stats.total / ((Date.now() - stats.startTime) / 1000)).toFixed(2)
-            : '0.00',
+        successRate: stats.total > 0 ? ((stats.success / stats.total) * 100).toFixed(1) : '0.0',
+        rate: stats.total > 0 ? (stats.total / ((Date.now() - stats.startTime) / 1000)).toFixed(2) : '0.00',
       };
 
       // Store in Redis with 24h expiration
@@ -86,9 +80,7 @@ export class WorkerStatsListener implements OnModuleInit {
   private setupProfileQueueListener() {
     // Monitor profile queue via BullMQ
     this.profilesQueue.on('drained' as any, async () => {
-      this.logger.log(
-        chalk.cyan('\n🏁 Profile queue drained - all jobs completed!'),
-      );
+      this.logger.log(chalk.cyan('\n🏁 Profile queue drained - all jobs completed!'));
       this.profileWorker.logFinalSummary();
 
       // Publish stats to Redis for API access

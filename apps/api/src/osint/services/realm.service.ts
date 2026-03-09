@@ -42,9 +42,7 @@ export class RealmOsintService {
         message: `Error fetching realm population: ${realmId}`,
       });
 
-      throw new ServiceUnavailableException(
-        `Error fetching realm population for ${realmId}`,
-      );
+      throw new ServiceUnavailableException(`Error fetching realm population for ${realmId}`);
     }
   }
 

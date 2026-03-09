@@ -41,9 +41,7 @@ describe('DMA', () => {
       const lastModified = DateTime.fromRFC2822(response.lastModified).toJSDate();
       expect(lastModified).toEqual(expect.any(Date));
 
-      response.auctions.map((auction) =>
-        expect(auction.item.id).toEqual(expect.any(Number)),
-      );
+      response.auctions.map((auction) => expect(auction.item.id).toEqual(expect.any(Number)));
     });
   });
 

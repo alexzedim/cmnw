@@ -5,16 +5,7 @@ import { SetConcurrencyDto, WorkerConfig } from '@app/resources';
 
 @Controller('workers')
 export class WorkersController {
-  private readonly WORKER_NAMES = [
-    'osint',
-    'dma',
-    'characters',
-    'guilds',
-    'profile',
-    'items',
-    'auctions',
-    'market',
-  ];
+  private readonly WORKER_NAMES = ['osint', 'dma', 'characters', 'guilds', 'profile', 'items', 'auctions', 'market'];
 
   constructor(
     @InjectRedis()

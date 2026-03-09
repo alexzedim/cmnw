@@ -57,18 +57,10 @@ export class KeyErrorTracker {
    * // Track error without context
    * const result = await tracker.trackError(token, 403);
    */
-  async trackError(
-    accessToken: string,
-    statusCode: number,
-    context?: ApiKeyErrorContext,
-  ): Promise<KeysEntity | null> {
+  async trackError(accessToken: string, statusCode: number, context?: ApiKeyErrorContext): Promise<KeysEntity | null> {
     try {
       // Track the error using the keys DAO
-      const result = await trackApiKeyError(
-        this.keysRepository,
-        accessToken,
-        statusCode,
-      );
+      const result = await trackApiKeyError(this.keysRepository, accessToken, statusCode);
 
       // Log context information if provided and error was tracked
       if (context && result) {
@@ -92,10 +84,7 @@ export class KeyErrorTracker {
    * @param statusCode - The HTTP status code
    * @param context - The context information to log
    */
-  private logContextInformation(
-    statusCode: number,
-    context: ApiKeyErrorContext,
-  ): void {
+  private logContextInformation(statusCode: number, context: ApiKeyErrorContext): void {
     const parts: string[] = [`${chalk.cyan('ℹ')} Error context (${statusCode})`];
 
     if (context.serviceName) {

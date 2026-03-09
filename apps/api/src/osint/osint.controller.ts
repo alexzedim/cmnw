@@ -1,8 +1,4 @@
-import {
-  CharacterOsintService,
-  GuildOsintService,
-  RealmOsintService,
-} from './services';
+import { CharacterOsintService, GuildOsintService, RealmOsintService } from './services';
 
 import { Controller, Get, HttpCode, HttpStatus, Param, Query } from '@nestjs/common';
 
@@ -17,13 +13,7 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import {
-  CharacterHashDto,
-  CharacterIdDto,
-  CharacterLfgDto,
-  GuildIdDto,
-  RealmDto,
-} from '@app/resources';
+import { CharacterHashDto, CharacterIdDto, CharacterLfgDto, GuildIdDto, RealmDto } from '@app/resources';
 import {
   CharactersEntity,
   CharactersGuildsLogsEntity,
@@ -75,9 +65,7 @@ export class OsintController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
   @Get('/character/lfg')
-  async getCharactersLfg(
-    @Query() input: CharacterLfgDto,
-  ): Promise<{ characters: CharactersProfileEntity[] }> {
+  async getCharactersLfg(@Query() input: CharacterLfgDto): Promise<{ characters: CharactersProfileEntity[] }> {
     const characters = await this.characterOsintService.getCharactersLfg(input);
     return { characters };
   }
@@ -95,9 +83,7 @@ export class OsintController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
   @Get('/character/hash/:hashQuery/:hashQuery2')
-  async getCharactersByHashCombined(
-    @Param() input: CharacterHashDto,
-  ): Promise<{ characters: CharactersEntity[] }> {
+  async getCharactersByHashCombined(@Param() input: CharacterHashDto): Promise<{ characters: CharactersEntity[] }> {
     const characters = await this.characterOsintService.getCharactersByHash(input);
     return { characters };
   }
@@ -115,9 +101,7 @@ export class OsintController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
   @Get('/character/hash/:hashQuery')
-  async getCharactersByHash(
-    @Param() input: CharacterHashDto,
-  ): Promise<{ characters: CharactersEntity[] }> {
+  async getCharactersByHash(@Param() input: CharacterHashDto): Promise<{ characters: CharactersEntity[] }> {
     const characters = await this.characterOsintService.getCharactersByHash(input);
     return { characters };
   }
@@ -135,9 +119,7 @@ export class OsintController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
   @Get('/character/logs')
-  async getCharacterLogs(
-    @Query() input: CharacterIdDto,
-  ): Promise<{ logs: CharactersGuildsLogsEntity[] }> {
+  async getCharacterLogs(@Query() input: CharacterIdDto): Promise<{ logs: CharactersGuildsLogsEntity[] }> {
     const logs = await this.characterOsintService.getCharacterLogs(input);
     return { logs };
   }
@@ -155,9 +137,7 @@ export class OsintController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
   @Get('/guild')
-  async getGuild(
-    @Query() input: GuildIdDto,
-  ): Promise<{ guild: GuildsEntity; members: any[]; memberCount: number }> {
+  async getGuild(@Query() input: GuildIdDto): Promise<{ guild: GuildsEntity; members: any[]; memberCount: number }> {
     return this.guildOsintService.getGuild(input);
   }
 
@@ -176,9 +156,7 @@ export class OsintController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
   @Get('/guild/logs')
-  async getGuildLogs(
-    @Query() input: GuildIdDto,
-  ): Promise<{ logs: CharactersGuildsLogsEntity[] }> {
+  async getGuildLogs(@Query() input: GuildIdDto): Promise<{ logs: CharactersGuildsLogsEntity[] }> {
     const logs = await this.guildOsintService.getGuildLogs(input);
     return { logs };
   }

@@ -13,10 +13,7 @@ export const getPercentile95Cont = async (
   // Create query builder
   const queryBuilder = repository
     .createQueryBuilder('markets')
-    .select(
-      'PERCENTILE_DISC(0.99) WITHIN GROUP (ORDER BY markets.price)',
-      'percentile95',
-    );
+    .select('PERCENTILE_DISC(0.99) WITHIN GROUP (ORDER BY markets.price)', 'percentile95');
 
   // Add optional category filter
   queryBuilder.where('markets.item_id = :itemId', { itemId: itemId });

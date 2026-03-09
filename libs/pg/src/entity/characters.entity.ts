@@ -1,12 +1,5 @@
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  PrimaryColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
 @Index('ix__characters__guild_guild', ['guildGuid'], {})
 @Index('ix__characters__hash_a', ['hashA'], {})

@@ -1,10 +1,4 @@
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  PrimaryColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Column, CreateDateColumn, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
 
 @Entity({ name: CMNW_ENTITY_ENUM.PROFESSIONS })

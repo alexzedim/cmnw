@@ -39,10 +39,11 @@ module.exports = [
           varsIgnorePattern: '^_',
           args: 'after-used',
           argsIgnorePattern: '^_',
+          caughtErrorsIgnorePattern: '^_',
         },
       ],
-      'max-len': ['warn', { code: 100 }],
-      'prettier/prettier': ['error', { printWidth: 85 }],
+      'max-len': ['warn', { code: 120 }],
+      'prettier/prettier': 'error',
     },
   },
 ];

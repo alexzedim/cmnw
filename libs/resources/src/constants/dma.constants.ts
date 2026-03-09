@@ -1,9 +1,4 @@
-import {
-  AuctionItemExtra,
-  IItem,
-  IItemFieldMap,
-  IPetList,
-} from '@app/resources/types';
+import { AuctionItemExtra, IItem, IItemFieldMap, IPetList } from '@app/resources/types';
 import { SkillLineEntity, SpellEffectEntity } from '@app/pg';
 
 export const DMA_TIMEOUT_TOLERANCE = 60 * 1_000;
@@ -216,7 +211,7 @@ export const SKILL_LINE_KEY_MAPPING = new Map<keyof SkillLineEntity, string>([
   ['skillLine', 'SkillLine'],
   ['spellId', 'Spell'],
   ['supersedesSpell', 'SupercedesSpell'],
-  ['skillUpSkillLineId', 'SkillupSkillLineID'], // Note: This will overwrite if both 'SupersedesSpell' and 'SkillUpSkillLineID' map to 'skillUpSkillLineId'
+  ['skillUpSkillLineId', 'SkillupSkillLineID'],
   ['minSkillRank', 'MinSkillLineRank'],
   ['numSkillUps', 'NumSkillUps'],
   ['yellowCraft', 'TrivialSkillLineRankHigh'],
@@ -247,11 +242,7 @@ export const ASSET_EVALUATION_PRIORITY: Map<number, any> = new Map([
         },
         {
           asset_class: {
-            $all: [
-              VALUATION_TYPE.REAGENT,
-              VALUATION_TYPE.MARKET,
-              VALUATION_TYPE.COMMDTY,
-            ],
+            $all: [VALUATION_TYPE.REAGENT, VALUATION_TYPE.MARKET, VALUATION_TYPE.COMMDTY],
           },
         },
       ],

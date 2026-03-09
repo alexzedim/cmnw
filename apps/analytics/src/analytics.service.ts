@@ -2,12 +2,7 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { Repository, MoreThan } from 'typeorm';
 import { DateTime } from 'luxon';
-import {
-  CharacterMetricsService,
-  ContractMetricsService,
-  GuildMetricsService,
-  MarketMetricsService,
-} from './services';
+import { CharacterMetricsService, ContractMetricsService, GuildMetricsService, MarketMetricsService } from './services';
 import { AnalyticsEntity } from '@app/pg';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -90,9 +85,7 @@ export class AnalyticsService implements OnApplicationBootstrap {
       const totalMetrics = charCount + guildCount + marketCount + contractCount;
 
       const duration = Date.now() - startTime;
-      this.logger.log(
-        `Daily analytics computation completed - metricsCount: ${totalMetrics}, durationMs: ${duration}`,
-      );
+      this.logger.log(`Daily analytics computation completed - metricsCount: ${totalMetrics}, durationMs: ${duration}`);
     } catch (errorOrException) {
       this.logger.error({
         logTag,
@@ -103,11 +96,7 @@ export class AnalyticsService implements OnApplicationBootstrap {
     }
   }
 
-  async getLatestMetric(
-    category: string,
-    metricType: string,
-    realmId?: number,
-  ): Promise<AnalyticsEntity | null> {
+  async getLatestMetric(category: string, metricType: string, realmId?: number): Promise<AnalyticsEntity | null> {
     const query = this.analyticsMetricRepository
       .createQueryBuilder()
       .where('category = :category', { category })

@@ -4,12 +4,7 @@ import { CharactersService } from './characters.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CharactersEntity, KeysEntity } from '@app/pg';
-import {
-  postgresConfig,
-  redisConfig,
-  s3Config,
-  getRedisConnection,
-} from '@app/configuration';
+import { postgresConfig, redisConfig, s3Config, getRedisConnection } from '@app/configuration';
 import { S3Module } from '@app/s3';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { charactersQueue } from '@app/resources/queues';

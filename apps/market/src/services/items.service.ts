@@ -36,13 +36,7 @@ export class ItemsService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
-    await this.indexItems(
-      GLOBAL_KEY,
-      1,
-      250_000,
-      dmaConfig.isItemsForceUpdate,
-      dmaConfig.isItemsIndex,
-    );
+    await this.indexItems(GLOBAL_KEY, 1, 250_000, dmaConfig.isItemsForceUpdate, dmaConfig.isItemsIndex);
 
     await this.buildItems(dmaConfig.isItemsBuild);
   }
@@ -92,11 +86,7 @@ export class ItemsService implements OnApplicationBootstrap {
               accessToken: key.token,
             });
 
-            await this.queue.add(
-              itemMessage.name,
-              itemMessage.data,
-              itemMessage.opts,
-            );
+            await this.queue.add(itemMessage.name, itemMessage.data, itemMessage.opts);
 
             this.logger.log({
               logTag,

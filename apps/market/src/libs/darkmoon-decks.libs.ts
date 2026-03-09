@@ -4,11 +4,7 @@
  * Extracted from TradeSkillMaster with comprehensive metadata
  */
 
-import {
-  DMA_SOURCE,
-  EXPANSION_TICKER,
-  PROFESSION_TICKER,
-} from '@app/resources/constants';
+import { DMA_SOURCE, EXPANSION_TICKER, PROFESSION_TICKER } from '@app/resources/constants';
 
 // Profession ID for Inscription is 773
 const PROF_INSC = PROFESSION_TICKER.INSC;
@@ -16,8 +12,7 @@ const PROF_INSC = PROFESSION_TICKER.INSC;
 export const DARKMOON_DECKS = {
   name: PROF_INSC,
   profession: 'Inscription',
-  media:
-    'https://render-eu.worldofwarcraft.com/icons/56/inv_misc_card_tarotmaelstrom_01.jpg',
+  media: 'https://render-eu.worldofwarcraft.com/icons/56/inv_misc_card_tarotmaelstrom_01.jpg',
   spellId: 89546,
   methods: [
     // ========================================================================
@@ -228,8 +223,7 @@ export const DARKMOON_DECKS = {
         source: 'Darkmoon Cards: Conquest (Rank 1)',
         target: 'Darkmoon Deck: Conquest (Rank 1)',
       },
-      description:
-        'Darkmoon Card: Conquest * (8x) → Darkmoon Deck: Conquest * [8 → 1]',
+      description: 'Darkmoon Card: Conquest * (8x) → Darkmoon Deck: Conquest * [8 → 1]',
       reagents: [
         { itemId: 198882, quantity: 8 }, // Darkmoon Card: Conquest (Rank 1)
       ],
@@ -248,8 +242,7 @@ export const DARKMOON_DECKS = {
         source: 'Darkmoon Cards: Conquest (Rank 2)',
         target: 'Darkmoon Deck: Conquest (Rank 2)',
       },
-      description:
-        'Darkmoon Card: Conquest ** (8x) → Darkmoon Deck: Conquest ** [8 → 1]',
+      description: 'Darkmoon Card: Conquest ** (8x) → Darkmoon Deck: Conquest ** [8 → 1]',
       reagents: [
         { itemId: 198883, quantity: 8 }, // Darkmoon Card: Conquest (Rank 2)
       ],
@@ -291,8 +284,7 @@ export const DARKMOON_DECKS = {
         source: 'Darkmoon Cards: Elementals',
         target: 'Darkmoon Deck: Elementals',
       },
-      description:
-        'Darkmoon Card: Elemental (8x) → Darkmoon Deck: Elementals [8 → 1]',
+      description: 'Darkmoon Card: Elemental (8x) → Darkmoon Deck: Elementals [8 → 1]',
       reagents: [
         { itemId: 19273, quantity: 8 }, // Darkmoon Card: Elemental
       ],

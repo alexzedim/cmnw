@@ -83,10 +83,7 @@ export class AuctionsWorker extends WorkerHost {
     private readonly blizzardApiService: BlizzardApiService,
   ) {
     super();
-    this.rateLimiter = new AdaptiveRateLimiter(
-      DEFAULT_RATE_LIMITER_CONFIG,
-      this.logger,
-    );
+    this.rateLimiter = new AdaptiveRateLimiter(DEFAULT_RATE_LIMITER_CONFIG, this.logger);
   }
 
   async process(job: Job<IAuctionMessageBase>): Promise<void> {
@@ -111,9 +108,7 @@ export class AuctionsWorker extends WorkerHost {
 
       const isCommodity = message.connectedRealmId === REALM_ENTITY_ANY.id;
 
-      const previousTimestamp = isCommodity
-        ? message.commoditiesTimestamp
-        : message.auctionsTimestamp;
+      const previousTimestamp = isCommodity ? message.commoditiesTimestamp : message.auctionsTimestamp;
 
       if (!previousTimestamp) {
         this.logger.error({
@@ -123,9 +118,7 @@ export class AuctionsWorker extends WorkerHost {
           auctionsTimestamp: message.auctionsTimestamp,
           commoditiesTimestamp: message.commoditiesTimestamp,
         });
-        throw new Error(
-          `Missing ${isCommodity ? 'commoditiesTimestamp' : 'auctionsTimestamp'} in message`,
-        );
+        throw new Error(`Missing ${isCommodity ? 'commoditiesTimestamp' : 'auctionsTimestamp'} in message`);
       }
 
       const ifModifiedSince = DateTime.fromMillis(previousTimestamp).toHTTP();
@@ -137,12 +130,7 @@ export class AuctionsWorker extends WorkerHost {
 
       const marketResponse = await this.BNet.query<BlizzardApiAuctions>(
         getMarketApiEndpoint,
-        apiConstParams(
-          API_HEADERS_ENUM.DYNAMIC,
-          DMA_TIMEOUT_TOLERANCE,
-          false,
-          ifModifiedSince,
-        ),
+        apiConstParams(API_HEADERS_ENUM.DYNAMIC, DMA_TIMEOUT_TOLERANCE, false, ifModifiedSince),
       );
 
       const isAuctionsValid = isAuctions(marketResponse);
@@ -151,24 +139,14 @@ export class AuctionsWorker extends WorkerHost {
         const duration = Date.now() - startTime;
         const realmId = message.connectedRealmId;
         this.logger.log(
-          formatWorkerLog(
-            WorkerLogStatus.NOT_MODIFIED,
-            this.stats.total,
-            `realm ${realmId}`,
-            duration,
-            'Not modified',
-          ),
+          formatWorkerLog(WorkerLogStatus.NOT_MODIFIED, this.stats.total, `realm ${realmId}`, duration, 'Not modified'),
         );
         return;
       }
 
-      const connectedRealmId = isCommodity
-        ? REALM_ENTITY_ANY.id
-        : message.connectedRealmId;
+      const connectedRealmId = isCommodity ? REALM_ENTITY_ANY.id : message.connectedRealmId;
 
-      const timestamp = DateTime.fromRFC2822(
-        marketResponse.lastModified,
-      ).toMillis();
+      const timestamp = DateTime.fromRFC2822(marketResponse.lastModified).toMillis();
 
       const { auctions } = marketResponse;
 
@@ -176,8 +154,7 @@ export class AuctionsWorker extends WorkerHost {
       const auctionsHashKey = `DMA:AUCTIONS:HASH:${auctionsHash}`;
       const payloadBytes = Buffer.byteLength(JSON.stringify(auctions), 'utf8');
 
-      const previouslyPersistedHash =
-        await this.redisService.exists(auctionsHashKey);
+      const previouslyPersistedHash = await this.redisService.exists(auctionsHashKey);
 
       if (previouslyPersistedHash) {
         this.stats.notModified++;
@@ -215,12 +192,7 @@ export class AuctionsWorker extends WorkerHost {
             bufferCount(5_000),
             concatMap(async (ordersBatch) => {
               try {
-                const ordersBulkAuctions = this.transformOrders(
-                  ordersBatch,
-                  timestamp,
-                  connectedRealmId,
-                  isCommodity,
-                );
+                const ordersBulkAuctions = this.transformOrders(ordersBatch, timestamp, connectedRealmId, isCommodity);
 
                 await this.marketRepository.save(ordersBulkAuctions);
 
@@ -251,22 +223,14 @@ export class AuctionsWorker extends WorkerHost {
       }
 
       if (isCommodity) {
-        await this.redisService.set(
-          `COMMODITY:TS:${timestamp}`,
-          timestamp,
-          'EX',
-          86400,
-        );
+        await this.redisService.set(`COMMODITY:TS:${timestamp}`, timestamp, 'EX', 86400);
       }
 
       const updateQuery: Partial<RealmsEntity> = isCommodity
         ? { commoditiesTimestamp: timestamp }
         : { auctionsTimestamp: timestamp };
 
-      await this.realmsRepository.update(
-        { connectedRealmId: connectedRealmId },
-        updateQuery,
-      );
+      await this.realmsRepository.update({ connectedRealmId: connectedRealmId }, updateQuery);
 
       const duration = Date.now() - startTime;
       this.stats.success++;
@@ -358,9 +322,7 @@ export class AuctionsWorker extends WorkerHost {
             this.stats.total,
             `realm ${message.connectedRealmId}`,
             duration,
-            errorOrException instanceof Error
-              ? errorOrException.message
-              : String(errorOrException),
+            errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
           ),
         );
       }
@@ -392,8 +354,7 @@ export class AuctionsWorker extends WorkerHost {
 
         const isPetOrder = marketEntity.itemId === 82800;
 
-        const bid =
-          'bid' in order ? toGold((order as IAuctionsOrder).bid) : null;
+        const bid = 'bid' in order ? toGold((order as IAuctionsOrder).bid) : null;
 
         const price = transformPrice(order);
         if (!price) {
@@ -414,8 +375,7 @@ export class AuctionsWorker extends WorkerHost {
           }
         }
 
-        const quantity =
-          'quantity' in order ? (order as ICommodityOrder).quantity : 1;
+        const quantity = 'quantity' in order ? (order as ICommodityOrder).quantity : 1;
 
         marketEntity.type = isCommodity ? MARKET_TYPE.C : MARKET_TYPE.A;
 
@@ -432,18 +392,14 @@ export class AuctionsWorker extends WorkerHost {
   }
 
   private logProgress(): void {
-    this.logger.log(
-      formatProgressReport('AuctionsWorker', this.stats, 'realms'),
-    );
+    this.logger.log(formatProgressReport('AuctionsWorker', this.stats, 'realms'));
   }
 
   public logFinalSummary(): void {
     this.logger.log(formatFinalSummary('AuctionsWorker', this.stats, 'realms'));
   }
 
-  private computeAuctionsPayloadHash(
-    auctions: BlizzardApiAuctions['auctions'],
-  ): string {
+  private computeAuctionsPayloadHash(auctions: BlizzardApiAuctions['auctions']): string {
     return createHash('sha1').update(JSON.stringify(auctions)).digest('hex');
   }
 }

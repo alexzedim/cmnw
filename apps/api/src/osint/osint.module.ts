@@ -18,11 +18,7 @@ import {
   ProfessionsEntity,
   RealmsEntity,
 } from '@app/pg';
-import {
-  CharacterOsintService,
-  GuildOsintService,
-  RealmOsintService,
-} from './services';
+import { CharacterOsintService, GuildOsintService, RealmOsintService } from './services';
 import { charactersQueue, guildsQueue } from '@app/resources';
 import { BullModule } from '@nestjs/bullmq';
 

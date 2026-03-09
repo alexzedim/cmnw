@@ -1,10 +1,6 @@
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { BlizzAPI } from '@alexzedim/blizzapi';
-import {
-  API_HEADERS_ENUM,
-  apiConstParams,
-  BlizzardApiResponse,
-} from '@app/resources';
+import { API_HEADERS_ENUM, apiConstParams, BlizzardApiResponse } from '@app/resources';
 import { cmnwConfig } from '@app/configuration';
 
 @Injectable()
@@ -25,24 +21,15 @@ export class TestsOsint implements OnApplicationBootstrap {
   }
 
   async realm(realmSlug: string): Promise<BlizzardApiResponse> {
-    return this.BNet.query(
-      `/data/wow/realm/${realmSlug}`,
-      apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-    );
+    return this.BNet.query(`/data/wow/realm/${realmSlug}`, apiConstParams(API_HEADERS_ENUM.DYNAMIC));
   }
 
   async connectedRealm(connectedRealmId: number): Promise<BlizzardApiResponse> {
-    return this.BNet.query(
-      `/data/wow/connected-realm/${connectedRealmId}`,
-      apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-    );
+    return this.BNet.query(`/data/wow/connected-realm/${connectedRealmId}`, apiConstParams(API_HEADERS_ENUM.DYNAMIC));
   }
 
   async summary(nameSlug: string, realmSlug: string): Promise<BlizzardApiResponse> {
-    return this.BNet.query(
-      `/profile/wow/character/${realmSlug}/${nameSlug}`,
-      apiConstParams(API_HEADERS_ENUM.PROFILE),
-    );
+    return this.BNet.query(`/profile/wow/character/${realmSlug}/${nameSlug}`, apiConstParams(API_HEADERS_ENUM.PROFILE));
   }
 
   async status(nameSlug: string, realmSlug: string): Promise<BlizzardApiResponse> {
@@ -66,10 +53,7 @@ export class TestsOsint implements OnApplicationBootstrap {
     );
   }
 
-  async professions(
-    characterName: string,
-    realmSlug: string,
-  ): Promise<BlizzardApiResponse> {
+  async professions(characterName: string, realmSlug: string): Promise<BlizzardApiResponse> {
     return this.BNet.query(
       `/profile/wow/character/${realmSlug}/${characterName}/professions`,
       apiConstParams(API_HEADERS_ENUM.PROFILE),
@@ -77,16 +61,10 @@ export class TestsOsint implements OnApplicationBootstrap {
   }
 
   async guild(nameSlug: string, realmSlug: string): Promise<BlizzardApiResponse> {
-    return this.BNet.query(
-      `/data/wow/guild/${realmSlug}/${nameSlug}`,
-      apiConstParams(API_HEADERS_ENUM.PROFILE),
-    );
+    return this.BNet.query(`/data/wow/guild/${realmSlug}/${nameSlug}`, apiConstParams(API_HEADERS_ENUM.PROFILE));
   }
 
   async guildRoster(nameSlug: string, realmSlug: string): Promise<any> {
-    return this.BNet.query(
-      `/data/wow/guild/${realmSlug}/${nameSlug}/roster`,
-      apiConstParams(API_HEADERS_ENUM.PROFILE),
-    );
+    return this.BNet.query(`/data/wow/guild/${realmSlug}/${nameSlug}/roster`, apiConstParams(API_HEADERS_ENUM.PROFILE));
   }
 }

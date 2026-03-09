@@ -34,14 +34,7 @@ export const CHARACTER_STATUS_CODES = {
  * Endpoint order for string representation
  * Defines the position of each endpoint in the 6-character status string
  */
-export const STATUS_ENDPOINT_ORDER = [
-  'STATUS',
-  'SUMMARY',
-  'MEDIA',
-  'PETS',
-  'MOUNTS',
-  'PROFESSIONS',
-] as const;
+export const STATUS_ENDPOINT_ORDER = ['STATUS', 'SUMMARY', 'MEDIA', 'PETS', 'MOUNTS', 'PROFESSIONS'] as const;
 
 /**
  * Guild Status State for each operation
@@ -72,10 +65,4 @@ export const GUILD_STATUS_CODES = {
  * Guild operation order for string representation
  * Defines the position of each operation in the 5-character status string
  */
-export const GUILD_STATUS_OPERATION_ORDER = [
-  'SUMMARY',
-  'ROSTER',
-  'MEMBERS',
-  'LOGS',
-  'MASTER',
-] as const;
+export const GUILD_STATUS_OPERATION_ORDER = ['SUMMARY', 'ROSTER', 'MEMBERS', 'LOGS', 'MASTER'] as const;

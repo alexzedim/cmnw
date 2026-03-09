@@ -2,7 +2,6 @@
  * BullMQ Queue Configuration for Guilds
  *
  * Defines BullMQ queue configuration for guild-related jobs.
- * Replaces RabbitMQ guild queue.
  */
 import { getRedisConnection } from '@app/configuration';
 import type { IBullMQQueueOptions } from '@app/resources/types/queue/queue.type';

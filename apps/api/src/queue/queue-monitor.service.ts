@@ -1,12 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
-import {
-  IAllQueuesStats,
-  IJobCounts,
-  IQueueDetailedProgress,
-  IQueueStats,
-} from './types/queue-monitor.types';
+import { IAllQueuesStats, IJobCounts, IQueueDetailedProgress, IQueueStats } from './types/queue-monitor.types';
 
 @Injectable()
 export class QueueMonitorService {
@@ -149,9 +144,7 @@ export class QueueMonitorService {
     };
   }
 
-  async getQueueDetailedProgress(
-    queueName: string,
-  ): Promise<IQueueDetailedProgress> {
+  async getQueueDetailedProgress(queueName: string): Promise<IQueueDetailedProgress> {
     const queue = this.getQueueByName(queueName);
     if (!queue) {
       this.logger.warn(`Queue not found: ${queueName}`);
@@ -237,7 +230,7 @@ export class QueueMonitorService {
       };
     }
 
-    const [waiting, active, completed, failed] = await Promise.all([
+    const [waiting, active, _completed, _failed] = await Promise.all([
       queue.getWaitingCount(),
       queue.getActiveCount(),
       queue.getCompletedCount(),

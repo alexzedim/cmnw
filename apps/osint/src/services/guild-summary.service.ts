@@ -38,17 +38,10 @@ export class GuildSummaryService {
     private readonly keysRepository: Repository<KeysEntity>,
   ) {
     this.keyErrorTracker = new KeyErrorTracker(keysRepository);
-    this.rateLimiter = new AdaptiveRateLimiter(
-      DEFAULT_RATE_LIMITER_CONFIG,
-      this.logger,
-    );
+    this.rateLimiter = new AdaptiveRateLimiter(DEFAULT_RATE_LIMITER_CONFIG, this.logger);
   }
 
-  async getSummary(
-    guildNameSlug: string,
-    realmSlug: string,
-    BNet: BlizzAPI,
-  ): Promise<Partial<IGuildSummary>> {
+  async getSummary(guildNameSlug: string, realmSlug: string, BNet: BlizzAPI): Promise<Partial<IGuildSummary>> {
     const summary: Partial<IGuildSummary> = {};
 
     try {
@@ -65,27 +58,14 @@ export class GuildSummaryService {
       }
 
       this.populateSummary(response, summary);
-      summary.status = setGuildStatusString(
-        '-----',
-        'SUMMARY',
-        GuildStatusState.SUCCESS,
-      );
+      summary.status = setGuildStatusString('-----', 'SUMMARY', GuildStatusState.SUCCESS);
       return summary;
     } catch (errorOrException) {
-      return await this.handleSummaryError(
-        errorOrException,
-        summary,
-        guildNameSlug,
-        realmSlug,
-        BNet,
-      );
+      return await this.handleSummaryError(errorOrException, summary, guildNameSlug, realmSlug, BNet);
     }
   }
 
-  private populateSummary(
-    response: BlizzardApiGuildSummary,
-    summary: Partial<IGuildSummary>,
-  ): void {
+  private populateSummary(response: BlizzardApiGuildSummary, summary: Partial<IGuildSummary>): void {
     // Extract basic fields from GUILD_SUMMARY_KEYS
     Object.entries(response).forEach(([key, value]) => {
       if (value === null || !GUILD_SUMMARY_KEYS.includes(key as any)) {
@@ -131,11 +111,7 @@ export class GuildSummaryService {
 
     this.rateLimiter.handleResponse({ status: statusCode || 400 });
 
-    summary.status = setGuildStatusString(
-      '-----',
-      'SUMMARY',
-      GuildStatusState.ERROR,
-    );
+    summary.status = setGuildStatusString('-----', 'SUMMARY', GuildStatusState.ERROR);
 
     // Track API key errors (403, 429)
     if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {

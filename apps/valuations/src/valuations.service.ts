@@ -4,12 +4,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Market, Item, Pricing, RealmConnected } from '@app/mongo';
 import { Model } from 'mongoose';
 import { Queue } from 'bullmq';
-import {
-  ASSET_EVALUATION_PRIORITY,
-  IVAAuctions,
-  IVARealm,
-  VALUATION_TYPE,
-} from '@app/resources';
+import { ASSET_EVALUATION_PRIORITY, IVAAuctions, IVARealm, VALUATION_TYPE } from '@app/resources';
 import { valuationsConfig } from '@app/configuration';
 // import { Cron, CronExpression } from '@nestjs/schedule';
 
@@ -34,10 +29,7 @@ export class ValuationsService implements OnApplicationBootstrap {
 
   async onApplicationBootstrap(): Promise<void> {
     await this.clearQueue();
-    await this.buildAssetClasses(
-      ['pricing', 'auctions', 'contracts', 'currency', 'tags'],
-      valuationsConfig.build,
-    );
+    await this.buildAssetClasses(['pricing', 'auctions', 'contracts', 'currency', 'tags'], valuationsConfig.build);
   }
 
   async clearQueue(): Promise<void> {
@@ -67,10 +59,7 @@ export class ValuationsService implements OnApplicationBootstrap {
     }
   }
 
-  async buildValuations(
-    connected_realm_id: number,
-    timestamp: number,
-  ): Promise<void> {
+  async buildValuations(connected_realm_id: number, timestamp: number): Promise<void> {
     try {
       for (const [priority, query] of ASSET_EVALUATION_PRIORITY) {
         this.logger.log(`=======================================`);
@@ -98,13 +87,8 @@ export class ValuationsService implements OnApplicationBootstrap {
           );
         this.logger.log(`=======================================`);
       }
-      await this.RealmModel.updateMany(
-        { connected_realm_id },
-        { valuations: timestamp },
-      );
-      this.logger.log(
-        `buildValuations: realm: ${connected_realm_id} updated: ${timestamp}`,
-      );
+      await this.RealmModel.updateMany({ connected_realm_id }, { valuations: timestamp });
+      this.logger.log(`buildValuations: realm: ${connected_realm_id} updated: ${timestamp}`);
     } catch (errorOrException) {
       this.logger.error(`buildValuations: ${errorOrException}`);
     }
@@ -197,14 +181,10 @@ export class ValuationsService implements OnApplicationBootstrap {
                 const { data: order } = itemAuction;
                 if (order.price) {
                   item.asset_class.addToSet(VALUATION_TYPE.COMMDTY);
-                  this.logger.debug(
-                    `item: ${item._id}, asset_class: ${VALUATION_TYPE.COMMDTY}`,
-                  );
+                  this.logger.debug(`item: ${item._id}, asset_class: ${VALUATION_TYPE.COMMDTY}`);
                 } else if (order.bid || order.buyout) {
                   item.asset_class.addToSet(VALUATION_TYPE.ITEM);
-                  this.logger.debug(
-                    `item: ${item._id}, asset_class: ${VALUATION_TYPE.ITEM}`,
-                  );
+                  this.logger.debug(`item: ${item._id}, asset_class: ${VALUATION_TYPE.ITEM}`);
                 }
                 await item.save();
               }
@@ -254,18 +234,9 @@ export class ValuationsService implements OnApplicationBootstrap {
        */
       if (args.includes('currency')) {
         this.logger.debug('currency stage started');
-        await this.ItemModel.updateOne(
-          { _id: 122270 },
-          { $addToSet: { asset_class: VALUATION_TYPE.WOWTOKEN } },
-        );
-        await this.ItemModel.updateOne(
-          { _id: 122284 },
-          { $addToSet: { asset_class: VALUATION_TYPE.WOWTOKEN } },
-        );
-        await this.ItemModel.updateOne(
-          { _id: 1 },
-          { $addToSet: { asset_class: VALUATION_TYPE.GOLD } },
-        );
+        await this.ItemModel.updateOne({ _id: 122270 }, { $addToSet: { asset_class: VALUATION_TYPE.WOWTOKEN } });
+        await this.ItemModel.updateOne({ _id: 122284 }, { $addToSet: { asset_class: VALUATION_TYPE.WOWTOKEN } });
+        await this.ItemModel.updateOne({ _id: 1 }, { $addToSet: { asset_class: VALUATION_TYPE.GOLD } });
         this.logger.debug('currency stage ended');
       }
       /**
@@ -279,15 +250,11 @@ export class ValuationsService implements OnApplicationBootstrap {
             async (item: Item) => {
               if (item.sell_price) item.asset_class.addToSet(VALUATION_TYPE.VSP);
               if (item.expansion) item.tags.addToSet(item.expansion.toLowerCase());
-              if (item.profession_class)
-                item.tags.addToSet(item.profession_class.toLowerCase());
+              if (item.profession_class) item.tags.addToSet(item.profession_class.toLowerCase());
               if (item.asset_class)
-                item.asset_class.map((asset_class) =>
-                  item.tags.addToSet(asset_class.toLowerCase()),
-                );
+                item.asset_class.map((asset_class) => item.tags.addToSet(asset_class.toLowerCase()));
               if (item.item_class) item.tags.addToSet(item.item_class.toLowerCase());
-              if (item.item_subclass)
-                item.tags.addToSet(item.item_subclass.toLowerCase());
+              if (item.item_subclass) item.tags.addToSet(item.item_subclass.toLowerCase());
               if (item.quality) item.tags.addToSet(item.quality.toLowerCase());
               if (item.ticker) {
                 item.ticker.split('.').map((ticker) => {

@@ -3,11 +3,7 @@
  * Extracted from TradeSkillMaster with comprehensive metadata
  */
 
-import {
-  DMA_SOURCE,
-  EXPANSION_TICKER,
-  PROFESSION_TICKER,
-} from '@app/resources/constants';
+import { DMA_SOURCE, EXPANSION_TICKER, PROFESSION_TICKER } from '@app/resources/constants';
 
 // Profession ID for Jewelcrafting is 755
 const PROF_JC = PROFESSION_TICKER.JWLC;
@@ -912,8 +908,7 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Oxxein Ore', target: 'Vibrant Shards & Gems' },
-      description:
-        'Oxxein Ore (i:171833) → Vibrant Shards (i:177045) & Gems [5 → 1.5 + gems]',
+      description: 'Oxxein Ore (i:171833) → Vibrant Shards (i:177045) & Gems [5 → 1.5 + gems]',
       reagents: [{ itemId: 171833, quantity: 5 }],
       derivatives: [
         {
@@ -2764,8 +2759,7 @@ export const PROSPECTING = {
       updatedBy: DMA_SOURCE.TSM,
       ticker: PROF_JC,
       names: { source: 'Rousing Fire (DF)', target: 'Vibrant Shards ***' },
-      description:
-        'Rousing Fire (i:191451) → Vibrant Shards *** (i:206450) [5 → 1.8]',
+      description: 'Rousing Fire (i:191451) → Vibrant Shards *** (i:206450) [5 → 1.8]',
       reagents: [{ itemId: 191451, quantity: 5 }],
       derivatives: [
         {

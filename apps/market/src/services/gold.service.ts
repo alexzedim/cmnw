@@ -82,24 +82,13 @@ export class GoldService implements OnApplicationBootstrap {
 
       const goldMarketEntities = await lastValueFrom(
         from(goldOrders).pipe(
-          mergeMap(
-            (order) =>
-              this.createMarketEntity(
-                order,
-                realmsEntity,
-                connectedRealmIds,
-                timestamp,
-              ),
-            5,
-          ),
+          mergeMap((order) => this.createMarketEntity(order, realmsEntity, connectedRealmIds, timestamp), 5),
           toArray(),
         ),
       );
 
       // Filter out null entities before adding to marketOrders
-      const validGoldMarketEntities = goldMarketEntities.filter(
-        (entity): entity is MarketEntity => entity !== null,
-      );
+      const validGoldMarketEntities = goldMarketEntities.filter((entity): entity is MarketEntity => entity !== null);
 
       marketOrders.push(...validGoldMarketEntities);
 
@@ -140,19 +129,14 @@ export class GoldService implements OnApplicationBootstrap {
     const logTag = this.createMarketEntity.name;
     try {
       // Normalize realm name to handle accent variations from scraping
-      const normalizedRealmName =
-        REALM_NAME_NORMALIZATION.get(order.realm) || order.realm;
+      const normalizedRealmName = REALM_NAME_NORMALIZATION.get(order.realm) || order.realm;
 
       const realmEntity = realmsEntity.has(normalizedRealmName)
         ? realmsEntity.get(normalizedRealmName)
         : await this.realmsCacheService.findRealm(normalizedRealmName);
 
       const connectedRealmId =
-        !realmEntity && order.realm === 'Любой'
-          ? REALM_ENTITY_ANY.id
-          : realmEntity
-            ? realmEntity.connectedRealmId
-            : 0;
+        !realmEntity && order.realm === 'Любой' ? REALM_ENTITY_ANY.id : realmEntity ? realmEntity.connectedRealmId : 0;
 
       const isValid = Boolean(connectedRealmId && order.price && order.quantity);
 

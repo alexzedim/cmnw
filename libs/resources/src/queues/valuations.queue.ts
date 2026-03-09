@@ -2,7 +2,6 @@
  * BullMQ Queue Configuration for Valuations
  *
  * Defines BullMQ queue configuration for valuation-related jobs.
- * Replaces RabbitMQ valuation queue.
  */
 import { getRedisConnection } from '@app/configuration';
 import type { IBullMQQueueOptions } from '@app/resources/types/queue/queue.type';

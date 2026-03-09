@@ -1,11 +1,5 @@
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  PrimaryColumn,
-  UpdateDateColumn,
-} from 'typeorm';
+import { Column, CreateDateColumn, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity({ name: CMNW_ENTITY_ENUM.REALMS })
 export class RealmsEntity {

@@ -104,9 +104,7 @@ export function formatWorkerLogWithDetails(
   const detailsParts: string[] = [];
 
   if (details.isNew !== undefined) {
-    detailsParts.push(
-      details.isNew ? chalk.cyan('created') : chalk.yellow('updated'),
-    );
+    detailsParts.push(details.isNew ? chalk.cyan('created') : chalk.yellow('updated'));
   }
   if (details.name) {
     detailsParts.push(String(details.name));
@@ -121,8 +119,7 @@ export function formatWorkerLogWithDetails(
     detailsParts.push(chalk.dim(details.reason as string));
   }
 
-  const detailsStr =
-    detailsParts.length > 0 ? ` ${chalk.dim('|')} ${detailsParts.join(' ')}` : '';
+  const detailsStr = detailsParts.length > 0 ? ` ${chalk.dim('|')} ${detailsParts.join(' ')}` : '';
 
   return `${icon} ${statusText} [${countStr}] ${identifier} ${duration}${detailsStr}`;
 }
@@ -155,11 +152,7 @@ export interface WorkerStats {
   startTime: number;
 }
 
-export function formatProgressReport(
-  workerName: string,
-  stats: WorkerStats,
-  entityName: string = 'items',
-): string {
+export function formatProgressReport(workerName: string, stats: WorkerStats, entityName: string = 'items'): string {
   const uptime = Date.now() - stats.startTime;
   const rate = (stats.total / (uptime / 1000)).toFixed(2);
   const successRate = ((stats.success / stats.total) * 100).toFixed(1);
@@ -173,9 +166,7 @@ export function formatProgressReport(
   ];
 
   if (stats.rateLimit !== undefined && stats.rateLimit > 0) {
-    lines.push(
-      `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(stats.rateLimit)}`,
-    );
+    lines.push(`${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(stats.rateLimit)}`);
   }
 
   if (stats.notFound !== undefined && stats.notFound > 0) {
@@ -183,9 +174,7 @@ export function formatProgressReport(
   }
 
   if (stats.notModified !== undefined && stats.notModified > 0) {
-    lines.push(
-      `${chalk.blue('  ℹ Not Modified:')} ${chalk.blue.bold(stats.notModified)}`,
-    );
+    lines.push(`${chalk.blue('  ℹ Not Modified:')} ${chalk.blue.bold(stats.notModified)}`);
   }
 
   if (stats.noData !== undefined && stats.noData > 0) {
@@ -193,9 +182,7 @@ export function formatProgressReport(
   }
 
   if (stats.skipped !== undefined && stats.skipped > 0) {
-    lines.push(
-      `${chalk.yellow('  ⊘ Skipped:')} ${chalk.yellow.bold(stats.skipped)}`,
-    );
+    lines.push(`${chalk.yellow('  ⊘ Skipped:')} ${chalk.yellow.bold(stats.skipped)}`);
   }
 
   if (stats.forbidden !== undefined && stats.forbidden > 0) {
@@ -209,11 +196,7 @@ export function formatProgressReport(
   return lines.join('\n');
 }
 
-export function formatFinalSummary(
-  workerName: string,
-  stats: WorkerStats,
-  entityName: string = 'items',
-): string {
+export function formatFinalSummary(workerName: string, stats: WorkerStats, entityName: string = 'items'): string {
   const totalTime = (Date.now() - stats.startTime) / 1000;
   const avgRate = (stats.total / totalTime).toFixed(2);
   const successRate = ((stats.success / stats.total) * 100).toFixed(1);
@@ -221,9 +204,7 @@ export function formatFinalSummary(
   const lines: string[] = [
     '',
     chalk.magenta.bold('═'.repeat(60)),
-    chalk.magenta.bold(
-      `📊 ${workerName.toUpperCase().replace('WORKER', '')} FINAL SUMMARY`,
-    ),
+    chalk.magenta.bold(`📊 ${workerName.toUpperCase().replace('WORKER', '')} FINAL SUMMARY`),
     chalk.magenta.bold('═'.repeat(60)),
     `${chalk.dim('  Total Time:')} ${chalk.bold(totalTime.toFixed(1))} seconds`,
     `${chalk.dim('  Total ${entityName}:')} ${chalk.bold(stats.total)}`,
@@ -231,9 +212,7 @@ export function formatFinalSummary(
   ];
 
   if (stats.rateLimit !== undefined && stats.rateLimit > 0) {
-    lines.push(
-      `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(stats.rateLimit)}`,
-    );
+    lines.push(`${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(stats.rateLimit)}`);
   }
 
   if (stats.notFound !== undefined && stats.notFound > 0) {
@@ -241,9 +220,7 @@ export function formatFinalSummary(
   }
 
   if (stats.notModified !== undefined && stats.notModified > 0) {
-    lines.push(
-      `${chalk.blue('  ℹ Not Modified:')} ${chalk.blue.bold(stats.notModified)}`,
-    );
+    lines.push(`${chalk.blue('  ℹ Not Modified:')} ${chalk.blue.bold(stats.notModified)}`);
   }
 
   if (stats.noData !== undefined && stats.noData > 0) {
@@ -251,9 +228,7 @@ export function formatFinalSummary(
   }
 
   if (stats.skipped !== undefined && stats.skipped > 0) {
-    lines.push(
-      `${chalk.yellow('  ⊘ Skipped:')} ${chalk.yellow.bold(stats.skipped)}`,
-    );
+    lines.push(`${chalk.yellow('  ⊘ Skipped:')} ${chalk.yellow.bold(stats.skipped)}`);
   }
 
   if (stats.forbidden !== undefined && stats.forbidden > 0) {

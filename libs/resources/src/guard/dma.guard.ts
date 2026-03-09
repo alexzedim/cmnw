@@ -1,7 +1,4 @@
-export const isContractArraysEmpty = (
-  timestamps: number[],
-  itemIds: number[],
-): boolean => {
+export const isContractArraysEmpty = (timestamps: number[], itemIds: number[]): boolean => {
   return timestamps.length === 0 || itemIds.length === 0;
 };
 
@@ -44,9 +41,7 @@ export const validateAndConvertToNumber = (
  * @param value - The quantity value to validate
  * @returns Object with validation result and converted value
  */
-export const validateQuantity = (
-  value: unknown,
-): { isValid: boolean; value: number; error?: string } => {
+export const validateQuantity = (value: unknown): { isValid: boolean; value: number; error?: string } => {
   return validateAndConvertToNumber(value, 'quantity');
 };
 
@@ -55,9 +50,7 @@ export const validateQuantity = (
  * @param value - The open interest value to validate
  * @returns Object with validation result and converted value
  */
-export const validateOpenInterest = (
-  value: unknown,
-): { isValid: boolean; value: number; error?: string } => {
+export const validateOpenInterest = (value: unknown): { isValid: boolean; value: number; error?: string } => {
   return validateAndConvertToNumber(value, 'openInterest');
 };
 

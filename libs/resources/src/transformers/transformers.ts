@@ -39,8 +39,7 @@ export const kebabCase = (str: string, keepLeadingDash = false): string => {
  * @returns A kebab-cased GUID in the format "name@realm"
  * @example toGuid('PlayerName', 'RealmName') // returns 'player-name@realm-name'
  */
-export const toGuid = (name: string, realm: string): string =>
-  `${kebabCase(name)}@${kebabCase(realm)}`;
+export const toGuid = (name: string, realm: string): string => `${kebabCase(name)}@${kebabCase(realm)}`;
 
 /**
  * Capitalizes the first letter of a string.
@@ -49,8 +48,7 @@ export const toGuid = (name: string, realm: string): string =>
  * @returns The string with the first letter capitalized
  * @example capitalize('hello') // returns 'Hello'
  */
-export const capitalize = (s: string): string =>
-  s.charAt(0).toUpperCase() + s.slice(1);
+export const capitalize = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1);
 
 /**
  * Converts a slug to a human-readable format with the first letter capitalized
@@ -60,8 +58,7 @@ export const capitalize = (s: string): string =>
  * @returns A formatted string
  * @example fromSlug('hello-world') // returns 'Hello world'
  */
-export const fromSlug = (s: string): string =>
-  s.toString().charAt(0).toUpperCase() + s.slice(1).replace(/-+/g, ' ');
+export const fromSlug = (s: string): string => s.toString().charAt(0).toUpperCase() + s.slice(1).replace(/-+/g, ' ');
 
 /**
  * Rounds a number to a specified number of decimal places.
@@ -71,8 +68,7 @@ export const fromSlug = (s: string): string =>
  * @returns The rounded number
  * @example round(3.14159, 2) // returns 3.14
  */
-export const round = (n: number, digits = 2): number =>
-  parseFloat(n.toFixed(digits));
+export const round = (n: number, digits = 2): number => parseFloat(n.toFixed(digits));
 
 /**
  * Converts copper currency to gold by dividing by 10000.
@@ -82,8 +78,7 @@ export const round = (n: number, digits = 2): number =>
  * @returns The gold amount
  * @example toGold(50000) // returns 5.00
  */
-export const toGold = (n: number, digits = 2): number =>
-  parseFloat((n / 10000).toFixed(digits));
+export const toGold = (n: number, digits = 2): number => parseFloat((n / 10000).toFixed(digits));
 
 /**
  * Converts a string to slug format (kebab-case).
@@ -101,8 +96,7 @@ export const toSlug = (s: string): string => kebabCase(s);
  * @returns A lowercase string with underscores instead of spaces
  * @example toKey("Hello World's") // returns 'hello_worlds'
  */
-export const toKey = (s: string): string =>
-  s.replace(/\s+/g, '_').replace(/'+/g, '').toLowerCase();
+export const toKey = (s: string): string => s.replace(/\s+/g, '_').replace(/'+/g, '').toLowerCase();
 
 /**
  * Converts a locale string from 'enUS' format to 'en_US' format.
@@ -125,17 +119,11 @@ export const toDate = (lastModified: unknown): Date => {
     return lastModified;
   }
 
-  if (
-    typeof lastModified === 'string' &&
-    DateTime.fromRFC2822(lastModified).isValid
-  ) {
+  if (typeof lastModified === 'string' && DateTime.fromRFC2822(lastModified).isValid) {
     return DateTime.fromRFC2822(lastModified).toJSDate();
   }
 
-  if (
-    typeof lastModified === 'number' &&
-    DateTime.fromMillis(lastModified).isValid
-  ) {
+  if (typeof lastModified === 'number' && DateTime.fromMillis(lastModified).isValid) {
     return DateTime.fromMillis(lastModified).toJSDate();
   }
 
@@ -171,21 +159,14 @@ export const notNull = <T>(value: T | null | undefined): value is T => value != 
  * @returns The extracted value, parsed as number if applicable, or null
  * @example transformNamedField({ name: '123' }, 'name') // returns 123
  */
-export const transformNamedField = <T extends object>(
-  value: T,
-  key = 'name',
-): string | number | T | null => {
+export const transformNamedField = <T extends object>(value: T, key = 'name'): string | number | T | null => {
   if (!value) {
     return null;
   }
 
   const isNamed = typeof value === 'object' && key in value;
-  const isString = isNamed
-    ? typeof value[key] === 'string'
-    : typeof value === 'string';
-  const isNumber = isNamed
-    ? typeof value[key] === 'number'
-    : typeof value === 'number';
+  const isString = isNamed ? typeof value[key] === 'string' : typeof value === 'string';
+  const isNumber = isNamed ? typeof value[key] === 'number' : typeof value === 'number';
 
   if (isNamed && (isString || isNumber)) {
     return isNaN(value[key]) ? value[key] : parseInt(value[key]);
@@ -218,9 +199,7 @@ export const isFieldNamed = <T extends object>(value: T): boolean => {
  * // returns 1234
  * transformConnectedRealmId({ connected_realm: { href: 'api/realm/1234' } })
  */
-export const transformConnectedRealmId = <T extends object>(
-  value: T,
-): number | null => {
+export const transformConnectedRealmId = <T extends object>(value: T): number | null => {
   const hasHref = value && 'connected_realm' in value;
   if (!hasHref) {
     return null;
@@ -331,9 +310,7 @@ export function transformSearchQuery(params: TransformFnParams): string | undefi
  * @returns The trimmed string or undefined if value is invalid or empty
  * @example transformToTrimmedString({ value: '  hello  ' }) // returns 'hello'
  */
-export function transformToTrimmedString(
-  params: TransformFnParams,
-): string | undefined {
+export function transformToTrimmedString(params: TransformFnParams): string | undefined {
   const { value } = params;
 
   if (!value) {
@@ -360,24 +337,19 @@ export function transformFaction(faction: unknown): FACTION | null {
     name?: string | null;
   };
 
-  const hasFactionTypeWithoutName =
-    factionObject.type && factionObject.name === null;
+  const hasFactionTypeWithoutName = factionObject.type && factionObject.name === null;
 
   if (hasFactionTypeWithoutName) {
     const typeUpper = factionObject.type.toString().toUpperCase();
     const validFactions = Object.values(FACTION).filter((f) => f !== FACTION.ANY);
-    const matchedFaction = validFactions.find(
-      (f) => f.toString().toUpperCase() === typeUpper,
-    );
+    const matchedFaction = validFactions.find((f) => f.toString().toUpperCase() === typeUpper);
     return matchedFaction || null;
   }
 
   if (factionObject.name) {
     const nameUpper = factionObject.name.toUpperCase();
     const validFactions = Object.values(FACTION).filter((f) => f !== FACTION.ANY);
-    const matchedFaction = validFactions.find(
-      (f) => f.toString().toUpperCase() === nameUpper,
-    );
+    const matchedFaction = validFactions.find((f) => f.toString().toUpperCase() === nameUpper);
     return matchedFaction || null;
   }
 

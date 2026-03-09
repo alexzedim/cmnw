@@ -22,12 +22,8 @@ import {
   WorkerStats,
 } from '@app/logger';
 
-import { CharactersEntity, KeysEntity } from '@app/pg';
-import {
-  CharacterService,
-  CharacterLifecycleService,
-  CharacterCollectionService,
-} from '../services';
+import { CharactersEntity } from '@app/pg';
+import { CharacterService, CharacterLifecycleService, CharacterCollectionService } from '../services';
 
 @Injectable()
 @Processor(charactersQueue.name, charactersQueue.workerOptions)
@@ -49,8 +45,6 @@ export class CharactersWorker extends WorkerHost {
   private BNet: BlizzAPI;
 
   constructor(
-    @InjectRepository(KeysEntity)
-    private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
     private readonly characterService: CharacterService,
@@ -86,19 +80,14 @@ export class CharactersWorker extends WorkerHost {
         return characterEntity;
       }
 
-      const characterEntityOriginal =
-        this.charactersRepository.create(characterEntity);
+      const characterEntityOriginal = this.charactersRepository.create(characterEntity);
       const nameSlug = toSlug(characterEntity.name);
 
       this.inheritSafeValuesFromArgs(characterEntity, message);
 
       this.BNet = await this.initializeApiClient(message);
 
-      const status = await this.characterService.getStatus(
-        nameSlug,
-        characterEntity.realm,
-        this.BNet,
-      );
+      const status = await this.characterService.getStatus(nameSlug, characterEntity.realm, this.BNet);
 
       const hasStatus = Boolean(status);
       if (hasStatus) Object.assign(characterEntity, status);
@@ -111,10 +100,7 @@ export class CharactersWorker extends WorkerHost {
 
       const isExistingCharacter = !isNew;
       if (isExistingCharacter) {
-        await this.handleExistingCharacterUpdates(
-          characterEntityOriginal,
-          characterEntity,
-        );
+        await this.handleExistingCharacterUpdates(characterEntityOriginal, characterEntity);
       }
 
       await this.charactersRepository.save(characterEntity);
@@ -131,30 +117,16 @@ export class CharactersWorker extends WorkerHost {
     } catch (errorOrException) {
       this.stats.errors++;
       const duration = Date.now() - startTime;
-      const guid =
-        message.name && message.realm
-          ? `${message.name}@${message.realm}`
-          : 'unknown';
+      const guid = message.name && message.realm ? `${message.name}@${message.realm}` : 'unknown';
       const updatedBy = message.updatedBy || 'unknown';
 
-      this.logger.error(
-        formatWorkerErrorLog(
-          this.stats.total,
-          guid,
-          duration,
-          errorOrException.message,
-          updatedBy,
-        ),
-      );
+      this.logger.error(formatWorkerErrorLog(this.stats.total, guid, duration, errorOrException.message, updatedBy));
 
       throw errorOrException;
     }
   }
 
-  private logCharacterResult(
-    character: CharactersEntity,
-    duration: number,
-  ): void {
+  private logCharacterResult(character: CharactersEntity, duration: number): void {
     const status = character.status || '------';
     const guid = character.guid;
     const isAllSuccess = status === 'SU-MPVR';
@@ -162,54 +134,23 @@ export class CharactersWorker extends WorkerHost {
 
     if (isAllSuccess) {
       this.stats.success++;
-      this.logger.log(
-        formatWorkerLog(
-          WorkerLogStatus.SUCCESS,
-          this.stats.total,
-          guid,
-          duration,
-          status,
-        ),
-      );
+      this.logger.log(formatWorkerLog(WorkerLogStatus.SUCCESS, this.stats.total, guid, duration, status));
     } else if (hasAnyError) {
-      this.logger.warn(
-        formatWorkerLog(
-          WorkerLogStatus.PARTIAL,
-          this.stats.total,
-          guid,
-          duration,
-          status,
-        ),
-      );
+      this.logger.warn(formatWorkerLog(WorkerLogStatus.PARTIAL, this.stats.total, guid, duration, status));
     } else {
-      this.logger.log(
-        formatWorkerLog(
-          WorkerLogStatus.INFO,
-          this.stats.total,
-          guid,
-          duration,
-          status,
-        ),
-      );
+      this.logger.log(formatWorkerLog(WorkerLogStatus.INFO, this.stats.total, guid, duration, status));
     }
   }
 
   private logProgress(): void {
-    this.logger.log(
-      formatProgressReport('CharactersWorker', this.stats, 'characters'),
-    );
+    this.logger.log(formatProgressReport('CharactersWorker', this.stats, 'characters'));
   }
 
   public logFinalSummary(): void {
-    this.logger.log(
-      formatFinalSummary('CharactersWorker', this.stats, 'characters'),
-    );
+    this.logger.log(formatFinalSummary('CharactersWorker', this.stats, 'characters'));
   }
 
-  private inheritSafeValuesFromArgs(
-    characterEntity: CharactersEntity,
-    args: ICharacterMessageBase,
-  ): void {
+  private inheritSafeValuesFromArgs(characterEntity: CharactersEntity, args: ICharacterMessageBase): void {
     for (const key of CHARACTER_SUMMARY_FIELD_MAPPING.keys()) {
       const isInheritKeyValue = args[key] && !characterEntity[key];
       if (isInheritKeyValue) {
@@ -218,9 +159,7 @@ export class CharactersWorker extends WorkerHost {
     }
   }
 
-  private async initializeApiClient(
-    args: ICharacterMessageBase,
-  ): Promise<BlizzAPI> {
+  private async initializeApiClient(args: ICharacterMessageBase): Promise<BlizzAPI> {
     return this.blizzardApiService.createClient({
       clientId: args.clientId,
       clientSecret: args.clientSecret,
@@ -229,29 +168,17 @@ export class CharactersWorker extends WorkerHost {
     });
   }
 
-  private async fetchAndUpdateCharacterData(
-    characterEntity: CharactersEntity,
-    nameSlug: string,
-  ): Promise<void> {
+  private async fetchAndUpdateCharacterData(characterEntity: CharactersEntity, nameSlug: string): Promise<void> {
     // Initialize status string
     let status = characterEntity.status || '------';
 
-    const [summary, petsCollection, mountsCollection, media, professions] =
-      await Promise.allSettled([
-        this.characterService.getSummary(
-          nameSlug,
-          characterEntity.realm,
-          this.BNet,
-        ),
-        this.fetchAndSyncPets(nameSlug, characterEntity.realm),
-        this.fetchAndSyncMounts(nameSlug, characterEntity.realm),
-        this.characterService.getMedia(
-          nameSlug,
-          characterEntity.realm,
-          this.BNet,
-        ),
-        this.fetchAndSyncProfessions(nameSlug, characterEntity.realm),
-      ]);
+    const [summary, petsCollection, mountsCollection, media, professions] = await Promise.allSettled([
+      this.characterService.getSummary(nameSlug, characterEntity.realm, this.BNet),
+      this.fetchAndSyncPets(nameSlug, characterEntity.realm),
+      this.fetchAndSyncMounts(nameSlug, characterEntity.realm),
+      this.characterService.getMedia(nameSlug, characterEntity.realm, this.BNet),
+      this.fetchAndSyncProfessions(nameSlug, characterEntity.realm),
+    ]);
 
     // Process each result and update status
     const isSummaryFulfilled = summary.status === 'fulfilled';
@@ -289,17 +216,9 @@ export class CharactersWorker extends WorkerHost {
     const isProfessionsFulfilled = professions.status === 'fulfilled';
     if (isProfessionsFulfilled) {
       Object.assign(characterEntity, professions.value);
-      status = setStatusString(
-        status,
-        'PROFESSIONS',
-        CharacterStatusState.SUCCESS,
-      );
+      status = setStatusString(status, 'PROFESSIONS', CharacterStatusState.SUCCESS);
     } else {
-      status = setStatusString(
-        status,
-        'PROFESSIONS',
-        CharacterStatusState.ERROR,
-      );
+      status = setStatusString(status, 'PROFESSIONS', CharacterStatusState.ERROR);
     }
 
     // Update entity with status string
@@ -317,79 +236,52 @@ export class CharactersWorker extends WorkerHost {
       hashB: string;
     }>
   > {
-    const petsResponse = await this.characterService.getPetsCollection(
-      nameSlug,
-      realmSlug,
-      this.BNet,
-    );
+    const petsResponse = await this.characterService.getPetsCollection(nameSlug, realmSlug, this.BNet);
 
     const hasPetsResponse = Boolean(petsResponse);
     if (!hasPetsResponse) {
       return {};
     }
 
-    return this.collectionSyncService.syncCharacterPets(
-      nameSlug,
-      realmSlug,
-      petsResponse,
-      true,
-    );
+    return this.collectionSyncService.syncCharacterPets(nameSlug, realmSlug, petsResponse, true);
   }
 
   private async fetchAndSyncMounts(
     nameSlug: string,
     realmSlug: string,
   ): Promise<Partial<{ mountsNumber: number; statusCode: number }>> {
-    const mountsResponse = await this.characterService.getMountsCollection(
-      nameSlug,
-      realmSlug,
-      this.BNet,
-    );
+    const mountsResponse = await this.characterService.getMountsCollection(nameSlug, realmSlug, this.BNet);
 
     const hasMountsResponse = Boolean(mountsResponse);
     if (!hasMountsResponse) {
       return {};
     }
 
-    return this.collectionSyncService.syncCharacterMounts(
-      nameSlug,
-      realmSlug,
-      mountsResponse,
-      true,
-    );
+    return this.collectionSyncService.syncCharacterMounts(nameSlug, realmSlug, mountsResponse, true);
   }
 
   private async fetchAndSyncProfessions(
     nameSlug: string,
     realmSlug: string,
   ): Promise<Partial<{ professions: string[] }>> {
-    const professionsResponse = await this.characterService.getProfessions(
-      nameSlug,
-      realmSlug,
-      this.BNet,
-    );
+    const professionsResponse = await this.characterService.getProfessions(nameSlug, realmSlug, this.BNet);
 
     const hasProfessionResponse = Boolean(professionsResponse);
     if (!hasProfessionResponse) {
       return {};
     }
 
-    const professions =
-      await this.collectionSyncService.syncCharacterProfessions(
-        nameSlug,
-        realmSlug,
-        professionsResponse,
-      );
+    const professions = await this.collectionSyncService.syncCharacterProfessions(
+      nameSlug,
+      realmSlug,
+      professionsResponse,
+    );
 
     return { professions };
   }
 
-  private async handleExistingCharacterUpdates(
-    original: CharactersEntity,
-    updated: CharactersEntity,
-  ): Promise<void> {
-    const hasGuildChanged =
-      original.guildGuid !== updated.guildGuid && !updated.guildId;
+  private async handleExistingCharacterUpdates(original: CharactersEntity, updated: CharactersEntity): Promise<void> {
+    const hasGuildChanged = original.guildGuid !== updated.guildGuid && !updated.guildId;
 
     if (hasGuildChanged) {
       updated.guildGuid = null;

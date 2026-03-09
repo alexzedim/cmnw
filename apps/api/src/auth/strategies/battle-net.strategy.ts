@@ -41,10 +41,7 @@ export class BattleNetStrategy extends PassportStrategy(Strategy, 'battlenet') {
         }),
       );
 
-      this.logger.log(
-        `Battle.net OAuth validation for user: ${data.id}`,
-        'validate',
-      );
+      this.logger.log(`Battle.net OAuth validation for user: ${data.id}`, 'validate');
 
       const battleNetProfile: BattleNetProfile = {
         id: data.id || data.sub,
@@ -52,8 +49,7 @@ export class BattleNetStrategy extends PassportStrategy(Strategy, 'battlenet') {
         sub: data.sub,
       };
 
-      const authResponse =
-        await this.authService.handleBattleNetAuth(battleNetProfile);
+      const authResponse = await this.authService.handleBattleNetAuth(battleNetProfile);
 
       this.logger.log(
         `Battle.net OAuth successful for user: ${data.id}, isNewUser: ${authResponse.isNewUser}`,

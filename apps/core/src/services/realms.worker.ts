@@ -95,15 +95,11 @@ export class RealmsWorker extends WorkerHost {
 
       await job.updateProgress(25);
 
-      const name = isFieldNamed(response.name)
-        ? get(response, 'name.name', null)
-        : response.name;
+      const name = isFieldNamed(response.name) ? get(response, 'name.name', null) : response.name;
 
       if (name) realmEntity.name = name;
 
-      const ticker = REALM_TICKER.has(realmEntity.name)
-        ? REALM_TICKER.get(realmEntity.name)
-        : null;
+      const ticker = REALM_TICKER.has(realmEntity.name) ? REALM_TICKER.get(realmEntity.name) : null;
 
       if (ticker) realmEntity.ticker = ticker;
 
@@ -114,11 +110,7 @@ export class RealmsWorker extends WorkerHost {
       if (realmEntity.locale != 'enGB') {
         const realmLocale = await this.BNet.query<BlizzardApiResponse>(
           `/data/wow/realm/${message.slug}`,
-          apiConstParams(
-            API_HEADERS_ENUM.DYNAMIC,
-            OSINT_TIMEOUT_TOLERANCE,
-            true,
-          ),
+          apiConstParams(API_HEADERS_ENUM.DYNAMIC, OSINT_TIMEOUT_TOLERANCE, true),
         );
 
         await job.updateProgress(40);
@@ -154,20 +146,13 @@ export class RealmsWorker extends WorkerHost {
 
         realmEntity.connectedRealmId = get(connectedRealm, 'id', null);
         realmEntity.status = get(connectedRealm, 'status.name', null);
-        realmEntity.populationStatus = get(
-          connectedRealm,
-          'population.name',
-          null,
-        );
+        realmEntity.populationStatus = get(connectedRealm, 'population.name', null);
         await job.updateProgress(50);
 
-        const isRealmsExists =
-          'realms' in connectedRealm && Array.isArray(connectedRealm.realms);
+        const isRealmsExists = 'realms' in connectedRealm && Array.isArray(connectedRealm.realms);
 
         if (isRealmsExists) {
-          realmEntity.connectedRealms = connectedRealm.realms.map(
-            ({ slug }) => slug,
-          );
+          realmEntity.connectedRealms = connectedRealm.realms.map(({ slug }) => slug);
         }
       }
 
@@ -184,7 +169,8 @@ export class RealmsWorker extends WorkerHost {
       const guid = message.id || 'unknown';
 
       this.logger.error(
-        `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${guid} ${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`,
+        `${chalk.red('✗')} Failed [${chalk.bold(this.stats.total)}] ${guid} ` +
+          `${chalk.dim(`(${duration}ms)`)} - ${errorOrException.message}`,
       );
 
       throw errorOrException;
@@ -194,9 +180,7 @@ export class RealmsWorker extends WorkerHost {
   private logProgress(): void {
     const uptime = Date.now() - this.stats.startTime;
     const rate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
-      1,
-    );
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
 
     this.logger.log(
       `\n${chalk.magenta.bold('━'.repeat(60))}\n` +
@@ -214,16 +198,15 @@ export class RealmsWorker extends WorkerHost {
   public logFinalSummary(): void {
     const uptime = Date.now() - this.stats.startTime;
     const avgRate = (this.stats.total / (uptime / 1000)).toFixed(2);
-    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(
-      1,
-    );
+    const successRate = ((this.stats.success / this.stats.total) * 100).toFixed(1);
 
     this.logger.log(
       `\n${chalk.cyan.bold('═'.repeat(60))}\n` +
         `${chalk.cyan.bold('  🎯 REALMS FINAL SUMMARY')}\n` +
         `${chalk.cyan.bold('═'.repeat(60))}\n` +
         `${chalk.dim('  Total Realms:')} ${chalk.bold.white(this.stats.total)}\n` +
-        `${chalk.green('  ✓ Successful:')} ${chalk.green.bold(this.stats.success)} ${chalk.dim(`(${successRate}%)`)}\n` +
+        `${chalk.green('  ✓ Successful:')} ${chalk.green.bold(this.stats.success)} ` +
+        `${chalk.dim(`(${successRate}%)`)}\n` +
         `${chalk.yellow('  ⚠ Rate Limited:')} ${chalk.yellow.bold(this.stats.rateLimit)}\n` +
         `${chalk.yellow('  ⊘ Skipped:')} ${chalk.yellow.bold(this.stats.skipped)}\n` +
         `${chalk.red('  ✗ Failed:')} ${chalk.red.bold(this.stats.errors)}\n` +

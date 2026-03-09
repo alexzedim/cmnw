@@ -1,12 +1,6 @@
 import { CharactersEntity, CharactersProfileEntity, GuildsEntity } from '@app/pg';
 import { ICharacterRaiderIo } from '@app/resources/types';
-import type {
-  INameWithType,
-  ISelfKeyHref,
-  ISelfWithId,
-  ISelfWithNameAndId,
-  Locales,
-} from './osint.interface';
+import type { INameWithType, ISelfKeyHref, ISelfWithId, ISelfWithNameAndId, Locales } from './osint.interface';
 
 export type CharacterStatus = {
   id: number;
@@ -30,15 +24,10 @@ export type GuildExistsOrCreate = {
 };
 
 export type WowProgressProfile = Partial<
-  Pick<
-    CharactersProfileEntity,
-    'battleTag' | 'readyToTransfer' | 'raidDays' | 'playRole' | 'languages'
-  >
+  Pick<CharactersProfileEntity, 'battleTag' | 'readyToTransfer' | 'raidDays' | 'playRole' | 'languages'>
 >;
 
-export type WarcraftLogsProfile = Partial<
-  Pick<CharactersProfileEntity, 'heroicLogs' | 'mythicLogs'>
->;
+export type WarcraftLogsProfile = Partial<Pick<CharactersProfileEntity, 'heroicLogs' | 'mythicLogs'>>;
 
 export type RaiderIoCharacterMappingKey = keyof Omit<
   ICharacterRaiderIo,

@@ -9,12 +9,7 @@ import { UsersEntity } from '@app/pg';
 import { DiscordStrategy, BattleNetStrategy } from './strategies';
 
 @Module({
-  imports: [
-    TypeOrmModule.forRoot(postgresConfig),
-    TypeOrmModule.forFeature([UsersEntity]),
-    HttpModule,
-    PassportModule,
-  ],
+  imports: [TypeOrmModule.forRoot(postgresConfig), TypeOrmModule.forFeature([UsersEntity]), HttpModule, PassportModule],
   providers: [AuthService, DiscordStrategy, BattleNetStrategy],
   controllers: [AuthController],
   exports: [AuthService],

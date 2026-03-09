@@ -1,17 +1,7 @@
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
-import {
-  Column,
-  CreateDateColumn,
-  Entity,
-  Index,
-  PrimaryGeneratedColumn,
-} from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
-@Index('ix__analytics__category_type_date', [
-  'category',
-  'metricType',
-  'snapshotDate',
-])
+@Index('ix__analytics__category_type_date', ['category', 'metricType', 'snapshotDate'])
 @Index('ix__analytics__date', ['snapshotDate'])
 @Index('ix__analytics__realm_date', ['realmId', 'snapshotDate'])
 @Index('ix__analytics__category_date', ['category', 'snapshotDate'])

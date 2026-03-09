@@ -96,9 +96,7 @@ export class WowProgressLfgService {
       ]);
 
       this.logger.debug(
-        chalk.dim(
-          `Revoked status: NOW ${nowUpdatedResult.affected} | NEW ${newUpdatedResult.affected}`,
-        ),
+        chalk.dim(`Revoked status: NOW ${nowUpdatedResult.affected} | NEW ${newUpdatedResult.affected}`),
       );
 
       const keysEntity = await getKeys(this.keysRepository, clearance);
@@ -111,19 +109,12 @@ export class WowProgressLfgService {
 
       const isCondition = Boolean(firstPage.size && secondPage.size);
       if (!isCondition) {
-        this.logger.warn(
-          chalk.yellow(
-            `⚠ Invalid pages - first: ${firstPage.size}, second: ${secondPage.size}`,
-          ),
-        );
+        this.logger.warn(chalk.yellow(`⚠ Invalid pages - first: ${firstPage.size}, second: ${secondPage.size}`));
         return;
       }
 
       const charactersLfg = new Map([...firstPage, ...secondPage]);
-      const charactersLfgNow = union(
-        Array.from(firstPage.keys()),
-        Array.from(secondPage.keys()),
-      );
+      const charactersLfgNow = union(Array.from(firstPage.keys()), Array.from(secondPage.keys()));
       /**
        * @description If LFG.OLD not found then write NOW to PREV
        * @description Overwrite LFG status NOW
@@ -139,9 +130,7 @@ export class WowProgressLfgService {
         `${chalk.blue('ℹ')} Found ${chalk.bold(characterProfileLfgOld.length)} characters in LFG-${LFG_STATUS.OLD}`,
       );
 
-      const charactersLfgOld = characterProfileLfgOld.map(
-        (character) => character.guid,
-      );
+      const charactersLfgOld = characterProfileLfgOld.map((character) => character.guid);
 
       const charactersDiffNew = difference(charactersLfgNow, charactersLfgOld);
       const charactersDiffNow = difference(charactersLfgNow, charactersDiffNew);
@@ -157,9 +146,7 @@ export class WowProgressLfgService {
       );
 
       this.stats.charactersNew += isLfgNewExists;
-      this.logger.log(
-        `${chalk.cyan('→')} Processing ${chalk.bold(isLfgNewExists)} new LFG characters`,
-      );
+      this.logger.log(`${chalk.cyan('→')} Processing ${chalk.bold(isLfgNewExists)} new LFG characters`);
 
       if (!isLfgNewExists) {
         this.logger.log(chalk.blue('ℹ No new characters to process'));
@@ -186,18 +173,11 @@ export class WowProgressLfgService {
         ),
       );
       const duration = Date.now() - startTime;
-      this.logger.log(
-        chalk.green(
-          `\n✓ LFG indexing completed in ${chalk.bold(Math.round(duration / 1000))}s`,
-        ),
-      );
+      this.logger.log(chalk.green(`\n✓ LFG indexing completed in ${chalk.bold(Math.round(duration / 1000))}s`));
       this.logProgress();
     } catch (errorOrException) {
       this.stats.errors++;
-      this.logger.error(
-        chalk.red('✗ Error in indexWowProgressLfg:'),
-        errorOrException.message,
-      );
+      this.logger.error(chalk.red('✗ Error in indexWowProgressLfg:'), errorOrException.message);
     }
   }
 
@@ -218,9 +198,7 @@ export class WowProgressLfgService {
 
       if (!realmEntity) {
         this.stats.realmNotFound++;
-        this.logger.warn(
-          `${chalk.yellow('⚠')} Realm not found: ${chalk.dim(characterQueue.realm)}`,
-        );
+        this.logger.warn(`${chalk.yellow('⚠')} Realm not found: ${chalk.dim(characterQueue.realm)}`);
         return;
       }
 
@@ -257,26 +235,15 @@ export class WowProgressLfgService {
       );
 
       await Promise.allSettled([
-        this.profileQueue.add(
-          profileMessageDto.name,
-          profileMessageDto.data,
-          profileMessageDto.opts,
-        ),
-        this.charactersQueue.add(
-          characterMessageDto.name,
-          characterMessageDto.data,
-          characterMessageDto.opts,
-        ),
+        this.profileQueue.add(profileMessageDto.name, profileMessageDto.data, profileMessageDto.opts),
+        this.charactersQueue.add(characterMessageDto.name, characterMessageDto.data, characterMessageDto.opts),
       ]);
 
       this.stats.charactersQueued++;
       this.logger.log(`${chalk.cyan('→')} Queued ${chalk.dim(characterQueue.guid)}`);
     } catch (errorOrException) {
       this.stats.errors++;
-      this.logger.error(
-        chalk.red('✗ Error queuing character:'),
-        errorOrException.message,
-      );
+      this.logger.error(chalk.red('✗ Error queuing character:'), errorOrException.message);
     }
   }
 
@@ -310,8 +277,7 @@ export class WowProgressLfgService {
       await Promise.allSettled(
         wowProgressHTML(listingLookingForGuild).map(async (_x, node) => {
           const tableRowElement = wowProgressHTML(node).find('td');
-          const [preName, preGuild, preRaid, preRealm, preItemLevel, preTimestamp] =
-            tableRowElement;
+          const [preName, preGuild, preRaid, preRealm, preItemLevel, preTimestamp] = tableRowElement;
 
           const name = wowProgressHTML(preName).text().trim();
           const guild = wowProgressHTML(preGuild).text();
@@ -341,11 +307,7 @@ export class WowProgressLfgService {
       return wpCharactersQueue;
     } catch (errorOrException) {
       this.stats.errors++;
-      this.logger.error(
-        chalk.red('✗ Error fetching WP LFG:'),
-        errorOrException.message,
-        chalk.dim(url),
-      );
+      this.logger.error(chalk.red('✗ Error fetching WP LFG:'), errorOrException.message, chalk.dim(url));
       return wpCharactersQueue;
     }
   }

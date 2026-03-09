@@ -63,10 +63,7 @@ export class ItemsWorker extends WorkerHost {
     private readonly blizzardApiService: BlizzardApiService,
   ) {
     super();
-    this.rateLimiter = new AdaptiveRateLimiter(
-      DEFAULT_RATE_LIMITER_CONFIG,
-      this.logger,
-    );
+    this.rateLimiter = new AdaptiveRateLimiter(DEFAULT_RATE_LIMITER_CONFIG, this.logger);
   }
 
   public async process(message: Job<IItemMessageBase>): Promise<void> {
@@ -101,11 +98,7 @@ export class ItemsWorker extends WorkerHost {
       const [getItemSummary, getItemMedia] = await Promise.allSettled([
         this.BNet.query<BlizzardApiItem>(
           `/data/wow/item/${args.itemId}`,
-          apiConstParams(
-            API_HEADERS_ENUM.STATIC,
-            TOLERANCE_ENUM.DMA,
-            isMultiLocale,
-          ),
+          apiConstParams(API_HEADERS_ENUM.STATIC, TOLERANCE_ENUM.DMA, isMultiLocale),
         ),
         this.BNet.query(
           `/data/wow/media/item/${args.itemId}`,
@@ -117,34 +110,19 @@ export class ItemsWorker extends WorkerHost {
       if (!isItemValid) {
         this.stats.notFound++;
         const duration = Date.now() - startTime;
-        this.logger.warn(
-          formatWorkerLog(
-            WorkerLogStatus.NOT_FOUND,
-            this.stats.total,
-            `item-${args.itemId}`,
-            duration,
-          ),
-        );
+        this.logger.warn(formatWorkerLog(WorkerLogStatus.NOT_FOUND, this.stats.total, `item-${args.itemId}`, duration));
         return;
       }
 
       const gold = new Set(['sell_price', 'purchase_price']);
-      const namedFields = new Set([
-        'name',
-        'quality',
-        'item_class',
-        'item_subclass',
-        'inventory_type',
-      ]);
+      const namedFields = new Set(['name', 'quality', 'item_class', 'item_subclass', 'inventory_type']);
 
       Object.keys(getItemSummary.value).forEach((key: keyof IItem) => {
         const isKeyInPath = ITEM_FIELD_MAPPING.has(key);
         if (isKeyInPath) {
           const property = ITEM_FIELD_MAPPING.get(key);
           let value = get(getItemSummary.value, property.path, null);
-          const isFieldName = namedFields.has(key)
-            ? isNamedField(value)
-            : false;
+          const isFieldName = namedFields.has(key) ? isNamedField(value) : false;
 
           if (isFieldName) value = get(value, `en_GB`, null);
 
@@ -152,8 +130,7 @@ export class ItemsWorker extends WorkerHost {
             value = toGold(value);
           }
 
-          if (value && value !== itemEntity[property.key])
-            (itemEntity[property.key] as string | number) = value;
+          if (value && value !== itemEntity[property.key]) (itemEntity[property.key] as string | number) = value;
         }
       });
 
@@ -163,14 +140,10 @@ export class ItemsWorker extends WorkerHost {
 
       const isVSP =
         (itemEntity.vendorSellPrice && isNew) ||
-        (itemEntity.vendorSellPrice &&
-          itemEntity.assetClass &&
-          !itemEntity.assetClass.includes(VALUATION_TYPE.VSP));
+        (itemEntity.vendorSellPrice && itemEntity.assetClass && !itemEntity.assetClass.includes(VALUATION_TYPE.VSP));
 
       if (isVSP) {
-        const assetClass = new Set(itemEntity.assetClass).add(
-          VALUATION_TYPE.VSP,
-        );
+        const assetClass = new Set(itemEntity.assetClass).add(VALUATION_TYPE.VSP);
         itemEntity.assetClass = Array.from(assetClass);
       }
 
@@ -186,13 +159,10 @@ export class ItemsWorker extends WorkerHost {
 
       const duration = Date.now() - startTime;
       this.logger.log(
-        formatWorkerLogWithDetails(
-          WorkerLogStatus.SUCCESS,
-          this.stats.total,
-          `item-${itemEntity.id}`,
-          duration,
-          { isNew, name: itemEntity.name },
-        ),
+        formatWorkerLogWithDetails(WorkerLogStatus.SUCCESS, this.stats.total, `item-${itemEntity.id}`, duration, {
+          isNew,
+          name: itemEntity.name,
+        }),
       );
 
       // Progress report every 50 items
@@ -230,14 +200,7 @@ export class ItemsWorker extends WorkerHost {
       }
 
       this.stats.errors++;
-      this.logger.error(
-        formatWorkerErrorLog(
-          this.stats.total,
-          `item-${itemId}`,
-          duration,
-          errorOrException.message,
-        ),
-      );
+      this.logger.error(formatWorkerErrorLog(this.stats.total, `item-${itemId}`, duration, errorOrException.message));
 
       throw errorOrException;
     }

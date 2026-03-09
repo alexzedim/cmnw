@@ -2,7 +2,6 @@
  * BullMQ Queue Configuration for Characters
  *
  * Defines BullMQ queue configurations for character-related jobs.
- * Replaces RabbitMQ character queues.
  */
 import { getRedisConnection } from '@app/configuration';
 import type { IBullMQQueueOptions } from '@app/resources/types/queue/queue.type';

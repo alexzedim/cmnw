@@ -79,29 +79,13 @@ export class GuildsWorker extends WorkerHost {
 
       if (isNotReadyToUpdate) {
         this.stats.skipped++;
-        this.logger.log(
-          formatWorkerLog(
-            WorkerLogStatus.SKIPPED,
-            this.stats.total,
-            guildEntity.guid,
-            0,
-            'not ready',
-          ),
-        );
+        this.logger.log(formatWorkerLog(WorkerLogStatus.SKIPPED, this.stats.total, guildEntity.guid, 0, 'not ready'));
         return;
       }
 
       if (isCreateOnlyUnique) {
         this.stats.skipped++;
-        this.logger.log(
-          formatWorkerLog(
-            WorkerLogStatus.SKIPPED,
-            this.stats.total,
-            guildEntity.guid,
-            0,
-            'createOnly',
-          ),
-        );
+        this.logger.log(formatWorkerLog(WorkerLogStatus.SKIPPED, this.stats.total, guildEntity.guid, 0, 'createOnly'));
         return;
       }
 
@@ -110,15 +94,7 @@ export class GuildsWorker extends WorkerHost {
 
       const isNotEuRegion = !isEuRegion(message.region);
       if (isNotEuRegion) {
-        this.logger.log(
-          formatWorkerLog(
-            WorkerLogStatus.INFO,
-            this.stats.total,
-            guildEntity.guid,
-            0,
-            'not EU region',
-          ),
-        );
+        this.logger.log(formatWorkerLog(WorkerLogStatus.INFO, this.stats.total, guildEntity.guid, 0, 'not EU region'));
         return;
       }
 
@@ -133,18 +109,11 @@ export class GuildsWorker extends WorkerHost {
         guildEntity.updatedBy = message.updatedBy;
       }
 
-      const summary = await this.guildSummaryService.getSummary(
-        nameSlug,
-        guildEntity.realm,
-        this.BNet,
-      );
+      const summary = await this.guildSummaryService.getSummary(nameSlug, guildEntity.realm, this.BNet);
 
       Object.assign(guildEntity, summary);
 
-      const roster = await this.guildRosterService.fetchRoster(
-        guildEntity,
-        this.BNet,
-      );
+      const roster = await this.guildRosterService.fetchRoster(guildEntity, this.BNet);
       roster.updatedAt = guildEntity.updatedAt;
       await this.guildMemberService.updateRoster(guildSnapshot, roster, isNew);
 
@@ -152,31 +121,14 @@ export class GuildsWorker extends WorkerHost {
       let masterStatus = '-----';
 
       if (isNew) {
-        const guildById = await this.guildService.findById(
-          guildSnapshot.id,
-          guildSnapshot.realm,
-        );
+        const guildById = await this.guildService.findById(guildSnapshot.id, guildSnapshot.realm);
         if (guildById) {
-          logStatus = await this.guildLogService.detectAndLogChanges(
-            guildById,
-            guildEntity,
-          );
-          masterStatus =
-            await this.guildMasterService.detectAndLogGuildMasterChange(
-              guildById,
-              roster,
-            );
+          logStatus = await this.guildLogService.detectAndLogChanges(guildById, guildEntity);
+          masterStatus = await this.guildMasterService.detectAndLogGuildMasterChange(guildById, roster);
         }
       } else {
-        logStatus = await this.guildLogService.detectAndLogChanges(
-          guildSnapshot,
-          guildEntity,
-        );
-        masterStatus =
-          await this.guildMasterService.detectAndLogGuildMasterChange(
-            guildSnapshot,
-            roster,
-          );
+        logStatus = await this.guildLogService.detectAndLogChanges(guildSnapshot, guildEntity);
+        masterStatus = await this.guildMasterService.detectAndLogGuildMasterChange(guildSnapshot, roster);
       }
 
       const operationStatuses = {
@@ -185,10 +137,7 @@ export class GuildsWorker extends WorkerHost {
         master: masterStatus,
       };
 
-      guildEntity.status = this.aggregateGuildStatus(
-        guildEntity.status,
-        operationStatuses,
-      );
+      guildEntity.status = this.aggregateGuildStatus(guildEntity.status, operationStatuses);
 
       const hasErrors = hasAnyGuildErrorInString(guildEntity.status);
       const isSuccess = isAllGuildSuccessInString(guildEntity.status);
@@ -208,29 +157,17 @@ export class GuildsWorker extends WorkerHost {
     } catch (errorOrException) {
       this.stats.errors++;
       const duration = Date.now() - startTime;
-      const guid =
-        message.name && message.realm
-          ? `${message.name}@${message.realm}`
-          : 'unknown';
+      const guid = message.name && message.realm ? `${message.name}@${message.realm}` : 'unknown';
 
       this.logger.error(
-        formatWorkerErrorLog(
-          this.stats.total,
-          guid,
-          duration,
-          errorOrException.message,
-          message.updatedBy,
-        ),
+        formatWorkerErrorLog(this.stats.total, guid, duration, errorOrException.message, message.updatedBy),
       );
 
       throw errorOrException;
     }
   }
 
-  private aggregateGuildStatus(
-    currentStatus: string,
-    operationStatuses: Record<string, string | undefined>,
-  ): string {
+  private aggregateGuildStatus(currentStatus: string, operationStatuses: Record<string, string | undefined>): string {
     let aggregated = currentStatus || '-----';
 
     const operations: Array<{
@@ -261,10 +198,7 @@ export class GuildsWorker extends WorkerHost {
     ];
 
     for (const operation of operations) {
-      const hasError =
-        operation.statusString?.includes(
-          operation.errorIndicator.toLowerCase(),
-        ) ?? false;
+      const hasError = operation.statusString?.includes(operation.errorIndicator.toLowerCase()) ?? false;
 
       aggregated = setGuildStatusString(
         aggregated,
@@ -287,34 +221,14 @@ export class GuildsWorker extends WorkerHost {
 
       if (isSuccess) {
         this.logger.log(
-          formatWorkerLog(
-            WorkerLogStatus.SUCCESS,
-            this.stats.total,
-            guid,
-            duration,
-            `status: ${status}`,
-          ),
+          formatWorkerLog(WorkerLogStatus.SUCCESS, this.stats.total, guid, duration, `status: ${status}`),
         );
       } else if (hasErrors) {
         this.logger.warn(
-          formatWorkerLog(
-            WorkerLogStatus.PARTIAL,
-            this.stats.total,
-            guid,
-            duration,
-            `status: ${status}`,
-          ),
+          formatWorkerLog(WorkerLogStatus.PARTIAL, this.stats.total, guid, duration, `status: ${status}`),
         );
       } else {
-        this.logger.log(
-          formatWorkerLog(
-            WorkerLogStatus.INFO,
-            this.stats.total,
-            guid,
-            duration,
-            `status: ${status}`,
-          ),
-        );
+        this.logger.log(formatWorkerLog(WorkerLogStatus.INFO, this.stats.total, guid, duration, `status: ${status}`));
       }
       return;
     }
@@ -322,44 +236,16 @@ export class GuildsWorker extends WorkerHost {
     if (statusCode === 200 || statusCode === 204) {
       this.stats.success++;
       this.logger.log(
-        formatWorkerLog(
-          WorkerLogStatus.SUCCESS,
-          this.stats.total,
-          guid,
-          duration,
-          statusCode.toString(),
-        ),
+        formatWorkerLog(WorkerLogStatus.SUCCESS, this.stats.total, guid, duration, statusCode.toString()),
       );
     } else if (statusCode === 404) {
       this.stats.notFound++;
-      this.logger.warn(
-        formatWorkerLog(
-          WorkerLogStatus.NOT_FOUND,
-          this.stats.total,
-          guid,
-          duration,
-        ),
-      );
+      this.logger.warn(formatWorkerLog(WorkerLogStatus.NOT_FOUND, this.stats.total, guid, duration));
     } else if (statusCode === 429) {
       this.stats.rateLimit++;
-      this.logger.warn(
-        formatWorkerLog(
-          WorkerLogStatus.RATE_LIMITED,
-          this.stats.total,
-          guid,
-          duration,
-        ),
-      );
+      this.logger.warn(formatWorkerLog(WorkerLogStatus.RATE_LIMITED, this.stats.total, guid, duration));
     } else {
-      this.logger.log(
-        formatWorkerLog(
-          WorkerLogStatus.INFO,
-          this.stats.total,
-          guid,
-          duration,
-          statusCode?.toString(),
-        ),
-      );
+      this.logger.log(formatWorkerLog(WorkerLogStatus.INFO, this.stats.total, guid, duration, statusCode?.toString()));
     }
   }
 

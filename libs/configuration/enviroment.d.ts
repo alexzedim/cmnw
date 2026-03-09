@@ -62,15 +62,6 @@ declare namespace NodeJS {
     PG_SSL_CERT?: string;
     POSTGRES_SSL_CERT?: string;
 
-    // RabbitMQ config (libs/configuration/src/rabbitmq.config.ts)
-    RABBITMQ_URI?: string;
-    RABBITMQ_USER?: string;
-    RABBITMQ_PASSWORD?: string;
-    RABBITMQ_HOST?: string;
-    RABBITMQ_PORT?: string;
-    RABBITMQ_VHOST?: string;
-    RABBITMQ_PREFETCH?: string;
-
     // Redis/Bull config (libs/configuration/src/redis.config.ts, bull.config.ts)
     REDIS_HOST?: string;
     REDIS_PORT?: string;

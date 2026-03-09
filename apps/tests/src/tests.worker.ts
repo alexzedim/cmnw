@@ -1,11 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import {
-  GuildsEntity,
-  CharactersGuildsMembersEntity,
-  CharactersGuildsLogsEntity,
-} from '@app/pg';
+import { GuildsEntity, CharactersGuildsMembersEntity, CharactersGuildsLogsEntity } from '@app/pg';
 import { ACTION_LOG, OSINT_GM_RANK, OSINT_SOURCE } from '@app/resources';
 
 @Injectable()
@@ -36,9 +32,7 @@ export class TestsWorker {
 
       if (!isRankChanged) return { action: 'no_change' };
 
-      const isNotGuildMaster =
-        guildMemberOriginal.rank !== OSINT_GM_RANK ||
-        guildMemberUpdated.rank !== OSINT_GM_RANK;
+      const isNotGuildMaster = guildMemberOriginal.rank !== OSINT_GM_RANK || guildMemberUpdated.rank !== OSINT_GM_RANK;
       const isDemote = guildMemberUpdated.rank > guildMemberOriginal.rank;
 
       const eventAction = isDemote ? ACTION_LOG.DEMOTE : ACTION_LOG.PROMOTE;

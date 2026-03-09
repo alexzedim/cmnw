@@ -1,11 +1,6 @@
 import { Model } from 'mongoose';
 import { ItemsEntity } from '@app/pg';
-import {
-  INameWithType,
-  ISelfKeyHref,
-  ISelfWithId,
-  ISelfWithNameAndId,
-} from '@app/resources/types';
+import { INameWithType, ISelfKeyHref, ISelfWithId, ISelfWithNameAndId } from '@app/resources/types';
 
 export interface IItemFieldMap {
   key: Partial<keyof Omit<ItemsEntity, 'id'>>;

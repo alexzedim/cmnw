@@ -27,15 +27,10 @@ export class GuildLogService {
     });
 
     await this.logsRepository.save(logEntity);
-    this.logger.debug(
-      `Guild ${updated.guid} name changed: ${original.name} → ${updated.name}`,
-    );
+    this.logger.debug(`Guild ${updated.guid} name changed: ${original.name} → ${updated.name}`);
   }
 
-  async logFactionChange(
-    original: GuildsEntity,
-    updated: GuildsEntity,
-  ): Promise<void> {
+  async logFactionChange(original: GuildsEntity, updated: GuildsEntity): Promise<void> {
     const logEntity = this.logsRepository.create({
       guildGuid: updated.guid,
       original: original.faction,
@@ -46,19 +41,14 @@ export class GuildLogService {
     });
 
     await this.logsRepository.save(logEntity);
-    this.logger.debug(
-      `Guild ${updated.guid} faction changed: ${original.faction} → ${updated.faction}`,
-    );
+    this.logger.debug(`Guild ${updated.guid} faction changed: ${original.faction} → ${updated.faction}`);
   }
 
   async updateGuildGuidForAllLogs(oldGuid: string, newGuid: string): Promise<void> {
     await this.logsRepository.update({ guildGuid: oldGuid }, { guildGuid: newGuid });
   }
 
-  async detectAndLogChanges(
-    original: GuildsEntity,
-    updated: GuildsEntity,
-  ): Promise<string> {
+  async detectAndLogChanges(original: GuildsEntity, updated: GuildsEntity): Promise<string> {
     try {
       const isNameChanged = original.name !== updated.name;
       const isFactionChanged = original.faction !== updated.faction;

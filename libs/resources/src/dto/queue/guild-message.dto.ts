@@ -86,8 +86,7 @@ export class GuildMessageDto {
    * @returns New GuildMessageDto instance with generated guid
    */
   static create(
-    data: Omit<Partial<IGuildMessageBase>, 'guid'> &
-      Pick<IGuildMessageBase, 'name' | 'realm'>,
+    data: Omit<Partial<IGuildMessageBase>, 'guid'> & Pick<IGuildMessageBase, 'name' | 'realm'>,
     opts?: JobsOptions,
   ): GuildMessageDto {
     const guid = toGuid(data.name, data.realm);
@@ -321,10 +320,7 @@ export class GuildMessageDto {
    * @param logTag - Optional log tag for warnings (defaults to 'GuildMessageDto.validate')
    * @throws Error if validation fails and strict is true
    */
-  validate(
-    strict: boolean = true,
-    logTag: string = 'GuildMessageDto.validate',
-  ): void {
+  validate(strict: boolean = true, logTag: string = 'GuildMessageDto.validate'): void {
     const guildData = this.data;
 
     if (guildData?.guid && !guildData.guid.includes('@')) {
@@ -373,9 +369,7 @@ export class GuildMessageDto {
     // Warn about missing optional credentials (non-blocking)
     if (!strict) {
       const credentials = ['clientId', 'clientSecret', 'accessToken'];
-      const missingCredentials = credentials.filter(
-        (field) => !guildData?.[field] || guildData?.[field] === undefined,
-      );
+      const missingCredentials = credentials.filter((field) => !guildData?.[field] || guildData?.[field] === undefined);
       if (missingCredentials.length > 0) {
         GuildMessageDto.guildLogger.warn({
           logTag,
@@ -391,8 +385,7 @@ export class GuildMessageDto {
    * Create validated instance - throws if validation fails
    */
   static createValidated(
-    data: Omit<Partial<IGuildMessageBase>, 'guid'> &
-      Pick<IGuildMessageBase, 'name' | 'realm'>,
+    data: Omit<Partial<IGuildMessageBase>, 'guid'> & Pick<IGuildMessageBase, 'name' | 'realm'>,
     opts?: JobsOptions,
   ): GuildMessageDto {
     const dto = GuildMessageDto.create(data, opts);

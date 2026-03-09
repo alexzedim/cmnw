@@ -10,12 +10,7 @@ import { auctionsQueue, BlizzardApiService, itemsQueue } from '@app/resources';
 @Module({
   imports: [
     TypeOrmModule.forRoot(postgresConfig),
-    TypeOrmModule.forFeature([
-      KeysEntity,
-      RealmsEntity,
-      ItemsEntity,
-      MarketEntity,
-    ]),
+    TypeOrmModule.forFeature([KeysEntity, RealmsEntity, ItemsEntity, MarketEntity]),
     BullModule.forRoot({ connection: getRedisConnection() }),
     BullModule.registerQueue({
       name: auctionsQueue.name,

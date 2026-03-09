@@ -69,11 +69,7 @@ export class QueueMessageDto<T, NameType extends string> {
    * @param opts - Optional BullMQ job options
    * @returns Validated QueueMessageDto instance
    */
-  static create<T, NameType extends string>(
-    name: NameType,
-    data: T,
-    opts?: JobsOptions,
-  ): QueueMessageDto<T, NameType> {
+  static create<T, NameType extends string>(name: NameType, data: T, opts?: JobsOptions): QueueMessageDto<T, NameType> {
     const message = new QueueMessageDto(name, data, opts);
     message.validate();
     return message;
@@ -106,16 +102,11 @@ export class QueueMessageDto<T, NameType extends string> {
     if (this.opts?.priority !== undefined) {
       if (this.opts.priority < 0 || this.opts.priority > 10) {
         if (strict) {
-          throw new Error(
-            `Validation failed: priority must be between 0-10,` +
-              ` got '${this.opts.priority}'`,
-          );
+          throw new Error(`Validation failed: priority must be between 0-10,` + ` got '${this.opts.priority}'`);
         } else {
           QueueMessageDto.logger.warn({
             logTag: 'QueueMessageDto.validate',
-            message:
-              `Validation failed: priority must be between 0-10,` +
-              ` got '${this.opts.priority}'`,
+            message: `Validation failed: priority must be between 0-10,` + ` got '${this.opts.priority}'`,
             priority: this.opts.priority,
           });
         }

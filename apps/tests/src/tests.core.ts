@@ -59,10 +59,7 @@ export class TestsCore implements OnApplicationBootstrap {
   }
 
   async dungeonIndex(): Promise<any> {
-    return this.BNet.query(
-      `/data/wow/mythic-keystone/dungeon/index`,
-      apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-    );
+    return this.BNet.query(`/data/wow/mythic-keystone/dungeon/index`, apiConstParams(API_HEADERS_ENUM.DYNAMIC));
   }
 
   async mythicLeaderboard() {
@@ -73,17 +70,11 @@ export class TestsCore implements OnApplicationBootstrap {
   }
 
   async seasonIndex(): Promise<any> {
-    return this.BNet.query(
-      `/data/wow/mythic-keystone/season/index`,
-      apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-    );
+    return this.BNet.query(`/data/wow/mythic-keystone/season/index`, apiConstParams(API_HEADERS_ENUM.DYNAMIC));
   }
 
   async seasonOne() {
-    return await this.BNet.query<any>(
-      `/data/wow/mythic-keystone/season/1`,
-      apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-    );
+    return await this.BNet.query<any>(`/data/wow/mythic-keystone/season/1`, apiConstParams(API_HEADERS_ENUM.DYNAMIC));
   }
 
   async leadingGroups() {
@@ -94,10 +85,7 @@ export class TestsCore implements OnApplicationBootstrap {
   }
 
   async pvpIndexIndex() {
-    return await this.BNet.query<any>(
-      '/data/wow/pvp-season/index',
-      apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-    );
+    return await this.BNet.query<any>('/data/wow/pvp-season/index', apiConstParams(API_HEADERS_ENUM.DYNAMIC));
   }
 
   async pvpSeasonLeaderboard() {

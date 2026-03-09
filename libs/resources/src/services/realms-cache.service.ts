@@ -160,9 +160,7 @@ export class RealmsCacheService implements OnModuleInit {
   /**
    * Get realm by connected realm ID
    */
-  async findByConnectedRealmId(
-    connectedRealmId: number,
-  ): Promise<RealmsEntity | null> {
+  async findByConnectedRealmId(connectedRealmId: number): Promise<RealmsEntity | null> {
     if (!this.isInitialized) {
       await this.loadRealms();
     }

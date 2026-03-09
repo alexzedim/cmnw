@@ -1,8 +1,4 @@
-import {
-  API_HEADERS_ENUM,
-  DMA_TIMEOUT_TOLERANCE,
-  OSINT_TIMEOUT_TOLERANCE,
-} from '@app/resources';
+import { API_HEADERS_ENUM, DMA_TIMEOUT_TOLERANCE, OSINT_TIMEOUT_TOLERANCE } from '@app/resources';
 
 /**
  * HTTP status codes that indicate rate limiting or API key errors

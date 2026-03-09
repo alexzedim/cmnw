@@ -5,12 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { KeysEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import Redis from 'ioredis';
-import {
-  BadGatewayException,
-  Injectable,
-  Logger,
-  OnApplicationBootstrap,
-} from '@nestjs/common';
+import { BadGatewayException, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { from, mergeMap, toArray, catchError, of, lastValueFrom } from 'rxjs';
 
 import {
@@ -70,10 +65,7 @@ export class LadderService implements OnApplicationBootstrap {
     private readonly queueCharacters: Queue<ICharacterMessageBase>,
     private readonly blizzardApiService: BlizzardApiService,
   ) {
-    this.rateLimiter = new AdaptiveRateLimiter(
-      WCL_RATE_LIMITER_CONFIG,
-      this.logger,
-    );
+    this.rateLimiter = new AdaptiveRateLimiter(WCL_RATE_LIMITER_CONFIG, this.logger);
   }
 
   async onApplicationBootstrap(): Promise<void> {
@@ -111,11 +103,7 @@ export class LadderService implements OnApplicationBootstrap {
   /**
    * Process PvP leaderboards for all seasons and brackets
    */
-  private async processPvPLeaderboards(
-    seasons: PvPSeason[],
-    key: KeysEntity,
-    logTag: string,
-  ): Promise<void> {
+  private async processPvPLeaderboards(seasons: PvPSeason[], key: KeysEntity, logTag: string): Promise<void> {
     const totalRequests = seasons.length * BRACKETS.length;
     let processedCount = 0;
 
@@ -140,10 +128,7 @@ export class LadderService implements OnApplicationBootstrap {
 
           await this.rateLimiter.wait();
 
-          const pvpLeaderboard = await this.fetchPvPLeaderboard(
-            season.id,
-            bracket,
-          );
+          const pvpLeaderboard = await this.fetchPvPLeaderboard(season.id, bracket);
 
           if (pvpLeaderboard.entries.length === 0) {
             // Mark as processed even if no entries found
@@ -157,13 +142,7 @@ export class LadderService implements OnApplicationBootstrap {
             continue;
           }
 
-          await this.processPvPLeaderboardEntries(
-            pvpLeaderboard,
-            season.id,
-            bracket,
-            key,
-            logTag,
-          );
+          await this.processPvPLeaderboardEntries(pvpLeaderboard, season.id, bracket, key, logTag);
 
           // Mark season-bracket as processed in Redis
           await this.markPvPLeaderboardAsProcessed(season.id, bracket);
@@ -189,20 +168,14 @@ export class LadderService implements OnApplicationBootstrap {
   /**
    * Build Redis cache key for PvP leaderboard
    */
-  private buildPvPLeaderboardCacheKey(
-    seasonId: number,
-    bracket: string,
-  ): string {
+  private buildPvPLeaderboardCacheKey(seasonId: number, bracket: string): string {
     return `pvp:leaderboard:${seasonId}:${bracket}`;
   }
 
   /**
    * Mark a PvP leaderboard as processed in Redis
    */
-  private async markPvPLeaderboardAsProcessed(
-    seasonId: number,
-    bracket: string,
-  ): Promise<void> {
+  private async markPvPLeaderboardAsProcessed(seasonId: number, bracket: string): Promise<void> {
     const cacheKey = this.buildPvPLeaderboardCacheKey(seasonId, bracket);
     await this.redisService.setex(
       cacheKey,
@@ -218,10 +191,7 @@ export class LadderService implements OnApplicationBootstrap {
   /**
    * Fetch PvP leaderboard for a specific season and bracket
    */
-  private async fetchPvPLeaderboard(
-    seasonId: number,
-    bracket: string,
-  ): Promise<IPvPLeaderboardResponse> {
+  private async fetchPvPLeaderboard(seasonId: number, bracket: string): Promise<IPvPLeaderboardResponse> {
     const response = await this.BNet.query<IPvPLeaderboardResponse>(
       `/data/wow/pvp-season/${seasonId}/pvp-leaderboard/${bracket}`,
       apiConstParams(API_HEADERS_ENUM.DYNAMIC),
@@ -276,12 +246,7 @@ export class LadderService implements OnApplicationBootstrap {
   /**
    * Handle errors during PvP leaderboard fetching with adaptive rate limiting
    */
-  private handlePvPLeaderboardError(
-    error: unknown,
-    seasonId: number,
-    bracket: string,
-    logTag: string,
-  ): void {
+  private handlePvPLeaderboardError(error: unknown, seasonId: number, bracket: string, logTag: string): void {
     // Use proper rate limit detection instead of string matching
     if (error instanceof Error) {
       // Try to extract status code from error message or response
@@ -300,8 +265,7 @@ export class LadderService implements OnApplicationBootstrap {
           logTag,
           seasonId,
           bracket,
-          message:
-            'Rate limit encountered during PvP leaderboard fetch, backing off',
+          message: 'Rate limit encountered during PvP leaderboard fetch, backing off',
           rateLimiterStats: this.rateLimiter.getStats(),
         });
         return;
@@ -313,8 +277,7 @@ export class LadderService implements OnApplicationBootstrap {
           logTag,
           seasonId,
           bracket,
-          message:
-            'PvP leaderboard not found for this season-bracket combination (404)',
+          message: 'PvP leaderboard not found for this season-bracket combination (404)',
         });
         return;
       }
@@ -331,9 +294,7 @@ export class LadderService implements OnApplicationBootstrap {
   }
 
   @Cron(CronExpression.EVERY_WEEKEND)
-  async indexMythicPlusLadder(
-    clearance: string = GLOBAL_OSINT_KEY,
-  ): Promise<void> {
+  async indexMythicPlusLadder(clearance: string = GLOBAL_OSINT_KEY): Promise<void> {
     const logTag = this.indexMythicPlusLadder.name;
     try {
       const keys = await getKeys(this.keysRepository, clearance, true);
@@ -411,9 +372,7 @@ export class LadderService implements OnApplicationBootstrap {
   /**
    * Build a map of dungeon IDs to names for O(1) lookup
    */
-  private buildDungeonMap(
-    dungeons: Array<{ id: number; name: string }>,
-  ): Map<number, string> {
+  private buildDungeonMap(dungeons: Array<{ id: number; name: string }>): Map<number, string> {
     const dungeonMap = new Map<number, string>();
     dungeons.forEach((dungeon) => dungeonMap.set(dungeon.id, dungeon.name));
     return dungeonMap;
@@ -422,24 +381,19 @@ export class LadderService implements OnApplicationBootstrap {
   /**
    * Fetch all expansion weeks across all seasons
    */
-  private async fetchExpansionWeeks(
-    seasons: Array<{ id: number }>,
-  ): Promise<Set<number>> {
+  private async fetchExpansionWeeks(seasons: Array<{ id: number }>): Promise<Set<number>> {
     const expansionWeeks = new Set<number>();
 
     for (const season of seasons) {
       try {
-        const seasonDetailResponse =
-          await this.BNet.query<IMythicKeystoneSeasonDetail>(
-            `/data/wow/mythic-keystone/season/${season.id}`,
-            apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-          );
+        const seasonDetailResponse = await this.BNet.query<IMythicKeystoneSeasonDetail>(
+          `/data/wow/mythic-keystone/season/${season.id}`,
+          apiConstParams(API_HEADERS_ENUM.DYNAMIC),
+        );
 
         this.validateMythicKeystoneSeasonDetail(seasonDetailResponse);
 
-        seasonDetailResponse.periods.forEach((period) =>
-          expansionWeeks.add(period.id),
-        );
+        seasonDetailResponse.periods.forEach((period) => expansionWeeks.add(period.id));
       } catch (error) {
         this.logger.warn({
           message: `Failed to fetch season details for season ${season.id}`,
@@ -490,13 +444,7 @@ export class LadderService implements OnApplicationBootstrap {
         mergeMap(
           async (request) => {
             processedCount++;
-            return this.processLeaderboardRequest(
-              request,
-              key,
-              logTag,
-              processedCount,
-              totalRequests,
-            );
+            return this.processLeaderboardRequest(request, key, logTag, processedCount, totalRequests);
           },
           M_PLUS_PARALLEL_REQUESTS, // Concurrency limit
         ),
@@ -525,10 +473,7 @@ export class LadderService implements OnApplicationBootstrap {
   ): Promise<{ success?: boolean; skipped?: boolean; error?: boolean }> {
     try {
       // Check if this realm-dungeon combination was already processed
-      const cacheKey = this.buildRealmDungeonCacheKey(
-        request.connectedRealmId,
-        request.dungeonId,
-      );
+      const cacheKey = this.buildRealmDungeonCacheKey(request.connectedRealmId, request.dungeonId);
 
       const isCached = await this.redisService.exists(cacheKey);
       if (isCached) {
@@ -551,10 +496,7 @@ export class LadderService implements OnApplicationBootstrap {
 
       if (leadingGroups.length === 0) {
         // Mark as processed even if no groups found
-        await this.markRealmDungeonAsProcessed(
-          request.connectedRealmId,
-          request.dungeonId,
-        );
+        await this.markRealmDungeonAsProcessed(request.connectedRealmId, request.dungeonId);
         return { skipped: true };
       }
 
@@ -568,10 +510,7 @@ export class LadderService implements OnApplicationBootstrap {
       );
 
       // Mark realm-dungeon as processed in Redis
-      await this.markRealmDungeonAsProcessed(
-        request.connectedRealmId,
-        request.dungeonId,
-      );
+      await this.markRealmDungeonAsProcessed(request.connectedRealmId, request.dungeonId);
 
       this.rateLimiter.onSuccess();
 
@@ -588,34 +527,23 @@ export class LadderService implements OnApplicationBootstrap {
       return { success: true };
     } catch (error) {
       // Check if this is a 404 error (leaderboard not found for this realm-dungeon combination)
-      const is404Error =
-        error instanceof Error && error.message.includes('404');
+      const is404Error = error instanceof Error && error.message.includes('404');
 
       if (is404Error) {
         // Mark as processed even if not found, and continue with other requests
-        await this.markRealmDungeonAsProcessed(
-          request.connectedRealmId,
-          request.dungeonId,
-        );
+        await this.markRealmDungeonAsProcessed(request.connectedRealmId, request.dungeonId);
         this.logger.debug({
           logTag,
           connectedRealmId: request.connectedRealmId,
           dungeonId: request.dungeonId,
           period: request.period,
-          message:
-            'Leaderboard not found for this realm-dungeon combination (404), continuing with other requests',
+          message: 'Leaderboard not found for this realm-dungeon combination (404), continuing with other requests',
         });
         return { skipped: true };
       }
 
       // Handle other errors
-      this.handleLeaderboardError(
-        error,
-        request.connectedRealmId,
-        request.dungeonId,
-        request.period,
-        logTag,
-      );
+      this.handleLeaderboardError(error, request.connectedRealmId, request.dungeonId, request.period, logTag);
       return { error: true };
     }
   }
@@ -648,24 +576,15 @@ export class LadderService implements OnApplicationBootstrap {
   /**
    * Build Redis cache key for realm-dungeon combination
    */
-  private buildRealmDungeonCacheKey(
-    connectedRealmId: number,
-    dungeonId: number,
-  ): string {
+  private buildRealmDungeonCacheKey(connectedRealmId: number, dungeonId: number): string {
     return `${M_PLUS_REALM_DUNGEON_PREFIX}${connectedRealmId}:${dungeonId}`;
   }
 
   /**
    * Mark a realm-dungeon combination as processed in Redis
    */
-  private async markRealmDungeonAsProcessed(
-    connectedRealmId: number,
-    dungeonId: number,
-  ): Promise<void> {
-    const cacheKey = this.buildRealmDungeonCacheKey(
-      connectedRealmId,
-      dungeonId,
-    );
+  private async markRealmDungeonAsProcessed(connectedRealmId: number, dungeonId: number): Promise<void> {
+    const cacheKey = this.buildRealmDungeonCacheKey(connectedRealmId, dungeonId);
     await this.redisService.setex(
       cacheKey,
       TIME_MS.ONE_WEEK / 1000, // 7 days in seconds
@@ -706,10 +625,7 @@ export class LadderService implements OnApplicationBootstrap {
     logTag: string,
   ): Promise<void> {
     for (const group of leadingGroups) {
-      const characterJobMembers = this.mapGroupMembersToCharacterJobs(
-        group,
-        key,
-      );
+      const characterJobMembers = this.mapGroupMembersToCharacterJobs(group, key);
 
       if (characterJobMembers.length === 0) {
         continue;
@@ -724,7 +640,9 @@ export class LadderService implements OnApplicationBootstrap {
         period,
         groupRanking: group.ranking,
         characterCount: characterJobMembers.length,
-        message: `Processed M+ ladder: Realm ${connectedRealmId}, Dungeon ${dungeonId}, Week ${period}, Group ${group.ranking}, Characters: ${characterJobMembers.length}`,
+        message:
+          `Processed M+ ladder: Realm ${connectedRealmId}, Dungeon ${dungeonId}, Week ${period}, ` +
+          `Group ${group.ranking}, Characters: ${characterJobMembers.length}`,
       });
     }
   }
@@ -732,10 +650,7 @@ export class LadderService implements OnApplicationBootstrap {
   /**
    * Map group members to character job DTOs
    */
-  private mapGroupMembersToCharacterJobs(
-    group: MythicLeaderboardGroup,
-    key: KeysEntity,
-  ): CharacterMessageDto[] {
+  private mapGroupMembersToCharacterJobs(group: MythicLeaderboardGroup, key: KeysEntity): CharacterMessageDto[] {
     return group.members.map((member) =>
       CharacterMessageDto.fromMythicPlusLadder({
         id: member.profile.id,
@@ -799,51 +714,37 @@ export class LadderService implements OnApplicationBootstrap {
   /**
    * Validation methods for API responses
    */
-  private validateMythicKeystoneDungeonResponse(
-    response: unknown,
-  ): asserts response is IMythicKeystoneDungeonResponse {
+  private validateMythicKeystoneDungeonResponse(response: unknown): asserts response is IMythicKeystoneDungeonResponse {
     if (!isMythicKeystoneDungeonResponse(response)) {
       throw new BadGatewayException('Invalid mythic keystone dungeon response');
     }
   }
 
-  private validateMythicKeystoneSeasonResponse(
-    response: unknown,
-  ): asserts response is IMythicKeystoneSeasonResponse {
+  private validateMythicKeystoneSeasonResponse(response: unknown): asserts response is IMythicKeystoneSeasonResponse {
     if (!isMythicKeystoneSeasonResponse(response)) {
       throw new BadGatewayException('Invalid mythic keystone season response');
     }
   }
 
-  private validateMythicKeystoneSeasonDetail(
-    response: unknown,
-  ): asserts response is IMythicKeystoneSeasonDetail {
+  private validateMythicKeystoneSeasonDetail(response: unknown): asserts response is IMythicKeystoneSeasonDetail {
     if (!isMythicKeystoneSeasonDetail(response)) {
-      throw new BadGatewayException(
-        'Invalid mythic keystone season detail response',
-      );
+      throw new BadGatewayException('Invalid mythic keystone season detail response');
     }
   }
 
-  private validateMythicLeaderboardResponse(
-    response: unknown,
-  ): asserts response is IMythicLeaderboardResponse {
+  private validateMythicLeaderboardResponse(response: unknown): asserts response is IMythicLeaderboardResponse {
     if (!isMythicLeaderboardResponse(response)) {
       throw new BadGatewayException('Invalid mythic leaderboard response');
     }
   }
 
-  private validatePvPSeasonIndexResponse(
-    response: unknown,
-  ): asserts response is IPvPSeasonIndexResponse {
+  private validatePvPSeasonIndexResponse(response: unknown): asserts response is IPvPSeasonIndexResponse {
     if (!isPvPSeasonIndexResponse(response)) {
       throw new BadGatewayException('Invalid PvP season index response');
     }
   }
 
-  private validatePvPLeaderboardResponse(
-    response: unknown,
-  ): asserts response is IPvPLeaderboardResponse {
+  private validatePvPLeaderboardResponse(response: unknown): asserts response is IPvPLeaderboardResponse {
     if (!isPvPLeaderboardResponse(response)) {
       throw new BadGatewayException('Invalid PvP leaderboard response');
     }

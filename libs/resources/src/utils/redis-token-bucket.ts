@@ -114,10 +114,7 @@ export class RedisTokenBucket {
    * @param tokens - Number of tokens to consume (default: 1)
    * @returns Result indicating if allowed, remaining tokens, and wait time
    */
-  async consume(
-    config: TokenBucketConfig,
-    tokens: number = 1,
-  ): Promise<TokenConsumeResult> {
+  async consume(config: TokenBucketConfig, tokens: number = 1): Promise<TokenConsumeResult> {
     const { key, capacity, refillRate } = config;
     const now = Date.now();
 
@@ -132,14 +129,7 @@ export class RedisTokenBucket {
         tokens.toString(),
       )) as [number, number, number, number, number, number];
 
-      const [
-        allowed,
-        remaining,
-        waitTimeMs,
-        tokensBefore,
-        tokensAfter,
-        elapsed,
-      ] = result;
+      const [allowed, remaining, waitTimeMs, tokensBefore, tokensAfter, elapsed] = result;
 
       if (allowed === 0) {
         this.logger?.debug(
@@ -160,9 +150,7 @@ export class RedisTokenBucket {
         },
       };
     } catch (error) {
-      this.logger?.error(
-        `${chalk.red('✗')} Redis token bucket error: ${chalk.dim((error as Error).message)}`,
-      );
+      this.logger?.error(`${chalk.red('✗')} Redis token bucket error: ${chalk.dim((error as Error).message)}`);
 
       // Fail open: allow request if Redis is unavailable
       return {
@@ -179,9 +167,7 @@ export class RedisTokenBucket {
    * @param key - Redis key for the bucket
    * @returns Current token count or null if not exists
    */
-  async getState(
-    key: string,
-  ): Promise<{ tokens: number; lastUpdate: number } | null> {
+  async getState(key: string): Promise<{ tokens: number; lastUpdate: number } | null> {
     try {
       const result = await this.redis.hmget(key, 'tokens', 'lastUpdate');
 
@@ -194,9 +180,7 @@ export class RedisTokenBucket {
         lastUpdate: parseInt(result[1] as string, 10),
       };
     } catch (error) {
-      this.logger?.error(
-        `${chalk.red('✗')} Failed to get bucket state: ${chalk.dim((error as Error).message)}`,
-      );
+      this.logger?.error(`${chalk.red('✗')} Failed to get bucket state: ${chalk.dim((error as Error).message)}`);
       return null;
     }
   }
@@ -215,13 +199,9 @@ export class RedisTokenBucket {
       });
       await this.redis.expire(key, 3600);
 
-      this.logger?.debug(
-        `${chalk.cyan('ℹ')} Reset token bucket: ${chalk.dim(key)}`,
-      );
+      this.logger?.debug(`${chalk.cyan('ℹ')} Reset token bucket: ${chalk.dim(key)}`);
     } catch (error) {
-      this.logger?.error(
-        `${chalk.red('✗')} Failed to reset bucket: ${chalk.dim((error as Error).message)}`,
-      );
+      this.logger?.error(`${chalk.red('✗')} Failed to reset bucket: ${chalk.dim((error as Error).message)}`);
     }
   }
 
@@ -232,10 +212,7 @@ export class RedisTokenBucket {
    * @param tokens - Number of tokens to consume (default: 1)
    * @returns Promise that resolves when tokens are consumed
    */
-  async waitAndConsume(
-    config: TokenBucketConfig,
-    tokens: number = 1,
-  ): Promise<TokenConsumeResult> {
+  async waitAndConsume(config: TokenBucketConfig, tokens: number = 1): Promise<TokenConsumeResult> {
     let result = await this.consume(config, tokens);
 
     while (!result.allowed) {
@@ -254,13 +231,9 @@ export class RedisTokenBucket {
   async delete(key: string): Promise<void> {
     try {
       await this.redis.del(key);
-      this.logger?.debug(
-        `${chalk.cyan('ℹ')} Deleted token bucket: ${chalk.dim(key)}`,
-      );
+      this.logger?.debug(`${chalk.cyan('ℹ')} Deleted token bucket: ${chalk.dim(key)}`);
     } catch (error) {
-      this.logger?.error(
-        `${chalk.red('✗')} Failed to delete bucket: ${chalk.dim((error as Error).message)}`,
-      );
+      this.logger?.error(`${chalk.red('✗')} Failed to delete bucket: ${chalk.dim((error as Error).message)}`);
     }
   }
 }

@@ -11,12 +11,7 @@ import { ItemsEntity, KeysEntity, MarketEntity, ContractEntity } from '@app/pg';
 @Module({
   imports: [
     TypeOrmModule.forRoot(postgresConfig),
-    TypeOrmModule.forFeature([
-      ItemsEntity,
-      KeysEntity,
-      MarketEntity,
-      ContractEntity,
-    ]),
+    TypeOrmModule.forFeature([ItemsEntity, KeysEntity, MarketEntity, ContractEntity]),
     RedisModule.forRoot({
       type: 'single',
       options: {

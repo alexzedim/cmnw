@@ -120,8 +120,7 @@ export const SWAGGER_CHARACTER_REALMS_ID: ApiPropertyOptions = {
 
 export const SWAGGER_CHARACTER_HASH_TYPE: ApiPropertyOptions = {
   name: 'hashType',
-  description:
-    'Character hash type: a (hashA only), b (hashB only), or ab (both with separate values)',
+  description: 'Character hash type: a (hashA only), b (hashB only), or ab (both with separate values)',
   type: String,
   required: true,
   nullable: false,
@@ -165,8 +164,7 @@ export const SWAGGER_REALM_NAME: ApiPropertyOptions = {
 
 export const SWAGGER_REALM_SLUG: ApiPropertyOptions = {
   name: 'slug',
-  description:
-    'Realm slug for server as required by Blizzard, lowercased, without spaces',
+  description: 'Realm slug for server as required by Blizzard, lowercased, without spaces',
   type: String,
   required: false,
   example: 'gordunni',

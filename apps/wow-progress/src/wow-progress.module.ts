@@ -1,10 +1,5 @@
 import { Module } from '@nestjs/common';
-import {
-  getRedisConnection,
-  postgresConfig,
-  redisConfig,
-  s3Config,
-} from '@app/configuration';
+import { getRedisConnection, postgresConfig, redisConfig, s3Config } from '@app/configuration';
 import { WowProgressLfgService, WowProgressRanksService } from './services';
 import { ScheduleModule } from '@nestjs/schedule';
 import { HttpModule } from '@nestjs/axios';

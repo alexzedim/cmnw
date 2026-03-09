@@ -153,11 +153,7 @@ export class ContractsService implements OnApplicationBootstrap {
       for (const commodityItemId of commodityItemsIds) {
         await lastValueFrom(
           from(commodityTimestamps).pipe(
-            mergeMap(
-              (timestamp) =>
-                this.getItemContractIntradayData(commodityItemId, timestamp, today),
-              5,
-            ),
+            mergeMap((timestamp) => this.getItemContractIntradayData(commodityItemId, timestamp, today), 5),
           ),
         );
       }
@@ -196,15 +192,7 @@ export class ContractsService implements OnApplicationBootstrap {
 
         await lastValueFrom(
           from(goldTimestamps).pipe(
-            mergeMap(
-              (timestamp) =>
-                this.getItemContractIntradayData(
-                  GOLD_ITEM_ENTITY.id,
-                  timestamp,
-                  today,
-                ),
-              5,
-            ),
+            mergeMap((timestamp) => this.getItemContractIntradayData(GOLD_ITEM_ENTITY.id, timestamp, today), 5),
           ),
         );
       }
@@ -263,9 +251,7 @@ export class ContractsService implements OnApplicationBootstrap {
       const ordersNotEnough = orders < 10;
 
       if (ordersNotEnough) {
-        this.logger.debug(
-          `${logTag}: ${contractId} not enough orders for contract representation`,
-        );
+        this.logger.debug(`${logTag}: ${contractId} not enough orders for contract representation`);
         return;
       }
 
@@ -311,10 +297,7 @@ export class ContractsService implements OnApplicationBootstrap {
         .getRawOne<IItemOpenInterest>();
 
       // Validate and convert quantity and openInterest using type guards
-      const validation = validateContractData(
-        itemPriceAndQuantity.q,
-        itemOpenInterest.oi,
-      );
+      const validation = validateContractData(itemPriceAndQuantity.q, itemOpenInterest.oi);
 
       if (!validation.isValid) {
         if (!validation.quantity.isValid) {

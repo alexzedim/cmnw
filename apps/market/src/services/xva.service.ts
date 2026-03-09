@@ -161,10 +161,7 @@ export class XvaService implements OnApplicationBootstrap {
    * Check if CSV file has been processed based on file hash
    * Returns true if already processed, false otherwise
    */
-  private async isFileProcessed(
-    fileName: string,
-    fileContent: string,
-  ): Promise<boolean> {
+  private async isFileProcessed(fileName: string, fileContent: string): Promise<boolean> {
     const fileHash = createHash('md5').update(fileContent).digest('hex');
     const redisKey = `PRICING_CSV_PROCESSED:${fileName}:${fileHash}`;
     const exists = await this.redisService.exists(redisKey);
@@ -174,17 +171,10 @@ export class XvaService implements OnApplicationBootstrap {
   /**
    * Mark CSV file as processed in Redis
    */
-  private async markFileAsProcessed(
-    fileName: string,
-    fileContent: string,
-  ): Promise<void> {
+  private async markFileAsProcessed(fileName: string, fileContent: string): Promise<void> {
     const fileHash = createHash('md5').update(fileContent).digest('hex');
     const redisKey = `PRICING_CSV_PROCESSED:${fileName}:${fileHash}`;
-    await this.redisService.setex(
-      redisKey,
-      REDIS_TTL.CSV_FILES,
-      new Date().toISOString(),
-    );
+    await this.redisService.setex(redisKey, REDIS_TTL.CSV_FILES, new Date().toISOString());
     this.logger.debug({
       logTag: 'markFileAsProcessed',
       fileName,
@@ -197,17 +187,9 @@ export class XvaService implements OnApplicationBootstrap {
   // PRICING METHODS - Lab Pricing (Reverse Methods)
   // ============================================================================
 
-  async libPricing(options: {
-    isProspect?: boolean;
-    isMilling?: boolean;
-    isDisenchant?: boolean;
-  }): Promise<void> {
+  async libPricing(options: { isProspect?: boolean; isMilling?: boolean; isDisenchant?: boolean }): Promise<void> {
     const logTag = 'libPricing';
-    const {
-      isProspect = false,
-      isMilling = false,
-      isDisenchant = false,
-    } = options;
+    const { isProspect = false, isMilling = false, isDisenchant = false } = options;
 
     try {
       if (!isProspect && !isMilling && !isDisenchant) {
@@ -248,9 +230,7 @@ export class XvaService implements OnApplicationBootstrap {
   /**
    * Generic method to process any lab pricing method (prospecting, milling, disenchanting)
    */
-  private async processLabPricingMethod(
-    config: LabPricingMethod,
-  ): Promise<void> {
+  private async processLabPricingMethod(config: LabPricingMethod): Promise<void> {
     const logTag = 'processLabPricingMethod';
     try {
       const reversePricingMethod = this.pricingRepository.create({
@@ -273,9 +253,7 @@ export class XvaService implements OnApplicationBootstrap {
               ...reversePricingMethod,
               reagents: method.reagents,
               derivatives: method.derivatives,
-              recipeId: parseInt(
-                `${reversePricingMethod.spellId}${method.reagents[0].itemId}`,
-              ),
+              recipeId: parseInt(`${reversePricingMethod.spellId}${method.reagents[0].itemId}`),
             };
 
             await this.pricingRepository.save(entry);
@@ -301,10 +279,7 @@ export class XvaService implements OnApplicationBootstrap {
   // ============================================================================
 
   @Cron(CronExpression.MONDAY_TO_FRIDAY_AT_10AM)
-  async indexPricing(
-    clearance: string = GLOBAL_DMA_KEY,
-    isItemsPricingInit: boolean = true,
-  ): Promise<void> {
+  async indexPricing(clearance: string = GLOBAL_DMA_KEY, isItemsPricingInit: boolean = true): Promise<void> {
     const logTag = 'indexPricing';
     try {
       if (!isItemsPricingInit) {
@@ -330,14 +305,10 @@ export class XvaService implements OnApplicationBootstrap {
         region: 'eu',
       });
 
-      const professionIndexResponse =
-        await this.BNet.query<IProfessionResponse>(
-          '/data/wow/profession/index',
-          {
-            timeout: 10000,
-            headers: { 'Battlenet-Namespace': 'static-eu' },
-          },
-        );
+      const professionIndexResponse = await this.BNet.query<IProfessionResponse>('/data/wow/profession/index', {
+        timeout: 10000,
+        headers: { 'Battlenet-Namespace': 'static-eu' },
+      });
 
       if (!isBnetProfessionIndexResponse(professionIndexResponse)) {
         this.logger.error({
@@ -351,14 +322,13 @@ export class XvaService implements OnApplicationBootstrap {
       const { professions } = professionIndexResponse;
 
       for (const profession of professions) {
-        const professionDetailResponse =
-          await this.BNet.query<IProfessionDetailResponse>(
-            `/data/wow/profession/${profession.id}`,
-            {
-              timeout: 10000,
-              headers: { 'Battlenet-Namespace': 'static-eu' },
-            },
-          );
+        const professionDetailResponse = await this.BNet.query<IProfessionDetailResponse>(
+          `/data/wow/profession/${profession.id}`,
+          {
+            timeout: 10000,
+            headers: { 'Battlenet-Namespace': 'static-eu' },
+          },
+        );
 
         if (!isBnetProfessionDetailResponse(professionDetailResponse)) {
           this.logger.warn({
@@ -382,14 +352,13 @@ export class XvaService implements OnApplicationBootstrap {
             return false;
           });
 
-          const skillTierDetailResponse =
-            await this.BNet.query<ISkillTieryResponse>(
-              `/data/wow/profession/${profession.id}/skill-tier/${tier.id}`,
-              {
-                timeout: 10000,
-                headers: { 'Battlenet-Namespace': 'static-eu' },
-              },
-            );
+          const skillTierDetailResponse = await this.BNet.query<ISkillTieryResponse>(
+            `/data/wow/profession/${profession.id}/skill-tier/${tier.id}`,
+            {
+              timeout: 10000,
+              headers: { 'Battlenet-Namespace': 'static-eu' },
+            },
+          );
 
           if (!isBnetSkillTierDetailResponse(skillTierDetailResponse)) {
             this.logger.warn({
@@ -449,14 +418,9 @@ export class XvaService implements OnApplicationBootstrap {
     }
 
     try {
-      const skillLineAbilityCsv = await this.readCsvFile(
-        CsvFileName.SkillLineAbility,
-      );
+      const skillLineAbilityCsv = await this.readCsvFile(CsvFileName.SkillLineAbility);
 
-      const isProcessed = await this.isFileProcessed(
-        CsvFileName.SkillLineAbility,
-        skillLineAbilityCsv,
-      );
+      const isProcessed = await this.isFileProcessed(CsvFileName.SkillLineAbility, skillLineAbilityCsv);
 
       if (isProcessed) {
         this.logger.log({
@@ -515,10 +479,7 @@ export class XvaService implements OnApplicationBootstrap {
         message: `Saved ${skillLineMethodsCount} skill line entities`,
       });
 
-      await this.markFileAsProcessed(
-        CsvFileName.SkillLineAbility,
-        skillLineAbilityCsv,
-      );
+      await this.markFileAsProcessed(CsvFileName.SkillLineAbility, skillLineAbilityCsv);
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });
     }
@@ -538,10 +499,7 @@ export class XvaService implements OnApplicationBootstrap {
     try {
       const spellEffectCsv = await this.readCsvFile(CsvFileName.SpellEffect);
 
-      const isProcessed = await this.isFileProcessed(
-        CsvFileName.SpellEffect,
-        spellEffectCsv,
-      );
+      const isProcessed = await this.isFileProcessed(CsvFileName.SpellEffect, spellEffectCsv);
 
       if (isProcessed) {
         this.logger.log({
@@ -610,14 +568,9 @@ export class XvaService implements OnApplicationBootstrap {
     }
 
     try {
-      const spellReagentsCsv = await this.readCsvFile(
-        CsvFileName.SpellReagents,
-      );
+      const spellReagentsCsv = await this.readCsvFile(CsvFileName.SpellReagents);
 
-      const isProcessed = await this.isFileProcessed(
-        CsvFileName.SpellReagents,
-        spellReagentsCsv,
-      );
+      const isProcessed = await this.isFileProcessed(CsvFileName.SpellReagents, spellReagentsCsv);
 
       if (isProcessed) {
         this.logger.log({
@@ -688,10 +641,7 @@ export class XvaService implements OnApplicationBootstrap {
         message: `Saved ${spellReagentsCount} spell reagent entities`,
       });
 
-      await this.markFileAsProcessed(
-        CsvFileName.SpellReagents,
-        spellReagentsCsv,
-      );
+      await this.markFileAsProcessed(CsvFileName.SpellReagents, spellReagentsCsv);
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });
     }
@@ -763,11 +713,7 @@ export class XvaService implements OnApplicationBootstrap {
   private async markStageAsProcessed(stage: string): Promise<void> {
     const stateHash = await this.generateStateHash(stage);
     const redisKey = `VALUATION_STAGE_PROCESSED:${stage}:${stateHash}`;
-    await this.redisService.setex(
-      redisKey,
-      REDIS_TTL.VALUATION_STAGES,
-      new Date().toISOString(),
-    );
+    await this.redisService.setex(redisKey, REDIS_TTL.VALUATION_STAGES, new Date().toISOString());
     this.logger.debug({
       logTag: 'markStageAsProcessed',
       stage,
@@ -921,8 +867,7 @@ export class XvaService implements OnApplicationBootstrap {
         .createQueryBuilder()
         .update(ItemsEntity)
         .set({
-          assetClass: () =>
-            `array_append(asset_class, '${VALUATION_TYPE.MARKET}')`,
+          assetClass: () => `array_append(asset_class, '${VALUATION_TYPE.MARKET}')`,
         })
         .where('id = ANY(:ids)', { ids: allItemIds })
         .andWhere('NOT (:market = ANY(asset_class))', {
@@ -965,8 +910,7 @@ export class XvaService implements OnApplicationBootstrap {
         .createQueryBuilder()
         .update(ItemsEntity)
         .set({
-          assetClass: () =>
-            `array_append(asset_class, '${VALUATION_TYPE.COMMDTY}')`,
+          assetClass: () => `array_append(asset_class, '${VALUATION_TYPE.COMMDTY}')`,
         })
         .where('id = ANY(:ids)', { ids: commodityIds })
         .andWhere('NOT (:commdty = ANY(asset_class))', {
@@ -1008,8 +952,7 @@ export class XvaService implements OnApplicationBootstrap {
         .createQueryBuilder()
         .update(ItemsEntity)
         .set({
-          assetClass: () =>
-            `array_append(asset_class, '${VALUATION_TYPE.ITEM}')`,
+          assetClass: () => `array_append(asset_class, '${VALUATION_TYPE.ITEM}')`,
         })
         .where('id = ANY(:ids)', { ids: auctionIds })
         .andWhere('NOT (:item = ANY(asset_class))', {
@@ -1139,11 +1082,7 @@ export class XvaService implements OnApplicationBootstrap {
     // Batch update tags
     for (let i = 0; i < updates.length; i += BATCH_SIZE) {
       const chunk = updates.slice(i, i + BATCH_SIZE);
-      await Promise.all(
-        chunk.map((update) =>
-          this.itemsRepository.update({ id: update.id }, { tags: update.tags }),
-        ),
-      );
+      await Promise.all(chunk.map((update) => this.itemsRepository.update({ id: update.id }, { tags: update.tags })));
     }
 
     await this.markStageAsProcessed('tags');
@@ -1175,10 +1114,7 @@ export class XvaService implements OnApplicationBootstrap {
   /**
    * Batch add asset class to multiple items
    */
-  private async batchAddAssetClass(
-    itemIds: number[],
-    assetClass: VALUATION_TYPE,
-  ): Promise<void> {
+  private async batchAddAssetClass(itemIds: number[], assetClass: VALUATION_TYPE): Promise<void> {
     if (itemIds.length === 0) return;
 
     // Remove duplicates
@@ -1187,9 +1123,7 @@ export class XvaService implements OnApplicationBootstrap {
     // Process in batches
     for (let i = 0; i < uniqueIds.length; i += BATCH_SIZE) {
       const chunk = uniqueIds.slice(i, i + BATCH_SIZE);
-      await Promise.all(
-        chunk.map((itemId) => this.addAssetClassToItem(itemId, assetClass)),
-      );
+      await Promise.all(chunk.map((itemId) => this.addAssetClassToItem(itemId, assetClass)));
     }
   }
 
@@ -1200,13 +1134,7 @@ export class XvaService implements OnApplicationBootstrap {
     const tagsSet = new Set<string>(item.tags || []);
 
     // Add various item properties as tags
-    const fieldsToTag = [
-      item.expansion,
-      item.professionClass,
-      item.itemClass,
-      item.itemSubClass,
-      item.quality,
-    ];
+    const fieldsToTag = [item.expansion, item.professionClass, item.itemClass, item.itemSubClass, item.quality];
 
     fieldsToTag.forEach((field) => {
       if (field) tagsSet.add(field.toLowerCase());
@@ -1230,10 +1158,7 @@ export class XvaService implements OnApplicationBootstrap {
   /**
    * Helper method to add an asset class to an item
    */
-  private async addAssetClassToItem(
-    itemId: number,
-    assetClass: VALUATION_TYPE,
-  ): Promise<void> {
+  private async addAssetClassToItem(itemId: number, assetClass: VALUATION_TYPE): Promise<void> {
     const item = await this.itemsRepository.findOne({ where: { id: itemId } });
 
     if (!item) {
@@ -1243,10 +1168,7 @@ export class XvaService implements OnApplicationBootstrap {
     const currentAssetClasses = item.assetClass || [];
 
     if (!currentAssetClasses.includes(assetClass)) {
-      await this.itemsRepository.update(
-        { id: itemId },
-        { assetClass: [...currentAssetClasses, assetClass] },
-      );
+      await this.itemsRepository.update({ id: itemId }, { assetClass: [...currentAssetClasses, assetClass] });
     }
   }
 }
