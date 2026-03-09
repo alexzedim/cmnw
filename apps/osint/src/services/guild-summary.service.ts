@@ -18,6 +18,7 @@ import {
   TRACKED_ERROR_STATUS_CODES,
   ApiKeyErrorContext,
   KeyErrorTracker,
+  AdaptiveRateLimiter,
 } from '@app/resources';
 import { KeysEntity } from '@app/pg';
 import { GUILD_SUMMARY_KEYS } from '@app/resources';
@@ -29,12 +30,23 @@ export class GuildSummaryService {
   });
 
   private readonly keyErrorTracker: KeyErrorTracker;
+  private readonly rateLimiter: AdaptiveRateLimiter;
 
   constructor(
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
   ) {
     this.keyErrorTracker = new KeyErrorTracker(keysRepository);
+    this.rateLimiter = new AdaptiveRateLimiter(
+      {
+        initialDelayMs: 100,
+        backoffMultiplier: 1.5,
+        recoveryDivisor: 1.1,
+        successThresholdForRecovery: 5,
+        enableJitter: true,
+      },
+      this.logger,
+    );
   }
 
   async getSummary(
@@ -45,10 +57,13 @@ export class GuildSummaryService {
     const summary: Partial<IGuildSummary> = {};
 
     try {
+      await this.rateLimiter.wait();
       const response: Record<string, any> = await BNet.query(
         `/data/wow/guild/${realmSlug}/${guildNameSlug}`,
         apiConstParams(API_HEADERS_ENUM.PROFILE),
       );
+
+      this.rateLimiter.handleResponse({ status: 200 });
 
       if (!isGuildSummary(response)) {
         return summary;
@@ -118,6 +133,8 @@ export class GuildSummaryService {
     const statusCode = isAxiosError(errorOrException)
       ? errorOrException.response?.status
       : get(errorOrException, 'status', 400);
+
+    this.rateLimiter.handleResponse({ status: statusCode || 400 });
 
     summary.status = setGuildStatusString(
       '-----',

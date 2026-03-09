@@ -32,6 +32,7 @@ import {
   ApiKeyErrorContext,
   KeyErrorTracker,
   ICharacterMessageBase,
+  AdaptiveRateLimiter,
 } from '@app/resources';
 import { CharactersEntity, GuildsEntity, KeysEntity, RealmsEntity } from '@app/pg';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -44,6 +45,7 @@ export class GuildRosterService {
   });
 
   private readonly keyErrorTracker: KeyErrorTracker;
+  private readonly rateLimiter: AdaptiveRateLimiter;
 
   constructor(
     @InjectQueue(charactersQueue.name)
@@ -56,6 +58,16 @@ export class GuildRosterService {
     private readonly charactersRepository: Repository<CharactersEntity>,
   ) {
     this.keyErrorTracker = new KeyErrorTracker(keysRepository);
+    this.rateLimiter = new AdaptiveRateLimiter(
+      {
+        initialDelayMs: 100,
+        backoffMultiplier: 1.5,
+        recoveryDivisor: 1.1,
+        successThresholdForRecovery: 5,
+        enableJitter: true,
+      },
+      this.logger,
+    );
   }
 
   async fetchRoster(
@@ -66,10 +78,13 @@ export class GuildRosterService {
 
     try {
       const guildNameSlug = toSlug(guildEntity.name);
+      await this.rateLimiter.wait();
       const response = await BNet.query<Readonly<IRGuildRoster>>(
         `/data/wow/guild/${guildEntity.realm}/${guildNameSlug}/roster`,
         apiConstParams(API_HEADERS_ENUM.PROFILE),
       );
+
+      this.rateLimiter.handleResponse({ status: 200 });
 
       if (!isGuildRoster(response)) {
         return roster;
@@ -289,6 +304,8 @@ export class GuildRosterService {
     const statusCode = isAxiosError(errorOrException)
       ? errorOrException.response?.status
       : get(errorOrException, 'status', 400);
+
+    this.rateLimiter.handleResponse({ status: statusCode || 400 });
 
     roster.statusCode = statusCode || 400;
     roster.status = setGuildStatusString('-----', 'ROSTER', GuildStatusState.ERROR);

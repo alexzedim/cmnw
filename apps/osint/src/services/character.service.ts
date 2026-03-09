@@ -31,6 +31,7 @@ import {
   TRACKED_ERROR_STATUS_CODES,
   ApiKeyErrorContext,
   KeyErrorTracker,
+  AdaptiveRateLimiter,
 } from '@app/resources';
 import { KeysEntity } from '@app/pg';
 
@@ -41,12 +42,23 @@ export class CharacterService {
   });
 
   private readonly keyErrorTracker: KeyErrorTracker;
+  private readonly rateLimiter: AdaptiveRateLimiter;
 
   constructor(
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
   ) {
     this.keyErrorTracker = new KeyErrorTracker(keysRepository);
+    this.rateLimiter = new AdaptiveRateLimiter(
+      {
+        initialDelayMs: 100,
+        backoffMultiplier: 1.5,
+        recoveryDivisor: 1.1,
+        successThresholdForRecovery: 5,
+        enableJitter: true,
+      },
+      this.logger,
+    );
   }
 
   async getStatus(
@@ -57,10 +69,13 @@ export class CharacterService {
     const characterStatus: Partial<CharacterStatus> = {};
 
     try {
+      await this.rateLimiter.wait();
       const statusResponse = (await BNet.query<IBlizzardStatusResponse>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/status`,
         apiConstParams(API_HEADERS_ENUM.PROFILE),
       )) as IBlizzardStatusResponse;
+
+      this.rateLimiter.handleResponse({ status: 200 });
 
       characterStatus.isValid = false;
 
@@ -95,6 +110,8 @@ export class CharacterService {
       const statusCode = isAxiosError(errorOrException)
         ? errorOrException.response?.status
         : errorOrException.status;
+
+      this.rateLimiter.handleResponse({ status: statusCode || 400 });
 
       // Track API key errors (403, 429)
       if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
@@ -134,10 +151,13 @@ export class CharacterService {
     const summary: Partial<CharacterSummary> = {};
 
     try {
+      await this.rateLimiter.wait();
       const response = await BNet.query<BlizzardApiCharacterSummary>(
         `/profile/wow/character/${realmSlug}/${nameSlug}`,
         apiConstParams(API_HEADERS_ENUM.PROFILE),
       );
+
+      this.rateLimiter.handleResponse({ status: 200 });
 
       const isValidSummary = isCharacterSummary(response);
       if (!isValidSummary) {
@@ -190,6 +210,8 @@ export class CharacterService {
         ? errorOrException.response?.status
         : errorOrException.status;
 
+      this.rateLimiter.handleResponse({ status: statusCode || 400 });
+
       // Track API key errors (403, 429)
       if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
         const accessToken = BNet.accessTokenObject.access_token;
@@ -223,10 +245,13 @@ export class CharacterService {
     const media: Partial<Media> = {};
 
     try {
+      await this.rateLimiter.wait();
       const response = await BNet.query<BlizzardApiCharacterMedia>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/character-media`,
         apiConstParams(API_HEADERS_ENUM.PROFILE),
       );
+
+      this.rateLimiter.handleResponse({ status: 200 });
 
       const isValidMedia = isCharacterMedia(response);
       if (!isValidMedia) return media;
@@ -257,6 +282,8 @@ export class CharacterService {
       const statusCode = isAxiosError(errorOrException)
         ? errorOrException.response?.status
         : get(errorOrException, 'status', 400);
+
+      this.rateLimiter.handleResponse({ status: statusCode || 400 });
 
       // Track API key errors (403, 429)
       if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
@@ -291,10 +318,13 @@ export class CharacterService {
     const mounts: Partial<BlizzardApiMountsCollection> = {};
 
     try {
+      await this.rateLimiter.wait();
       const response = await BNet.query<BlizzardApiMountsCollection>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/collections/mounts`,
         apiConstParams(API_HEADERS_ENUM.PROFILE),
       );
+
+      this.rateLimiter.handleResponse({ status: 200 });
 
       const isValidCollection = isMountCollection(response);
       if (!isValidCollection) {
@@ -325,6 +355,8 @@ export class CharacterService {
       const statusCode = isAxiosError(errorOrException)
         ? errorOrException.response?.status
         : get(errorOrException, 'status', 400);
+
+      this.rateLimiter.handleResponse({ status: statusCode || 400 });
 
       // Track API key errors (403, 429)
       if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
@@ -359,10 +391,13 @@ export class CharacterService {
     const pets: Partial<BlizzardApiPetsCollection> = {};
 
     try {
+      await this.rateLimiter.wait();
       const response = await BNet.query<BlizzardApiPetsCollection>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/collections/pets`,
         apiConstParams(API_HEADERS_ENUM.PROFILE),
       );
+
+      this.rateLimiter.handleResponse({ status: 200 });
 
       const isValidCollection = isPetsCollection(response);
       if (!isValidCollection) {
@@ -393,6 +428,8 @@ export class CharacterService {
       const statusCode = isAxiosError(errorOrException)
         ? errorOrException.response?.status
         : get(errorOrException, 'status', 400);
+
+      this.rateLimiter.handleResponse({ status: statusCode || 400 });
 
       // Track API key errors (403, 429)
       if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
@@ -427,10 +464,13 @@ export class CharacterService {
     const professions: Partial<BlizzardApiCharacterProfessions> = {};
 
     try {
+      await this.rateLimiter.wait();
       const response = await BNet.query<BlizzardApiCharacterProfessions>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/professions`,
         apiConstParams(API_HEADERS_ENUM.PROFILE),
       );
+
+      this.rateLimiter.handleResponse({ status: 200 });
 
       const isValidProfessions = isCharacterProfessions(response);
       if (!isValidProfessions) {
@@ -461,6 +501,8 @@ export class CharacterService {
       const statusCode = isAxiosError(errorOrException)
         ? errorOrException.response?.status
         : get(errorOrException, 'status', 400);
+
+      this.rateLimiter.handleResponse({ status: statusCode || 400 });
 
       // Track API key errors (403, 429)
       if (statusCode && TRACKED_ERROR_STATUS_CODES.has(statusCode)) {
