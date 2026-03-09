@@ -471,7 +471,8 @@ export function isGuildOperationPendingInString(
  * @returns Array of operation names that succeeded
  *
  * @example
- * getSuccessfulGuildOperationsInString('SRMLG') // ['SUMMARY', 'ROSTER', 'MEMBERS', 'LOGS', 'MASTER']
+ * // Returns ['SUMMARY', 'ROSTER', 'MEMBERS', 'LOGS', 'MASTER']
+ * getSuccessfulGuildOperationsInString('SRMLG')
  */
 export function getSuccessfulGuildOperationsInString(
   status: string,

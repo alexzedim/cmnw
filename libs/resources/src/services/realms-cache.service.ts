@@ -89,7 +89,6 @@ export class RealmsCacheService implements OnModuleInit {
           realmCount: realms.length,
           duration,
           estimatedMemoryKB: memoryUsageKB,
-          message: `Loaded ${realms.length} realms into memory cache in ${duration}ms (~${memoryUsageKB}KB)`,
         });
       } catch (errorOrException) {
         this.logger.error({ logTag, errorOrException });

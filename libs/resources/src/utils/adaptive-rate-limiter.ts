@@ -261,9 +261,9 @@ export class AdaptiveRateLimiter {
         isRateLimited: false,
         detectionSource: 'none',
       };
-    } catch (error) {
+    } catch (_error) {
       this.logger?.warn(
-        `${chalk.yellow('⚠')} Failed to detect rate limit: ${chalk.dim((error as Error).message)}`,
+        `${chalk.yellow('⚠')} Failed to detect rate limit: ${chalk.dim((_error as Error).message)}`,
       );
       return {
         isRateLimited: false,
@@ -524,9 +524,9 @@ export class AdaptiveRateLimiter {
       }
 
       return null;
-    } catch (error) {
+    } catch (_error) {
       this.logger?.warn(
-        `${chalk.yellow('⚠')} Failed to parse Retry-After header: ${chalk.dim((error as Error).message)}`,
+        `${chalk.yellow('⚠')} Failed to parse Retry-After header: ${chalk.dim((_error as Error).message)}`,
       );
       return null;
     }
@@ -541,7 +541,7 @@ export class AdaptiveRateLimiter {
     try {
       const num = typeof value === 'number' ? value : parseInt(String(value), 10);
       return isNaN(num) ? null : num;
-    } catch (error) {
+    } catch (_error) {
       return null;
     }
   }
