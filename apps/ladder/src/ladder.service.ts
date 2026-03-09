@@ -16,6 +16,7 @@ import { from, mergeMap, toArray, catchError, of, lastValueFrom } from 'rxjs';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
+  BlizzardApiService,
   BRACKETS,
   CharacterMessageDto,
   charactersQueue,
@@ -32,6 +33,7 @@ import {
   MythicLeaderboardGroup,
   transformFaction,
   AdaptiveRateLimiter,
+  WCL_RATE_LIMITER_CONFIG,
   TIME_MS,
   REALM_ENTITY_ANY,
   M_PLUS_REALM_DUNGEON_PREFIX,
@@ -47,8 +49,6 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 
 // Constants for M+ indexing
-/** Initial delay for rate limiter in milliseconds (2 seconds) */
-const M_PLUS_BASE_DELAY_MS = TIME_MS.FIVE_MINUTES / 150; // ~2 seconds
 /** Maximum delay for rate limiter in milliseconds (30 seconds) */
 const M_PLUS_PARALLEL_REQUESTS = 3; // Number of parallel mergeMap requests
 
@@ -68,16 +68,10 @@ export class LadderService implements OnApplicationBootstrap {
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectQueue(charactersQueue.name)
     private readonly queueCharacters: Queue<ICharacterMessageBase>,
+    private readonly blizzardApiService: BlizzardApiService,
   ) {
     this.rateLimiter = new AdaptiveRateLimiter(
-      {
-        initialDelayMs: M_PLUS_BASE_DELAY_MS,
-        backoffMultiplier: 1.5,
-        recoveryDivisor: 1.1,
-        successThresholdForRecovery: 5,
-        enableJitter: true,
-        jitterRangeMs: 50,
-      },
+      WCL_RATE_LIMITER_CONFIG,
       this.logger,
     );
   }
@@ -146,7 +140,10 @@ export class LadderService implements OnApplicationBootstrap {
 
           await this.rateLimiter.wait();
 
-          const pvpLeaderboard = await this.fetchPvPLeaderboard(season.id, bracket);
+          const pvpLeaderboard = await this.fetchPvPLeaderboard(
+            season.id,
+            bracket,
+          );
 
           if (pvpLeaderboard.entries.length === 0) {
             // Mark as processed even if no entries found
@@ -192,7 +189,10 @@ export class LadderService implements OnApplicationBootstrap {
   /**
    * Build Redis cache key for PvP leaderboard
    */
-  private buildPvPLeaderboardCacheKey(seasonId: number, bracket: string): string {
+  private buildPvPLeaderboardCacheKey(
+    seasonId: number,
+    bracket: string,
+  ): string {
     return `pvp:leaderboard:${seasonId}:${bracket}`;
   }
 
@@ -331,7 +331,9 @@ export class LadderService implements OnApplicationBootstrap {
   }
 
   @Cron(CronExpression.EVERY_WEEKEND)
-  async indexMythicPlusLadder(clearance: string = GLOBAL_OSINT_KEY): Promise<void> {
+  async indexMythicPlusLadder(
+    clearance: string = GLOBAL_OSINT_KEY,
+  ): Promise<void> {
     const logTag = this.indexMythicPlusLadder.name;
     try {
       const keys = await getKeys(this.keysRepository, clearance, true);
@@ -371,11 +373,11 @@ export class LadderService implements OnApplicationBootstrap {
    * Initialize Blizzard API client with credentials
    */
   private initializeBlizzAPI(key: KeysEntity): void {
-    this.BNet = new BlizzAPI({
-      region: 'eu',
+    this.BNet = this.blizzardApiService.createClient({
       clientId: key.client,
       clientSecret: key.secret,
       accessToken: key.token,
+      region: 'eu',
     });
   }
 
@@ -586,7 +588,8 @@ export class LadderService implements OnApplicationBootstrap {
       return { success: true };
     } catch (error) {
       // Check if this is a 404 error (leaderboard not found for this realm-dungeon combination)
-      const is404Error = error instanceof Error && error.message.includes('404');
+      const is404Error =
+        error instanceof Error && error.message.includes('404');
 
       if (is404Error) {
         // Mark as processed even if not found, and continue with other requests
@@ -659,7 +662,10 @@ export class LadderService implements OnApplicationBootstrap {
     connectedRealmId: number,
     dungeonId: number,
   ): Promise<void> {
-    const cacheKey = this.buildRealmDungeonCacheKey(connectedRealmId, dungeonId);
+    const cacheKey = this.buildRealmDungeonCacheKey(
+      connectedRealmId,
+      dungeonId,
+    );
     await this.redisService.setex(
       cacheKey,
       TIME_MS.ONE_WEEK / 1000, // 7 days in seconds
@@ -700,7 +706,10 @@ export class LadderService implements OnApplicationBootstrap {
     logTag: string,
   ): Promise<void> {
     for (const group of leadingGroups) {
-      const characterJobMembers = this.mapGroupMembersToCharacterJobs(group, key);
+      const characterJobMembers = this.mapGroupMembersToCharacterJobs(
+        group,
+        key,
+      );
 
       if (characterJobMembers.length === 0) {
         continue;
