@@ -78,7 +78,7 @@ export class RealmsWorker extends WorkerHost {
         clientId: message.clientId,
         clientSecret: message.clientSecret,
         accessToken: message.accessToken,
-        region: message.region || 'eu',
+        region: message.region,
       });
 
       await job.updateProgress(10);
