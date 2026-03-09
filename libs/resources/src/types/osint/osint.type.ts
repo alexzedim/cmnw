@@ -63,9 +63,9 @@ export type CharacterHashFieldType = 'a' | 'b';
 /** -----------------------------------------------------------------------------
  * Blizzard API professions
  * ----------------------------------------------------------------------------- */
-export interface IBlizzardNameField extends Partial<Locales> {}
+export type IBlizzardNameField = Partial<Locales>;
 
-export interface IBlizzardProfession extends ISelfWithNameAndId {}
+export type IBlizzardProfession = ISelfWithNameAndId;
 
 export interface ProfessionIndex {
   _links: Record<string, ISelfKeyHref>;
@@ -89,7 +89,7 @@ export interface ProfessionDetail {
   skill_tiers: IBlizzardSkillTier[];
 }
 
-export interface IBlizzardRecipe extends ISelfWithId {}
+export type IBlizzardRecipe = ISelfWithId;
 
 export interface IBlizzardCategory extends ISelfWithNameAndId {
   recipes: IBlizzardRecipe[];

@@ -78,7 +78,8 @@ export class KeyErrorTracker {
       return result;
     } catch (error) {
       console.error(
-        `${chalk.red('✗')} Failed to track API key error (${statusCode}): ${error instanceof Error ? error.message : String(error)}`,
+        `${chalk.red('✗')} Failed to track API key error (${statusCode}):`,
+        error instanceof Error ? error.message : String(error),
       );
       return null;
     }

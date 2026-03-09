@@ -19,7 +19,7 @@ export interface MythicKeystoneDungeonResponse {
  * Mythic Keystone Season Response
  * GET /data/wow/mythic-keystone/season/index
  */
-export interface MythicKeystoneSeason extends ISelfWithNameAndId {}
+export type MythicKeystoneSeason = ISelfWithNameAndId;
 
 export interface MythicKeystoneSeasonResponse {
   _links: Record<string, ISelfKeyHref>;
@@ -32,7 +32,7 @@ export interface MythicKeystoneSeasonResponse {
  * Mythic Keystone Season Detail Response
  * GET /data/wow/mythic-keystone/season/{seasonId}
  */
-export interface MythicKeystoneSeasonPeriod extends ISelfWithId {}
+export type MythicKeystoneSeasonPeriod = ISelfWithId;
 
 export interface MythicKeystoneSeasonDetail {
   _links: Record<string, ISelfKeyHref>;
@@ -119,7 +119,7 @@ export interface ILeaderboardRequest {
  * PvP Season Index Response
  * GET /data/wow/pvp-season/index
  */
-export interface PvPSeason extends ISelfWithId {}
+export type PvPSeason = ISelfWithId;
 
 export interface PvPSeasonIndexResponse {
   _links: Record<string, ISelfKeyHref>;
@@ -159,7 +159,7 @@ export interface PvPLeaderboardSeasonMatchStatistics {
   lost: number;
 }
 
-export interface PvPLeaderboardTier extends ISelfWithId {}
+export type PvPLeaderboardTier = ISelfWithId;
 
 export interface PvPLeaderboardEntry {
   character: PvPLeaderboardCharacter;

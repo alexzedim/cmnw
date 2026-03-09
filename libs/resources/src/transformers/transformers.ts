@@ -13,7 +13,8 @@ const KEBAB_REGEX = /\p{Lu}/gu;
  * kebabCase("HelloWorld", false); // "hello-world"
  *
  * @param str - The string to transform
- * @param keepLeadingDash - Whether to keep the leading dash in case the string starts with an uppercase letter (default: true)
+ * @param keepLeadingDash - Whether to keep the leading dash if string starts
+ *   with an uppercase letter (default: true)
  * @returns The kebab-cased string
  */
 export const kebabCase = (str: string, keepLeadingDash = false): string => {
@@ -213,7 +214,9 @@ export const isFieldNamed = <T extends object>(value: T): boolean => {
  *
  * @param value - The object containing connected realm information
  * @returns The extracted realm ID or null if not found
- * @example transformConnectedRealmId({ connected_realm: { href: 'api/realm/1234' } }) // returns 1234
+ * @example
+ * // returns 1234
+ * transformConnectedRealmId({ connected_realm: { href: 'api/realm/1234' } })
  */
 export const transformConnectedRealmId = <T extends object>(
   value: T,
@@ -352,7 +355,10 @@ export function transformFaction(faction: unknown): FACTION | null {
     return null;
   }
 
-  const factionObject = faction as { type?: string | null; name?: string | null };
+  const factionObject = faction as {
+    type?: string | null;
+    name?: string | null;
+  };
 
   const hasFactionTypeWithoutName =
     factionObject.type && factionObject.name === null;
