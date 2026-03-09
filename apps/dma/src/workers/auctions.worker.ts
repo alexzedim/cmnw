@@ -10,11 +10,13 @@ import { ItemsEntity, MarketEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import {
-  API_HEADERS_ENUM,
   AdaptiveRateLimiter,
+  API_HEADERS_ENUM,
   apiConstParams,
   auctionsQueue,
   BlizzardApiAuctions,
+  BlizzardApiService,
+  DEFAULT_RATE_LIMITER_CONFIG,
   DMA_TIMEOUT_TOLERANCE,
   IAuctionsOrder,
   ICommodityOrder,
@@ -78,16 +80,11 @@ export class AuctionsWorker extends WorkerHost {
     private readonly _itemsRepository: Repository<ItemsEntity>,
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
+    private readonly blizzardApiService: BlizzardApiService,
   ) {
     super();
     this.rateLimiter = new AdaptiveRateLimiter(
-      {
-        initialDelayMs: 100,
-        backoffMultiplier: 1.5,
-        recoveryDivisor: 1.1,
-        successThresholdForRecovery: 5,
-        enableJitter: true,
-      },
+      DEFAULT_RATE_LIMITER_CONFIG,
       this.logger,
     );
   }
@@ -105,11 +102,11 @@ export class AuctionsWorker extends WorkerHost {
         data: message,
       });
 
-      this.BNet = new BlizzAPI({
-        region: message.region,
+      this.BNet = this.blizzardApiService.createClient({
         clientId: message.clientId,
         clientSecret: message.clientSecret,
         accessToken: message.accessToken,
+        region: message.region || 'eu',
       });
 
       const isCommodity = message.connectedRealmId === REALM_ENTITY_ANY.id;
@@ -169,7 +166,9 @@ export class AuctionsWorker extends WorkerHost {
         ? REALM_ENTITY_ANY.id
         : message.connectedRealmId;
 
-      const timestamp = DateTime.fromRFC2822(marketResponse.lastModified).toMillis();
+      const timestamp = DateTime.fromRFC2822(
+        marketResponse.lastModified,
+      ).toMillis();
 
       const { auctions } = marketResponse;
 
@@ -393,7 +392,8 @@ export class AuctionsWorker extends WorkerHost {
 
         const isPetOrder = marketEntity.itemId === 82800;
 
-        const bid = 'bid' in order ? toGold((order as IAuctionsOrder).bid) : null;
+        const bid =
+          'bid' in order ? toGold((order as IAuctionsOrder).bid) : null;
 
         const price = transformPrice(order);
         if (!price) {
@@ -432,7 +432,9 @@ export class AuctionsWorker extends WorkerHost {
   }
 
   private logProgress(): void {
-    this.logger.log(formatProgressReport('AuctionsWorker', this.stats, 'realms'));
+    this.logger.log(
+      formatProgressReport('AuctionsWorker', this.stats, 'realms'),
+    );
   }
 
   public logFinalSummary(): void {
