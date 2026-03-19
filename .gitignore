@@ -50,6 +50,7 @@ WARP.md
 
 # Markdown files (except README.md and docs/)
 *.md
+!AGENTS.md
 !README.md
 !/docs/**/*.md
 
