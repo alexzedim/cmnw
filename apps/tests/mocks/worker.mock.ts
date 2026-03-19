@@ -336,10 +336,7 @@ export const createGuildOriginalRosterMap = (): Map<number, CharactersGuildsMemb
   return map;
 };
 
-export const createGuildUpdateRosterMap = (): Map<
-  number,
-  CharactersGuildsMembersEntity
-> => {
+export const createGuildUpdateRosterMap = (): Map<number, CharactersGuildsMembersEntity> => {
   const map = new Map<number, CharactersGuildsMembersEntity>();
   guildUpdated.members.forEach((member) => {
     map.set(member.characterId, member);

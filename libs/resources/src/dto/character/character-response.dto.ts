@@ -238,8 +238,7 @@ export class CharacterResponseDto extends CharactersEntity {
     type: 'string',
     nullable: true,
     description: 'Avatar image URL',
-    example:
-      'https://render.worldofwarcraft.com/us/character/area-52/1/12345678/avatar.jpg',
+    example: 'https://render.worldofwarcraft.com/us/character/area-52/1/12345678/avatar.jpg',
   })
   readonly avatarImage?: string;
 

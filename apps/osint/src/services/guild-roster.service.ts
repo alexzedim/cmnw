@@ -30,7 +30,7 @@ import {
   setGuildStatusString,
   ICharacterMessageBase,
 } from '@app/resources';
-import { CharactersEntity, GuildsEntity, KeysEntity, RealmsEntity } from '@app/pg';
+import { CharactersEntity, GuildsEntity, RealmsEntity } from '@app/pg';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 
