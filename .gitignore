@@ -66,3 +66,6 @@ WARP.md
 !/files/
 !pnpm.ps1
 !pnpm.cmd
+
+# IDE - Zed
+.zed/
