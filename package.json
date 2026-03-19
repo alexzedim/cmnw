@@ -17,7 +17,7 @@
     "url": "https://github.com/alexzedim/cmnw.git"
   },
   "languageName": "node",
-  "packageManager": "pnpm@10.28.2",
+  "packageManager": "pnpm@10.32.1",
   "engines": {
     "node": ">=24.0.0",
     "pnpm": ">=10.0.0"

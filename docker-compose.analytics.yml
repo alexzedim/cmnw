@@ -51,8 +51,8 @@ services:
       - '9187:9187'
     environment:
       DATA_SOURCE_NAME: ${DATA_SOURCE_NAME}
-      PG_EXPORTER_WEB_LISTEN_ADDRESS: ":9187"
-      PG_EXPORTER_WEB_TELEMETRY_PATH: "/metrics"
+      PG_EXPORTER_WEB_LISTEN_ADDRESS: ':9187'
+      PG_EXPORTER_WEB_TELEMETRY_PATH: '/metrics'
       PG_EXPORTER_DISABLE_SETTINGS_METRICS: false
     networks:
       - loki
@@ -88,11 +88,53 @@ services:
       GRAFANA_SERVICE_ACCOUNT_TOKEN: ${GRAFANA_SERVICE_ACCOUNT_TOKEN}
     ports:
       - '8001:8001'
-    command: ["--transport", "sse", "--address", "0.0.0.0:8001"]
+    command: ['--transport', 'sse', '--address', '0.0.0.0:8001']
     depends_on:
       - grafana
     networks:
       - loki
+
+  mcp-context7:
+    container_name: mcp-context7
+    image: context7/mcp-server:latest
+    restart: always
+    environment:
+      CONTEXT7_MCP_DEV_API_KEY: ${CONTEXT7_MCP_DEV_API_KEY}
+      CONTEXT7_MCP_SERVER_URL: ${CONTEXT7_MCP_SERVER_URL}
+    ports:
+      - '8002:8002'
+    command: ['--transport', 'sse', '--address', '0.0.0.0:8002']
+    networks:
+      - loki
+
+  mcp-github:
+    container_name: mcp-github
+    image: modelcontextprotocol/server-github:latest
+    restart: always
+    environment:
+      GITHUB_PERSONAL_ACCESS_TOKEN: ${GITHUB_PERSONAL_ACCESS_TOKEN}
+      GITHUB_SEARCH_REPOSITORY_ENABLED: 'true'
+    ports:
+      - '8003:8003'
+    command: ['--transport', 'sse', '--address', '0.0.0.0:8003']
+    networks:
+      - loki
+
+  mcp-postgres:
+    container_name: mcp-postgres
+    image: ajx/mcp-postgres:latest
+    restart: always
+    environment:
+      POSTGRES_CONNECTION_STRING: ${POSTGRES_CONNECTION_STRING}
+      POSTGRES_MAX_CONNECTIONS: '10'
+    ports:
+      - '8004:8004'
+    command: ['--transport', 'sse', '--address', '0.0.0.0:8004']
+    depends_on:
+      - postgres
+    networks:
+      - loki
+      - default
 
 networks:
   loki:
@@ -104,7 +146,6 @@ networks:
 volumes:
   grafana:
   prometheus_data:
-
 
 configs:
   prometheus_config:
