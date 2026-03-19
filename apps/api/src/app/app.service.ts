@@ -3,19 +3,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike } from 'typeorm';
-import {
-  AnalyticsEntity,
-  CharactersEntity,
-  GuildsEntity,
-  ItemsEntity,
-  MarketEntity,
-} from '@app/pg';
-import {
-  AnalyticsMetricSnapshotDto,
-  AnalyticsMetricType,
-  AppHealthPayload,
-  SearchQueryDto,
-} from '@app/resources';
+import { AnalyticsEntity, CharactersEntity, GuildsEntity, ItemsEntity, MarketEntity } from '@app/pg';
+import { AnalyticsMetricSnapshotDto, AnalyticsMetricType, AppHealthPayload, SearchQueryDto } from '@app/resources';
 
 @Injectable()
 export class AppService {
@@ -78,8 +67,7 @@ export class AppService {
 
       const searchPattern = `${input.searchQuery}%`;
       const hashTypeChar = input.searchQuery.charAt(0).toLowerCase();
-      const isHashQuery =
-        /^[ab]$/.test(hashTypeChar) && input.searchQuery.length > 1;
+      const isHashQuery = /^[ab]$/.test(hashTypeChar) && input.searchQuery.length > 1;
       const hashValue = isHashQuery ? input.searchQuery.slice(1) : null;
       const isNumericQuery = /^\d+$/.test(input.searchQuery);
       const itemIdQuery = isNumericQuery ? parseInt(input.searchQuery, 10) : null;
@@ -112,12 +100,7 @@ export class AppService {
           ? this.charactersRepository
               .createQueryBuilder('c')
               .select('COUNT(*) as count')
-              .where(
-                hashTypeChar === 'a'
-                  ? 'c.hashA = :hashValue'
-                  : 'c.hashB = :hashValue',
-                { hashValue },
-              )
+              .where(hashTypeChar === 'a' ? 'c.hashA = :hashValue' : 'c.hashB = :hashValue', { hashValue })
               .getRawOne()
           : Promise.resolve({ count: 0 }),
       ]);
@@ -150,21 +133,13 @@ export class AppService {
         message: `Error performing universal search: ${input.searchQuery}`,
       });
 
-      throw new ServiceUnavailableException(
-        `Error performing search for ${input.searchQuery}`,
-      );
+      throw new ServiceUnavailableException(`Error performing search for ${input.searchQuery}`);
     }
   }
 
-  async getLatestMetricSnapshot(
-    snapshotQuery: AnalyticsMetricSnapshotDto,
-  ): Promise<AnalyticsEntity | null> {
+  async getLatestMetricSnapshot(snapshotQuery: AnalyticsMetricSnapshotDto): Promise<AnalyticsEntity | null> {
     const logTag = 'getLatestMetricSnapshot';
-    const {
-      category,
-      metricType = AnalyticsMetricType.TOTAL,
-      realmId,
-    } = snapshotQuery;
+    const { category, metricType = AnalyticsMetricType.TOTAL, realmId } = snapshotQuery;
 
     try {
       const query = this.analyticsRepository
@@ -194,9 +169,7 @@ export class AppService {
         errorOrException,
       });
 
-      throw new ServiceUnavailableException(
-        'Unable to load analytics metric snapshot',
-      );
+      throw new ServiceUnavailableException('Unable to load analytics metric snapshot');
     }
   }
 
