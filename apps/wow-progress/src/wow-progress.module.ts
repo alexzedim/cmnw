@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { getRedisConnection, postgresConfig, redisConfig, s3Config } from '@app/configuration';
+import { REDIS_CONNECTION, postgresConfig, redisConfig, s3Config } from '@app/configuration';
 import { WowProgressLfgService, WowProgressRanksService } from './services';
 import { ScheduleModule } from '@nestjs/schedule';
 import { HttpModule } from '@nestjs/axios';
@@ -22,7 +22,7 @@ import { BullModule } from '@nestjs/bullmq';
     TypeOrmModule.forRoot(postgresConfig),
     TypeOrmModule.forFeature([KeysEntity, RealmsEntity, CharactersProfileEntity]),
     BullModule.forRoot({
-      connection: getRedisConnection(),
+      connection: REDIS_CONNECTION,
     }),
     BullModule.registerQueue({
       name: guildsQueue.name,

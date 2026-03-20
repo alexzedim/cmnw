@@ -13,8 +13,8 @@ import {
   WorkerLogStatus,
   WorkerStats,
 } from '@app/logger';
+import { BlizzardApiService } from '@app/resources/services';
 import {
-  BlizzardApiService,
   isEuRegion,
   toSlug,
   hasAnyGuildErrorInString,

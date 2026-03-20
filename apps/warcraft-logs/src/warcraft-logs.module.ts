@@ -6,7 +6,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CharactersRaidLogsEntity, KeysEntity, RealmsEntity } from '@app/pg';
 import { RedisModule } from '@nestjs-modules/ioredis';
-import { getRedisConnection, postgresConfig, redisConfig } from '@app/configuration';
+import { REDIS_CONNECTION, postgresConfig, redisConfig } from '@app/configuration';
 import { BullModule } from '@nestjs/bullmq';
 import { charactersQueue, guildsQueue, profileQueue } from '@app/resources';
 
@@ -25,7 +25,7 @@ import { charactersQueue, guildsQueue, profileQueue } from '@app/resources';
     TypeOrmModule.forRoot(postgresConfig),
     TypeOrmModule.forFeature([KeysEntity, RealmsEntity, CharactersRaidLogsEntity]),
     BullModule.forRoot({
-      connection: getRedisConnection(),
+      connection: REDIS_CONNECTION,
     }),
     BullModule.registerQueue({
       name: guildsQueue.name,

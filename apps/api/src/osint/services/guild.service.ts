@@ -30,7 +30,7 @@ import {
 } from '@app/resources';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, QueueEvents } from 'bullmq';
-import { getRedisConnection } from '@app/configuration';
+import { REDIS_CONNECTION } from '@app/configuration';
 
 @Injectable()
 export class GuildOsintService {
@@ -38,7 +38,9 @@ export class GuildOsintService {
     timestamp: true,
   });
   private readonly clearance: string = GLOBAL_OSINT_KEY;
-  private readonly queueEvents: QueueEvents;
+  private readonly queueEvents = new QueueEvents(guildsQueue.name, {
+    connection: REDIS_CONNECTION,
+  });
 
   constructor(
     @InjectRepository(KeysEntity)
@@ -55,11 +57,7 @@ export class GuildOsintService {
     private readonly logsRepository: Repository<CharactersGuildsLogsEntity>,
     @InjectQueue(guildsQueue.name)
     private readonly queueGuild: Queue<IGuildMessageBase>,
-  ) {
-    this.queueEvents = new QueueEvents(guildsQueue.name, {
-      connection: getRedisConnection(),
-    });
-  }
+  ) {}
 
   private async requestGuildFromQueue(params: {
     name: string;

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
-import { postgresConfig } from '@app/configuration';
+import { RedisModule } from '@nestjs-modules/ioredis';
+import { postgresConfig, redisConfig } from '@app/configuration';
 import { HttpModule } from '@nestjs/axios';
 import { CharactersWorker, GuildsWorker, ProfileWorker } from './workers';
 import { WorkerStatsListener } from './listeners';
@@ -32,9 +33,9 @@ import {
   ProfessionsEntity,
   RealmsEntity,
 } from '@app/pg';
-import { getRedisConnection } from '@app/configuration';
-import { charactersQueue, guildsQueue, profileQueue } from '@app/resources/queues';
-import { BlizzardApiService } from '@app/resources';
+import { REDIS_CONNECTION } from '@app/configuration';
+import { charactersQueue, guildsQueue, profileQueue } from '@app/resources';
+import { BlizzardApiService } from '@app/resources/services';
 
 @Module({
   imports: [
@@ -55,7 +56,7 @@ import { BlizzardApiService } from '@app/resources';
       ProfessionsEntity,
       RealmsEntity,
     ]),
-    BullModule.forRoot({ connection: getRedisConnection() }),
+    BullModule.forRoot({ connection: REDIS_CONNECTION }),
     BullModule.registerQueue({
       name: charactersQueue.name,
       connection: charactersQueue.connection,
@@ -70,6 +71,14 @@ import { BlizzardApiService } from '@app/resources';
       name: profileQueue.name,
       connection: profileQueue.connection,
       defaultJobOptions: profileQueue.defaultJobOptions,
+    }),
+    RedisModule.forRoot({
+      type: 'single',
+      options: {
+        host: redisConfig.host,
+        port: redisConfig.port,
+        password: redisConfig.password,
+      },
     }),
   ],
   controllers: [],

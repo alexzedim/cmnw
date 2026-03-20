@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { getRedisConnection, postgresConfig } from '@app/configuration';
+import { REDIS_CONNECTION, postgresConfig } from '@app/configuration';
 import { OsintController } from './osint.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
@@ -42,7 +42,7 @@ import { BullModule } from '@nestjs/bullmq';
       CharactersGuildsLogsEntity,
     ]),
     BullModule.forRoot({
-      connection: getRedisConnection(),
+      connection: REDIS_CONNECTION,
     }),
     BullModule.registerQueue({
       name: charactersQueue.name,

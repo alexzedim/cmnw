@@ -4,7 +4,7 @@ import { CharactersService } from './characters.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CharactersEntity, KeysEntity } from '@app/pg';
-import { postgresConfig, redisConfig, s3Config, getRedisConnection } from '@app/configuration';
+import { postgresConfig, redisConfig, s3Config, REDIS_CONNECTION } from '@app/configuration';
 import { S3Module } from '@app/s3';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { charactersQueue } from '@app/resources/queues';
@@ -23,7 +23,7 @@ import { charactersQueue } from '@app/resources/queues';
     }),
     TypeOrmModule.forRoot(postgresConfig),
     TypeOrmModule.forFeature([KeysEntity, CharactersEntity]),
-    BullModule.forRoot({ connection: getRedisConnection() }),
+    BullModule.forRoot({ connection: REDIS_CONNECTION }),
     BullModule.registerQueue({
       name: charactersQueue.name,
       connection: charactersQueue.connection,

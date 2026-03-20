@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { getRedisConnection, redisConfig } from '@app/configuration';
+import { REDIS_CONNECTION, redisConfig } from '@app/configuration';
 import { OsintModule } from './osint/osint.module';
 import { DmaModule } from './dma/dma.module';
 import { QueueModule } from './queue/queue.module';
@@ -14,7 +14,7 @@ import { ExpressAdapter } from '@bull-board/express';
 @Module({
   imports: [
     HttpModule,
-    BullModule.forRoot({ connection: getRedisConnection() }),
+    BullModule.forRoot({ connection: REDIS_CONNECTION }),
     RedisModule.forRoot({
       type: 'single',
       options: {

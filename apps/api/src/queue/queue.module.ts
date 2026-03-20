@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { BullBoardModule } from '@bull-board/nestjs';
 import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
-import { getRedisConnection } from '@app/configuration';
+import { REDIS_CONNECTION } from '@app/configuration';
 import {
   charactersQueue,
   guildsQueue,
@@ -21,7 +21,7 @@ import { queueMetricsProviders } from './queue-metrics.provider';
 
 @Module({
   imports: [
-    BullModule.forRoot({ connection: getRedisConnection() }),
+    BullModule.forRoot({ connection: REDIS_CONNECTION }),
     BullModule.registerQueue({
       name: charactersQueue.name,
       defaultJobOptions: charactersQueue.defaultJobOptions,
