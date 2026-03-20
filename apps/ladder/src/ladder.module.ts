@@ -6,7 +6,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { KeysEntity, RealmsEntity } from '@app/pg';
-import { BlizzardApiService, charactersQueue, guildsQueue } from '@app/resources';
+import { BlizzardApiService } from '@app/resources/services';
+import { charactersQueue, guildsQueue } from '@app/resources';
 import { BullModule } from '@nestjs/bullmq';
 
 @Module({

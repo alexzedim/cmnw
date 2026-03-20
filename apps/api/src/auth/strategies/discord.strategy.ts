@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { Strategy, StrategyOptions, VerifyCallback } from 'passport-discord';
+import { Strategy } from 'discord-strategy';
+import type { VerifyCallback } from 'discord-strategy';
 import { AuthService } from '../auth.service';
 import { DiscordProfile } from '@app/resources';
 
@@ -16,7 +17,7 @@ export class DiscordStrategy extends PassportStrategy(Strategy, 'discord') {
       clientSecret: process.env.DISCORD_CLIENT_SECRET,
       callbackURL: process.env.DISCORD_CALLBACK_URL,
       scope: ['identify', 'email'],
-    } as StrategyOptions);
+    } as any);
   }
 
   async validate(_accessToken: string, _refreshToken: string, profile: any, _done: VerifyCallback): Promise<any> {

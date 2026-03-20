@@ -9,7 +9,6 @@ import { from, lastValueFrom, mergeMap } from 'rxjs';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
-  BlizzardApiService,
   delay,
   FACTION,
   getKeys,
@@ -25,6 +24,7 @@ import {
   OSINT_GUILD_LIMIT,
   RAID_FACTIONS,
 } from '@app/resources';
+import { BlizzardApiService } from '@app/resources/services';
 import { osintConfig } from '@app/configuration';
 import { InjectQueue } from '@nestjs/bullmq';
 

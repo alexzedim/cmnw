@@ -11,7 +11,6 @@ import { from, mergeMap, toArray, catchError, of, lastValueFrom } from 'rxjs';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
-  BlizzardApiService,
   BRACKETS,
   CharacterMessageDto,
   charactersQueue,
@@ -38,6 +37,7 @@ import {
   PvPSeason,
   ICharacterMessageBase,
 } from '@app/resources';
+import { BlizzardApiService } from '@app/resources/services';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 
