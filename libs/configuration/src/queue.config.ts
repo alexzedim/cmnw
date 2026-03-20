@@ -16,12 +16,12 @@ import {
  * All values are sourced from environment variables with sensible defaults
  */
 export const REDIS_CONNECTION: IBullMQConnection = {
-  host: process.env.REDIS_HOST || 'localhost',
+  host: process.env.REDIS_HOST || '128.0.0.255',
   port: parseInt(process.env.REDIS_PORT || '6379', 10),
   password: process.env.REDIS_PASSWORD || undefined,
   db: 1,
   connectTimeout: 5000,
-  maxRetriesPerRequest: 3,
+  maxRetriesPerRequest: null,
   lazyConnect: false,
   keepAlive: 30000,
 };
@@ -193,15 +193,6 @@ export const BULLMQ_QUEUES: Record<string, IQueueConfig> = {
     },
   },
 };
-
-/**
- * Get Redis connection configuration
- *
- * @returns Redis connection configuration object
- */
-export function getRedisConnection(): IBullMQConnection {
-  return REDIS_CONNECTION;
-}
 
 /**
  * Get queue configuration by name

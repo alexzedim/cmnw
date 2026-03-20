@@ -3,7 +3,7 @@
  *
  * Defines BullMQ queue configuration for valuation-related jobs.
  */
-import { getRedisConnection } from '@app/configuration';
+import { REDIS_CONNECTION } from '@app/configuration/queue.config';
 import type { IBullMQQueueOptions } from '@app/resources/types/queue/queue.type';
 
 /**
@@ -12,7 +12,7 @@ import type { IBullMQQueueOptions } from '@app/resources/types/queue/queue.type'
  */
 export const valuationsQueue: IBullMQQueueOptions = {
   name: 'dma.valuations',
-  connection: getRedisConnection(),
+  connection: REDIS_CONNECTION,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
@@ -25,7 +25,7 @@ export const valuationsQueue: IBullMQQueueOptions = {
   },
   workerOptions: {
     queueName: 'dma.valuations',
-    connection: getRedisConnection(),
+    connection: REDIS_CONNECTION,
     concurrency: 10,
     maxStalledCount: 500,
     stalledInterval: 30000,
