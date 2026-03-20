@@ -127,7 +127,8 @@ export class KeysEntity {
 
   // ============ Metadata ============
   @Column({
-    type: 'simple-array',
+    type: 'text',
+    array: true,
     nullable: true,
     default: null,
   })
