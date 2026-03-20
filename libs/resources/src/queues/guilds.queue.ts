@@ -3,7 +3,7 @@
  *
  * Defines BullMQ queue configuration for guild-related jobs.
  */
-import { getRedisConnection } from '@app/configuration';
+import { REDIS_CONNECTION } from '@app/configuration/queue.config';
 import type { IBullMQQueueOptions } from '@app/resources/types/queue/queue.type';
 
 /**
@@ -12,7 +12,7 @@ import type { IBullMQQueueOptions } from '@app/resources/types/queue/queue.type'
  */
 export const guildsQueue: IBullMQQueueOptions = {
   name: 'osint.guilds',
-  connection: getRedisConnection(),
+  connection: REDIS_CONNECTION,
   defaultJobOptions: {
     attempts: 3,
     backoff: {
@@ -25,7 +25,7 @@ export const guildsQueue: IBullMQQueueOptions = {
   },
   workerOptions: {
     queueName: 'osint.guilds',
-    connection: getRedisConnection(),
+    connection: REDIS_CONNECTION,
     concurrency: 5,
     maxStalledCount: 500,
     stalledInterval: 30000,
