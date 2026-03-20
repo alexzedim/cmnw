@@ -5,11 +5,11 @@ import chalk from 'chalk';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { BlizzardApiService } from '@app/resources/services';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
   BlizzardApiResponse,
-  BlizzardApiService,
   IConnectedRealm,
   IRealmMessageBase,
   isFieldNamed,

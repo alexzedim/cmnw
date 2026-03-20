@@ -9,10 +9,10 @@ import { Queue } from 'bullmq';
 import { KeysEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { lastValueFrom, mergeMap, range } from 'rxjs';
+import { BlizzardApiService } from '@app/resources/services';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
-  BlizzardApiService,
   getRandomizedHeaders,
   delay,
   getKeys,
