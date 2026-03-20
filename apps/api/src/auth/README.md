@@ -5,7 +5,7 @@ This module provides OAuth authentication for Discord and Battle.net using Postg
 ## Features
 
 - 🔐 **Discord OAuth** - Authenticate users with Discord accounts
-- ⚔️ **Battle.net OAuth** - Authenticate users with Battle.net accounts  
+- ⚔️ **Battle.net OAuth** - Authenticate users with Battle.net accounts
 - 🗄️ **PostgreSQL Storage** - User data stored in PostgreSQL with TypeORM
 - 🔄 **Account Linking** - Support for linking multiple OAuth providers
 - 📊 **Comprehensive Logging** - Full audit trail of authentication events
@@ -34,7 +34,7 @@ BATTLENET_CALLBACK_URL=http://localhost:3000/auth/battlenet/callback
 - `GET /auth/discord` - Initiates Discord OAuth flow
 - `GET /auth/discord/callback` - Discord OAuth callback (handles response)
 
-### Battle.net Authentication  
+### Battle.net Authentication
 
 - `GET /auth/battlenet` - Initiates Battle.net OAuth flow
 - `GET /auth/battlenet/callback` - Battle.net OAuth callback (handles response)
@@ -82,8 +82,9 @@ interface AuthResponseDto {
    - Battle.net: `http://localhost:3000/auth/battlenet/callback`
 
 3. **Install Required Packages**:
+
    ```bash
-   npm install passport-discord passport-oauth2
+   npm install discord-strategy passport-oauth2
    ```
 
 4. **Database Migration**:

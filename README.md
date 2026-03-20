@@ -115,7 +115,7 @@ CMNW operates as a **pnpm monorepo** with 13 specialized microservices:
 
 - **Passport** 0.7.0 - Authentication middleware
 - **Battle.net OAuth** - Blizzard authentication
-- **Discord OAuth** - Discord integration via passport-discord@0.1.4
+- **Discord OAuth** - Discord integration via discord-strategy
 
 ### 🐳 DevOps & Deployment
 
