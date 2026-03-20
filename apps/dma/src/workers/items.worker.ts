@@ -7,7 +7,6 @@ import {
   API_HEADERS_ENUM,
   apiConstParams,
   BlizzardApiItem,
-  BlizzardApiService,
   DMA_SOURCE,
   IItem,
   IItemMessageBase,
@@ -20,6 +19,7 @@ import {
   TOLERANCE_ENUM,
   VALUATION_TYPE,
 } from '@app/resources';
+import { BlizzardApiService } from '@app/resources/services';
 import { ItemsEntity } from '@app/pg';
 import { Job } from 'bullmq';
 import { BlizzAPI } from '@alexzedim/blizzapi';

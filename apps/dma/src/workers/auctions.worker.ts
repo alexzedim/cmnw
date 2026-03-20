@@ -14,7 +14,6 @@ import {
   apiConstParams,
   auctionsQueue,
   BlizzardApiAuctions,
-  BlizzardApiService,
   DMA_TIMEOUT_TOLERANCE,
   IAuctionsOrder,
   ICommodityOrder,
@@ -29,6 +28,7 @@ import {
   formatBytes,
   IAuctionMessageBase,
 } from '@app/resources';
+import { BlizzardApiService } from '@app/resources/services';
 import {
   formatWorkerLog,
   formatWorkerErrorLog,
