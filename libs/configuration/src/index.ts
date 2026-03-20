@@ -15,5 +15,12 @@ export type {
   IBlizzardCircuitBreakerConfig,
   IBlizzardRetryConfig,
 } from './blizzard.config';
-export * from './queue.config';
+export {
+  REDIS_CONNECTION,
+  BULLMQ_QUEUES,
+  getQueueConfig,
+  getAllQueueNames,
+  getQueuesByDomain,
+  getQueueOptions,
+} from './queue.config';
 export * from './interfaces';

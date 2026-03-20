@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { getRedisConnection, postgresConfig, redisConfig } from '@app/configuration';
+import { REDIS_CONNECTION, postgresConfig, redisConfig } from '@app/configuration';
 import {
   AuctionsService,
   ContractsService,
@@ -61,7 +61,7 @@ import { BullModule } from '@nestjs/bullmq';
       },
     }),
     BullModule.forRoot({
-      connection: getRedisConnection(),
+      connection: REDIS_CONNECTION,
     }),
     BullModule.registerQueue({
       name: auctionsQueue.name,

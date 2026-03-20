@@ -36,7 +36,7 @@ import {
 import { CharacterResponseDto } from '@app/resources/dto/character/character-response.dto';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, QueueEvents } from 'bullmq';
-import { getRedisConnection } from '@app/configuration';
+import { REDIS_CONNECTION } from '@app/configuration';
 
 @Injectable()
 export class CharacterOsintService {
@@ -44,7 +44,9 @@ export class CharacterOsintService {
     timestamp: true,
   });
   private readonly clearance: string = GLOBAL_OSINT_KEY;
-  private readonly queueEvents: QueueEvents;
+  private readonly queueEvents = new QueueEvents(charactersQueue.name, {
+    connection: REDIS_CONNECTION,
+  });
 
   constructor(
     @InjectRepository(AnalyticsEntity)
@@ -61,11 +63,7 @@ export class CharacterOsintService {
     private readonly logsRepository: Repository<CharactersGuildsLogsEntity>,
     @InjectQueue(charactersQueue.name)
     private readonly queueCharacter: Queue<ICharacterMessageBase>,
-  ) {
-    this.queueEvents = new QueueEvents(charactersQueue.name, {
-      connection: getRedisConnection(),
-    });
-  }
+  ) {}
 
   private async requestCharacterFromQueue(params: {
     name: string;
@@ -78,7 +76,7 @@ export class CharacterOsintService {
     try {
       const [keyEntity] = await getKeys(this.keysRepository, this.clearance);
 
-      const characterMessage = await CharacterMessageDto.fromCharacterRequest({
+      const characterMessage = CharacterMessageDto.fromCharacterRequest({
         name: params.name,
         realm: params.realm,
         clientId: keyEntity.client,
