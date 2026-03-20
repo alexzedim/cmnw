@@ -21,7 +21,6 @@ import {
 import { Repository } from 'typeorm';
 import { dmaConfig } from '@app/configuration';
 import {
-  BlizzardApiService,
   DMA_SOURCE,
   GLOBAL_DMA_KEY,
   PRICING_TYPE,
@@ -44,6 +43,7 @@ import {
   REDIS_TTL,
   BATCH_SIZE,
 } from '@app/resources';
+import { BlizzardApiService } from '@app/resources/services';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import Redis from 'ioredis';
 import { createHash } from 'crypto';

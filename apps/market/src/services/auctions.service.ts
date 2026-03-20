@@ -12,7 +12,6 @@ import {
   apiConstParams,
   AuctionMessageDto,
   auctionsQueue,
-  BlizzardApiService,
   BlizzardApiWowToken,
   getKey,
   getKeys,
@@ -25,6 +24,7 @@ import {
   TOLERANCE_ENUM,
   WOW_TOKEN_ITEM_ID,
 } from '@app/resources';
+import { BlizzardApiService } from '@app/resources/services';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 

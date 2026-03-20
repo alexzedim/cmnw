@@ -9,7 +9,7 @@ import {
   ItemsService,
 } from './services';
 
-import { BlizzardApiService } from '@app/resources';
+import { BlizzardApiService } from '@app/resources/services';
 import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { RedisModule } from '@nestjs-modules/ioredis';
