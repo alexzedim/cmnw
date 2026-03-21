@@ -1,4 +1,3 @@
-import { BlizzAPI } from '@alexzedim/blizzapi';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -7,7 +6,7 @@ import { Job } from 'bullmq';
 import { from, lastValueFrom, mergeMap, toArray } from 'rxjs';
 import { isAxiosError } from 'axios';
 import chalk from 'chalk';
-import { BlizzardApiService } from '@app/resources/services';
+import { BattleNetClient, BattleNetRegion } from '@app/battle-net';
 import {
   CHARACTER_SUMMARY_FIELD_MAPPING,
   charactersQueue,
@@ -19,6 +18,7 @@ import {
   CircuitBreaker,
   CircuitState,
   CHARACTER_STATUS_CODES,
+  KEY_STATUS,
 } from '@app/resources';
 import {
   formatWorkerLog,
@@ -65,7 +65,7 @@ export class CharactersWorker extends WorkerHost {
     startTime: Date.now(),
   };
 
-  private BNet: BlizzAPI;
+  private BNet: BattleNetClient;
   private currentAccessToken: string | null = null;
 
   private readonly circuitBreaker = new CircuitBreaker({
@@ -82,9 +82,9 @@ export class CharactersWorker extends WorkerHost {
     private readonly characterService: CharacterService,
     private readonly lifecycleService: CharacterLifecycleService,
     private readonly collectionSyncService: CharacterCollectionService,
-    private readonly blizzardApiService: BlizzardApiService,
   ) {
     super();
+    this.BNet = new BattleNetClient({} as any);
   }
 
   async process(job: Job<ICharacterMessageBase>): Promise<CharactersEntity> {
@@ -133,14 +133,13 @@ export class CharactersWorker extends WorkerHost {
 
       this.inheritSafeValuesFromArgs(characterEntity, message);
 
-      const { client, accessToken } = await this.initializeApiClient(message);
-      this.BNet = client;
+      const { accessToken } = await this.initializeApiClient(message);
       this.currentAccessToken = accessToken;
 
       const status = await this.characterService.getStatus(nameSlug, characterEntity.realm, this.BNet);
 
       if (this.currentAccessToken) {
-        await this.blizzardApiService.recordSuccess(this.currentAccessToken);
+        await this.recordSuccess(this.currentAccessToken);
       }
 
       const hasStatus = Boolean(status);
@@ -196,7 +195,7 @@ export class CharactersWorker extends WorkerHost {
 
       if (this.currentAccessToken) {
         const statusCode = isAxiosError(errorOrException) ? errorOrException.response?.status : 0;
-        await this.blizzardApiService.recordError(this.currentAccessToken, statusCode);
+        await this.recordError(this.currentAccessToken, statusCode);
       }
 
       this.stats.errors++;
@@ -258,51 +257,134 @@ export class CharactersWorker extends WorkerHost {
     }
   }
 
-  private async initializeApiClient(args: ICharacterMessageBase): Promise<{ client: BlizzAPI; accessToken: string }> {
-    const pooledKey = await this.blizzardApiService.getNextKey({
-      tag: 'blizzard',
-      skipCooldown: true,
-    });
+  private async getNextKey(tag: string = 'blizzard'): Promise<KeysEntity | null> {
+    try {
+      const query = this.keysRepository.createQueryBuilder('key');
+      query.where('key.status = :status', { status: KEY_STATUS.ACTIVE });
+      query.andWhere('(key.cooldown_until IS NULL OR key.cooldown_until < :now)', {
+        now: new Date(),
+      });
+      query.orderBy('key.priority', 'ASC');
+      query.addOrderBy('key.last_request_at', 'ASC', 'NULLS FIRST');
+      query.limit(1);
+
+      const key = await query.getOne();
+      return key;
+    } catch (error) {
+      this.logger.error(`${chalk.red('✗')} Failed to get next key: ${(error as Error).message}`);
+      return null;
+    }
+  }
+
+  private async initializeApiClient(args: ICharacterMessageBase): Promise<{ client: BattleNetClient; accessToken: string }> {
+    const pooledKey = await this.getNextKey('blizzard');
 
     if (pooledKey && pooledKey.token) {
-      const client = this.blizzardApiService.createClientFromKey(pooledKey, args.region || 'eu');
-      return { client, accessToken: pooledKey.token };
+      const region = (args.region || 'eu') as BattleNetRegion;
+      this.BNet = new BattleNetClient({
+        clientId: pooledKey.client,
+        clientSecret: pooledKey.secret,
+        accessToken: pooledKey.token,
+        region,
+      });
+      return { client: this.BNet, accessToken: pooledKey.token };
     }
 
-    const client = this.blizzardApiService.createClient(
-      {
-        clientId: args.clientId,
-        clientSecret: args.clientSecret,
-        accessToken: args.accessToken,
-        region: args.region || 'eu',
-      },
-      {
-        keysRepository: this.keysRepository,
-        keyTag: 'blizzard',
-      },
-    );
-    return { client, accessToken: args.accessToken };
+    // Fallback to credentials from message
+    const region = (args.region || 'eu') as BattleNetRegion;
+    this.BNet = new BattleNetClient({
+      clientId: args.clientId,
+      clientSecret: args.clientSecret,
+      accessToken: args.accessToken,
+      region,
+    });
+    return { client: this.BNet, accessToken: args.accessToken };
+  }
+
+  private async recordSuccess(accessToken: string): Promise<void> {
+    try {
+      const key = await this.keysRepository.findOne({ where: { token: accessToken } });
+      if (!key) return;
+
+      key.requestCount += 1;
+      key.successCount += 1;
+      key.consecutiveErrors = 0;
+      key.lastSuccessAt = new Date();
+      key.lastRequestAt = new Date();
+
+      if (key.status === KEY_STATUS.RATE_LIMITED) {
+        key.status = KEY_STATUS.ACTIVE;
+        key.cooldownUntil = null;
+      }
+
+      await this.keysRepository.save(key);
+    } catch (error) {
+      this.logger.debug(`Failed to record success: ${(error as Error).message}`);
+    }
+  }
+
+  private async recordError(accessToken: string, statusCode: number): Promise<void> {
+    try {
+      const key = await this.keysRepository.findOne({ where: { token: accessToken } });
+      if (!key) return;
+
+      key.requestCount += 1;
+      key.errorCount += 1;
+      key.consecutiveErrors += 1;
+      key.lastErrorAt = new Date();
+      key.lastRequestAt = new Date();
+
+      if (key.consecutiveErrors >= 10) {
+        key.status = KEY_STATUS.DISABLED;
+      }
+
+      await this.keysRepository.save(key);
+    } catch (error) {
+      this.logger.debug(`Failed to record error: ${(error as Error).message}`);
+    }
+  }
+
+  private async recordRateLimit(accessToken: string): Promise<void> {
+    try {
+      const key = await this.keysRepository.findOne({ where: { token: accessToken } });
+      if (!key) return;
+
+      const cooldownUntil = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+
+      key.requestCount += 1;
+      key.rateLimitCount += 1;
+      key.consecutiveErrors += 1;
+      key.lastRateLimitAt = new Date();
+      key.lastRequestAt = new Date();
+      key.status = KEY_STATUS.RATE_LIMITED;
+      key.cooldownUntil = cooldownUntil;
+
+      await this.keysRepository.save(key);
+    } catch (error) {
+      this.logger.debug(`Failed to record rate limit: ${(error as Error).message}`);
+    }
   }
 
   private async handleRateLimitAndRotate(
     currentAccessToken: string,
-    currentClient: BlizzAPI,
-  ): Promise<{ client: BlizzAPI; accessToken: string } | null> {
-    const rotationResult = await this.blizzardApiService.rotateOnRateLimit(currentAccessToken, {
-      tag: 'blizzard',
-    });
+  ): Promise<{ client: BattleNetClient; accessToken: string } | null> {
+    await this.recordRateLimit(currentAccessToken);
 
-    if (rotationResult.key && rotationResult.key.token) {
-      const bnetClient = currentClient as any;
-      if (bnetClient.accessTokenObject) {
-        bnetClient.accessTokenObject.access_token = rotationResult.key.token;
-      }
+    const nextKey = await this.getNextKey('blizzard');
 
-      this.currentAccessToken = rotationResult.key.token;
+    if (nextKey && nextKey.token && nextKey.token !== currentAccessToken) {
+      const region = (nextKey.tags?.includes('us') ? 'us' : 'eu') as BattleNetRegion;
+      this.BNet = new BattleNetClient({
+        clientId: nextKey.client,
+        clientSecret: nextKey.secret,
+        accessToken: nextKey.token,
+        region,
+      });
+
       this.logger.log(
-        `${chalk.yellow('🔄')} Rotated to key [${chalk.dim(rotationResult.key.client?.substring(0, 8))}...]`,
+        `${chalk.yellow('🔄')} Rotated to key [${chalk.dim(nextKey.client?.substring(0, 8))}...]`,
       );
-      return { client: currentClient, accessToken: rotationResult.key.token };
+      return { client: this.BNet, accessToken: nextKey.token };
     }
 
     this.logger.warn(`${chalk.yellow('⚠')} No alternative key available for rotation`);
@@ -311,8 +393,6 @@ export class CharactersWorker extends WorkerHost {
 
   private async fetchAndUpdateCharacterData(characterEntity: CharactersEntity, nameSlug: string): Promise<void> {
     let status = characterEntity.status || '------';
-    const maxRetries = 2;
-    const baseDelayMs = 1000;
 
     const tasks = [
       {
@@ -381,21 +461,21 @@ export class CharactersWorker extends WorkerHost {
     try {
       const result = await fn();
       if (this.currentAccessToken) {
-        await this.blizzardApiService.recordSuccess(this.currentAccessToken);
+        await this.recordSuccess(this.currentAccessToken);
       }
       return result;
     } catch (error) {
       const isRateLimit = isAxiosError(error) && error.response?.status === 429;
 
       if (isRateLimit && attempt < maxRetries && this.currentAccessToken) {
-        await this.blizzardApiService.recordRateLimit(this.currentAccessToken);
+        await this.recordRateLimit(this.currentAccessToken);
         const delayMs = baseDelayMs * Math.pow(2, attempt) + Math.random() * 500;
         this.logger.warn(
           `${chalk.yellow('⚠')} Rate limited, retrying in ${Math.round(delayMs)}ms (attempt ${attempt + 1}/${maxRetries})`,
         );
         await new Promise((resolve) => setTimeout(resolve, delayMs));
 
-        const rotationResult = await this.handleRateLimitAndRotate(this.currentAccessToken, this.BNet);
+        const rotationResult = await this.handleRateLimitAndRotate(this.currentAccessToken);
         if (rotationResult) {
           this.BNet = rotationResult.client;
           return this.callWithRetry(fn, attempt + 1);
@@ -405,7 +485,7 @@ export class CharactersWorker extends WorkerHost {
 
       if (this.currentAccessToken) {
         const statusCode = isAxiosError(error) ? (error.response?.status ?? 0) : 0;
-        await this.blizzardApiService.recordError(this.currentAccessToken, statusCode);
+        await this.recordError(this.currentAccessToken, statusCode);
       }
       throw error;
     }
