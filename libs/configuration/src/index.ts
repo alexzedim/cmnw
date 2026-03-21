@@ -8,13 +8,6 @@ export { lokiConfig } from './loki.config';
 export { dmaConfig } from './dma.config';
 export { s3Config } from './s3.config';
 export { workerConfig } from './worker.config';
-export { blizzardConfig, DEFAULT_BLIZZARD_CONFIG } from './blizzard.config';
-export type {
-  IBlizzardConfig,
-  IBlizzardRateLimitConfig,
-  IBlizzardCircuitBreakerConfig,
-  IBlizzardRetryConfig,
-} from './blizzard.config';
 export {
   REDIS_CONNECTION,
   BULLMQ_QUEUES,
