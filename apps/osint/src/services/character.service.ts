@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import chalk from 'chalk';
-import { BlizzAPI } from '@alexzedim/blizzapi';
+import { BattleNetClient } from '@app/battle-net';
 import { isAxiosError } from 'axios';
 import { get } from 'lodash';
 import {
@@ -35,7 +35,7 @@ export class CharacterService {
     timestamp: true,
   });
 
-  async getStatus(nameSlug: string, realmSlug: string, BNet: BlizzAPI): Promise<Partial<CharacterStatus>> {
+  async getStatus(nameSlug: string, realmSlug: string, BNet: BattleNetClient): Promise<Partial<CharacterStatus>> {
     const characterStatus: Partial<CharacterStatus> = {};
 
     try {
@@ -98,7 +98,7 @@ export class CharacterService {
     }
   }
 
-  async getSummary(nameSlug: string, realmSlug: string, BNet: BlizzAPI): Promise<Partial<CharacterSummary>> {
+  async getSummary(nameSlug: string, realmSlug: string, BNet: BattleNetClient): Promise<Partial<CharacterSummary>> {
     const summary: Partial<CharacterSummary> = {};
 
     try {
@@ -166,7 +166,7 @@ export class CharacterService {
     }
   }
 
-  async getMedia(nameSlug: string, realmSlug: string, BNet: BlizzAPI): Promise<Partial<Media>> {
+  async getMedia(nameSlug: string, realmSlug: string, BNet: BattleNetClient): Promise<Partial<Media>> {
     const media: Partial<Media> = {};
 
     try {
@@ -215,7 +215,11 @@ export class CharacterService {
     }
   }
 
-  async getMountsCollection(nameSlug: string, realmSlug: string, BNet: BlizzAPI): Promise<BlizzardApiMountsCollection> {
+  async getMountsCollection(
+    nameSlug: string,
+    realmSlug: string,
+    BNet: BattleNetClient,
+  ): Promise<BlizzardApiMountsCollection> {
     const mounts: Partial<BlizzardApiMountsCollection> = {};
 
     try {
@@ -263,7 +267,7 @@ export class CharacterService {
   async getPetsCollection(
     nameSlug: string,
     realmSlug: string,
-    BNet: BlizzAPI,
+    BNet: BattleNetClient,
   ): Promise<BlizzardApiPetsCollection | null> {
     const pets: Partial<BlizzardApiPetsCollection> = {};
 
@@ -312,7 +316,7 @@ export class CharacterService {
   async getProfessions(
     nameSlug: string,
     realmSlug: string,
-    BNet: BlizzAPI,
+    BNet: BattleNetClient,
   ): Promise<BlizzardApiCharacterProfessions | null> {
     const professions: Partial<BlizzardApiCharacterProfessions> = {};
 
