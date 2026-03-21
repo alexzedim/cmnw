@@ -32,6 +32,15 @@
         "tsConfigPath": "apps/api/tsconfig.app.json"
       }
     },
+    "battle-net": {
+      "type": "library",
+      "root": "libs/battle-net",
+      "entryFile": "index",
+      "sourceRoot": "libs/battle-net/src",
+      "compilerOptions": {
+        "tsConfigPath": "libs/battle-net/tsconfig.lib.json"
+      }
+    },
     "characters": {
       "type": "application",
       "root": "apps/characters",

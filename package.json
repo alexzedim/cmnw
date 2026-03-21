@@ -166,7 +166,8 @@
       "@app/resources": "<rootDir>/libs/resources/src",
       "@app/resources/(.*)": "<rootDir>/libs/resources/src/$1",
       "^@app/logger(|/.*)$": "<rootDir>/libs/logger/src/$1",
-      "^@app/s3(|/.*)$": "<rootDir>/libs/s3/src/$1"
+      "^@app/s3(|/.*)$": "<rootDir>/libs/s3/src/$1",
+      "^@app/battle-net(|/.*)$": "<rootDir>/libs/battle-net/src/$1"
     }
   }
 }
