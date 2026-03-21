@@ -482,15 +482,10 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
   }
 
   transformWowProgressToGuildJobs = (obj: WowProgressJson, realmSlug: string): GuildMessageDto => {
-    const { client, secret, token } = this.keyEntities[this.guildJobsItx % this.keyEntities.length];
-
     const dto = GuildMessageDto.fromWowProgress({
       name: obj.name,
       realm: realmSlug,
       iteration: this.guildJobsItx,
-      clientId: client,
-      clientSecret: secret,
-      accessToken: token,
     });
 
     this.guildJobsItx = this.guildJobsItx + 1;

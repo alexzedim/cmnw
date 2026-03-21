@@ -211,9 +211,6 @@ export class WowProgressLfgService {
         realm: realmEntity.slug,
         realmId: realmEntity.id,
         realmName: realmEntity.name,
-        clientId: key.client,
-        clientSecret: key.secret,
-        accessToken: key.token,
       });
 
       const profileMessageDto = new QueueMessageDto(

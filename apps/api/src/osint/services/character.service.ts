@@ -79,9 +79,6 @@ export class CharacterOsintService {
       const characterMessage = CharacterMessageDto.fromCharacterRequest({
         name: params.name,
         realm: params.realm,
-        clientId: keyEntity.client,
-        clientSecret: keyEntity.secret,
-        accessToken: keyEntity.token,
       });
 
       const job = await this.queueCharacter.add(characterMessage.name, characterMessage.data, characterMessage.opts);
@@ -168,9 +165,6 @@ export class CharacterOsintService {
         const characterMessage = CharacterMessageDto.fromCharacterRequest({
           name: nameSlug,
           realm: realmEntity.slug,
-          clientId: keyEntity.client,
-          clientSecret: keyEntity.secret,
-          accessToken: keyEntity.token,
         });
 
         await this.queueCharacter.add(characterMessage.name, characterMessage.data, characterMessage.opts);

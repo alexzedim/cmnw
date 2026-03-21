@@ -68,14 +68,9 @@ export class GuildOsintService {
     let requestedGuild: GuildsEntity | null = null;
 
     try {
-      const [keyEntity] = await getKeys(this.keysRepository, this.clearance);
-
       const guildMessage = GuildMessageDto.fromGuildRequest({
         name: params.name,
         realm: params.realm,
-        clientId: keyEntity.client,
-        clientSecret: keyEntity.secret,
-        accessToken: keyEntity.token,
       });
 
       const job = await this.queueGuild.add(guildMessage.name, guildMessage.data, guildMessage.opts);
@@ -164,13 +159,9 @@ export class GuildOsintService {
       const isStale = typeof updatedAt === 'number' ? Date.now() - updatedAt > 1000 * 60 * 60 * 48 : false;
 
       if (isStale) {
-        const [keyEntity] = await getKeys(this.keysRepository, this.clearance);
         const dto = GuildMessageDto.fromGuildRequest({
           name: nameSlug,
           realm: realmEntity.slug,
-          clientId: keyEntity.client,
-          clientSecret: keyEntity.secret,
-          accessToken: keyEntity.token,
         });
 
         await this.queueGuild.add(dto.name, dto.data, dto.opts);

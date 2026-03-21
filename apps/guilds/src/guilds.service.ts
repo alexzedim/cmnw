@@ -96,9 +96,6 @@ export class GuildsService implements OnApplicationBootstrap {
           name,
           realm,
           iteration: guildJobsItx,
-          clientId: client,
-          clientSecret: secret,
-          accessToken: token,
         });
 
         return dto;
@@ -174,9 +171,6 @@ export class GuildsService implements OnApplicationBootstrap {
               name: guild.name,
               realm: guild.realm,
               iteration: guildIteration,
-              clientId: client,
-              clientSecret: secret,
-              accessToken: token,
               ...guild,
             });
 
@@ -253,9 +247,6 @@ export class GuildsService implements OnApplicationBootstrap {
                 faction: faction,
                 rank: guildEntry.rank,
                 region: 'eu',
-                clientId: client,
-                clientSecret: secret,
-                accessToken: token,
               });
             })
             .filter(notNull);
