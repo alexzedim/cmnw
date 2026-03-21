@@ -35,11 +35,12 @@ import {
 } from '@app/pg';
 import { REDIS_CONNECTION } from '@app/configuration';
 import { charactersQueue, guildsQueue, profileQueue } from '@app/resources';
-import { BlizzardApiService } from '@app/resources/services';
+import { BattleNetModule } from '@app/battle-net';
 
 @Module({
   imports: [
     HttpModule,
+    BattleNetModule,
     TypeOrmModule.forRoot(postgresConfig),
     TypeOrmModule.forFeature([
       CharactersEntity,
@@ -83,7 +84,6 @@ import { BlizzardApiService } from '@app/resources/services';
   ],
   controllers: [],
   providers: [
-    BlizzardApiService,
     CharactersWorker,
     GuildsWorker,
     ProfileWorker,
