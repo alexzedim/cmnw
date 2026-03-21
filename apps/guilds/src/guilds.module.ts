@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
-import { postgresConfig } from '@app/configuration';
+import { RedisModule } from '@nestjs-modules/ioredis';
+import { postgresConfig, redisConfig } from '@app/configuration';
 import { GuildsService } from './guilds.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -20,6 +21,14 @@ import { guildsQueue } from '@app/resources';
       name: guildsQueue.name,
       connection: guildsQueue.connection,
       defaultJobOptions: guildsQueue.defaultJobOptions,
+    }),
+    RedisModule.forRoot({
+      type: 'single',
+      options: {
+        host: redisConfig.host,
+        port: redisConfig.port,
+        password: redisConfig.password,
+      },
     }),
   ],
   controllers: [],
