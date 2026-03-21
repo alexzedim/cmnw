@@ -640,9 +640,6 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         return CharacterMessageDto.fromWarcraftLogs({
           name: raidCharacter.name,
           realm: raidCharacter.realm,
-          clientId: keys[itx].client,
-          clientSecret: keys[itx].secret,
-          accessToken: keys[itx].token,
         });
       });
 

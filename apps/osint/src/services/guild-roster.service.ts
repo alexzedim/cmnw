@@ -199,9 +199,6 @@ export class GuildRosterService {
       faction: resolvedFaction,
       level,
       lastModified: guildEntity.lastModified,
-      clientId: BNet.clientId,
-      clientSecret: BNet.clientSecret,
-      accessToken: BNet.accessTokenObject.access_token,
     });
 
     await this.characterQueue.add(dto.name, dto.data, dto.opts);

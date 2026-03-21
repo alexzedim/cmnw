@@ -205,9 +205,6 @@ export class LadderService implements OnApplicationBootstrap {
         name: entry.character.name,
         realm: entry.character.realm.slug,
         faction: transformFaction(entry.faction.type),
-        clientId: key.client,
-        clientSecret: key.secret,
-        accessToken: key.token,
       }),
     );
 
@@ -618,9 +615,6 @@ export class LadderService implements OnApplicationBootstrap {
         name: member.profile.name,
         realm: member.profile.realm.slug,
         faction: transformFaction(member.faction),
-        clientId: key.client,
-        clientSecret: key.secret,
-        accessToken: key.token,
       }),
     );
   }

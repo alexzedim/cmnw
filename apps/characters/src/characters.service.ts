@@ -82,9 +82,6 @@ export class CharactersService implements OnApplicationBootstrap {
             const dto = CharacterMessageDto.fromCharacterIndex({
               ...character,
               iteration: characterIteration,
-              clientId: client,
-              clientSecret: secret,
-              accessToken: token,
             });
 
             await this.charactersQueue.add(dto.name, dto.data, dto.opts);
@@ -179,9 +176,6 @@ export class CharactersService implements OnApplicationBootstrap {
         const dto = CharacterMessageDto.fromMigrationFile({
           guid: character.guid,
           iteration: characterIteration,
-          clientId: client,
-          clientSecret: secret,
-          accessToken: token,
         });
 
         await this.charactersQueue.add(dto.name, dto.data, dto.opts);
