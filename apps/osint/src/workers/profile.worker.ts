@@ -6,6 +6,7 @@ import { CharactersProfileEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { HttpService } from '@nestjs/axios';
 import cheerio from 'cheerio';
+import { forkJoin, lastValueFrom } from 'rxjs';
 
 import {
   formatWorkerLog,
@@ -92,22 +93,37 @@ export class ProfileWorker extends WorkerHost {
 
       if (args.lookingForGuild) profileEntity.lfgStatus = args.lookingForGuild;
 
+      const profileUpdates: Promise<void>[] = [];
+
       if (args.updateRIO) {
-        const raiderIo = await this.getRaiderIoProfile(args.name, args.realm);
-        Object.assign(profileEntity, raiderIo);
-        this.rioUpdated++;
+        profileUpdates.push(
+          this.getRaiderIoProfile(args.name, args.realm).then((raiderIo) => {
+            Object.assign(profileEntity, raiderIo);
+            this.rioUpdated++;
+          }),
+        );
       }
 
       if (args.updateWCL) {
-        const warcraftLogs = await this.getWarcraftLogsProfile(args.name, args.realm);
-        Object.assign(profileEntity, warcraftLogs);
-        this.wclUpdated++;
+        profileUpdates.push(
+          this.getWarcraftLogsProfile(args.name, args.realm).then((warcraftLogs) => {
+            Object.assign(profileEntity, warcraftLogs);
+            this.wclUpdated++;
+          }),
+        );
       }
 
       if (args.updateWP) {
-        const wowProgress = await this.getWowProgressProfile(args.name, args.realm);
-        Object.assign(profileEntity, wowProgress);
-        this.wpUpdated++;
+        profileUpdates.push(
+          this.getWowProgressProfile(args.name, args.realm).then((wowProgress) => {
+            Object.assign(profileEntity, wowProgress);
+            this.wpUpdated++;
+          }),
+        );
+      }
+
+      if (profileUpdates.length > 0) {
+        await lastValueFrom(forkJoin(profileUpdates));
       }
 
       await this.charactersProfileRepository.save(profileEntity);
