@@ -115,9 +115,9 @@ export class GuildMessageDto {
     name: string;
     realm: string;
     iteration?: number;
-    clientId: string;
-    clientSecret: string;
-    accessToken: string;
+    clientId?: string;
+    clientSecret?: string;
+    accessToken?: string;
   }): GuildMessageDto {
     const guid = toGuid(params.name, params.realm);
     const guildData: IGuildMessageBase = {
@@ -155,9 +155,9 @@ export class GuildMessageDto {
     name: string;
     realm: string;
     iteration?: number;
-    clientId: string;
-    clientSecret: string;
-    accessToken: string;
+    clientId?: string;
+    clientSecret?: string;
+    accessToken?: string;
     // All other GuildsEntity fields
     [key: string]: any;
   }): GuildMessageDto {
@@ -200,9 +200,9 @@ export class GuildMessageDto {
     faction: string;
     rank: number;
     region?: 'eu' | 'us' | 'kr' | 'tw';
-    clientId: string;
-    clientSecret: string;
-    accessToken: string;
+    clientId?: string;
+    clientSecret?: string;
+    accessToken?: string;
   }): GuildMessageDto {
     const guid = toGuid(params.name, params.realm);
 
@@ -245,9 +245,9 @@ export class GuildMessageDto {
     name: string;
     realm: string;
     iteration: number;
-    clientId: string;
-    clientSecret: string;
-    accessToken: string;
+    clientId?: string;
+    clientSecret?: string;
+    accessToken?: string;
   }): GuildMessageDto {
     const guid = toGuid(params.name, params.realm);
     const guildData: IGuildMessageBase = {

@@ -140,9 +140,9 @@ export class CharacterMessageDto {
     name: string;
     realm: string;
     faction: string;
-    clientId: string;
-    clientSecret: string;
-    accessToken: string;
+    clientId?: string;
+    clientSecret?: string;
+    accessToken?: string;
   }): CharacterMessageDto {
     const guid = toGuid(params.name, params.realm);
     const characterData: ICharacterMessageBase = {
@@ -182,9 +182,9 @@ export class CharacterMessageDto {
     realm: string;
     faction: string;
     iteration?: number;
-    clientId: string;
-    clientSecret: string;
-    accessToken: string;
+    clientId?: string;
+    clientSecret?: string;
+    accessToken?: string;
   }): CharacterMessageDto {
     const guid = toGuid(params.name, params.realm);
     const characterData: ICharacterMessageBase = {
@@ -222,9 +222,9 @@ export class CharacterMessageDto {
   static fromWarcraftLogs(params: {
     name: string;
     realm: string;
-    clientId: string;
-    clientSecret: string;
-    accessToken: string;
+    clientId?: string;
+    clientSecret?: string;
+    accessToken?: string;
   }): CharacterMessageDto {
     const guid = toGuid(params.name, params.realm);
     const characterData: ICharacterMessageBase = {
@@ -262,9 +262,9 @@ export class CharacterMessageDto {
     realm: string;
     realmId: number;
     realmName: string;
-    clientId: string;
-    clientSecret: string;
-    accessToken: string;
+    clientId?: string;
+    clientSecret?: string;
+    accessToken?: string;
   }): CharacterMessageDto {
     const guid = toGuid(params.name, params.realm);
     const characterData: ICharacterMessageBase = {
@@ -312,9 +312,9 @@ export class CharacterMessageDto {
     faction?: string | null;
     level?: number | null;
     lastModified: Date;
-    clientId: string;
-    clientSecret: string;
-    accessToken: string;
+    clientId?: string;
+    clientSecret?: string;
+    accessToken?: string;
   }): CharacterMessageDto {
     const guid = toGuid(params.name, params.realm);
     const characterData: ICharacterMessageBase = {
@@ -362,9 +362,9 @@ export class CharacterMessageDto {
     name: string;
     realm: string;
     iteration: number;
-    clientId: string;
-    clientSecret: string;
-    accessToken: string;
+    clientId?: string;
+    clientSecret?: string;
+    accessToken?: string;
     [key: string]: any;
   }): CharacterMessageDto {
     const { guid, ...rest } = params;
@@ -414,9 +414,9 @@ export class CharacterMessageDto {
     faction?: string | null;
     level?: number | null;
     lastModified: Date;
-    clientId: string;
-    clientSecret: string;
-    accessToken: string;
+    clientId?: string;
+    clientSecret?: string;
+    accessToken?: string;
   }): CharacterMessageDto {
     const guid = toGuid(params.name, params.realm);
     const characterData: ICharacterMessageBase = {
@@ -463,9 +463,9 @@ export class CharacterMessageDto {
   static fromMigrationFile(params: {
     guid: string;
     iteration?: number;
-    clientId: string;
-    clientSecret: string;
-    accessToken: string;
+    clientId?: string;
+    clientSecret?: string;
+    accessToken?: string;
   }): CharacterMessageDto {
     const [nameSlug, realmSlug] = params.guid.split('@');
     const characterData: ICharacterMessageBase = {
@@ -502,9 +502,9 @@ export class CharacterMessageDto {
   static fromCharacterRequest(params: {
     name: string;
     realm: string;
-    clientId: string;
-    clientSecret: string;
-    accessToken: string;
+    clientId?: string;
+    clientSecret?: string;
+    accessToken?: string;
   }): CharacterMessageDto {
     const guid = toGuid(params.name, params.realm);
     const characterData: ICharacterMessageBase = {
