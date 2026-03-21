@@ -1,13 +1,13 @@
-import { Injectable, Logger, Optional } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { BlizzAPI } from '@alexzedim/blizzapi';
+import { BlizzAPI, RegionIdOrName } from '@alexzedim/blizzapi';
 import { AxiosInstance } from 'axios';
 import axiosRetry from 'axios-retry';
 import chalk from 'chalk';
 import Redis from 'ioredis';
 import { DateTime } from 'luxon';
 import { Repository } from 'typeorm';
-
+import { InjectRedis } from '@nestjs-modules/ioredis';
 import { KeysEntity } from '@app/pg';
 import { KeyPoolOptions, KeyRotationResult } from '@app/resources';
 import { DEFAULT_AXIOS_RETRY_CONFIG, IAxiosRetryConfig } from '../utils/axios-retry.config';
@@ -22,10 +22,10 @@ export class BlizzardApiService {
   private readonly redisKeyPrefix = 'cmnw:keypool:';
 
   constructor(
-    @Optional()
     @InjectRepository(KeysEntity)
     private readonly keysRepository: Repository<KeysEntity>,
-    @Optional() private readonly redis?: Redis,
+    @InjectRedis()
+    private readonly redisService: Redis,
   ) {}
 
   createClient(config: IBlizzardApiServiceConfig, options?: ICreateClientOptions): BlizzAPI {
@@ -54,19 +54,17 @@ export class BlizzardApiService {
           });
         }
 
-        if (error.response?.status === 429 && this.keysRepository && config.accessToken) {
-          this.handleKeyRotation(config.accessToken, options?.keyTag).catch((err) => {
-            this.logger.debug(`Failed to rotate key: ${err}`);
-          });
-        }
-
         const baseDelay = mergedRetryConfig.baseDelayMs * Math.pow(2, retryCount - 1);
         const cappedDelay = Math.min(baseDelay, mergedRetryConfig.maxDelayMs);
         const jitter = Math.random() * 500;
         return cappedDelay + jitter;
       },
       retryCondition: (error) => {
-        return mergedRetryConfig.retryableStatusCodes.includes(error.response?.status);
+        const status = error.response?.status;
+        if (status === 429) {
+          return false;
+        }
+        return mergedRetryConfig.retryableStatusCodes.includes(status);
       },
     });
 
@@ -76,6 +74,53 @@ export class BlizzardApiService {
     );
 
     return client;
+  }
+
+  createClientFromKey(key: KeysEntity, region?: RegionIdOrName): BlizzAPI {
+    const clientRegion = region ?? 'eu';
+
+    const client = new BlizzAPI({
+      region: clientRegion,
+      clientId: key.client,
+      clientSecret: key.secret,
+      accessToken: key.token,
+    });
+
+    this.logger.log(
+      `${chalk.green('✓')} Created BlizzAPI client from key [${chalk.dim(key.client?.substring(0, 8) ?? 'unknown')}...]` +
+        ` [${chalk.bold(String(clientRegion).toUpperCase())}]` +
+        ` ${chalk.dim('(no axios-retry)')}`,
+    );
+
+    return client;
+  }
+
+  createRotationAwareClient(
+    key: KeysEntity,
+    region?: RegionIdOrName,
+  ): { client: BlizzAPI; updateToken: (newToken: string) => void } {
+    const clientRegion = region ?? 'eu';
+    let currentToken = key.token;
+
+    const client = new BlizzAPI({
+      region: clientRegion,
+      clientId: key.client,
+      clientSecret: key.secret,
+      accessToken: currentToken,
+    });
+
+    const updateToken = (newToken: string) => {
+      currentToken = newToken;
+      (client as unknown as { accessToken: string }).accessToken = newToken;
+    };
+
+    this.logger.log(
+      `${chalk.green('✓')} Created rotation-aware BlizzAPI client [${chalk.dim(key.client?.substring(0, 8) ?? 'unknown')}...]` +
+        ` [${chalk.bold(String(clientRegion).toUpperCase())}]` +
+        ` ${chalk.dim('(dynamic token)')}`,
+    );
+
+    return { client, updateToken };
   }
 
   async getNextKey(options: KeyPoolOptions = {}): Promise<KeysEntity | null> {
@@ -350,6 +395,6 @@ export class BlizzardApiService {
   }
 
   isRedisAvailable(): boolean {
-    return this.redis !== undefined && this.redis !== null;
+    return this.redisService !== undefined && this.redisService !== null;
   }
 }
