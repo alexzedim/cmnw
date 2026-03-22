@@ -1,8 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
-import { firstValueFrom } from 'rxjs';
-import { BattleNetClient, IBattleNetQueryOptions } from './battle-net-client';
+import { Observable, throwError, timer, lastValueFrom } from 'rxjs';
+import { finalize, map, mergeMap, retryWhen, timeout } from 'rxjs/operators';
+import { BattleNetClient, IBattleNetQueryOptions, IBattleNetRetryConfig } from './battle-net-client';
 
 @Injectable()
 export class BattleNetService {
@@ -10,83 +11,83 @@ export class BattleNetService {
 
   constructor(private readonly httpService: HttpService) {}
 
-  /**
-   * Create a new BattleNetClient instance with credentials
-   */
   createClient(config?: ConstructorParameters<typeof BattleNetClient>[0]): BattleNetClient {
     return new BattleNetClient(config);
   }
 
-  private shouldRetry(error: unknown): boolean {
-    if (!error || typeof error !== 'object') return false;
-
-    const axiosError = error as { response?: { status?: number } };
-    const status = axiosError.response?.status;
-
-    if (status === undefined) return false;
-
-    return status >= 500 && status < 600;
+  private shouldRetryRequest(error: any): boolean {
+    if (!error.response) {
+      return true;
+    }
+    const status = error.response.status;
+    return status >= 500 || status === 429;
   }
 
-  private async delay(ms: number): Promise<void> {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
+  private createRetryLogic(
+    errors: Observable<any>,
+    url: string,
+    method: string,
+    retrySettings: Required<IBattleNetRetryConfig>,
+  ): Observable<any> {
+    let attemptCount = 0;
 
-  private async executeWithRetry<T>(
-    request: () => Promise<T>,
-    client: BattleNetClient,
-  ): Promise<T> {
-    let attempt = 0;
-    const { maxRetries, baseDelayMs, maxDelayMs } = client.retryConfig;
+    return errors.pipe(
+      mergeMap((error) => {
+        attemptCount++;
 
-    while (true) {
-      try {
-        return await request();
-      } catch (error) {
-        if (!this.shouldRetry(error) || attempt >= maxRetries) {
-          throw error;
+        if (attemptCount > retrySettings.maxRetries || !this.shouldRetryRequest(error)) {
+          this.logger.error(
+            `${method} request failed permanently after ${attemptCount} attempts for ${url}. Error: ${error.message}`,
+          );
+          return throwError(() => error);
         }
 
-        attempt++;
-        const delayMs = Math.min(baseDelayMs * Math.pow(2, attempt - 1), maxDelayMs);
-
         this.logger.warn(
-          `Battle.net request failed (attempt ${attempt}/${maxRetries + 1}), ` +
-            `retrying in ${delayMs}ms. Error: ${(error as Error).message}`,
+          `${method} request failed (attempt ${attemptCount}/${retrySettings.maxRetries + 1}) for ${url}. ` +
+            `Retrying in ${retrySettings.retryDelayMs}ms. Error: ${error.message}`,
         );
 
-        await this.delay(delayMs);
-      }
-    }
+        return timer(retrySettings.retryDelayMs);
+      }),
+    );
   }
 
-  /**
-   * Execute GET request with retry on 5XX errors
-   */
+  private makeRequest<T>(request$: Observable<AxiosResponse<T>>, method: string, client: BattleNetClient): Promise<T> {
+    const retrySettings: Required<IBattleNetRetryConfig> = {
+      maxRetries: 3,
+      retryDelayMs: 1000,
+      maxDelayMs: 10000,
+      timeoutMs: 60000,
+      ...client.retryConfig,
+    };
+
+    const url = client.baseUrl;
+
+    const requestObservable$ = request$.pipe(
+      timeout(retrySettings.timeoutMs),
+      map((response: AxiosResponse<T>) => response.data),
+      retryWhen((errors) => this.createRetryLogic(errors, url, method, retrySettings)),
+      finalize(() => {
+        this.logger.debug(`Request completed for ${method} ${url}`);
+      }),
+    );
+
+    return lastValueFrom(requestObservable$);
+  }
+
   public async query<T>(client: BattleNetClient, path: string, options: IBattleNetQueryOptions): Promise<T> {
     const config: AxiosRequestConfig = {
       headers: client.buildHeaders(options),
       timeout: options.timeout,
     };
 
-    return this.executeWithRetry(async () => {
-      const response: AxiosResponse<T> = await firstValueFrom(
-        this.httpService.get<T>(`${client.baseUrl}${path}`, config),
-      );
-      return response.data;
-    }, client);
+    return this.makeRequest(this.httpService.get<T>(`${client.baseUrl}${path}`, config), 'GET', client);
   }
 
-  /**
-   * Execute GET request with retry on 5XX errors
-   */
   public async get<T>(client: BattleNetClient, path: string, options: IBattleNetQueryOptions): Promise<T> {
     return this.query<T>(client, path, options);
   }
 
-  /**
-   * Execute POST request with retry on 5XX errors
-   */
   public async post<T>(
     client: BattleNetClient,
     path: string,
@@ -98,11 +99,6 @@ export class BattleNetService {
       timeout: options.timeout,
     };
 
-    return this.executeWithRetry(async () => {
-      const response: AxiosResponse<T> = await firstValueFrom(
-        this.httpService.post<T>(`${client.baseUrl}${path}`, data, config),
-      );
-      return response.data;
-    }, client);
+    return this.makeRequest(this.httpService.post<T>(`${client.baseUrl}${path}`, data, config), 'POST', client);
   }
 }
