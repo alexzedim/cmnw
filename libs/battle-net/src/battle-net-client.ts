@@ -41,7 +41,7 @@ export class BattleNetClient {
     this._clientSecret = config?.clientSecret ?? '';
     this._accessToken = config?.accessToken ?? '';
     this._region = config?.region ?? BattleNetRegion.EU;
-    this._retryConfig = retryConfig ?? DEFAULT_RETRY_CONFIG;
+    this._retryConfig = retryConfig ?? { ...DEFAULT_RETRY_CONFIG };
   }
 
   public configure(config: IBattleNetClientConfig): void {
