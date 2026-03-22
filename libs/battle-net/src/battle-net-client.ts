@@ -17,20 +17,18 @@ export interface IBattleNetQueryOptions {
 
 export interface IBattleNetRetryConfig {
   maxRetries: number;
-  baseDelayMs: number;
+  retryDelayMs: number;
   maxDelayMs: number;
+  timeoutMs: number;
 }
 
 export const DEFAULT_RETRY_CONFIG: IBattleNetRetryConfig = {
   maxRetries: 3,
-  baseDelayMs: 1000,
+  retryDelayMs: 1000,
   maxDelayMs: 10000,
+  timeoutMs: 60000,
 };
 
-/**
- * BattleNetClient - Configuration holder passed to BattleNetService
- * Contains credentials and retry settings
- */
 export class BattleNetClient {
   private _clientId: string;
   private _clientSecret: string;
