@@ -7,6 +7,7 @@ export { cmnwConfig } from './cmnw.config';
 export { lokiConfig } from './loki.config';
 export { dmaConfig } from './dma.config';
 export { s3Config } from './s3.config';
+export { battleNetConfig } from './battle-net.config';
 export { workerConfig } from './worker.config';
 export {
   REDIS_CONNECTION,

@@ -10,3 +10,4 @@ export { IValuations } from './valuations.interface';
 export { IPostgres, IPostgresConfig } from './postgres.interface';
 export { IWorkerConfig } from './worker.interface';
 export { IQueueConfig } from './queue.interface';
+export { IBattleNetKeyHealthConfig } from './battle-net.interface';

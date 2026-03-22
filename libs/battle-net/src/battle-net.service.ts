@@ -1,19 +1,150 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
+import axios from 'axios';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { Observable, throwError, timer, lastValueFrom } from 'rxjs';
 import { finalize, map, mergeMap, retryWhen, timeout } from 'rxjs/operators';
 import { BattleNetClient, IBattleNetQueryOptions, IBattleNetRetryConfig } from './battle-net-client';
+import { KeysEntity } from '@app/pg';
+import { battleNetConfig, IBattleNetKeyHealthConfig } from '@app/configuration';
 
 @Injectable()
 export class BattleNetService {
   private readonly logger = new Logger(BattleNetService.name, { timestamp: true });
+  private readonly keyHealth: IBattleNetKeyHealthConfig;
 
-  constructor(private readonly httpService: HttpService) {}
+  constructor(
+    private readonly httpService: HttpService,
+    @InjectRepository(KeysEntity)
+    private readonly keysRepository: Repository<KeysEntity>,
+  ) {
+    this.keyHealth = battleNetConfig;
+  }
 
   createClient(config?: ConstructorParameters<typeof BattleNetClient>[0]): BattleNetClient {
     return new BattleNetClient(config);
   }
+
+  // ============ Key Health Methods ============
+
+  /**
+   * Get remaining cooldown for a key in milliseconds
+   */
+  async getKeyCooldownMs(keyUuid: string): Promise<number> {
+    const key = await this.keysRepository.findOne({ where: { uuid: keyUuid } });
+    if (!key || key.cooldownDelaySeconds === 0 || !key.lastFailureAt) {
+      return 0;
+    }
+    const cooldownEnd = new Date(key.lastFailureAt.getTime() + key.cooldownDelaySeconds * 1000);
+    const now = new Date();
+    return Math.max(0, cooldownEnd.getTime() - now.getTime());
+  }
+
+  /**
+   * Check if we need to wait before using a key
+   */
+  async shouldWaitForKey(keyUuid: string): Promise<{ wait: boolean; remainingMs: number }> {
+    const remainingMs = await this.getKeyCooldownMs(keyUuid);
+    return { wait: remainingMs > 0, remainingMs };
+  }
+
+  /**
+   * Record a rate limit (429) response for a key
+   * Formula: cooldownDelay = min(maxDelay, currentDelay * multiplier + baseDelay)
+   */
+  async recordKeyRateLimit(keyUuid: string): Promise<number> {
+    const key = await this.keysRepository.findOne({ where: { uuid: keyUuid } });
+    if (!key) throw new NotFoundException(`Key ${keyUuid} not found`);
+
+    const newCooldown = Math.min(
+      this.keyHealth.maxDelay,
+      key.cooldownDelaySeconds * this.keyHealth.multiplier + this.keyHealth.baseDelay,
+    );
+
+    key.cooldownDelaySeconds = newCooldown;
+    key.lastFailureAt = new Date();
+
+    await this.keysRepository.save(key);
+
+    this.logger.warn(`Rate limited: ${keyUuid} | cooldown: ${newCooldown}s`);
+    return newCooldown;
+  }
+
+  /**
+   * Record an error response for a key
+   * Uses same formula as rate limit
+   */
+  async recordKeyError(keyUuid: string): Promise<number> {
+    const key = await this.keysRepository.findOne({ where: { uuid: keyUuid } });
+    if (!key) throw new NotFoundException(`Key ${keyUuid} not found`);
+
+    const newCooldown = Math.min(
+      this.keyHealth.maxDelay,
+      key.cooldownDelaySeconds * this.keyHealth.multiplier + this.keyHealth.baseDelay,
+    );
+
+    key.cooldownDelaySeconds = newCooldown;
+    key.lastFailureAt = new Date();
+
+    await this.keysRepository.save(key);
+    return newCooldown;
+  }
+
+  /**
+   * Record a successful request for a key
+   * Formula: cooldownDelay = max(0, cooldownDelay - decayStep)
+   */
+  async recordKeySuccess(keyUuid: string): Promise<number> {
+    const key = await this.keysRepository.findOne({ where: { uuid: keyUuid } });
+    if (!key) throw new NotFoundException(`Key ${keyUuid} not found`);
+
+    const newCooldown = Math.max(0, key.cooldownDelaySeconds - this.keyHealth.decayStep);
+
+    key.cooldownDelaySeconds = newCooldown;
+
+    await this.keysRepository.save(key);
+    return newCooldown;
+  }
+
+  /**
+   * Refresh OAuth token for a key
+   */
+  async refreshKeyToken(keyUuid: string): Promise<string> {
+    const key = await this.keysRepository.findOne({ where: { uuid: keyUuid } });
+    if (!key) throw new NotFoundException(`Key ${keyUuid} not found`);
+
+    const response = await axios.post(
+      'https://oauth.battle.net/token',
+      new URLSearchParams({ grant_type: 'client_credentials' }),
+      {
+        auth: { username: key.clientId, password: key.clientSecret },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      },
+    );
+
+    key.token = response.data.access_token;
+    key.tokenExpiresIn = response.data.expires_in;
+
+    await this.keysRepository.save(key);
+
+    this.logger.log(`Token refreshed for key ${keyUuid}`);
+    return key.token;
+  }
+
+  /**
+   * Reset key health state
+   */
+  async resetKeyHealth(keyUuid: string): Promise<void> {
+    await this.keysRepository.update(keyUuid, {
+      cooldownDelaySeconds: 0,
+      lastFailureAt: null,
+    });
+    this.logger.log(`Key health reset: ${keyUuid}`);
+  }
+
+  // ============ HTTP Request Methods ============
 
   private shouldRetryRequest(error: any): boolean {
     if (!error.response) {
