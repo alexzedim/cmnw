@@ -6,7 +6,7 @@ import { Job } from 'bullmq';
 import { from, lastValueFrom, mergeMap, toArray } from 'rxjs';
 import { isAxiosError } from 'axios';
 import chalk from 'chalk';
-import { BattleNetClient, BattleNetRegion } from '@app/battle-net';
+import { BattleNetClient, BattleNetService, BattleNetRegion } from '@app/battle-net';
 import {
   CHARACTER_SUMMARY_FIELD_MAPPING,
   charactersQueue,
@@ -65,7 +65,7 @@ export class CharactersWorker extends WorkerHost {
     startTime: Date.now(),
   };
 
-  private BNet: BattleNetClient;
+  private client: BattleNetClient;
   private currentAccessToken: string | null = null;
 
   private readonly circuitBreaker = new CircuitBreaker({
@@ -82,9 +82,10 @@ export class CharactersWorker extends WorkerHost {
     private readonly characterService: CharacterService,
     private readonly lifecycleService: CharacterLifecycleService,
     private readonly collectionSyncService: CharacterCollectionService,
+    private readonly battleNetService: BattleNetService,
   ) {
     super();
-    this.BNet = new BattleNetClient({} as any);
+    this.client = new BattleNetClient();
   }
 
   async process(job: Job<ICharacterMessageBase>): Promise<CharactersEntity> {
@@ -133,10 +134,9 @@ export class CharactersWorker extends WorkerHost {
 
       this.inheritSafeValuesFromArgs(characterEntity, message);
 
-      const { accessToken } = await this.initializeApiClient(message);
-      this.currentAccessToken = accessToken;
+      await this.initializeApiClient(message);
 
-      const status = await this.characterService.getStatus(nameSlug, characterEntity.realm, this.BNet);
+      const status = await this.characterService.getStatus(this.client, nameSlug, characterEntity.realm);
 
       if (this.currentAccessToken) {
         await this.recordSuccess(this.currentAccessToken);
@@ -276,29 +276,29 @@ export class CharactersWorker extends WorkerHost {
     }
   }
 
-  private async initializeApiClient(args: ICharacterMessageBase): Promise<{ client: BattleNetClient; accessToken: string }> {
+  private async initializeApiClient(args: ICharacterMessageBase): Promise<void> {
     const pooledKey = await this.getNextKey('blizzard');
 
     if (pooledKey && pooledKey.token) {
       const region = (args.region || 'eu') as BattleNetRegion;
-      this.BNet = new BattleNetClient({
+      this.client = new BattleNetClient({
         clientId: pooledKey.client,
         clientSecret: pooledKey.secret,
         accessToken: pooledKey.token,
         region,
       });
-      return { client: this.BNet, accessToken: pooledKey.token };
+      this.currentAccessToken = pooledKey.token;
+      return;
     }
 
-    // Fallback to credentials from message
     const region = (args.region || 'eu') as BattleNetRegion;
-    this.BNet = new BattleNetClient({
+    this.client = new BattleNetClient({
       clientId: args.clientId,
       clientSecret: args.clientSecret,
       accessToken: args.accessToken,
       region,
     });
-    return { client: this.BNet, accessToken: args.accessToken };
+    this.currentAccessToken = args.accessToken;
   }
 
   private async recordSuccess(accessToken: string): Promise<void> {
@@ -349,7 +349,7 @@ export class CharactersWorker extends WorkerHost {
       const key = await this.keysRepository.findOne({ where: { token: accessToken } });
       if (!key) return;
 
-      const cooldownUntil = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+      const cooldownUntil = new Date(Date.now() + 5 * 60 * 1000);
 
       key.requestCount += 1;
       key.rateLimitCount += 1;
@@ -365,16 +365,16 @@ export class CharactersWorker extends WorkerHost {
     }
   }
 
-  private async handleRateLimitAndRotate(
-    currentAccessToken: string,
-  ): Promise<{ client: BattleNetClient; accessToken: string } | null> {
-    await this.recordRateLimit(currentAccessToken);
+  private async handleRateLimitAndRotate(): Promise<boolean> {
+    if (!this.currentAccessToken) return false;
+
+    await this.recordRateLimit(this.currentAccessToken);
 
     const nextKey = await this.getNextKey('blizzard');
 
-    if (nextKey && nextKey.token && nextKey.token !== currentAccessToken) {
+    if (nextKey && nextKey.token && nextKey.token !== this.currentAccessToken) {
       const region = (nextKey.tags?.includes('us') ? 'us' : 'eu') as BattleNetRegion;
-      this.BNet = new BattleNetClient({
+      this.client = new BattleNetClient({
         clientId: nextKey.client,
         clientSecret: nextKey.secret,
         accessToken: nextKey.token,
@@ -384,11 +384,11 @@ export class CharactersWorker extends WorkerHost {
       this.logger.log(
         `${chalk.yellow('🔄')} Rotated to key [${chalk.dim(nextKey.client?.substring(0, 8))}...]`,
       );
-      return { client: this.BNet, accessToken: nextKey.token };
+      return true;
     }
 
     this.logger.warn(`${chalk.yellow('⚠')} No alternative key available for rotation`);
-    return null;
+    return false;
   }
 
   private async fetchAndUpdateCharacterData(characterEntity: CharactersEntity, nameSlug: string): Promise<void> {
@@ -397,8 +397,7 @@ export class CharactersWorker extends WorkerHost {
     const tasks = [
       {
         name: 'summary',
-        fn: () =>
-          this.callWithRetry(() => this.characterService.getSummary(nameSlug, characterEntity.realm, this.BNet)),
+        fn: () => this.callWithRetry(() => this.characterService.getSummary(this.client, nameSlug, characterEntity.realm)),
       },
       {
         name: 'pets',
@@ -410,7 +409,7 @@ export class CharactersWorker extends WorkerHost {
       },
       {
         name: 'media',
-        fn: () => this.callWithRetry(() => this.characterService.getMedia(nameSlug, characterEntity.realm, this.BNet)),
+        fn: () => this.callWithRetry(() => this.characterService.getMedia(this.client, nameSlug, characterEntity.realm)),
       },
       {
         name: 'professions',
@@ -475,9 +474,8 @@ export class CharactersWorker extends WorkerHost {
         );
         await new Promise((resolve) => setTimeout(resolve, delayMs));
 
-        const rotationResult = await this.handleRateLimitAndRotate(this.currentAccessToken);
-        if (rotationResult) {
-          this.BNet = rotationResult.client;
+        const rotated = await this.handleRateLimitAndRotate();
+        if (rotated) {
           return this.callWithRetry(fn, attempt + 1);
         }
         throw error;
@@ -492,7 +490,7 @@ export class CharactersWorker extends WorkerHost {
   }
 
   private async fetchAndSyncPets(nameSlug: string, realmSlug: string): Promise<PetsFetchResult> {
-    const petsResponse = await this.characterService.getPetsCollection(nameSlug, realmSlug, this.BNet);
+    const petsResponse = await this.characterService.getPetsCollection(this.client, nameSlug, realmSlug);
 
     const hasPetsResponse = Boolean(petsResponse);
     if (!hasPetsResponse) {
@@ -503,7 +501,7 @@ export class CharactersWorker extends WorkerHost {
   }
 
   private async fetchAndSyncMounts(nameSlug: string, realmSlug: string): Promise<MountsFetchResult> {
-    const mountsResponse = await this.characterService.getMountsCollection(nameSlug, realmSlug, this.BNet);
+    const mountsResponse = await this.characterService.getMountsCollection(this.client, nameSlug, realmSlug);
 
     const hasMountsResponse = Boolean(mountsResponse);
     if (!hasMountsResponse) {
@@ -514,7 +512,7 @@ export class CharactersWorker extends WorkerHost {
   }
 
   private async fetchAndSyncProfessions(nameSlug: string, realmSlug: string): Promise<ProfessionsFetchResult> {
-    const professionsResponse = await this.characterService.getProfessions(nameSlug, realmSlug, this.BNet);
+    const professionsResponse = await this.characterService.getProfessions(this.client, nameSlug, realmSlug);
 
     const hasProfessionResponse = Boolean(professionsResponse);
     if (!hasProfessionResponse) {
