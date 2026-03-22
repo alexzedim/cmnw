@@ -1,7 +1,4 @@
-import { Injectable } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
 import { AxiosHeaders, AxiosRequestConfig, AxiosResponse } from 'axios';
-import { firstValueFrom } from 'rxjs';
 import { BattleNetRegion, BattleNetNamespace } from './enums';
 import { BATTLE_NET_BASE_URLS, BATTLE_NET_TIMEOUT } from './constants';
 
@@ -18,18 +15,35 @@ export interface IBattleNetQueryOptions {
   timeout?: number;
 }
 
-@Injectable()
+export interface IBattleNetRetryConfig {
+  maxRetries: number;
+  baseDelayMs: number;
+  maxDelayMs: number;
+}
+
+export const DEFAULT_RETRY_CONFIG: IBattleNetRetryConfig = {
+  maxRetries: 3,
+  baseDelayMs: 1000,
+  maxDelayMs: 10000,
+};
+
+/**
+ * BattleNetClient - Configuration holder passed to BattleNetService
+ * Contains credentials and retry settings
+ */
 export class BattleNetClient {
   private _clientId: string;
   private _clientSecret: string;
   private _accessToken: string;
   private _region: BattleNetRegion;
+  private _retryConfig: IBattleNetRetryConfig;
 
-  constructor(private readonly httpService: HttpService) {
-    this._clientId = '';
-    this._clientSecret = '';
-    this._accessToken = '';
-    this._region = BattleNetRegion.EU;
+  constructor(config?: IBattleNetClientConfig, retryConfig?: IBattleNetRetryConfig) {
+    this._clientId = config?.clientId ?? '';
+    this._clientSecret = config?.clientSecret ?? '';
+    this._accessToken = config?.accessToken ?? '';
+    this._region = config?.region ?? BattleNetRegion.EU;
+    this._retryConfig = retryConfig ?? DEFAULT_RETRY_CONFIG;
   }
 
   public configure(config: IBattleNetClientConfig): void {
@@ -52,6 +66,22 @@ export class BattleNetClient {
     this._region = region;
   }
 
+  public setRetryConfig(retryConfig: IBattleNetRetryConfig): void {
+    this._retryConfig = retryConfig;
+  }
+
+  public get clientId(): string {
+    return this._clientId;
+  }
+
+  public get clientSecret(): string {
+    return this._clientSecret;
+  }
+
+  public get accessToken(): string {
+    return this._accessToken;
+  }
+
   public get token(): string {
     return this._accessToken;
   }
@@ -64,7 +94,11 @@ export class BattleNetClient {
     return BATTLE_NET_BASE_URLS[this._region];
   }
 
-  private buildHeaders(options: IBattleNetQueryOptions): AxiosHeaders {
+  public get retryConfig(): IBattleNetRetryConfig {
+    return this._retryConfig;
+  }
+
+  public buildHeaders(options: IBattleNetQueryOptions): AxiosHeaders {
     const headers = new AxiosHeaders();
 
     headers.set('Content-Type', 'application/json');
@@ -80,35 +114,5 @@ export class BattleNetClient {
     }
 
     return headers;
-  }
-
-  public async query<T>(path: string, options: IBattleNetQueryOptions): Promise<T> {
-    const config: AxiosRequestConfig = {
-      headers: this.buildHeaders(options),
-      timeout: options.timeout ?? BATTLE_NET_TIMEOUT,
-    };
-
-    const response: AxiosResponse<T> = await firstValueFrom(
-      this.httpService.get<T>(`${this.baseUrl}${path}`, config),
-    );
-
-    return response.data;
-  }
-
-  public async get<T>(path: string, options: IBattleNetQueryOptions): Promise<T> {
-    return this.query<T>(path, options);
-  }
-
-  public async post<T>(path: string, data: unknown, options: IBattleNetQueryOptions): Promise<T> {
-    const config: AxiosRequestConfig = {
-      headers: this.buildHeaders(options),
-      timeout: options.timeout ?? BATTLE_NET_TIMEOUT,
-    };
-
-    const response: AxiosResponse<T> = await firstValueFrom(
-      this.httpService.post<T>(`${this.baseUrl}${path}`, data, config),
-    );
-
-    return response.data;
   }
 }

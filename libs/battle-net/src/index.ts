@@ -4,8 +4,11 @@ export * from './enums';
 // Constants
 export * from './constants';
 
-// Client
+// Client (config holder)
 export * from './battle-net-client';
+
+// Service (HTTP executor)
+export * from './battle-net.service';
 
 // Module
 export * from './battle-net.module';

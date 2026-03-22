@@ -1,6 +1,6 @@
 import { Module, Global } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
-import { BattleNetClient } from './battle-net-client';
+import { BattleNetService } from './battle-net.service';
 
 @Global()
 @Module({
@@ -10,7 +10,7 @@ import { BattleNetClient } from './battle-net-client';
       maxRedirects: 5,
     }),
   ],
-  providers: [BattleNetClient],
-  exports: [BattleNetClient, HttpModule],
+  providers: [BattleNetService],
+  exports: [BattleNetService, HttpModule],
 })
 export class BattleNetModule {}
