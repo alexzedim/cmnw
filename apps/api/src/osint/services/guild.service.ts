@@ -29,20 +29,17 @@ import {
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, QueueEvents } from 'bullmq';
 import { REDIS_CONNECTION } from '@app/configuration';
-import { BattleNetService } from '@app/battle-net';
 
 @Injectable()
 export class GuildOsintService {
   private readonly logger = new Logger(GuildOsintService.name, {
     timestamp: true,
   });
-  private readonly clearance: string = GLOBAL_OSINT_KEY;
   private readonly queueEvents = new QueueEvents(guildsQueue.name, {
     connection: REDIS_CONNECTION,
   });
 
   constructor(
-    private readonly battleNetService: BattleNetService,
     @InjectRepository(GuildsEntity)
     private readonly guildsRepository: Repository<GuildsEntity>,
     @InjectRepository(CharactersEntity)

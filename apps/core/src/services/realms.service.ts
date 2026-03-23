@@ -10,6 +10,7 @@ import { KeysEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { lastValueFrom, mergeMap, range } from 'rxjs';
 import { BlizzardApiService } from '@app/resources/services';
+import { BattleNetService } from '@app/battle-net';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
@@ -40,6 +41,7 @@ export class RealmsService implements OnApplicationBootstrap {
     @InjectQueue(realmsQueue.name)
     private readonly realmsQueue: Queue<IRealmMessageBase>,
     private readonly blizzardApiService: BlizzardApiService,
+    private readonly battleNetService: BattleNetService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -60,7 +62,7 @@ export class RealmsService implements OnApplicationBootstrap {
   async indexRealms(clearance: string = GLOBAL_KEY): Promise<void> {
     const logTag = this.indexRealms.name;
     try {
-      const [keyEntity] = await getKeys(this.keysRepository, clearance);
+      const keyEntity = await this.battleNetService.getAvailableKey(clearance);
 
       await this.realmsQueue.drain(true);
 
