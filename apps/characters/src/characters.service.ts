@@ -14,17 +14,16 @@ import { S3Service } from '@app/s3';
 import { osintConfig } from '@app/configuration';
 import {
   charactersQueue,
-  getKeys,
   GLOBAL_OSINT_KEY,
   OSINT_CHARACTER_LIMIT,
   CharacterMessageDto,
   ICharacterMessageBase,
 } from '@app/resources';
+import { BattleNetService } from '@app/battle-net';
 
 @Injectable()
 export class CharactersService implements OnApplicationBootstrap {
   private offset = 0;
-  private keyEntities: KeysEntity[];
   private readonly logger = new Logger(CharactersService.name, {
     timestamp: true,
   });
@@ -39,6 +38,7 @@ export class CharactersService implements OnApplicationBootstrap {
     @InjectQueue(charactersQueue.name)
     private readonly charactersQueue: Queue<ICharacterMessageBase>,
     private readonly s3Service: S3Service,
+    private readonly battleNetService: BattleNetService,
   ) {}
 
   async onApplicationBootstrap() {
@@ -51,9 +51,12 @@ export class CharactersService implements OnApplicationBootstrap {
     const logTag = this.indexCharacters.name;
     try {
       let characterIteration = 0;
-      this.keyEntities = await getKeys(this.keysRepository, clearance);
-
-      let length = this.keyEntities.length;
+      const key = await this.battleNetService.getAvailableKey();
+      if (!key) {
+        this.logger.warn({ logTag, message: 'No available key' });
+        return;
+      }
+      const { clientId, clientSecret, token } = key;
 
       const characters = await this.charactersRepository.find({
         order: { hashA: 'ASC' },
@@ -77,8 +80,6 @@ export class CharactersService implements OnApplicationBootstrap {
       await lastValueFrom(
         from(characters).pipe(
           mergeMap(async (character) => {
-            const { client, secret, token } = this.keyEntities[characterIteration % length];
-
             const dto = CharacterMessageDto.fromCharacterIndex({
               ...character,
               iteration: characterIteration,
@@ -87,11 +88,6 @@ export class CharactersService implements OnApplicationBootstrap {
             await this.charactersQueue.add(dto.name, dto.data, dto.opts);
 
             characterIteration = characterIteration + 1;
-            const isKeyRequest = characterIteration % 1000 == 0;
-            if (isKeyRequest) {
-              this.keyEntities = await getKeys(this.keysRepository, clearance);
-              length = this.keyEntities.length;
-            }
           }, 10),
         ),
       );
@@ -155,10 +151,14 @@ export class CharactersService implements OnApplicationBootstrap {
 
       const characters: Array<Pick<CharactersEntity, 'guid'>> = JSON.parse(charactersJson);
 
-      this.keyEntities = await getKeys(this.keysRepository, GLOBAL_OSINT_KEY);
+      const key = await this.battleNetService.getAvailableKey();
+      if (!key) {
+        this.logger.warn({ logTag, message: 'No available key' });
+        return;
+      }
+      const { clientId, clientSecret, token } = key;
 
       let characterIteration = 0;
-      const length = this.keyEntities.length;
 
       const charactersCount = characters.length;
 
@@ -169,8 +169,6 @@ export class CharactersService implements OnApplicationBootstrap {
       });
 
       for (const character of characters) {
-        const { client, secret, token } = this.keyEntities[characterIteration % length];
-
         characterIteration = characterIteration + 1;
 
         const dto = CharacterMessageDto.fromMigrationFile({

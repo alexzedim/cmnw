@@ -12,14 +12,12 @@ import {
   CharactersGuildsLogsEntity,
   CharactersGuildsMembersEntity,
   GuildsEntity,
-  KeysEntity,
   RealmsEntity,
 } from '@app/pg';
 
 import { In, Repository } from 'typeorm';
 
 import {
-  getKeys,
   GLOBAL_OSINT_KEY,
   GuildIdDto,
   GuildMessageDto,
@@ -31,6 +29,7 @@ import {
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, QueueEvents } from 'bullmq';
 import { REDIS_CONNECTION } from '@app/configuration';
+import { BattleNetService } from '@app/battle-net';
 
 @Injectable()
 export class GuildOsintService {
@@ -43,8 +42,7 @@ export class GuildOsintService {
   });
 
   constructor(
-    @InjectRepository(KeysEntity)
-    private readonly keysRepository: Repository<KeysEntity>,
+    private readonly battleNetService: BattleNetService,
     @InjectRepository(GuildsEntity)
     private readonly guildsRepository: Repository<GuildsEntity>,
     @InjectRepository(CharactersEntity)

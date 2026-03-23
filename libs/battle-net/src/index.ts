@@ -12,3 +12,6 @@ export * from './battle-net.service';
 
 // Module
 export * from './battle-net.module';
+
+// Entities
+export { KeysEntity } from '@app/pg';

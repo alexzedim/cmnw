@@ -1,8 +1,6 @@
 import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { S3Service } from '@app/s3';
-import { IKeyConfig } from '@app/configuration/interfaces/key.interface';
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { DateTime } from 'luxon';
 import { HttpService } from '@nestjs/axios';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -10,12 +8,11 @@ import { KeysEntity } from '@app/pg';
 import { ArrayContains, Repository } from 'typeorm';
 import { LoggerService } from '@app/logger';
 import {
-  BlizzardApiKeys,
   GLOBAL_BLIZZARD_KEY,
   GLOBAL_WCL_KEY_V2,
-  IWarcraftLogsToken,
-  KEY_LOCK_ERRORS_NUM,
-  KEY_STATUS,
+  GLOBAL_WCL_KEY_V1,
+  IKeyConfig,
+  IKeysJson,
 } from '@app/resources';
 
 @Injectable()
@@ -51,7 +48,7 @@ export class KeysService implements OnApplicationBootstrap {
         throw new Error(`Keys configuration file not found in S3`);
       }
 
-      const { keys } = JSON.parse(keysJson);
+      const { keys } = JSON.parse(keysJson) as IKeysJson;
 
       await lastValueFrom(
         from(keys).pipe(
@@ -75,30 +72,12 @@ export class KeysService implements OnApplicationBootstrap {
   private async indexBlizzardKeys(): Promise<void> {
     const logTag = this.indexBlizzardKeys.name;
     try {
-      const now = DateTime.now();
       const keysEntity = await this.keysRepository.findBy({
         tags: ArrayContains([GLOBAL_BLIZZARD_KEY]),
       });
 
       for (const keyEntity of keysEntity) {
-        const isResetErrorsCount =
-          keyEntity.status != KEY_STATUS.FREE && keyEntity.resetAt && DateTime.fromJSDate(keyEntity.resetAt) < now;
-
-        if (isResetErrorsCount) {
-          keyEntity.resetAt = now.toJSDate();
-          keyEntity.errorCount = 0;
-          keyEntity.status = KEY_STATUS.FREE;
-        }
-
-        const isTooManyErrors =
-          keyEntity.errorCount > KEY_LOCK_ERRORS_NUM && Boolean(keyEntity.status != KEY_STATUS.TOO_MANY_REQUESTS);
-
-        if (isTooManyErrors) {
-          keyEntity.status = KEY_STATUS.TOO_MANY_REQUESTS;
-          keyEntity.resetAt = now.plus({ hour: 2 }).toJSDate();
-        }
-
-        const { data } = await this.httpService.axiosRef.request<BlizzardApiKeys>({
+        const { data } = await this.httpService.axiosRef.request<{ access_token: string; expires_in: number }>({
           url: 'https://eu.battle.net/oauth/token',
           method: 'post',
           headers: {
@@ -114,11 +93,11 @@ export class KeysService implements OnApplicationBootstrap {
         });
 
         keyEntity.token = data.access_token;
-        keyEntity.tokenExpiresIn = data.expires_in;
+        keyEntity.expiredIn = data.expires_in;
         this.logger.log({
           logTag,
           client: keyEntity.client,
-          message: `Updated key: ${keyEntity.client}`,
+          message: `Updated Blizzard key: ${keyEntity.client}`,
         });
 
         await this.keysRepository.save(keyEntity);
@@ -137,7 +116,7 @@ export class KeysService implements OnApplicationBootstrap {
       });
 
       for (const keyEntity of keyEntities) {
-        const { data } = await this.httpService.axiosRef.request<Partial<IWarcraftLogsToken>>({
+        const { data } = await this.httpService.axiosRef.request<{ access_token: string; expires_in: number }>({
           method: 'post',
           url: 'https://www.warcraftlogs.com/oauth/token',
           data: {
@@ -150,7 +129,7 @@ export class KeysService implements OnApplicationBootstrap {
         });
 
         keyEntity.token = data.access_token;
-        keyEntity.tokenExpiresIn = data.expires_in;
+        keyEntity.expiredIn = data.expires_in;
 
         await this.keysRepository.save(keyEntity);
         this.logger.log({

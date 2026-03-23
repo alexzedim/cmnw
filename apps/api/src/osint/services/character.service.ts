@@ -12,7 +12,6 @@ import {
   CharactersEntity,
   CharactersGuildsLogsEntity,
   CharactersProfileEntity,
-  KeysEntity,
   RealmsEntity,
 } from '@app/pg';
 
@@ -26,13 +25,13 @@ import {
   CharacterMessageDto,
   CharacterLfgDto,
   charactersQueue,
-  getKeys,
   GLOBAL_OSINT_KEY,
   LFG_STATUS,
   toGuid,
   findRealm,
   ICharacterMessageBase,
 } from '@app/resources';
+import { BattleNetService } from '@app/battle-net';
 import { CharacterResponseDto } from '@app/resources/dto/character/character-response.dto';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, QueueEvents } from 'bullmq';
@@ -51,8 +50,6 @@ export class CharacterOsintService {
   constructor(
     @InjectRepository(AnalyticsEntity)
     private readonly analyticsRepository: Repository<AnalyticsEntity>,
-    @InjectRepository(KeysEntity)
-    private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
     @InjectRepository(CharactersProfileEntity)
@@ -63,6 +60,7 @@ export class CharacterOsintService {
     private readonly logsRepository: Repository<CharactersGuildsLogsEntity>,
     @InjectQueue(charactersQueue.name)
     private readonly queueCharacter: Queue<ICharacterMessageBase>,
+    private readonly battleNetService: BattleNetService,
   ) {}
 
   private async requestCharacterFromQueue(params: {
@@ -74,7 +72,7 @@ export class CharacterOsintService {
     let requestedCharacter: CharactersEntity | null = null;
 
     try {
-      const [keyEntity] = await getKeys(this.keysRepository, this.clearance);
+      await this.battleNetService.getAvailableKey();
 
       const characterMessage = CharacterMessageDto.fromCharacterRequest({
         name: params.name,
@@ -160,7 +158,7 @@ export class CharacterOsintService {
       const isStale = typeof updatedAt === 'number' ? Date.now() - updatedAt > 1000 * 60 * 60 * 48 : false;
 
       if (isStale) {
-        const [keyEntity] = await getKeys(this.keysRepository, this.clearance);
+        await this.battleNetService.getAvailableKey();
 
         const characterMessage = CharacterMessageDto.fromCharacterRequest({
           name: nameSlug,

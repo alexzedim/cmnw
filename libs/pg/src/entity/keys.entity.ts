@@ -29,11 +29,11 @@ export class KeysEntity {
 
   @Column({
     type: 'int',
-    name: 'token_expires_in',
+    name: 'expired_in',
     nullable: true,
     default: null,
   })
-  tokenExpiresIn?: number;
+  expiredIn?: number;
 
   @Column({
     type: 'int',
@@ -50,6 +50,14 @@ export class KeysEntity {
     default: null,
   })
   lastFailureAt?: Date;
+
+  @Column({
+    type: 'text',
+    array: true,
+    nullable: true,
+    default: null,
+  })
+  tags?: string[];
 
   @CreateDateColumn({
     type: 'timestamp with time zone',
