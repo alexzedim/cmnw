@@ -8,9 +8,9 @@ import { itemsQueue } from '../../queues/items.queue';
 export interface IItemMessageBase {
   itemId: number;
   region?: 'eu' | 'us' | 'kr' | 'tw';
-  clientId: string;
-  clientSecret: string;
-  accessToken: string;
+  clientId?: string;
+  clientSecret?: string;
+  accessToken?: string;
 }
 
 export class ItemMessageDto {

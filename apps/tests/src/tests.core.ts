@@ -1,6 +1,5 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { cmnwConfig } from '@app/configuration';
-import { BlizzAPI } from '@alexzedim/blizzapi';
 import {
   API_HEADERS_ENUM,
   apiConstParams,
@@ -19,11 +18,8 @@ import { join } from 'path';
 export class TestsCore implements OnApplicationBootstrap {
   private readonly logger = new Logger(TestsCore.name, { timestamp: true });
 
-  private BNet: BlizzAPI = new BlizzAPI({
-    region: 'eu',
-    clientId: cmnwConfig.clientId,
-    clientSecret: cmnwConfig.clientSecret,
-  });
+  // TODO: Replace with new Blizzard API client implementation
+  // private BNet: any = ...;
 
   constructor(
     @InjectRepository(KeysEntity)
@@ -40,59 +36,52 @@ export class TestsCore implements OnApplicationBootstrap {
     console.log('--- | ---');
   }
 
+  // TODO: Blizzard API call skipped - reimplement with new client
   async characterStats(nameSlug: string, realmSlug: string): Promise<any> {
-    try {
-      this.logger.log(`${nameSlug}:${realmSlug}`);
-
-      return await this.BNet.query(
-        `/profile/wow/character/${realmSlug}/${nameSlug}/statistics`,
-        apiConstParams(API_HEADERS_ENUM.PROFILE),
-      );
-    } catch (errorOrException) {
-      this.logger.error({
-        context: 'logs',
-        guid: 'guid',
-        error: JSON.stringify(errorOrException),
-      });
-      return errorOrException;
-    }
+    this.logger.debug(`TODO: Blizzard API call skipped - reimplement with new client: ${nameSlug}:${realmSlug}`);
+    return null;
   }
 
+  // TODO: Blizzard API call skipped - reimplement with new client
   async dungeonIndex(): Promise<any> {
-    return this.BNet.query(`/data/wow/mythic-keystone/dungeon/index`, apiConstParams(API_HEADERS_ENUM.DYNAMIC));
+    this.logger.debug(`TODO: Blizzard API call skipped - reimplement with new client`);
+    return null;
   }
 
+  // TODO: Blizzard API call skipped - reimplement with new client
   async mythicLeaderboard() {
-    return this.BNet.query(
-      `/data/wow/connected-realm/1615/mythic-leaderboard/index `,
-      apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-    );
+    this.logger.debug(`TODO: Blizzard API call skipped - reimplement with new client`);
+    return null;
   }
 
+  // TODO: Blizzard API call skipped - reimplement with new client
   async seasonIndex(): Promise<any> {
-    return this.BNet.query(`/data/wow/mythic-keystone/season/index`, apiConstParams(API_HEADERS_ENUM.DYNAMIC));
+    this.logger.debug(`TODO: Blizzard API call skipped - reimplement with new client`);
+    return null;
   }
 
+  // TODO: Blizzard API call skipped - reimplement with new client
   async seasonOne() {
-    return await this.BNet.query<any>(`/data/wow/mythic-keystone/season/1`, apiConstParams(API_HEADERS_ENUM.DYNAMIC));
+    this.logger.debug(`TODO: Blizzard API call skipped - reimplement with new client`);
+    return null;
   }
 
+  // TODO: Blizzard API call skipped - reimplement with new client
   async leadingGroups() {
-    return await this.BNet.query<any>(
-      `/data/wow/connected-realm/1615/mythic-leaderboard/197/period/641`,
-      apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-    );
+    this.logger.debug(`TODO: Blizzard API call skipped - reimplement with new client`);
+    return null;
   }
 
+  // TODO: Blizzard API call skipped - reimplement with new client
   async pvpIndexIndex() {
-    return await this.BNet.query<any>('/data/wow/pvp-season/index', apiConstParams(API_HEADERS_ENUM.DYNAMIC));
+    this.logger.debug(`TODO: Blizzard API call skipped - reimplement with new client`);
+    return null;
   }
 
+  // TODO: Blizzard API call skipped - reimplement with new client
   async pvpSeasonLeaderboard() {
-    return await this.BNet.query<any>(
-      `/data/wow/pvp-season/40/pvp-leaderboard/3v3`,
-      apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-    );
+    this.logger.debug(`TODO: Blizzard API call skipped - reimplement with new client`);
+    return null;
   }
 
   async getWclKeys() {

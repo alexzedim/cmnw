@@ -4,8 +4,6 @@ import { BattleNetClient, BattleNetService, BattleNetNamespace } from '@app/batt
 import { isAxiosError } from 'axios';
 import { get } from 'lodash';
 import {
-  API_HEADERS_ENUM,
-  apiConstParams,
   BlizzardApiCharacterMedia,
   BlizzardApiCharacterSummary,
   BlizzardApiPetsCollection,

@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 import { Injectable, Logger } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { from, lastValueFrom, mergeMap, toArray } from 'rxjs';
-import { isAxiosError } from 'axios';
 import chalk from 'chalk';
 import { BattleNetClient, BattleNetService, BattleNetRegion } from '@app/battle-net';
 import {
@@ -15,10 +14,7 @@ import {
   setStatusString,
   CharacterStatusState,
   RateLimitError,
-  CircuitBreaker,
-  CircuitState,
   CHARACTER_STATUS_CODES,
-  KEY_STATUS,
 } from '@app/resources';
 import {
   formatWorkerLog,
@@ -65,45 +61,38 @@ export class CharactersWorker extends WorkerHost {
     startTime: Date.now(),
   };
 
-  private client: BattleNetClient;
-  private currentAccessToken: string | null = null;
-
-  private readonly circuitBreaker = new CircuitBreaker({
-    failureThreshold: 3,
-    resetTimeoutMs: 30000,
-    halfOpenMaxCalls: 1,
-  });
-
   constructor(
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
-    @InjectRepository(KeysEntity)
-    private readonly keysRepository: Repository<KeysEntity>,
     private readonly characterService: CharacterService,
     private readonly lifecycleService: CharacterLifecycleService,
     private readonly collectionSyncService: CharacterCollectionService,
     private readonly battleNetService: BattleNetService,
   ) {
     super();
-    this.client = new BattleNetClient();
+  }
+
+  private async acquireClient(): Promise<BattleNetClient> {
+    const key = await this.battleNetService.getAvailableKey('osint');
+    if (!key) {
+      throw new Error('No available Battle.net API key for osint service');
+    }
+
+    const client = this.battleNetService.createClient({
+      clientId: key.clientId,
+      clientSecret: key.clientSecret,
+      accessToken: key.accessToken,
+      region: BattleNetRegion.EU,
+    });
+
+    this.battleNetService.setCurrentKey(key);
+    return client;
   }
 
   async process(job: Job<ICharacterMessageBase>): Promise<CharactersEntity> {
     const message = job.data;
     const startTime = Date.now();
     this.stats.total++;
-
-    if (!this.circuitBreaker.canExecute()) {
-      const state = this.circuitBreaker.getState();
-      this.logger.warn(
-        formatWorkerLog(WorkerLogStatus.RATE_LIMITED, this.stats.total, job.id, 0, `Circuit breaker is ${state}`),
-      );
-      throw new Error(`Circuit breaker ${state}`);
-    }
-
-    if (this.circuitBreaker.getState() === CircuitState.HALF_OPEN) {
-      this.circuitBreaker.recordHalfOpenCall();
-    }
 
     await job.updateProgress(10);
 
@@ -132,15 +121,13 @@ export class CharactersWorker extends WorkerHost {
       const characterEntityOriginal = this.charactersRepository.create(characterEntity);
       const nameSlug = toSlug(characterEntity.name);
 
+      const client = await this.acquireClient();
+
       this.inheritSafeValuesFromArgs(characterEntity, message);
 
-      await this.initializeApiClient(message);
+      const status = await this.characterService.getStatus(client, nameSlug, characterEntity.realm);
 
-      const status = await this.characterService.getStatus(this.client, nameSlug, characterEntity.realm);
-
-      if (this.currentAccessToken) {
-        await this.recordSuccess(this.currentAccessToken);
-      }
+      await this.battleNetService.recordKeySuccess();
 
       const hasStatus = Boolean(status);
       if (hasStatus) Object.assign(characterEntity, status);
@@ -149,7 +136,7 @@ export class CharactersWorker extends WorkerHost {
 
       if (isValidCharacter) {
         await job.updateProgress(50);
-        await this.fetchAndUpdateCharacterData(characterEntity, nameSlug);
+        await this.fetchAndUpdateCharacterData(client, characterEntity, nameSlug);
         await job.updateProgress(70);
       }
 
@@ -168,8 +155,6 @@ export class CharactersWorker extends WorkerHost {
         this.logProgress();
       }
 
-      this.circuitBreaker.recordSuccess();
-
       await job.updateProgress(100);
 
       return characterEntity;
@@ -179,7 +164,8 @@ export class CharactersWorker extends WorkerHost {
       const updatedBy = message.updatedBy || 'unknown';
 
       if (errorOrException instanceof RateLimitError) {
-        this.circuitBreaker.recordFailure();
+        await this.battleNetService.recordKeyRateLimit();
+
         this.stats.rateLimit++;
         this.logger.warn(
           formatWorkerLog(
@@ -193,10 +179,7 @@ export class CharactersWorker extends WorkerHost {
         throw errorOrException;
       }
 
-      if (this.currentAccessToken) {
-        const statusCode = isAxiosError(errorOrException) ? errorOrException.response?.status : 0;
-        await this.recordError(this.currentAccessToken, statusCode);
-      }
+      await this.battleNetService.recordKeyError();
 
       this.stats.errors++;
       this.logger.error(formatWorkerErrorLog(this.stats.total, guid, duration, errorOrException.message, updatedBy));
@@ -257,163 +240,33 @@ export class CharactersWorker extends WorkerHost {
     }
   }
 
-  private async getNextKey(tag: string = 'blizzard'): Promise<KeysEntity | null> {
-    try {
-      const query = this.keysRepository.createQueryBuilder('key');
-      query.where('key.status = :status', { status: KEY_STATUS.ACTIVE });
-      query.andWhere('(key.cooldown_until IS NULL OR key.cooldown_until < :now)', {
-        now: new Date(),
-      });
-      query.orderBy('key.priority', 'ASC');
-      query.addOrderBy('key.last_request_at', 'ASC', 'NULLS FIRST');
-      query.limit(1);
-
-      const key = await query.getOne();
-      return key;
-    } catch (error) {
-      this.logger.error(`${chalk.red('✗')} Failed to get next key: ${(error as Error).message}`);
-      return null;
-    }
-  }
-
-  private async initializeApiClient(args: ICharacterMessageBase): Promise<void> {
-    const pooledKey = await this.getNextKey('blizzard');
-
-    if (pooledKey && pooledKey.token) {
-      const region = (args.region || 'eu') as BattleNetRegion;
-      this.client = new BattleNetClient({
-        clientId: pooledKey.client,
-        clientSecret: pooledKey.secret,
-        accessToken: pooledKey.token,
-        region,
-      });
-      this.currentAccessToken = pooledKey.token;
-      return;
-    }
-
-    const region = (args.region || 'eu') as BattleNetRegion;
-    this.client = new BattleNetClient({
-      clientId: args.clientId,
-      clientSecret: args.clientSecret,
-      accessToken: args.accessToken,
-      region,
-    });
-    this.currentAccessToken = args.accessToken;
-  }
-
-  private async recordSuccess(accessToken: string): Promise<void> {
-    try {
-      const key = await this.keysRepository.findOne({ where: { token: accessToken } });
-      if (!key) return;
-
-      key.requestCount += 1;
-      key.successCount += 1;
-      key.consecutiveErrors = 0;
-      key.lastSuccessAt = new Date();
-      key.lastRequestAt = new Date();
-
-      if (key.status === KEY_STATUS.RATE_LIMITED) {
-        key.status = KEY_STATUS.ACTIVE;
-        key.cooldownUntil = null;
-      }
-
-      await this.keysRepository.save(key);
-    } catch (error) {
-      this.logger.debug(`Failed to record success: ${(error as Error).message}`);
-    }
-  }
-
-  private async recordError(accessToken: string, statusCode: number): Promise<void> {
-    try {
-      const key = await this.keysRepository.findOne({ where: { token: accessToken } });
-      if (!key) return;
-
-      key.requestCount += 1;
-      key.errorCount += 1;
-      key.consecutiveErrors += 1;
-      key.lastErrorAt = new Date();
-      key.lastRequestAt = new Date();
-
-      if (key.consecutiveErrors >= 10) {
-        key.status = KEY_STATUS.DISABLED;
-      }
-
-      await this.keysRepository.save(key);
-    } catch (error) {
-      this.logger.debug(`Failed to record error: ${(error as Error).message}`);
-    }
-  }
-
-  private async recordRateLimit(accessToken: string): Promise<void> {
-    try {
-      const key = await this.keysRepository.findOne({ where: { token: accessToken } });
-      if (!key) return;
-
-      const cooldownUntil = new Date(Date.now() + 5 * 60 * 1000);
-
-      key.requestCount += 1;
-      key.rateLimitCount += 1;
-      key.consecutiveErrors += 1;
-      key.lastRateLimitAt = new Date();
-      key.lastRequestAt = new Date();
-      key.status = KEY_STATUS.RATE_LIMITED;
-      key.cooldownUntil = cooldownUntil;
-
-      await this.keysRepository.save(key);
-    } catch (error) {
-      this.logger.debug(`Failed to record rate limit: ${(error as Error).message}`);
-    }
-  }
-
-  private async handleRateLimitAndRotate(): Promise<boolean> {
-    if (!this.currentAccessToken) return false;
-
-    await this.recordRateLimit(this.currentAccessToken);
-
-    const nextKey = await this.getNextKey('blizzard');
-
-    if (nextKey && nextKey.token && nextKey.token !== this.currentAccessToken) {
-      const region = (nextKey.tags?.includes('us') ? 'us' : 'eu') as BattleNetRegion;
-      this.client = new BattleNetClient({
-        clientId: nextKey.client,
-        clientSecret: nextKey.secret,
-        accessToken: nextKey.token,
-        region,
-      });
-
-      this.logger.log(
-        `${chalk.yellow('🔄')} Rotated to key [${chalk.dim(nextKey.client?.substring(0, 8))}...]`,
-      );
-      return true;
-    }
-
-    this.logger.warn(`${chalk.yellow('⚠')} No alternative key available for rotation`);
-    return false;
-  }
-
-  private async fetchAndUpdateCharacterData(characterEntity: CharactersEntity, nameSlug: string): Promise<void> {
+  private async fetchAndUpdateCharacterData(
+    client: BattleNetClient,
+    characterEntity: CharactersEntity,
+    nameSlug: string,
+  ): Promise<void> {
     let status = characterEntity.status || '------';
 
     const tasks = [
       {
         name: 'summary',
-        fn: () => this.callWithRetry(() => this.characterService.getSummary(this.client, nameSlug, characterEntity.realm)),
+        fn: () => this.characterService.getSummary(client, nameSlug, characterEntity.realm),
       },
       {
         name: 'pets',
-        fn: () => this.callWithRetry(() => this.fetchAndSyncPets(nameSlug, characterEntity.realm)),
+        fn: () => this.fetchAndSyncPets(client, nameSlug, characterEntity.realm),
       },
       {
         name: 'mounts',
-        fn: () => this.callWithRetry(() => this.fetchAndSyncMounts(nameSlug, characterEntity.realm)),
+        fn: () => this.fetchAndSyncMounts(client, nameSlug, characterEntity.realm),
       },
       {
         name: 'media',
-        fn: () => this.callWithRetry(() => this.characterService.getMedia(this.client, nameSlug, characterEntity.realm)),
+        fn: () => this.characterService.getMedia(client, nameSlug, characterEntity.realm),
       },
       {
         name: 'professions',
-        fn: () => this.callWithRetry(() => this.fetchAndSyncProfessions(nameSlug, characterEntity.realm)),
+        fn: () => this.fetchAndSyncProfessions(client, nameSlug, characterEntity.realm),
       },
     ];
 
@@ -453,44 +306,12 @@ export class CharactersWorker extends WorkerHost {
     characterEntity.status = status;
   }
 
-  private async callWithRetry<T>(fn: () => Promise<T>, attempt = 0): Promise<T> {
-    const maxRetries = 2;
-    const baseDelayMs = 1000;
-
-    try {
-      const result = await fn();
-      if (this.currentAccessToken) {
-        await this.recordSuccess(this.currentAccessToken);
-      }
-      return result;
-    } catch (error) {
-      const isRateLimit = isAxiosError(error) && error.response?.status === 429;
-
-      if (isRateLimit && attempt < maxRetries && this.currentAccessToken) {
-        await this.recordRateLimit(this.currentAccessToken);
-        const delayMs = baseDelayMs * Math.pow(2, attempt) + Math.random() * 500;
-        this.logger.warn(
-          `${chalk.yellow('⚠')} Rate limited, retrying in ${Math.round(delayMs)}ms (attempt ${attempt + 1}/${maxRetries})`,
-        );
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-
-        const rotated = await this.handleRateLimitAndRotate();
-        if (rotated) {
-          return this.callWithRetry(fn, attempt + 1);
-        }
-        throw error;
-      }
-
-      if (this.currentAccessToken) {
-        const statusCode = isAxiosError(error) ? (error.response?.status ?? 0) : 0;
-        await this.recordError(this.currentAccessToken, statusCode);
-      }
-      throw error;
-    }
-  }
-
-  private async fetchAndSyncPets(nameSlug: string, realmSlug: string): Promise<PetsFetchResult> {
-    const petsResponse = await this.characterService.getPetsCollection(this.client, nameSlug, realmSlug);
+  private async fetchAndSyncPets(
+    client: BattleNetClient,
+    nameSlug: string,
+    realmSlug: string,
+  ): Promise<PetsFetchResult> {
+    const petsResponse = await this.characterService.getPetsCollection(client, nameSlug, realmSlug);
 
     const hasPetsResponse = Boolean(petsResponse);
     if (!hasPetsResponse) {
@@ -500,8 +321,12 @@ export class CharactersWorker extends WorkerHost {
     return this.collectionSyncService.syncCharacterPets(nameSlug, realmSlug, petsResponse, true);
   }
 
-  private async fetchAndSyncMounts(nameSlug: string, realmSlug: string): Promise<MountsFetchResult> {
-    const mountsResponse = await this.characterService.getMountsCollection(this.client, nameSlug, realmSlug);
+  private async fetchAndSyncMounts(
+    client: BattleNetClient,
+    nameSlug: string,
+    realmSlug: string,
+  ): Promise<MountsFetchResult> {
+    const mountsResponse = await this.characterService.getMountsCollection(client, nameSlug, realmSlug);
 
     const hasMountsResponse = Boolean(mountsResponse);
     if (!hasMountsResponse) {
@@ -511,8 +336,12 @@ export class CharactersWorker extends WorkerHost {
     return this.collectionSyncService.syncCharacterMounts(nameSlug, realmSlug, mountsResponse, true);
   }
 
-  private async fetchAndSyncProfessions(nameSlug: string, realmSlug: string): Promise<ProfessionsFetchResult> {
-    const professionsResponse = await this.characterService.getProfessions(this.client, nameSlug, realmSlug);
+  private async fetchAndSyncProfessions(
+    client: BattleNetClient,
+    nameSlug: string,
+    realmSlug: string,
+  ): Promise<ProfessionsFetchResult> {
+    const professionsResponse = await this.characterService.getProfessions(client, nameSlug, realmSlug);
 
     const hasProfessionResponse = Boolean(professionsResponse);
     if (!hasProfessionResponse) {

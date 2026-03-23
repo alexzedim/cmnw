@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { BlizzAPI } from '@alexzedim/blizzapi';
 import { isAxiosError } from 'axios';
 import * as changeCase from 'change-case';
 import { get } from 'lodash';
@@ -22,25 +21,10 @@ export class GuildSummaryService {
     timestamp: true,
   });
 
-  async getSummary(guildNameSlug: string, realmSlug: string, BNet: BlizzAPI): Promise<Partial<IGuildSummary>> {
-    const summary: Partial<IGuildSummary> = {};
-
-    try {
-      const response: Record<string, any> = await BNet.query(
-        `/data/wow/guild/${realmSlug}/${guildNameSlug}`,
-        apiConstParams(API_HEADERS_ENUM.PROFILE),
-      );
-
-      if (!isGuildSummary(response)) {
-        return summary;
-      }
-
-      this.populateSummary(response, summary);
-      summary.status = setGuildStatusString('-----', 'SUMMARY', GuildStatusState.SUCCESS);
-      return summary;
-    } catch (errorOrException) {
-      return await this.handleSummaryError(errorOrException, summary, guildNameSlug, realmSlug, BNet);
-    }
+  async getSummary(guildNameSlug: string, realmSlug: string, BNet: any): Promise<Partial<IGuildSummary>> {
+    // TODO: Reimplement with new client pattern
+    this.logger.debug({ logTag: 'getSummary', message: 'Guild summary disabled - awaiting new client pattern' });
+    return {};
   }
 
   private populateSummary(response: BlizzardApiGuildSummary, summary: Partial<IGuildSummary>): void {
@@ -81,7 +65,6 @@ export class GuildSummaryService {
     summary: Partial<IGuildSummary>,
     guildNameSlug: string,
     realmSlug: string,
-    BNet: BlizzAPI,
   ): Promise<Partial<IGuildSummary>> {
     const statusCode = isAxiosError(errorOrException)
       ? errorOrException.response?.status

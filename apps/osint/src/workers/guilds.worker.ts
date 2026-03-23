@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { BlizzAPI } from '@alexzedim/blizzapi';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -56,7 +55,8 @@ export class GuildsWorker extends WorkerHost {
     startTime: Date.now(),
   };
 
-  private BNet: BlizzAPI;
+  // TODO: Replace with new Blizzard API client implementation
+  private BNet: any;
   private currentAccessToken: string | null = null;
 
   constructor(
@@ -290,7 +290,8 @@ export class GuildsWorker extends WorkerHost {
     this.logger.log(formatFinalSummary('GuildsWorker', this.stats, 'guilds'));
   }
 
-  private async initializeApiClient(args: IGuildMessageBase): Promise<{ client: BlizzAPI; accessToken: string }> {
+  // TODO: Replace with new Blizzard API client implementation
+  private async initializeApiClient(args: IGuildMessageBase): Promise<{ client: any; accessToken: string }> {
     const pooledKey = await this.blizzardApiService.getNextKey({
       tag: 'blizzard',
       skipCooldown: true,
@@ -316,10 +317,11 @@ export class GuildsWorker extends WorkerHost {
     return { client, accessToken: args.accessToken };
   }
 
+  // TODO: Replace with new Blizzard API client implementation
   private async handleRateLimitAndRotate(
     currentAccessToken: string,
-    currentClient: BlizzAPI,
-  ): Promise<{ client: BlizzAPI; accessToken: string } | null> {
+    currentClient: any,
+  ): Promise<{ client: any; accessToken: string } | null> {
     const rotationResult = await this.blizzardApiService.rotateOnRateLimit(currentAccessToken, {
       tag: 'blizzard',
     });

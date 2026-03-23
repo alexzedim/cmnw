@@ -1,6 +1,5 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { S3Service } from '@app/s3';
-import { BlizzAPI } from '@alexzedim/blizzapi';
 import csv from 'async-csv';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { get } from 'lodash';
@@ -54,7 +53,7 @@ export class XvaService implements OnApplicationBootstrap {
     timestamp: true,
   });
 
-  private BNet: BlizzAPI;
+  // TODO: Replace with new Blizzard API client implementation
 
   constructor(
     @InjectRedis()
@@ -298,105 +297,115 @@ export class XvaService implements OnApplicationBootstrap {
 
       const key = await getKey(this.keysRepository, clearance);
 
-      this.BNet = this.blizzardApiService.createClient({
-        clientId: key.client,
-        clientSecret: key.secret,
-        accessToken: key.token,
-        region: 'eu',
+      // TODO: Blizzard API call skipped - reimplement with new client
+      // this.BNet = this.blizzardApiService.createClient({
+      //   clientId: key.client,
+      //   clientSecret: key.secret,
+      //   accessToken: key.token,
+      //   region: 'eu',
+      // });
+
+      this.logger.debug({
+        logTag,
+        message: 'TODO: Blizzard API call skipped - reimplement with new client',
       });
+      return;
 
-      const professionIndexResponse = await this.BNet.query<IProfessionResponse>('/data/wow/profession/index', {
-        timeout: 10000,
-        headers: { 'Battlenet-Namespace': 'static-eu' },
-      });
+      // TODO: Blizzard API call skipped - reimplement with new client
+      // const professionIndexResponse = await this.BNet.query<IProfessionResponse>('/data/wow/profession/index', {
+      //   timeout: 10000,
+      //   headers: { 'Battlenet-Namespace': 'static-eu' },
+      // });
 
-      if (!isBnetProfessionIndexResponse(professionIndexResponse)) {
-        this.logger.error({
-          logTag,
-          error: professionIndexResponse,
-          message: 'Invalid profession index response',
-        });
-        return;
-      }
+      // TODO: Blizzard API call skipped - reimplement with new client
+      // if (!isBnetProfessionIndexResponse(professionIndexResponse)) {
+      //   this.logger.error({
+      //     logTag,
+      //     error: professionIndexResponse,
+      //     message: 'Invalid profession index response',
+      //   });
+      //   return;
+      // }
 
-      const { professions } = professionIndexResponse;
+      // TODO: Blizzard API call skipped - reimplement with new client
+      // const { professions } = professionIndexResponse;
 
-      for (const profession of professions) {
-        const professionDetailResponse = await this.BNet.query<IProfessionDetailResponse>(
-          `/data/wow/profession/${profession.id}`,
-          {
-            timeout: 10000,
-            headers: { 'Battlenet-Namespace': 'static-eu' },
-          },
-        );
+      // for (const profession of professions) {
+      //   const professionDetailResponse = await this.BNet.query<IProfessionDetailResponse>(
+      //     `/data/wow/profession/${profession.id}`,
+      //     {
+      //       timeout: 10000,
+      //       headers: { 'Battlenet-Namespace': 'static-eu' },
+      //     },
+      //   );
 
-        if (!isBnetProfessionDetailResponse(professionDetailResponse)) {
-          this.logger.warn({
-            logTag,
-            professionId: profession.id,
-            message: `Invalid or missing profession detail for ID ${profession.id}`,
-          });
-          continue;
-        }
+      //   if (!isBnetProfessionDetailResponse(professionDetailResponse)) {
+      //     this.logger.warn({
+      //       logTag,
+      //       professionId: profession.id,
+      //       message: `Invalid or missing profession detail for ID ${profession.id}`,
+      //     });
+      //     continue;
+      //   }
 
-        const { skill_tiers } = professionDetailResponse;
+      //   const { skill_tiers } = professionDetailResponse;
 
-        for (const tier of skill_tiers) {
-          let expansion: string = 'CLSC';
+      //   for (const tier of skill_tiers) {
+      //     let expansion: string = 'CLSC';
 
-          Array.from(EXPANSION_TICKER_MAP.entries()).some(([k, v]) => {
-            if (tier.name.en_GB?.includes(k)) {
-              expansion = v;
-              return true;
-            }
-            return false;
-          });
+      //     Array.from(EXPANSION_TICKER_MAP.entries()).some(([k, v]) => {
+      //       if (tier.name.en_GB?.includes(k)) {
+      //         expansion = v;
+      //         return true;
+      //       }
+      //       return false;
+      //     });
 
-          const skillTierDetailResponse = await this.BNet.query<ISkillTieryResponse>(
-            `/data/wow/profession/${profession.id}/skill-tier/${tier.id}`,
-            {
-              timeout: 10000,
-              headers: { 'Battlenet-Namespace': 'static-eu' },
-            },
-          );
+      //     const skillTierDetailResponse = await this.BNet.query<ISkillTieryResponse>(
+      //       `/data/wow/profession/${profession.id}/skill-tier/${tier.id}`,
+      //       {
+      //         timeout: 10000,
+      //         headers: { 'Battlenet-Namespace': 'static-eu' },
+      //       },
+      //     );
 
-          if (!isBnetSkillTierDetailResponse(skillTierDetailResponse)) {
-            this.logger.warn({
-              logTag,
-              professionId: profession.id,
-              tierId: tier.id,
-              message: `Invalid or missing skill tier detail for profession ${profession.id}, tier ${tier.id}`,
-            });
-            continue;
-          }
+      //     if (!isBnetSkillTierDetailResponse(skillTierDetailResponse)) {
+      //       this.logger.warn({
+      //         logTag,
+      //         professionId: profession.id,
+      //         tierId: tier.id,
+      //         message: `Invalid or missing skill tier detail for profession ${profession.id}, tier ${tier.id}`,
+      //       });
+      //       continue;
+      //     }
 
-          const { categories } = skillTierDetailResponse;
+      //     const { categories } = skillTierDetailResponse;
 
-          for (const category of categories) {
-            const { recipes } = category;
-            if (!recipes) continue;
+      //     for (const category of categories) {
+      //       const { recipes } = category;
+      //       if (!recipes) continue;
 
-            for (const recipe of recipes) {
-              // @todo request one by one before inserting
-              const pricingExists = await this.pricingRepository.existsBy({
-                recipeId: recipe.id,
-                expansion: expansion,
-                profession: String(profession.id),
-              });
+      //       for (const recipe of recipes) {
+      //         // @todo request one by one before inserting
+      //         const pricingExists = await this.pricingRepository.existsBy({
+      //           recipeId: recipe.id,
+      //           expansion: expansion,
+      //           profession: String(profession.id),
+      //         });
 
-              if (!pricingExists) {
-                const pricingEntity = this.pricingRepository.create({
-                  recipeId: recipe.id,
-                  expansion: expansion,
-                  profession: String(profession.id),
-                });
+      //         if (!pricingExists) {
+      //           const pricingEntity = this.pricingRepository.create({
+      //             recipeId: recipe.id,
+      //             expansion: expansion,
+      //             profession: String(profession.id),
+      //           });
 
-                await this.pricingRepository.save(pricingEntity);
-              }
-            }
-          }
-        }
-      }
+      //           await this.pricingRepository.save(pricingEntity);
+      //         }
+      //       }
+      //     }
+      //   }
+      // }
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });
     }

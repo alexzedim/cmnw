@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { BlizzAPI } from '@alexzedim/blizzapi';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { isAxiosError } from 'axios';
@@ -49,7 +48,20 @@ export class GuildRosterService {
     private readonly charactersRepository: Repository<CharactersEntity>,
   ) {}
 
-  async fetchRoster(guildEntity: GuildsEntity, BNet: BlizzAPI): Promise<IGuildRoster> {
+  async fetchRoster(guildEntity: GuildsEntity): Promise<IGuildRoster> {
+    const roster: IGuildRoster = { members: [] };
+
+    this.logger.debug({
+      logTag: 'fetchRoster',
+      guildGuid: guildEntity.guid,
+      message: 'TODO: reimplement with new client pattern',
+    });
+
+    return roster;
+  }
+
+  // TODO: reimplement with new client pattern
+  private async _fetchRosterOriginal(guildEntity: GuildsEntity, BNet: any): Promise<IGuildRoster> {
     const roster: IGuildRoster = { members: [] };
 
     try {
@@ -66,7 +78,7 @@ export class GuildRosterService {
       await lastValueFrom(
         from(response.members).pipe(
           mergeMap(
-            (member) => this.processRosterMember(member, guildEntity, guildNameSlug, roster, BNet),
+            (member) => this.processRosterMember(member, guildEntity, guildNameSlug, roster),
             GUILD_WORKER_CONSTANTS.ROSTER_CONCURRENCY,
           ),
         ),
@@ -75,7 +87,7 @@ export class GuildRosterService {
       roster.status = setGuildStatusString('-----', 'ROSTER', GuildStatusState.SUCCESS);
       return roster;
     } catch (errorOrException) {
-      return await this.handleRosterError(errorOrException, roster, guildEntity, BNet);
+      return await this.handleRosterError(errorOrException, roster, guildEntity);
     }
   }
 
@@ -84,7 +96,6 @@ export class GuildRosterService {
     guildEntity: GuildsEntity,
     guildNameSlug: string,
     roster: IGuildRoster,
-    BNet: BlizzAPI,
   ): Promise<void> {
     try {
       const isMember = isGuildMember(member);
@@ -137,7 +148,6 @@ export class GuildRosterService {
           characterClass,
           characterRace,
           resolvedFaction,
-          BNet,
         );
       }
 
@@ -184,7 +194,6 @@ export class GuildRosterService {
     characterClass: string | null,
     characterRace: string | null,
     faction: string | null,
-    BNet: BlizzAPI,
   ): Promise<void> {
     const resolvedFaction = faction ?? guildEntity.faction ?? undefined;
     const dto = CharacterMessageDto.fromGuildMaster({
@@ -235,7 +244,6 @@ export class GuildRosterService {
     errorOrException: any,
     roster: IGuildRoster,
     guildEntity: GuildsEntity,
-    BNet: BlizzAPI,
   ): Promise<IGuildRoster> {
     const statusCode = isAxiosError(errorOrException)
       ? errorOrException.response?.status

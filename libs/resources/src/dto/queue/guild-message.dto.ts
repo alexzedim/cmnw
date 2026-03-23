@@ -2,8 +2,11 @@ import { toGuid } from '../../transformers';
 import { OSINT_SOURCE, TIME_MS } from '../../constants';
 import { Logger } from '@nestjs/common';
 import { JobsOptions } from 'bullmq';
-import { RegionIdOrName } from '@alexzedim/blizzapi';
+
 import { guildsQueue } from '../../queues/guilds.queue';
+
+// TODO: Define RegionIdOrName type locally - was imported from @alexzedim/blizzapi
+export type RegionIdOrName = string;
 
 /**
  * Guild Message DTO for BullMQ

@@ -1,6 +1,8 @@
-import type { BattleNetOptions } from '@alexzedim/blizzapi';
 import { CharactersEntity, GuildsEntity } from '@app/pg';
 import { IQAuction, IQCharacterProfile, IQGuild, IQGuildOptions, IQItem, IQRealm } from '@app/resources/types';
+
+// TODO: Define BattleNetOptions type locally - was imported from @alexzedim/blizzapi
+export type BattleNetOptions = Record<string, unknown>;
 
 // ============================================================================
 // BullMQ Configuration Types

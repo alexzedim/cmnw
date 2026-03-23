@@ -4,11 +4,12 @@ import { WarcraftLogsService } from './warcraft-logs.service';
 
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CharactersRaidLogsEntity, KeysEntity, RealmsEntity } from '@app/pg';
+import { CharactersRaidLogsEntity, RealmsEntity } from '@app/pg';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { REDIS_CONNECTION, postgresConfig, redisConfig } from '@app/configuration';
 import { BullModule } from '@nestjs/bullmq';
 import { charactersQueue, guildsQueue, profileQueue } from '@app/resources';
+import { BattleNetModule } from '@app/battle-net';
 
 @Module({
   imports: [
@@ -23,7 +24,7 @@ import { charactersQueue, guildsQueue, profileQueue } from '@app/resources';
       },
     }),
     TypeOrmModule.forRoot(postgresConfig),
-    TypeOrmModule.forFeature([KeysEntity, RealmsEntity, CharactersRaidLogsEntity]),
+    TypeOrmModule.forFeature([RealmsEntity, CharactersRaidLogsEntity]),
     BullModule.forRoot({
       connection: REDIS_CONNECTION,
     }),
@@ -42,6 +43,7 @@ import { charactersQueue, guildsQueue, profileQueue } from '@app/resources';
       connection: profileQueue.connection,
       defaultJobOptions: profileQueue.defaultJobOptions,
     }),
+    BattleNetModule,
   ],
   controllers: [],
   providers: [WarcraftLogsService],

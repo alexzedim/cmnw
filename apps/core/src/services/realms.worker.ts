@@ -63,9 +63,9 @@ export class RealmsWorker extends WorkerHost {
     }
 
     return this.battleNetService.createClient({
-      clientId: key.client,
-      clientSecret: key.secret,
-      accessToken: key.token,
+      clientId: key.clientId,
+      clientSecret: key.clientSecret,
+      accessToken: key.accessToken,
       region: message.region,
     });
   }

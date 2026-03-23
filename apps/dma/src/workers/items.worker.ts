@@ -22,7 +22,6 @@ import {
 import { BlizzardApiService } from '@app/resources/services';
 import { ItemsEntity } from '@app/pg';
 import { Job } from 'bullmq';
-import { BlizzAPI } from '@alexzedim/blizzapi';
 import { get } from 'lodash';
 import { isAxiosError } from 'axios';
 import {
@@ -42,7 +41,7 @@ export class ItemsWorker extends WorkerHost {
     timestamp: true,
   });
 
-  private BNet: BlizzAPI;
+  // TODO: Replace with new Blizzard API client implementation
 
   private stats: WorkerStats = {
     total: 0,
@@ -79,25 +78,30 @@ export class ItemsWorker extends WorkerHost {
         });
       }
 
-      this.BNet = this.blizzardApiService.createClient({
-        clientId: args.clientId,
-        clientSecret: args.clientSecret,
-        accessToken: args.accessToken,
-        region: args.region || 'eu',
-      });
+      // TODO: Re-implement Blizzard API client
+      // this.BNet = this.blizzardApiService.createClient({
+      //   clientId: args.clientId,
+      //   clientSecret: args.clientSecret,
+      //   accessToken: args.accessToken,
+      //   region: args.region || 'eu',
+      // });
 
       // --- Request item data --- //
-      const isMultiLocale = true;
-      const [getItemSummary, getItemMedia] = await Promise.allSettled([
-        this.BNet.query<BlizzardApiItem>(
-          `/data/wow/item/${args.itemId}`,
-          apiConstParams(API_HEADERS_ENUM.STATIC, TOLERANCE_ENUM.DMA, isMultiLocale),
-        ),
-        this.BNet.query(
-          `/data/wow/media/item/${args.itemId}`,
-          apiConstParams(API_HEADERS_ENUM.STATIC, TOLERANCE_ENUM.DMA),
-        ),
-      ]);
+      // TODO: Re-implement Blizzard API calls
+      // const isMultiLocale = true;
+      // const [getItemSummary, getItemMedia] = await Promise.allSettled([
+      //   this.BNet.query<BlizzardApiItem>(
+      //     `/data/wow/item/${args.itemId}`,
+      //     apiConstParams(API_HEADERS_ENUM.STATIC, TOLERANCE_ENUM.DMA, isMultiLocale),
+      //   ),
+      //   this.BNet.query(
+      //     `/data/wow/media/item/${args.itemId}`,
+      //     apiConstParams(API_HEADERS_ENUM.STATIC, TOLERANCE_ENUM.DMA),
+      //   ),
+      // ]);
+
+      // Debug: Skip API calls
+      this.logger.debug(`Skipping API calls for item ${args.itemId}`);
 
       const isItemValid = isItem(getItemSummary);
       if (!isItemValid) {

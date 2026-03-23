@@ -6,22 +6,17 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { KeysEntity, MarketEntity, RealmsEntity } from '@app/pg';
 import { LessThan, Not, Repository } from 'typeorm';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
-import { BlizzAPI } from '@alexzedim/blizzapi';
 import {
   API_HEADERS_ENUM,
-  apiConstParams,
   AuctionMessageDto,
   auctionsQueue,
   BlizzardApiWowToken,
-  getKey,
-  getKeys,
   GLOBAL_DMA_KEY,
   IAuctionMessageBase,
   isWowToken,
   MARKET_TYPE,
   REALM_ENTITY_ANY,
   toGold,
-  TOLERANCE_ENUM,
   WOW_TOKEN_ITEM_ID,
 } from '@app/resources';
 import { BlizzardApiService } from '@app/resources/services';
@@ -30,7 +25,7 @@ import { Queue } from 'bullmq';
 
 @Injectable()
 export class AuctionsService implements OnApplicationBootstrap {
-  private BNet: BlizzAPI;
+  // TODO: Replace with new Blizzard API client implementation
   private readonly logger = new Logger(AuctionsService.name, {
     timestamp: true,
   });
@@ -48,12 +43,12 @@ export class AuctionsService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
-    await this.indexAuctions(GLOBAL_DMA_KEY);
-    await this.indexCommodity(GLOBAL_DMA_KEY);
+    await this.indexAuctions();
+    await this.indexCommodity();
   }
 
   @Cron(CronExpression.EVERY_10_MINUTES)
-  private async indexAuctions(clearance: string = GLOBAL_DMA_KEY): Promise<void> {
+  private async indexAuctions(): Promise<void> {
     const logTag = this.indexAuctions.name;
     try {
       const { isIndexAuctions } = dmaConfig;
@@ -66,7 +61,6 @@ export class AuctionsService implements OnApplicationBootstrap {
 
       await this.queue.drain(true);
 
-      const [keyEntity] = await getKeys(this.keysRepository, clearance);
       const offsetTime = DateTime.now().minus({ minutes: 30 }).toMillis();
 
       const realmsEntity = await this.realmsRepository
@@ -83,9 +77,6 @@ export class AuctionsService implements OnApplicationBootstrap {
               connectedRealmId: realmEntity.connectedRealmId,
               auctionsTimestamp: realmEntity.auctionsTimestamp,
               region: 'eu',
-              clientId: keyEntity.client,
-              clientSecret: keyEntity.secret,
-              accessToken: keyEntity.token,
               isAssetClassIndex: true,
             });
 
@@ -107,7 +98,7 @@ export class AuctionsService implements OnApplicationBootstrap {
   }
 
   @Cron(CronExpression.EVERY_5_MINUTES)
-  private async indexCommodity(clearance: string = GLOBAL_DMA_KEY) {
+  private async indexCommodity() {
     const logTag = this.indexCommodity.name;
     try {
       const { isIndexCommodity } = dmaConfig;
@@ -118,17 +109,12 @@ export class AuctionsService implements OnApplicationBootstrap {
       });
       if (!isIndexCommodity) return;
 
-      const [keyEntity] = await getKeys(this.keysRepository, clearance);
-
       const realmEntity = await this.realmsRepository.findOneBy({
         connectedRealmId: REALM_ENTITY_ANY.id,
       });
 
       const message = AuctionMessageDto.create({
         region: 'eu',
-        clientId: keyEntity.client,
-        clientSecret: keyEntity.secret,
-        accessToken: keyEntity.token,
         connectedRealmId: realmEntity.connectedRealmId,
         commoditiesTimestamp: realmEntity.commoditiesTimestamp,
         isAssetClassIndex: true,
@@ -148,12 +134,16 @@ export class AuctionsService implements OnApplicationBootstrap {
   }
 
   @Cron(CronExpression.EVERY_5_MINUTES)
-  async indexTokens(clearance: string = GLOBAL_DMA_KEY): Promise<void> {
+  async indexTokens(): Promise<void> {
     const logTag = this.indexTokens.name;
     try {
-      const key = await getKey(this.keysRepository, clearance);
 
-      this.BNet = this.blizzardApiService.createClient({
+      // TODO: Reimplement with new Blizzard API client pattern
+      this.logger.debug({
+        logTag,
+        message: 'TODO: Blizzard API call skipped - reimplement with new client',
+      });
+      /* this.BNet = this.blizzardApiService.createClient({
         clientId: key.client,
         clientSecret: key.secret,
         accessToken: key.token,
@@ -163,7 +153,7 @@ export class AuctionsService implements OnApplicationBootstrap {
       const response = await this.BNet.query<BlizzardApiWowToken>(
         '/data/wow/token/index',
         apiConstParams(API_HEADERS_ENUM.DYNAMIC, TOLERANCE_ENUM.DMA, false),
-      );
+      ); */
 
       const isWowTokenValid = isWowToken(response);
       if (!isWowTokenValid) {

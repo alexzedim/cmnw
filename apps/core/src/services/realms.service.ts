@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException, OnApplicationBootstrap } from '@nestjs/common';
 import * as cheerio from 'cheerio';
-import { BlizzAPI } from '@alexzedim/blizzapi';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -30,7 +29,7 @@ import { LoggerService } from '@app/logger';
 export class RealmsService implements OnApplicationBootstrap {
   private readonly logger = new LoggerService(RealmsService.name);
 
-  private BNet: BlizzAPI;
+  // TODO: Replace with new Blizzard API client implementation
 
   constructor(
     private httpService: HttpService,
@@ -66,40 +65,45 @@ export class RealmsService implements OnApplicationBootstrap {
 
       await this.realmsQueue.drain(true);
 
-      this.BNet = this.blizzardApiService.createClient({
-        clientId: keyEntity.client,
-        clientSecret: keyEntity.secret,
-        accessToken: keyEntity.token,
-        region: 'eu',
-      });
+      // TODO: Replace with new Blizzard API client implementation
+      // this.BNet = this.blizzardApiService.createClient({
+      //   clientId: keyEntity.clientId,
+      //   clientSecret: keyEntity.clientSecret,
+      //   accessToken: keyEntity.accessToken,
+      //   region: 'eu',
+      // });
 
-      const { realms: realmList }: Record<string, any> = await this.BNet.query(
-        '/data/wow/realm/index',
-        apiConstParams(API_HEADERS_ENUM.DYNAMIC, OSINT_TIMEOUT_TOLERANCE),
-      );
+      // TODO: Replace with new Blizzard API client implementation
+      // const { realms: realmList }: Record<string, any> = await this.BNet.query(
+      //   '/data/wow/realm/index',
+      //   apiConstParams(API_HEADERS_ENUM.DYNAMIC, OSINT_TIMEOUT_TOLERANCE),
+      // );
 
-      for (const { id, name, slug } of realmList) {
-        this.logger.log({
-          logTag,
-          realmId: id,
-          realmName: name,
-          message: `Processing realm: ${id}:${name}`,
-        });
+      this.logger.debug({ logTag, message: 'TODO: Blizzard API call skipped - reimplement with new client' });
 
-        const dto = RealmMessageDto.create({
-          id: id,
-          name: name,
-          slug: slug,
-          region: 'eu',
-          clientId: keyEntity.client,
-          clientSecret: keyEntity.secret,
-          accessToken: keyEntity.token,
-        });
+      // TODO: Replace with new Blizzard API client implementation
+      // for (const { id, name, slug } of realmList) {
+      //   this.logger.log({
+      //     logTag,
+      //     realmId: id,
+      //     realmName: name,
+      //     message: `Processing realm: ${id}:${name}`,
+      //   });
 
-        await this.realmsQueue.add(dto.name, dto.data, {
-          priority: 5,
-        });
-      }
+      //   const dto = RealmMessageDto.create({
+      //     id: id,
+      //     name: name,
+      //     slug: slug,
+      //     region: 'eu',
+      //     clientId: keyEntity.clientId,
+      //     clientSecret: keyEntity.clientSecret,
+      //     accessToken: keyEntity.accessToken,
+      //   });
+
+      //   await this.realmsQueue.add(dto.name, dto.data, {
+      //     priority: 5,
+      //   });
+      // }
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });
     }

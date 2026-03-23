@@ -4,8 +4,6 @@ import { AxiosError } from 'axios';
 import {
   CharacterMessageDto,
   FightsAPIResponse,
-  getKey,
-  getKeys,
   getRandomizedHeaders,
   GLOBAL_OSINT_KEY,
   GLOBAL_WCL_KEY_V2,
@@ -16,6 +14,7 @@ import {
   toGuid,
   toSlug,
 } from '@app/resources';
+import { BattleNetService } from '@app/battle-net';
 
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { osintConfig } from '@app/configuration';
@@ -60,10 +59,9 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
     private readonly charactersRaidLogsRepository: Repository<CharactersRaidLogsEntity>,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
-    @InjectRepository(KeysEntity)
-    private readonly keysRepository: Repository<KeysEntity>,
     @InjectQueue('osint.characters')
     private readonly charactersQueue: Queue<ICharacterMessageBase>,
+    private readonly battleNetService: BattleNetService,
   ) {
     // Initialize headers on service creation
     this.refreshHeaders();
@@ -267,8 +265,12 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
 
       await this.redisService.set(GLOBAL_WCL_KEY_V2, '1', 'EX', 60 * 59);
 
-      const wclKey = await getKey(this.keysRepository, GLOBAL_WCL_KEY_V2);
-      // --- A bit skeptical about taking the interval required semaphore --- //
+      const wclKey = await this.battleNetService.getAvailableKey(GLOBAL_WCL_KEY_V2);
+      if (!wclKey) {
+        this.logger.error(chalk.red('✗ No available WCL key'));
+        return;
+      }
+      
       const characterRaidLog = await this.charactersRaidLogsRepository.find({
         where: { isIndexed: false },
         take: 5_000,
@@ -374,7 +376,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
 
     // Fallback: Try GraphQL API (requires token, has quota)
     try {
-      const characters = await this.getCharactersFromLogs(wclKey.token, logId);
+      const characters = await this.getCharactersFromLogs(wclKey.accessToken, logId);
       if (characters.length > 0) {
         return characters;
       }
@@ -631,17 +633,13 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
   async charactersToQueue(raidCharacters: Array<RaidCharacter>): Promise<boolean> {
     try {
       let itx = 0;
-      const keys = await getKeys(this.keysRepository, GLOBAL_OSINT_KEY);
 
-      const charactersToJobs = raidCharacters.map((raidCharacter) => {
-        itx++;
-        if (itx >= keys.length) itx = 0;
-
-        return CharacterMessageDto.fromWarcraftLogs({
+      const charactersToJobs = raidCharacters.map((raidCharacter) =>
+        CharacterMessageDto.fromWarcraftLogs({
           name: raidCharacter.name,
           realm: raidCharacter.realm,
-        });
-      });
+        }),
+      );
 
       await this.charactersQueue.addBulk(
         charactersToJobs.map((job) => ({
