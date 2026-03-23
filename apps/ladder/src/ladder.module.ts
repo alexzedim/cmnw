@@ -5,17 +5,17 @@ import { HttpModule } from '@nestjs/axios';
 import { ScheduleModule } from '@nestjs/schedule';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { KeysEntity, RealmsEntity } from '@app/pg';
-import { BlizzardApiService } from '@app/resources/services';
+import { RealmsEntity } from '@app/pg';
 import { charactersQueue, guildsQueue } from '@app/resources';
 import { BullModule } from '@nestjs/bullmq';
+import { BattleNetModule } from '@app/battle-net';
 
 @Module({
   imports: [
     HttpModule,
     ScheduleModule.forRoot(),
     TypeOrmModule.forRoot(postgresConfig),
-    TypeOrmModule.forFeature([KeysEntity, RealmsEntity]),
+    TypeOrmModule.forFeature([RealmsEntity]),
     RedisModule.forRoot({
       type: 'single',
       options: {
@@ -37,8 +37,9 @@ import { BullModule } from '@nestjs/bullmq';
       connection: guildsQueue.connection,
       defaultJobOptions: guildsQueue.defaultJobOptions,
     }),
+    BattleNetModule,
   ],
   controllers: [],
-  providers: [BlizzardApiService, LadderService],
+  providers: [LadderService],
 })
 export class LadderModule {}

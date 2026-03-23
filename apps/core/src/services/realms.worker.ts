@@ -4,7 +4,8 @@ import chalk from 'chalk';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { apiConstParams, BattleNetApiNamespace, BattleNetClient, BattleNetService } from '@app/battle-net';
+import { apiConstParams, BattleNetApiNamespace, BattleNetService } from '@app/battle-net';
+import { IBattleNetClientConfig } from '@app/battle-net';
 import {
   BlizzardApiResponse,
   IConnectedRealm,
@@ -47,7 +48,7 @@ export class RealmsWorker extends WorkerHost {
     super();
   }
 
-  private async getClient(message: IRealmMessageBase): Promise<BattleNetClient> {
+  private async getClient(message: IRealmMessageBase): Promise<IBattleNetClientConfig> {
     if (message.clientId && message.clientSecret && message.accessToken) {
       return this.battleNetService.createClient({
         clientId: message.clientId,
@@ -90,12 +91,12 @@ export class RealmsWorker extends WorkerHost {
         });
       }
 
-      const client = await this.getClient(message);
+      const config = await this.getClient(message);
 
       await job.updateProgress(10);
 
       const response: Record<string, any> = await this.battleNetService.query(
-        client,
+        config,
         `/data/wow/realm/${message.slug}`,
         apiConstParams(BattleNetApiNamespace.DYNAMIC, OSINT_TIMEOUT_TOLERANCE),
       );
@@ -121,7 +122,7 @@ export class RealmsWorker extends WorkerHost {
 
       if (realmEntity.locale != 'enGB') {
         const realmLocale = await this.battleNetService.query<BlizzardApiResponse>(
-          client,
+          config,
           `/data/wow/realm/${message.slug}`,
           apiConstParams(BattleNetApiNamespace.DYNAMIC, OSINT_TIMEOUT_TOLERANCE, true),
         );
@@ -153,7 +154,7 @@ export class RealmsWorker extends WorkerHost {
       const connectedRealmId = transformConnectedRealmId(response);
       if (connectedRealmId) {
         const connectedRealm = await this.battleNetService.query<IConnectedRealm>(
-          client,
+          config,
           `/data/wow/connected-realm/${connectedRealmId}`,
           apiConstParams(BattleNetApiNamespace.DYNAMIC),
         );
