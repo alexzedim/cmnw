@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { isAxiosError } from 'axios';
@@ -28,16 +28,19 @@ import {
   ICharacterMessageBase,
 } from '@app/resources';
 import { CharactersEntity, GuildsEntity, RealmsEntity } from '@app/pg';
-import { BattleNetService, BattleNetNamespace } from '@app/battle-net';
-import { IBattleNetClientConfig } from '@app/battle-net';
+import { BattleNetService, BattleNetNamespace, BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 
 @Injectable()
-export class GuildRosterService {
+export class GuildRosterService implements OnModuleInit {
   private readonly logger = new Logger(GuildRosterService.name, {
     timestamp: true,
   });
+
+  async onModuleInit(): Promise<void> {
+    await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_OSINT);
+  }
 
   constructor(
     private readonly battleNetService: BattleNetService,
@@ -49,13 +52,12 @@ export class GuildRosterService {
     private readonly charactersRepository: Repository<CharactersEntity>,
   ) {}
 
-  async fetchRoster(config: IBattleNetClientConfig, guildEntity: GuildsEntity): Promise<IGuildRoster> {
+  async fetchRoster(guildEntity: GuildsEntity): Promise<IGuildRoster> {
     const roster: IGuildRoster = { members: [] };
 
     try {
       const guildNameSlug = toSlug(guildEntity.name);
       const response = await this.battleNetService.query<IRGuildRoster>(
-        config,
         `/data/wow/guild/${guildEntity.realm}/${guildNameSlug}/roster`,
         { namespace: BattleNetNamespace.DYNAMIC, locale: 'en_GB' },
       );
@@ -229,11 +231,7 @@ export class GuildRosterService {
     await characterAsGuildMember(this.charactersRepository, this.realmsRepository, guildEntity, guildMember);
   }
 
-  private handleRosterError(
-    errorOrException: any,
-    roster: IGuildRoster,
-    guildEntity: GuildsEntity,
-  ): IGuildRoster {
+  private handleRosterError(errorOrException: any, roster: IGuildRoster, guildEntity: GuildsEntity): IGuildRoster {
     const statusCode = isAxiosError(errorOrException)
       ? errorOrException.response?.status
       : get(errorOrException, 'status', 400);

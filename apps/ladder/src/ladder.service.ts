@@ -36,8 +36,7 @@ import {
 } from '@app/resources/guard/ladder.guard';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { BattleNetService, BattleNetNamespace } from '@app/battle-net';
-import { IBattleNetClientConfig } from '@app/battle-net';
+import { BattleNetService, BattleNetNamespace, BATTLE_NET_KEY_TAG_BLIZZARD } from '@app/battle-net';
 
 const M_PLUS_PARALLEL_REQUESTS = 3;
 
@@ -56,6 +55,7 @@ export class LadderService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
+    await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_BLIZZARD);
     await this.indexMythicPlusLadder();
     await this.indexPvPLadder();
   }
@@ -64,18 +64,11 @@ export class LadderService implements OnApplicationBootstrap {
   async indexPvPLadder(): Promise<void> {
     const logTag = this.indexPvPLadder.name;
     try {
-      const config = await this.battleNetService.initializeBlizzAPI();
-
-      if (!config) {
-        this.logger.warn({ logTag, message: 'No available keys found for PvP ladder indexing' });
-        return;
-      }
-
-      const pvpSeasonIndex = await this.fetchPvPSeasonIndex(config);
+      const pvpSeasonIndex = await this.fetchPvPSeasonIndex();
 
       validatePvPSeasonIndexResponse(pvpSeasonIndex);
 
-      await this.processPvPLeaderboards(pvpSeasonIndex.seasons, config, logTag);
+      await this.processPvPLeaderboards(pvpSeasonIndex.seasons, logTag);
 
       this.logger.log({
         logTag,
@@ -86,11 +79,7 @@ export class LadderService implements OnApplicationBootstrap {
     }
   }
 
-  private async processPvPLeaderboards(
-    seasons: PvPSeason[],
-    config: IBattleNetClientConfig,
-    logTag: string,
-  ): Promise<void> {
+  private async processPvPLeaderboards(seasons: PvPSeason[], logTag: string): Promise<void> {
     const totalRequests = seasons.length * BRACKETS.length;
     let processedCount = 0;
 
@@ -112,7 +101,7 @@ export class LadderService implements OnApplicationBootstrap {
             continue;
           }
 
-          const pvpLeaderboard = await this.fetchPvPLeaderboard(config, season.id, bracket);
+          const pvpLeaderboard = await this.fetchPvPLeaderboard(season.id, bracket);
 
           if (pvpLeaderboard.entries.length === 0) {
             await this.markPvPLeaderboardAsProcessed(season.id, bracket);
@@ -159,21 +148,16 @@ export class LadderService implements OnApplicationBootstrap {
     );
   }
 
-  private async fetchPvPSeasonIndex(config: IBattleNetClientConfig): Promise<IPvPSeasonIndexResponse> {
-    const response = await this.battleNetService.query<IPvPSeasonIndexResponse>(config, '/data/wow/pvp-season/index', {
+  private async fetchPvPSeasonIndex(): Promise<IPvPSeasonIndexResponse> {
+    const response = await this.battleNetService.query<IPvPSeasonIndexResponse>('/data/wow/pvp-season/index', {
       namespace: BattleNetNamespace.DYNAMIC,
       locale: 'en_GB',
     });
     return response;
   }
 
-  private async fetchPvPLeaderboard(
-    config: IBattleNetClientConfig,
-    seasonId: number,
-    bracket: string,
-  ): Promise<IPvPLeaderboardResponse> {
+  private async fetchPvPLeaderboard(seasonId: number, bracket: string): Promise<IPvPLeaderboardResponse> {
     const response = await this.battleNetService.query<IPvPLeaderboardResponse>(
-      config,
       `/data/wow/pvp-season/${seasonId}/pvp-leaderboard/${bracket}`,
       { namespace: BattleNetNamespace.DYNAMIC, locale: 'en_GB' },
     );
@@ -246,17 +230,10 @@ export class LadderService implements OnApplicationBootstrap {
   async indexMythicPlusLadder(): Promise<void> {
     const logTag = this.indexMythicPlusLadder.name;
     try {
-      const config = await this.battleNetService.initializeBlizzAPI();
-
-      if (!config) {
-        this.logger.warn({ logTag, message: 'No available keys found for M+ ladder indexing' });
-        return;
-      }
-
-      const { dungeons, seasons } = await this.fetchMythicPlusMetadata(config);
+      const { dungeons, seasons } = await this.fetchMythicPlusMetadata();
 
       const mythicPlusDungeons = this.buildDungeonMap(dungeons);
-      const mythicPlusExpansionWeeks = await this.fetchExpansionWeeks(config, seasons);
+      const mythicPlusExpansionWeeks = await this.fetchExpansionWeeks(seasons);
 
       const realmsEntity = await this.fetchValidRealms();
 
@@ -264,7 +241,6 @@ export class LadderService implements OnApplicationBootstrap {
         realmsEntity,
         mythicPlusDungeons,
         mythicPlusExpansionWeeks,
-        config,
         logTag,
       );
 
@@ -277,16 +253,16 @@ export class LadderService implements OnApplicationBootstrap {
     }
   }
 
-  private async fetchMythicPlusMetadata(config: IBattleNetClientConfig): Promise<{
+  private async fetchMythicPlusMetadata(): Promise<{
     dungeons: Array<{ id: number; name: string }>;
     seasons: Array<{ id: number }>;
   }> {
     const [dungeonResponse, seasonResponse] = await Promise.all([
-      this.battleNetService.query<IMythicKeystoneDungeonResponse>(config, '/data/wow/mythic-keystone/dungeon/index', {
+      this.battleNetService.query<IMythicKeystoneDungeonResponse>('/data/wow/mythic-keystone/dungeon/index', {
         namespace: BattleNetNamespace.DYNAMIC,
         locale: 'en_GB',
       }),
-      this.battleNetService.query<IMythicKeystoneSeasonResponse>(config, '/data/wow/mythic-keystone/season/index', {
+      this.battleNetService.query<IMythicKeystoneSeasonResponse>('/data/wow/mythic-keystone/season/index', {
         namespace: BattleNetNamespace.DYNAMIC,
         locale: 'en_GB',
       }),
@@ -307,16 +283,12 @@ export class LadderService implements OnApplicationBootstrap {
     return dungeonMap;
   }
 
-  private async fetchExpansionWeeks(
-    config: IBattleNetClientConfig,
-    seasons: Array<{ id: number }>,
-  ): Promise<Set<number>> {
+  private async fetchExpansionWeeks(seasons: Array<{ id: number }>): Promise<Set<number>> {
     const expansionWeeks = new Set<number>();
 
     for (const season of seasons) {
       try {
         const seasonDetailResponse = await this.battleNetService.query<IMythicKeystoneSeasonDetail>(
-          config,
           `/data/wow/mythic-keystone/season/${season.id}`,
           { namespace: BattleNetNamespace.DYNAMIC, locale: 'en_GB' },
         );
@@ -349,7 +321,6 @@ export class LadderService implements OnApplicationBootstrap {
     realmsEntity: RealmsEntity[],
     mythicPlusDungeons: Map<number, string>,
     mythicPlusExpansionWeeks: Set<number>,
-    config: IBattleNetClientConfig,
     logTag: string,
   ): Promise<void> {
     const leaderboardRequests = this.buildLeaderboardRequests(
@@ -365,7 +336,7 @@ export class LadderService implements OnApplicationBootstrap {
       from(leaderboardRequests).pipe(
         mergeMap(async (request) => {
           processedCount++;
-          return this.processLeaderboardRequest(request, config, logTag, processedCount, totalRequests);
+          return this.processLeaderboardRequest(request, logTag, processedCount, totalRequests);
         }, M_PLUS_PARALLEL_REQUESTS),
         toArray(),
         catchError((error) => {
@@ -382,7 +353,6 @@ export class LadderService implements OnApplicationBootstrap {
 
   private async processLeaderboardRequest(
     request: ILeaderboardRequest,
-    config: IBattleNetClientConfig,
     logTag: string,
     processedCount: number,
     totalRequests: number,
@@ -402,7 +372,6 @@ export class LadderService implements OnApplicationBootstrap {
       }
 
       const leadingGroups = await this.fetchLeaderboardGroups(
-        config,
         request.connectedRealmId,
         request.dungeonId,
         request.period,
@@ -491,13 +460,11 @@ export class LadderService implements OnApplicationBootstrap {
   }
 
   private async fetchLeaderboardGroups(
-    config: IBattleNetClientConfig,
     connectedRealmId: number,
     dungeonId: number,
     period: number,
   ): Promise<MythicLeaderboardGroup[]> {
     const response = await this.battleNetService.query<IMythicLeaderboardResponse>(
-      config,
       `/data/wow/connected-realm/${connectedRealmId}/mythic-leaderboard/${dungeonId}/period/${period}`,
       { namespace: BattleNetNamespace.DYNAMIC, locale: 'en_GB' },
     );

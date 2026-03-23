@@ -5,9 +5,8 @@ import {
   apiConstParams,
   getKey,
   getKeys,
-  GLOBAL_WCL_KEY_V1,
-  GLOBAL_WCL_KEY_V2,
 } from '@app/resources';
+import { BATTLE_NET_KEY_TAG_WCL_V1, BATTLE_NET_KEY_TAG_WCL_V2 } from '@app/battle-net';
 import { InjectRepository } from '@nestjs/typeorm';
 import { KeysEntity } from '@app/pg';
 import { Repository } from 'typeorm';
@@ -85,10 +84,10 @@ export class TestsCore implements OnApplicationBootstrap {
   }
 
   async getWclKeys() {
-    const keyV1 = await getKey(this.keysRepository, GLOBAL_WCL_KEY_V1);
-    const keysV1 = await getKeys(this.keysRepository, GLOBAL_WCL_KEY_V1);
-    const keyV2 = await getKey(this.keysRepository, GLOBAL_WCL_KEY_V2);
-    const keysV2 = await getKeys(this.keysRepository, GLOBAL_WCL_KEY_V2);
+    const keyV1 = await getKey(this.keysRepository, BATTLE_NET_KEY_TAG_WCL_V1);
+    const keysV1 = await getKeys(this.keysRepository, BATTLE_NET_KEY_TAG_WCL_V1);
+    const keyV2 = await getKey(this.keysRepository, BATTLE_NET_KEY_TAG_WCL_V2);
+    const keysV2 = await getKeys(this.keysRepository, BATTLE_NET_KEY_TAG_WCL_V2);
 
     return [keyV1, keysV1, keyV2, keysV2];
   }

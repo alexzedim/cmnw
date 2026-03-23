@@ -19,9 +19,9 @@ import {
 } from '@app/pg';
 import { Repository } from 'typeorm';
 import { dmaConfig } from '@app/configuration';
+import { BATTLE_NET_KEY_TAG_DMA } from '@app/battle-net';
 import {
   DMA_SOURCE,
-  GLOBAL_DMA_KEY,
   PRICING_TYPE,
   getKey,
   ItemPricing,
@@ -94,7 +94,7 @@ export class XvaService implements OnApplicationBootstrap {
 
     // Blizzard API indexing
     if (dmaConfig.isItemsPricingInit && dmaConfig.isPricingIndexProfessions) {
-      await this.indexPricing(GLOBAL_DMA_KEY, true);
+      await this.indexPricing(BATTLE_NET_KEY_TAG_DMA, true);
     }
 
     // Lab pricing (reverse methods)
@@ -278,7 +278,7 @@ export class XvaService implements OnApplicationBootstrap {
   // ============================================================================
 
   @Cron(CronExpression.MONDAY_TO_FRIDAY_AT_10AM)
-  async indexPricing(clearance: string = GLOBAL_DMA_KEY, isItemsPricingInit: boolean = true): Promise<void> {
+  async indexPricing(clearance: string = BATTLE_NET_KEY_TAG_DMA, isItemsPricingInit: boolean = true): Promise<void> {
     const logTag = 'indexPricing';
     try {
       if (!isItemsPricingInit) {

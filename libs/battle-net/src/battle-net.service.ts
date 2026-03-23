@@ -7,7 +7,12 @@ import { Observable, throwError, timer, lastValueFrom } from 'rxjs';
 import { finalize, map, mergeMap, retryWhen, timeout } from 'rxjs/operators';
 import { IBattleNetClientConfig, IBattleNetQueryOptions, IBattleNetRetryConfig, DEFAULT_RETRY_CONFIG } from './types';
 import { BattleNetRegion } from './enums';
-import { BATTLE_NET_BASE_URLS } from './constants';
+import {
+  BATTLE_NET_BASE_URLS,
+  BATTLE_NET_KEY_TAG_OSINT,
+  BATTLE_NET_KEY_TAG_DMA,
+  BATTLE_NET_KEY_TAG_BLIZZARD,
+} from './constants';
 import { KeysEntity } from '@app/pg';
 import { battleNetConfig, IBattleNetKeyHealthConfig } from '@app/configuration';
 
@@ -16,6 +21,7 @@ export class BattleNetService {
   private readonly logger = new Logger(BattleNetService.name, { timestamp: true });
   private readonly keyHealth: IBattleNetKeyHealthConfig;
   private _currentKeyUuid: string | null = null;
+  private _clientConfig: IBattleNetClientConfig | null = null;
 
   get currentKeyUuid(): string | null {
     return this._currentKeyUuid;
@@ -33,36 +39,24 @@ export class BattleNetService {
     this.keyHealth = battleNetConfig;
   }
 
-  createClient(config?: IBattleNetClientConfig): IBattleNetClientConfig {
-    return {
-      clientId: config?.clientId ?? '',
-      clientSecret: config?.clientSecret ?? '',
-      accessToken: config?.accessToken ?? '',
-      region: config?.region ?? BattleNetRegion.EU,
-    };
-  }
+  /**
+   * Initialize the service by finding an available key with the given tag.
+   * If no tag is provided, any available key will be used.
+   * Throws if no keys are available.
+   */
+  async initialize(tag?: string): Promise<void> {
+    const key = await this.getAvailableKey(tag);
+    if (!key) {
+      throw new Error(`No available Battle.net key found${tag ? ` for tag '${tag}'` : ''}`);
+    }
 
-  createClientWithKey(key: KeysEntity, region: BattleNetRegion = BattleNetRegion.EU): IBattleNetClientConfig {
     this._currentKeyUuid = key.uuid;
-    return {
+    this._clientConfig = {
       clientId: key.clientId,
       clientSecret: key.clientSecret,
       accessToken: key.accessToken,
-      region,
+      region: BattleNetRegion.EU,
     };
-  }
-
-  /**
-   * Initialize a BattleNetClient with an available key
-   * Combines getAvailableKey and createClientWithKey into a single operation
-   * Returns null if no available key is found
-   */
-  async initializeBlizzAPI(tag?: string): Promise<IBattleNetClientConfig | null> {
-    const key = await this.getAvailableKey(tag);
-    if (!key) {
-      return null;
-    }
-    return this.createClientWithKey(key);
   }
 
   // ============ Key Health Methods ============
@@ -347,7 +341,11 @@ export class BattleNetService {
     return lastValueFrom(requestObservable$);
   }
 
-  public async query<T>(config: IBattleNetClientConfig, path: string, options: IBattleNetQueryOptions): Promise<T> {
+  public async queryInternal<T>(
+    config: IBattleNetClientConfig,
+    path: string,
+    options: IBattleNetQueryOptions,
+  ): Promise<T> {
     const config_: AxiosRequestConfig = {
       headers: this.buildHeaders(config, options),
       timeout: options.timeout,
@@ -360,11 +358,18 @@ export class BattleNetService {
     );
   }
 
-  public async get<T>(config: IBattleNetClientConfig, path: string, options: IBattleNetQueryOptions): Promise<T> {
-    return this.query<T>(config, path, options);
+  public async query<T>(path: string, options: IBattleNetQueryOptions): Promise<T> {
+    if (!this._clientConfig) {
+      throw new Error('BattleNetService not initialized. Call initialize() first.');
+    }
+    return this.queryInternal<T>(this._clientConfig, path, options);
   }
 
-  public async post<T>(
+  public async get<T>(path: string, options: IBattleNetQueryOptions): Promise<T> {
+    return this.query<T>(path, options);
+  }
+
+  public async postInternal<T>(
     config: IBattleNetClientConfig,
     path: string,
     data: unknown,
@@ -380,5 +385,12 @@ export class BattleNetService {
       'POST',
       config,
     );
+  }
+
+  public async post<T>(path: string, data: unknown, options: IBattleNetQueryOptions): Promise<T> {
+    if (!this._clientConfig) {
+      throw new Error('BattleNetService not initialized. Call initialize() first.');
+    }
+    return this.postInternal<T>(this._clientConfig, path, data, options);
   }
 }

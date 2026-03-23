@@ -1,7 +1,6 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import chalk from 'chalk';
-import { BattleNetService, BattleNetNamespace } from '@app/battle-net';
-import { IBattleNetClientConfig } from '@app/battle-net';
+import { BattleNetService, BattleNetNamespace, BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
 import { isAxiosError } from 'axios';
 import { get } from 'lodash';
 import {
@@ -29,23 +28,22 @@ import {
 } from '@app/resources';
 
 @Injectable()
-export class CharacterService {
+export class CharacterService implements OnModuleInit {
   private readonly logger = new Logger(CharacterService.name, {
     timestamp: true,
   });
 
   constructor(private readonly battleNetService: BattleNetService) {}
 
-  async getStatus(
-    config: IBattleNetClientConfig,
-    nameSlug: string,
-    realmSlug: string,
-  ): Promise<Partial<CharacterStatus>> {
+  async onModuleInit(): Promise<void> {
+    await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_OSINT);
+  }
+
+  async getStatus(nameSlug: string, realmSlug: string): Promise<Partial<CharacterStatus>> {
     const characterStatus: Partial<CharacterStatus> = {};
 
     try {
       const statusResponse = (await this.battleNetService.query<IBlizzardStatusResponse>(
-        config,
         `/profile/wow/character/${realmSlug}/${nameSlug}/status`,
         { namespace: BattleNetNamespace.PROFILE, locale: 'en_GB' },
       )) as IBlizzardStatusResponse;
@@ -104,16 +102,11 @@ export class CharacterService {
     }
   }
 
-  async getSummary(
-    config: IBattleNetClientConfig,
-    nameSlug: string,
-    realmSlug: string,
-  ): Promise<Partial<CharacterSummary>> {
+  async getSummary(nameSlug: string, realmSlug: string): Promise<Partial<CharacterSummary>> {
     const summary: Partial<CharacterSummary> = {};
 
     try {
       const response = await this.battleNetService.query<BlizzardApiCharacterSummary>(
-        config,
         `/profile/wow/character/${realmSlug}/${nameSlug}`,
         { namespace: BattleNetNamespace.PROFILE, locale: 'en_GB' },
       );
@@ -177,12 +170,11 @@ export class CharacterService {
     }
   }
 
-  async getMedia(config: IBattleNetClientConfig, nameSlug: string, realmSlug: string): Promise<Partial<Media>> {
+  async getMedia(nameSlug: string, realmSlug: string): Promise<Partial<Media>> {
     const media: Partial<Media> = {};
 
     try {
       const response = await this.battleNetService.query<BlizzardApiCharacterMedia>(
-        config,
         `/profile/wow/character/${realmSlug}/${nameSlug}/character-media`,
         { namespace: BattleNetNamespace.PROFILE, locale: 'en_GB' },
       );
@@ -227,16 +219,11 @@ export class CharacterService {
     }
   }
 
-  async getMountsCollection(
-    config: IBattleNetClientConfig,
-    nameSlug: string,
-    realmSlug: string,
-  ): Promise<BlizzardApiMountsCollection> {
+  async getMountsCollection(nameSlug: string, realmSlug: string): Promise<BlizzardApiMountsCollection> {
     const mounts: Partial<BlizzardApiMountsCollection> = {};
 
     try {
       const response = await this.battleNetService.query<BlizzardApiMountsCollection>(
-        config,
         `/profile/wow/character/${realmSlug}/${nameSlug}/collections/mounts`,
         { namespace: BattleNetNamespace.PROFILE, locale: 'en_GB' },
       );
@@ -277,16 +264,11 @@ export class CharacterService {
     }
   }
 
-  async getPetsCollection(
-    config: IBattleNetClientConfig,
-    nameSlug: string,
-    realmSlug: string,
-  ): Promise<BlizzardApiPetsCollection | null> {
+  async getPetsCollection(nameSlug: string, realmSlug: string): Promise<BlizzardApiPetsCollection | null> {
     const pets: Partial<BlizzardApiPetsCollection> = {};
 
     try {
       const response = await this.battleNetService.query<BlizzardApiPetsCollection>(
-        config,
         `/profile/wow/character/${realmSlug}/${nameSlug}/collections/pets`,
         { namespace: BattleNetNamespace.PROFILE, locale: 'en_GB' },
       );
@@ -327,16 +309,11 @@ export class CharacterService {
     }
   }
 
-  async getProfessions(
-    config: IBattleNetClientConfig,
-    nameSlug: string,
-    realmSlug: string,
-  ): Promise<BlizzardApiCharacterProfessions | null> {
+  async getProfessions(nameSlug: string, realmSlug: string): Promise<BlizzardApiCharacterProfessions | null> {
     const professions: Partial<BlizzardApiCharacterProfessions> = {};
 
     try {
       const response = await this.battleNetService.query<BlizzardApiCharacterProfessions>(
-        config,
         `/profile/wow/character/${realmSlug}/${nameSlug}/professions`,
         { namespace: BattleNetNamespace.PROFILE, locale: 'en_GB' },
       );

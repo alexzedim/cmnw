@@ -7,10 +7,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { KeysEntity } from '@app/pg';
 import { ArrayContains, Repository } from 'typeorm';
 import { LoggerService } from '@app/logger';
+import { BATTLE_NET_KEY_TAG_BLIZZARD, BATTLE_NET_KEY_TAG_WCL_V1, BATTLE_NET_KEY_TAG_WCL_V2 } from '@app/battle-net';
 import {
-  GLOBAL_BLIZZARD_KEY,
-  GLOBAL_WCL_KEY_V2,
-  GLOBAL_WCL_KEY_V1,
   IKeyConfig,
   IKeysJson,
 } from '@app/resources';
@@ -73,7 +71,7 @@ export class KeysService implements OnApplicationBootstrap {
     const logTag = this.indexBlizzardKeys.name;
     try {
       const keysEntity = await this.keysRepository.findBy({
-        tags: ArrayContains([GLOBAL_BLIZZARD_KEY]),
+        tags: ArrayContains([BATTLE_NET_KEY_TAG_BLIZZARD]),
       });
 
       for (const keyEntity of keysEntity) {
@@ -112,7 +110,7 @@ export class KeysService implements OnApplicationBootstrap {
     const logTag = this.indexWarcraftLogsKeys.name;
     try {
       const keyEntities = await this.keysRepository.findBy({
-        tags: ArrayContains([GLOBAL_WCL_KEY_V2]),
+        tags: ArrayContains([BATTLE_NET_KEY_TAG_WCL_V2]),
       });
 
       for (const keyEntity of keyEntities) {

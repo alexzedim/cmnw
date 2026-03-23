@@ -1,11 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import chalk from 'chalk';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { apiConstParams, BattleNetApiNamespace, BattleNetService } from '@app/battle-net';
-import { IBattleNetClientConfig } from '@app/battle-net';
+import { apiConstParams, BattleNetApiNamespace, BattleNetService, BATTLE_NET_KEY_TAG_BLIZZARD } from '@app/battle-net';
 import {
   BlizzardApiResponse,
   IConnectedRealm,
@@ -26,7 +25,7 @@ import { get } from 'lodash';
 
 @Injectable()
 @Processor(realmsQueue)
-export class RealmsWorker extends WorkerHost {
+export class RealmsWorker extends WorkerHost implements OnModuleInit {
   private readonly logger = new Logger(RealmsWorker.name, {
     timestamp: true,
   });
@@ -48,27 +47,8 @@ export class RealmsWorker extends WorkerHost {
     super();
   }
 
-  private async getClient(message: IRealmMessageBase): Promise<IBattleNetClientConfig> {
-    if (message.clientId && message.clientSecret && message.accessToken) {
-      return this.battleNetService.createClient({
-        clientId: message.clientId,
-        clientSecret: message.clientSecret,
-        accessToken: message.accessToken,
-        region: message.region,
-      });
-    }
-
-    const key = await this.battleNetService.getAvailableKey('blizzard');
-    if (!key) {
-      throw new Error('No available Blizzard API key found');
-    }
-
-    return this.battleNetService.createClient({
-      clientId: key.clientId,
-      clientSecret: key.clientSecret,
-      accessToken: key.accessToken,
-      region: message.region,
-    });
+  async onModuleInit(): Promise<void> {
+    await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_BLIZZARD);
   }
 
   async process(job: Job<IRealmMessageBase>): Promise<void> {
@@ -91,12 +71,9 @@ export class RealmsWorker extends WorkerHost {
         });
       }
 
-      const config = await this.getClient(message);
-
       await job.updateProgress(10);
 
       const response: Record<string, any> = await this.battleNetService.query(
-        config,
         `/data/wow/realm/${message.slug}`,
         apiConstParams(BattleNetApiNamespace.DYNAMIC, OSINT_TIMEOUT_TOLERANCE),
       );
@@ -122,7 +99,6 @@ export class RealmsWorker extends WorkerHost {
 
       if (realmEntity.locale != 'enGB') {
         const realmLocale = await this.battleNetService.query<BlizzardApiResponse>(
-          config,
           `/data/wow/realm/${message.slug}`,
           apiConstParams(BattleNetApiNamespace.DYNAMIC, OSINT_TIMEOUT_TOLERANCE, true),
         );
@@ -154,7 +130,6 @@ export class RealmsWorker extends WorkerHost {
       const connectedRealmId = transformConnectedRealmId(response);
       if (connectedRealmId) {
         const connectedRealm = await this.battleNetService.query<IConnectedRealm>(
-          config,
           `/data/wow/connected-realm/${connectedRealmId}`,
           apiConstParams(BattleNetApiNamespace.DYNAMIC),
         );

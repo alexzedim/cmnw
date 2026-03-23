@@ -14,7 +14,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import {
   getKeys,
   getRandomElement,
-  GLOBAL_OSINT_KEY,
   ICharacterQueueWP,
   LFG_STATUS,
   OSINT_LFG_WOW_PROGRESS,
@@ -25,6 +24,7 @@ import {
   IProfileMessageBase,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
+import { BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
 
 @Injectable()
 export class WowProgressLfgService {
@@ -55,7 +55,7 @@ export class WowProgressLfgService {
   ) {}
 
   @Cron(CronExpression.EVERY_5_MINUTES)
-  async indexWowProgressLfg(clearance: string = GLOBAL_OSINT_KEY): Promise<void> {
+  async indexWowProgressLfg(clearance: string = BATTLE_NET_KEY_TAG_OSINT): Promise<void> {
     const startTime = Date.now();
     try {
       this.logger.log(chalk.cyan('\n🔍 Starting WoW Progress LFG indexing...'));

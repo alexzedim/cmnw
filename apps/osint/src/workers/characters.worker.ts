@@ -1,11 +1,11 @@
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { from, lastValueFrom, mergeMap, toArray } from 'rxjs';
 import chalk from 'chalk';
-import { BattleNetService, BattleNetRegion, IBattleNetClientConfig } from '@app/battle-net';
+import { BattleNetService, BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
 import {
   CHARACTER_SUMMARY_FIELD_MAPPING,
   charactersQueue,
@@ -46,7 +46,7 @@ interface ProfessionsFetchResult {
 
 @Injectable()
 @Processor(charactersQueue.name, charactersQueue.workerOptions)
-export class CharactersWorker extends WorkerHost {
+export class CharactersWorker extends WorkerHost implements OnModuleInit {
   private readonly logger = new Logger(CharactersWorker.name, {
     timestamp: true,
   });
@@ -72,19 +72,8 @@ export class CharactersWorker extends WorkerHost {
     super();
   }
 
-  private async acquireClient(): Promise<IBattleNetClientConfig> {
-    const key = await this.battleNetService.getAvailableKey('osint');
-    if (!key) {
-      throw new Error('No available Battle.net API key for osint service');
-    }
-
-    this.battleNetService.setCurrentKey(key);
-    return this.battleNetService.createClient({
-      clientId: key.clientId,
-      clientSecret: key.clientSecret,
-      accessToken: key.accessToken,
-      region: BattleNetRegion.EU,
-    });
+  async onModuleInit(): Promise<void> {
+    await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_OSINT);
   }
 
   async process(job: Job<ICharacterMessageBase>): Promise<CharactersEntity> {
@@ -119,11 +108,11 @@ export class CharactersWorker extends WorkerHost {
       const characterEntityOriginal = this.charactersRepository.create(characterEntity);
       const nameSlug = toSlug(characterEntity.name);
 
-      const client = await this.acquireClient();
+      await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_OSINT);
 
       this.inheritSafeValuesFromArgs(characterEntity, message);
 
-      const status = await this.characterService.getStatus(client, nameSlug, characterEntity.realm);
+      const status = await this.characterService.getStatus(nameSlug, characterEntity.realm);
 
       await this.battleNetService.recordKeySuccess();
 
@@ -134,7 +123,7 @@ export class CharactersWorker extends WorkerHost {
 
       if (isValidCharacter) {
         await job.updateProgress(50);
-        await this.fetchAndUpdateCharacterData(client, characterEntity, nameSlug);
+        await this.fetchAndUpdateCharacterData(characterEntity, nameSlug);
         await job.updateProgress(70);
       }
 
@@ -238,33 +227,29 @@ export class CharactersWorker extends WorkerHost {
     }
   }
 
-  private async fetchAndUpdateCharacterData(
-    config: IBattleNetClientConfig,
-    characterEntity: CharactersEntity,
-    nameSlug: string,
-  ): Promise<void> {
+  private async fetchAndUpdateCharacterData(characterEntity: CharactersEntity, nameSlug: string): Promise<void> {
     let status = characterEntity.status || '------';
 
     const tasks = [
       {
         name: 'summary',
-        fn: () => this.characterService.getSummary(config, nameSlug, characterEntity.realm),
+        fn: () => this.characterService.getSummary(nameSlug, characterEntity.realm),
       },
       {
         name: 'pets',
-        fn: () => this.fetchAndSyncPets(config, nameSlug, characterEntity.realm),
+        fn: () => this.fetchAndSyncPets(nameSlug, characterEntity.realm),
       },
       {
         name: 'mounts',
-        fn: () => this.fetchAndSyncMounts(config, nameSlug, characterEntity.realm),
+        fn: () => this.fetchAndSyncMounts(nameSlug, characterEntity.realm),
       },
       {
         name: 'media',
-        fn: () => this.characterService.getMedia(config, nameSlug, characterEntity.realm),
+        fn: () => this.characterService.getMedia(nameSlug, characterEntity.realm),
       },
       {
         name: 'professions',
-        fn: () => this.fetchAndSyncProfessions(config, nameSlug, characterEntity.realm),
+        fn: () => this.fetchAndSyncProfessions(nameSlug, characterEntity.realm),
       },
     ];
 
@@ -304,12 +289,8 @@ export class CharactersWorker extends WorkerHost {
     characterEntity.status = status;
   }
 
-  private async fetchAndSyncPets(
-    config: IBattleNetClientConfig,
-    nameSlug: string,
-    realmSlug: string,
-  ): Promise<PetsFetchResult> {
-    const petsResponse = await this.characterService.getPetsCollection(config, nameSlug, realmSlug);
+  private async fetchAndSyncPets(nameSlug: string, realmSlug: string): Promise<PetsFetchResult> {
+    const petsResponse = await this.characterService.getPetsCollection(nameSlug, realmSlug);
 
     const hasPetsResponse = Boolean(petsResponse);
     if (!hasPetsResponse) {
@@ -319,12 +300,8 @@ export class CharactersWorker extends WorkerHost {
     return this.collectionSyncService.syncCharacterPets(nameSlug, realmSlug, petsResponse, true);
   }
 
-  private async fetchAndSyncMounts(
-    config: IBattleNetClientConfig,
-    nameSlug: string,
-    realmSlug: string,
-  ): Promise<MountsFetchResult> {
-    const mountsResponse = await this.characterService.getMountsCollection(config, nameSlug, realmSlug);
+  private async fetchAndSyncMounts(nameSlug: string, realmSlug: string): Promise<MountsFetchResult> {
+    const mountsResponse = await this.characterService.getMountsCollection(nameSlug, realmSlug);
 
     const hasMountsResponse = Boolean(mountsResponse);
     if (!hasMountsResponse) {
@@ -334,12 +311,8 @@ export class CharactersWorker extends WorkerHost {
     return this.collectionSyncService.syncCharacterMounts(nameSlug, realmSlug, mountsResponse, true);
   }
 
-  private async fetchAndSyncProfessions(
-    config: IBattleNetClientConfig,
-    nameSlug: string,
-    realmSlug: string,
-  ): Promise<ProfessionsFetchResult> {
-    const professionsResponse = await this.characterService.getProfessions(config, nameSlug, realmSlug);
+  private async fetchAndSyncProfessions(nameSlug: string, realmSlug: string): Promise<ProfessionsFetchResult> {
+    const professionsResponse = await this.characterService.getProfessions(nameSlug, realmSlug);
 
     const hasProfessionResponse = Boolean(professionsResponse);
     if (!hasProfessionResponse) {

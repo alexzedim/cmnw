@@ -25,8 +25,8 @@ import {
   extractRealmName,
   WowProgressJson,
   getKeys,
-  GLOBAL_OSINT_KEY,
 } from '@app/resources';
+import { BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
 import { findRealm } from '@app/resources/dao/realms.dao';
 
 @Injectable()
@@ -386,7 +386,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
     }
   }
 
-  async extractAllGuildRanks(clearance: string = GLOBAL_OSINT_KEY) {
+  async extractAllGuildRanks(clearance: string = BATTLE_NET_KEY_TAG_OSINT) {
     const startTime = Date.now();
     try {
       const bucketName = this.s3Service.getDefaultBucketName();

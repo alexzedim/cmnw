@@ -5,8 +5,6 @@ import {
   CharacterMessageDto,
   FightsAPIResponse,
   getRandomizedHeaders,
-  GLOBAL_OSINT_KEY,
-  GLOBAL_WCL_KEY_V2,
   ICharacterMessageBase,
   isCharacterRaidLogResponse,
   KEY_LOCK,
@@ -14,6 +12,7 @@ import {
   toGuid,
   toSlug,
 } from '@app/resources';
+import { BATTLE_NET_KEY_TAG_OSINT, BATTLE_NET_KEY_TAG_WCL_V2 } from '@app/battle-net';
 import { BattleNetService } from '@app/battle-net';
 
 import { Cron, CronExpression } from '@nestjs/schedule';
@@ -257,20 +256,20 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
   async indexLogs(): Promise<void> {
     const startTime = Date.now();
     try {
-      const isJobLocked = Boolean(await this.redisService.exists(GLOBAL_WCL_KEY_V2));
+      const isJobLocked = Boolean(await this.redisService.exists(BATTLE_NET_KEY_TAG_WCL_V2));
       if (isJobLocked) {
         this.logger.warn(chalk.yellow('⚠ indexLogs is already running'));
         return;
       }
 
-      await this.redisService.set(GLOBAL_WCL_KEY_V2, '1', 'EX', 60 * 59);
+      await this.redisService.set(BATTLE_NET_KEY_TAG_WCL_V2, '1', 'EX', 60 * 59);
 
-      const wclKey = await this.battleNetService.getAvailableKey(GLOBAL_WCL_KEY_V2);
+      const wclKey = await this.battleNetService.getAvailableKey(BATTLE_NET_KEY_TAG_WCL_V2);
       if (!wclKey) {
         this.logger.error(chalk.red('✗ No available WCL key'));
         return;
       }
-      
+
       const characterRaidLog = await this.charactersRaidLogsRepository.find({
         where: { isIndexed: false },
         take: 5_000,
@@ -306,7 +305,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
       this.stats.errors++;
       this.logger.error(chalk.red('✗ Error in indexLogs:'), errorOrException.message);
     } finally {
-      await this.redisService.del(GLOBAL_WCL_KEY_V2);
+      await this.redisService.del(BATTLE_NET_KEY_TAG_WCL_V2);
     }
   }
 

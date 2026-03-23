@@ -6,6 +6,7 @@ import {
   ServiceUnavailableException,
 } from '@nestjs/common';
 
+import { BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
   AnalyticsEntity,
@@ -25,7 +26,6 @@ import {
   CharacterMessageDto,
   CharacterLfgDto,
   charactersQueue,
-  GLOBAL_OSINT_KEY,
   LFG_STATUS,
   toGuid,
   findRealm,
