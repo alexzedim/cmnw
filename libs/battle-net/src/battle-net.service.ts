@@ -2,17 +2,12 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AxiosRequestConfig, AxiosResponse } from 'axios';
+import { AxiosRequestConfig, AxiosResponse, AxiosHeaders } from 'axios';
 import { Observable, throwError, timer, lastValueFrom } from 'rxjs';
 import { finalize, map, mergeMap, retryWhen, timeout } from 'rxjs/operators';
 import { IBattleNetClientConfig, IBattleNetQueryOptions, IBattleNetRetryConfig, DEFAULT_RETRY_CONFIG } from './types';
 import { BattleNetRegion } from './enums';
-import {
-  BATTLE_NET_BASE_URLS,
-  BATTLE_NET_KEY_TAG_OSINT,
-  BATTLE_NET_KEY_TAG_DMA,
-  BATTLE_NET_KEY_TAG_BLIZZARD,
-} from './constants';
+import { BATTLE_NET_BASE_URLS } from './constants';
 import { KeysEntity } from '@app/pg';
 import { battleNetConfig, IBattleNetKeyHealthConfig } from '@app/configuration';
 
@@ -21,14 +16,10 @@ export class BattleNetService {
   private readonly logger = new Logger(BattleNetService.name, { timestamp: true });
   private readonly keyHealth: IBattleNetKeyHealthConfig;
   private _currentKeyUuid: string | null = null;
-  private _clientConfig: IBattleNetClientConfig | null = null;
+  private _config: IBattleNetClientConfig | null = null;
 
   get currentKeyUuid(): string | null {
     return this._currentKeyUuid;
-  }
-
-  setCurrentKey(key: KeysEntity): void {
-    this._currentKeyUuid = key.uuid;
   }
 
   constructor(
@@ -39,11 +30,6 @@ export class BattleNetService {
     this.keyHealth = battleNetConfig;
   }
 
-  /**
-   * Initialize the service by finding an available key with the given tag.
-   * If no tag is provided, any available key will be used.
-   * Throws if no keys are available.
-   */
   async initialize(tag?: string): Promise<void> {
     const key = await this.getAvailableKey(tag);
     if (!key) {
@@ -51,7 +37,7 @@ export class BattleNetService {
     }
 
     this._currentKeyUuid = key.uuid;
-    this._clientConfig = {
+    this._config = {
       clientId: key.clientId,
       clientSecret: key.clientSecret,
       accessToken: key.accessToken,
@@ -59,11 +45,6 @@ export class BattleNetService {
     };
   }
 
-  // ============ Key Health Methods ============
-
-  /**
-   * Get remaining cooldown for a key in milliseconds
-   */
   async getKeyCooldownMs(keyUuid: string): Promise<number> {
     const key = await this.keysRepository.findOne({ where: { uuid: keyUuid } });
     if (!key || key.cooldownDelaySeconds === 0 || !key.lastFailureAt) {
@@ -74,70 +55,47 @@ export class BattleNetService {
     return Math.max(0, cooldownEnd.getTime() - now.getTime());
   }
 
-  /**
-   * Check if we need to wait before using a key
-   */
   async shouldWaitForKey(keyUuid: string): Promise<{ wait: boolean; remainingMs: number }> {
     const remainingMs = await this.getKeyCooldownMs(keyUuid);
     return { wait: remainingMs > 0, remainingMs };
   }
 
-  /**
-   * Record a rate limit (429) response for a key
-   * Formula: cooldownDelay = min(maxDelay, currentDelay * multiplier + baseDelay)
-   */
+  private calculateNewCooldown(currentCooldown: number, isRateLimit: boolean): number {
+    if (isRateLimit) {
+      return Math.min(this.keyHealth.maxDelay, currentCooldown * this.keyHealth.multiplier + this.keyHealth.baseDelay);
+    }
+    return Math.max(0, currentCooldown - this.keyHealth.decayStep);
+  }
+
+  private async recordKeyFailure(keyUuid: string, isRateLimit: boolean): Promise<number> {
+    const key = await this.keysRepository.findOne({ where: { uuid: keyUuid } });
+    if (!key) throw new NotFoundException(`Key ${keyUuid} not found`);
+
+    const newCooldown = this.calculateNewCooldown(key.cooldownDelaySeconds, isRateLimit);
+    key.cooldownDelaySeconds = newCooldown;
+    key.lastFailureAt = new Date();
+
+    await this.keysRepository.save(key);
+    this.logger.warn(`${isRateLimit ? 'Rate limited' : 'Error'}: ${keyUuid} | cooldown: ${newCooldown}s`);
+    return newCooldown;
+  }
+
   async recordKeyRateLimit(keyUuid?: string): Promise<number> {
     const resolvedKeyUuid = keyUuid ?? this._currentKeyUuid;
     if (!resolvedKeyUuid) {
       throw new NotFoundException('No keyUuid provided and no current key is set');
     }
-
-    const key = await this.keysRepository.findOne({ where: { uuid: resolvedKeyUuid } });
-    if (!key) throw new NotFoundException(`Key ${resolvedKeyUuid} not found`);
-
-    const newCooldown = Math.min(
-      this.keyHealth.maxDelay,
-      key.cooldownDelaySeconds * this.keyHealth.multiplier + this.keyHealth.baseDelay,
-    );
-
-    key.cooldownDelaySeconds = newCooldown;
-    key.lastFailureAt = new Date();
-
-    await this.keysRepository.save(key);
-
-    this.logger.warn(`Rate limited: ${resolvedKeyUuid} | cooldown: ${newCooldown}s`);
-    return newCooldown;
+    return this.recordKeyFailure(resolvedKeyUuid, true);
   }
 
-  /**
-   * Record an error response for a key
-   * Uses same formula as rate limit
-   */
   async recordKeyError(keyUuid?: string): Promise<number> {
     const resolvedKeyUuid = keyUuid ?? this._currentKeyUuid;
     if (!resolvedKeyUuid) {
       throw new NotFoundException('No keyUuid provided and no current key is set');
     }
-
-    const key = await this.keysRepository.findOne({ where: { uuid: resolvedKeyUuid } });
-    if (!key) throw new NotFoundException(`Key ${resolvedKeyUuid} not found`);
-
-    const newCooldown = Math.min(
-      this.keyHealth.maxDelay,
-      key.cooldownDelaySeconds * this.keyHealth.multiplier + this.keyHealth.baseDelay,
-    );
-
-    key.cooldownDelaySeconds = newCooldown;
-    key.lastFailureAt = new Date();
-
-    await this.keysRepository.save(key);
-    return newCooldown;
+    return this.recordKeyFailure(resolvedKeyUuid, false);
   }
 
-  /**
-   * Record a successful request for a key
-   * Formula: cooldownDelay = max(0, cooldownDelay - decayStep)
-   */
   async recordKeySuccess(keyUuid?: string): Promise<number> {
     const resolvedKeyUuid = keyUuid ?? this._currentKeyUuid;
     if (!resolvedKeyUuid) {
@@ -148,16 +106,12 @@ export class BattleNetService {
     if (!key) throw new NotFoundException(`Key ${resolvedKeyUuid} not found`);
 
     const newCooldown = Math.max(0, key.cooldownDelaySeconds - this.keyHealth.decayStep);
-
     key.cooldownDelaySeconds = newCooldown;
 
     await this.keysRepository.save(key);
     return newCooldown;
   }
 
-  /**
-   * Refresh OAuth token for a key
-   */
   async refreshKeyToken(keyUuid: string): Promise<string> {
     const key = await this.keysRepository.findOne({ where: { uuid: keyUuid } });
     if (!key) throw new NotFoundException(`Key ${keyUuid} not found`);
@@ -180,9 +134,6 @@ export class BattleNetService {
     return key.accessToken;
   }
 
-  /**
-   * Reset key health state
-   */
   async resetKeyHealth(keyUuid: string): Promise<void> {
     await this.keysRepository.update(keyUuid, {
       cooldownDelaySeconds: 0,
@@ -191,10 +142,6 @@ export class BattleNetService {
     this.logger.log(`Key health reset: ${keyUuid}`);
   }
 
-  /**
-   * Get the most available key (lowest cooldown) that is not currently in cooldown
-   * Returns null if no keys are available
-   */
   async getAvailableKey(tag?: string): Promise<KeysEntity | null> {
     const keys = await this.keysRepository.find({});
 
@@ -225,10 +172,6 @@ export class BattleNetService {
     return availableKeys[0];
   }
 
-  /**
-   * Get all keys sorted by health (lowest cooldown delay first)
-   * Keys in hard cooldown are still returned but sorted last
-   */
   async getAllKeys(tags?: string[]): Promise<KeysEntity[]> {
     const keys = await this.keysRepository.find({});
 
@@ -256,8 +199,6 @@ export class BattleNetService {
       return getEffectiveCooldown(a) - getEffectiveCooldown(b);
     });
   }
-
-  // ============ HTTP Request Methods ============
 
   private shouldRetryRequest(error: any): boolean {
     if (!error.response) {
@@ -296,19 +237,19 @@ export class BattleNetService {
     );
   }
 
-  private buildHeaders(config: IBattleNetClientConfig, options: IBattleNetQueryOptions): Record<string, string> {
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+  private buildHeaders(config: IBattleNetClientConfig, options: IBattleNetQueryOptions): AxiosHeaders {
+    const headers = new AxiosHeaders();
+
+    headers.set('Content-Type', 'application/json');
 
     if (config.accessToken) {
-      headers['Authorization'] = `Bearer ${config.accessToken}`;
+      headers.set('Authorization', `Bearer ${config.accessToken}`);
     }
 
-    headers['Battlenet-Namespace'] = options.namespace;
+    headers.set('Battlenet-Namespace', options.namespace);
 
     if (options.locale) {
-      headers['Accept-Language'] = options.locale;
+      headers.set('Accept-Language', options.locale);
     }
 
     return headers;
@@ -341,56 +282,44 @@ export class BattleNetService {
     return lastValueFrom(requestObservable$);
   }
 
-  public async queryInternal<T>(
-    config: IBattleNetClientConfig,
-    path: string,
-    options: IBattleNetQueryOptions,
-  ): Promise<T> {
-    const config_: AxiosRequestConfig = {
-      headers: this.buildHeaders(config, options),
-      timeout: options.timeout,
-    };
+  public async query<T>(path: string, options: IBattleNetQueryOptions, config?: IBattleNetClientConfig): Promise<T> {
+    const resolvedConfig = config ?? this._config;
+    if (!resolvedConfig) {
+      throw new Error('BattleNetService not initialized. Call initialize() first.');
+    }
+
+    const headers = this.buildHeaders(resolvedConfig, options);
 
     return this.makeRequest(
-      this.httpService.get<T>(`${this.getBaseUrl(config.region)}${path}`, config_),
+      this.httpService.get<T>(`${this.getBaseUrl(resolvedConfig.region)}${path}`, {
+        headers,
+        timeout: options.timeout,
+      }),
       'GET',
-      config,
+      resolvedConfig,
     );
   }
 
-  public async query<T>(path: string, options: IBattleNetQueryOptions): Promise<T> {
-    if (!this._clientConfig) {
-      throw new Error('BattleNetService not initialized. Call initialize() first.');
-    }
-    return this.queryInternal<T>(this._clientConfig, path, options);
-  }
-
-  public async get<T>(path: string, options: IBattleNetQueryOptions): Promise<T> {
-    return this.query<T>(path, options);
-  }
-
-  public async postInternal<T>(
-    config: IBattleNetClientConfig,
+  public async post<T>(
     path: string,
     data: unknown,
     options: IBattleNetQueryOptions,
+    config?: IBattleNetClientConfig,
   ): Promise<T> {
-    const config_: AxiosRequestConfig = {
-      headers: this.buildHeaders(config, options),
-      timeout: options.timeout,
-    };
-
-    return this.makeRequest(
-      this.httpService.post<T>(`${this.getBaseUrl(config.region)}${path}`, data, config_),
-      'POST',
-      config,
-    );
-  }
-
-  public async post<T>(path: string, data: unknown, options: IBattleNetQueryOptions): Promise<T> {
-    if (!this._clientConfig) {
+    const resolvedConfig = config ?? this._config;
+    if (!resolvedConfig) {
       throw new Error('BattleNetService not initialized. Call initialize() first.');
     }
-    return this.postInternal<T>(this._clientConfig, path, data, options);
+
+    const headers = this.buildHeaders(resolvedConfig, options);
+
+    return this.makeRequest(
+      this.httpService.post<T>(`${this.getBaseUrl(resolvedConfig.region)}${path}`, data, {
+        headers,
+        timeout: options.timeout,
+      }),
+      'POST',
+      resolvedConfig,
+    );
   }
 }
