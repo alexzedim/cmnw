@@ -1,28 +1,20 @@
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { InjectRepository } from '@nestjs/typeorm';
-import { KeysEntity, RealmsEntity } from '@app/pg';
-import { Repository } from 'typeorm';
+import { RealmsEntity } from '@app/pg';
 import Redis from 'ioredis';
-import { BadGatewayException, Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { Repository } from 'typeorm';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { from, mergeMap, toArray, catchError, of, lastValueFrom } from 'rxjs';
 
 import {
-  API_HEADERS_ENUM,
-  apiConstParams,
   BRACKETS,
   CharacterMessageDto,
   charactersQueue,
   IMythicKeystoneSeasonResponse,
   IMythicKeystoneSeasonDetail,
-  getKeys,
-  GLOBAL_OSINT_KEY,
   IMythicKeystoneDungeonResponse,
-  isMythicKeystoneDungeonResponse,
-  isMythicKeystoneSeasonResponse,
-  isMythicKeystoneSeasonDetail,
   IMythicLeaderboardResponse,
-  isMythicLeaderboardResponse,
   MythicLeaderboardGroup,
   transformFaction,
   TIME_MS,
@@ -30,62 +22,60 @@ import {
   M_PLUS_REALM_DUNGEON_PREFIX,
   ILeaderboardRequest,
   IPvPSeasonIndexResponse,
-  isPvPSeasonIndexResponse,
   IPvPLeaderboardResponse,
-  isPvPLeaderboardResponse,
   PvPSeason,
   ICharacterMessageBase,
 } from '@app/resources';
-import { BlizzardApiService } from '@app/resources/services';
+import {
+  validateMythicKeystoneDungeonResponse,
+  validateMythicKeystoneSeasonResponse,
+  validateMythicKeystoneSeasonDetail,
+  validateMythicLeaderboardResponse,
+  validatePvPSeasonIndexResponse,
+  validatePvPLeaderboardResponse,
+} from '@app/resources/guard/ladder.guard';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { BattleNetService, BattleNetNamespace } from '@app/battle-net';
+import { IBattleNetClientConfig } from '@app/battle-net';
 
-// Constants for M+ indexing
-/** Maximum delay for rate limiter in milliseconds (30 seconds) */
-const M_PLUS_PARALLEL_REQUESTS = 3; // Number of parallel mergeMap requests
+const M_PLUS_PARALLEL_REQUESTS = 3;
 
 @Injectable()
 export class LadderService implements OnApplicationBootstrap {
   private readonly logger = new Logger(LadderService.name, { timestamp: true });
 
-  // TODO: Replace with new Blizzard API client implementation
-
   constructor(
     @InjectRedis()
     private readonly redisService: Redis,
-    @InjectRepository(KeysEntity)
-    private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectQueue(charactersQueue.name)
     private readonly queueCharacters: Queue<ICharacterMessageBase>,
-    private readonly blizzardApiService: BlizzardApiService,
+    private readonly battleNetService: BattleNetService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
-    await this.indexMythicPlusLadder(GLOBAL_OSINT_KEY);
-    await this.indexPvPLadder(GLOBAL_OSINT_KEY);
+    await this.indexMythicPlusLadder();
+    await this.indexPvPLadder();
   }
 
   @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_NOON)
-  async indexPvPLadder(clearance: string = GLOBAL_OSINT_KEY): Promise<void> {
+  async indexPvPLadder(): Promise<void> {
     const logTag = this.indexPvPLadder.name;
     try {
-      const keys = await getKeys(this.keysRepository, clearance);
-      const [key] = keys;
+      const config = await this.battleNetService.initializeBlizzAPI();
 
-      this.initializeBlizzAPI(key);
+      if (!config) {
+        this.logger.warn({ logTag, message: 'No available keys found for PvP ladder indexing' });
+        return;
+      }
 
-      // TODO: Reimplement with new Blizzard API client
-      const pvpSeasonIndex: IPvPSeasonIndexResponse = {
-        seasons: [],
-        _links: {} as any,
-      };
-      this.logger.warn({ logTag, message: 'TODO: Blizzard API call skipped - reimplement with new client' });
+      const pvpSeasonIndex = await this.fetchPvPSeasonIndex(config);
 
-      this.validatePvPSeasonIndexResponse(pvpSeasonIndex);
+      validatePvPSeasonIndexResponse(pvpSeasonIndex);
 
-      await this.processPvPLeaderboards(pvpSeasonIndex.seasons, key, logTag);
+      await this.processPvPLeaderboards(pvpSeasonIndex.seasons, config, logTag);
 
       this.logger.log({
         logTag,
@@ -96,10 +86,11 @@ export class LadderService implements OnApplicationBootstrap {
     }
   }
 
-  /**
-   * Process PvP leaderboards for all seasons and brackets
-   */
-  private async processPvPLeaderboards(seasons: PvPSeason[], key: KeysEntity, logTag: string): Promise<void> {
+  private async processPvPLeaderboards(
+    seasons: PvPSeason[],
+    config: IBattleNetClientConfig,
+    logTag: string,
+  ): Promise<void> {
     const totalRequests = seasons.length * BRACKETS.length;
     let processedCount = 0;
 
@@ -108,7 +99,6 @@ export class LadderService implements OnApplicationBootstrap {
         processedCount++;
 
         try {
-          // Check if this season-bracket combination was already processed
           const cacheKey = this.buildPvPLeaderboardCacheKey(season.id, bracket);
 
           const isCached = await this.redisService.exists(cacheKey);
@@ -122,10 +112,9 @@ export class LadderService implements OnApplicationBootstrap {
             continue;
           }
 
-          const pvpLeaderboard = await this.fetchPvPLeaderboard(season.id, bracket);
+          const pvpLeaderboard = await this.fetchPvPLeaderboard(config, season.id, bracket);
 
           if (pvpLeaderboard.entries.length === 0) {
-            // Mark as processed even if no entries found
             await this.markPvPLeaderboardAsProcessed(season.id, bracket);
             this.logger.debug({
               logTag,
@@ -136,12 +125,10 @@ export class LadderService implements OnApplicationBootstrap {
             continue;
           }
 
-          await this.processPvPLeaderboardEntries(pvpLeaderboard, season.id, bracket, key, logTag);
+          await this.processPvPLeaderboardEntries(pvpLeaderboard, season.id, bracket, logTag);
 
-          // Mark season-bracket as processed in Redis
           await this.markPvPLeaderboardAsProcessed(season.id, bracket);
 
-          // Log progress periodically
           if (processedCount % 5 === 0) {
             this.logger.debug({
               logTag,
@@ -155,21 +142,15 @@ export class LadderService implements OnApplicationBootstrap {
     }
   }
 
-  /**
-   * Build Redis cache key for PvP leaderboard
-   */
   private buildPvPLeaderboardCacheKey(seasonId: number, bracket: string): string {
     return `pvp:leaderboard:${seasonId}:${bracket}`;
   }
 
-  /**
-   * Mark a PvP leaderboard as processed in Redis
-   */
   private async markPvPLeaderboardAsProcessed(seasonId: number, bracket: string): Promise<void> {
     const cacheKey = this.buildPvPLeaderboardCacheKey(seasonId, bracket);
     await this.redisService.setex(
       cacheKey,
-      TIME_MS.ONE_WEEK / 1000, // 7 days in seconds
+      TIME_MS.ONE_WEEK / 1000,
       JSON.stringify({
         processedAt: new Date().toISOString(),
         seasonId,
@@ -178,29 +159,33 @@ export class LadderService implements OnApplicationBootstrap {
     );
   }
 
-  /**
-   * Fetch PvP leaderboard for a specific season and bracket
-   */
-  private async fetchPvPLeaderboard(seasonId: number, bracket: string): Promise<IPvPLeaderboardResponse> {
-    // TODO: Reimplement with new Blizzard API client
-    this.logger.warn({ logTag: this.fetchPvPLeaderboard.name, message: 'TODO: Blizzard API call skipped - reimplement with new client' });
-    const response: IPvPLeaderboardResponse = {
-      entries: [],
-      _links: {} as any,
-    };
-
-    this.validatePvPLeaderboardResponse(response);
+  private async fetchPvPSeasonIndex(config: IBattleNetClientConfig): Promise<IPvPSeasonIndexResponse> {
+    const response = await this.battleNetService.query<IPvPSeasonIndexResponse>(config, '/data/wow/pvp-season/index', {
+      namespace: BattleNetNamespace.DYNAMIC,
+      locale: 'en_GB',
+    });
     return response;
   }
 
-  /**
-   * Process PvP leaderboard entries and publish character jobs
-   */
+  private async fetchPvPLeaderboard(
+    config: IBattleNetClientConfig,
+    seasonId: number,
+    bracket: string,
+  ): Promise<IPvPLeaderboardResponse> {
+    const response = await this.battleNetService.query<IPvPLeaderboardResponse>(
+      config,
+      `/data/wow/pvp-season/${seasonId}/pvp-leaderboard/${bracket}`,
+      { namespace: BattleNetNamespace.DYNAMIC, locale: 'en_GB' },
+    );
+
+    validatePvPLeaderboardResponse(response);
+    return response;
+  }
+
   private async processPvPLeaderboardEntries(
     pvpLeaderboard: IPvPLeaderboardResponse,
     seasonId: number,
     bracket: string,
-    key: KeysEntity,
     logTag: string,
   ): Promise<void> {
     const characterJobs = pvpLeaderboard.entries.map((entry) =>
@@ -232,9 +217,6 @@ export class LadderService implements OnApplicationBootstrap {
     });
   }
 
-  /**
-   * Handle errors during PvP leaderboard fetching
-   */
   private handlePvPLeaderboardError(error: unknown, seasonId: number, bracket: string, logTag: string): void {
     if (error instanceof Error) {
       const statusMatch = error.message.match(/(\d{3})/);
@@ -261,30 +243,28 @@ export class LadderService implements OnApplicationBootstrap {
   }
 
   @Cron(CronExpression.EVERY_WEEKEND)
-  async indexMythicPlusLadder(clearance: string = GLOBAL_OSINT_KEY): Promise<void> {
+  async indexMythicPlusLadder(): Promise<void> {
     const logTag = this.indexMythicPlusLadder.name;
     try {
-      const keys = await getKeys(this.keysRepository, clearance);
-      const [key] = keys;
+      const config = await this.battleNetService.initializeBlizzAPI();
 
-      this.initializeBlizzAPI(key);
+      if (!config) {
+        this.logger.warn({ logTag, message: 'No available keys found for M+ ladder indexing' });
+        return;
+      }
 
-      // Fetch metadata in parallel
-      const { dungeons, seasons } = await this.fetchMythicPlusMetadata();
+      const { dungeons, seasons } = await this.fetchMythicPlusMetadata(config);
 
-      // Build lookup maps
       const mythicPlusDungeons = this.buildDungeonMap(dungeons);
-      const mythicPlusExpansionWeeks = await this.fetchExpansionWeeks(seasons);
+      const mythicPlusExpansionWeeks = await this.fetchExpansionWeeks(config, seasons);
 
-      // Fetch realms
       const realmsEntity = await this.fetchValidRealms();
 
-      // Process leaderboards with RxJS parallel requests and Redis caching
       await this.processMythicPlusLeaderboardsWithRxJS(
         realmsEntity,
         mythicPlusDungeons,
         mythicPlusExpansionWeeks,
-        key,
+        config,
         logTag,
       );
 
@@ -297,30 +277,23 @@ export class LadderService implements OnApplicationBootstrap {
     }
   }
 
-  /**
-   * Initialize Blizzard API client with credentials
-   */
-  // TODO: Reimplement with new Blizzard API client
-  private initializeBlizzAPI(key: KeysEntity): void {
-    this.logger.warn({ logTag: this.initializeBlizzAPI.name, message: 'TODO: Blizzard API call skipped - reimplement with new client' });
-  }
-
-  /**
-   * Fetch dungeon and season metadata in parallel
-   */
-  private async fetchMythicPlusMetadata(): Promise<{
+  private async fetchMythicPlusMetadata(config: IBattleNetClientConfig): Promise<{
     dungeons: Array<{ id: number; name: string }>;
     seasons: Array<{ id: number }>;
   }> {
-    // TODO: Reimplement with new Blizzard API client
-    this.logger.warn({ logTag: this.fetchMythicPlusMetadata.name, message: 'TODO: Blizzard API call skipped - reimplement with new client' });
     const [dungeonResponse, seasonResponse] = await Promise.all([
-      Promise.resolve<IMythicKeystoneDungeonResponse>({ dungeons: [], _links: {} as any }),
-      Promise.resolve<IMythicKeystoneSeasonResponse>({ seasons: [], _links: {} as any }),
+      this.battleNetService.query<IMythicKeystoneDungeonResponse>(config, '/data/wow/mythic-keystone/dungeon/index', {
+        namespace: BattleNetNamespace.DYNAMIC,
+        locale: 'en_GB',
+      }),
+      this.battleNetService.query<IMythicKeystoneSeasonResponse>(config, '/data/wow/mythic-keystone/season/index', {
+        namespace: BattleNetNamespace.DYNAMIC,
+        locale: 'en_GB',
+      }),
     ]);
 
-    this.validateMythicKeystoneDungeonResponse(dungeonResponse);
-    this.validateMythicKeystoneSeasonResponse(seasonResponse);
+    validateMythicKeystoneDungeonResponse(dungeonResponse);
+    validateMythicKeystoneSeasonResponse(seasonResponse);
 
     return {
       dungeons: dungeonResponse.dungeons,
@@ -328,33 +301,27 @@ export class LadderService implements OnApplicationBootstrap {
     };
   }
 
-  /**
-   * Build a map of dungeon IDs to names for O(1) lookup
-   */
   private buildDungeonMap(dungeons: Array<{ id: number; name: string }>): Map<number, string> {
     const dungeonMap = new Map<number, string>();
     dungeons.forEach((dungeon) => dungeonMap.set(dungeon.id, dungeon.name));
     return dungeonMap;
   }
 
-  /**
-   * Fetch all expansion weeks across all seasons
-   */
-  private async fetchExpansionWeeks(seasons: Array<{ id: number }>): Promise<Set<number>> {
+  private async fetchExpansionWeeks(
+    config: IBattleNetClientConfig,
+    seasons: Array<{ id: number }>,
+  ): Promise<Set<number>> {
     const expansionWeeks = new Set<number>();
 
     for (const season of seasons) {
       try {
-        // TODO: Reimplement with new Blizzard API client
-        this.logger.warn({ logTag: this.fetchExpansionWeeks.name, message: 'TODO: Blizzard API call skipped - reimplement with new client' });
-        const seasonDetailResponse: IMythicKeystoneSeasonDetail = {
-          periods: [],
-          _links: {} as any,
-          id: season.id,
-          season: {} as any,
-        };
+        const seasonDetailResponse = await this.battleNetService.query<IMythicKeystoneSeasonDetail>(
+          config,
+          `/data/wow/mythic-keystone/season/${season.id}`,
+          { namespace: BattleNetNamespace.DYNAMIC, locale: 'en_GB' },
+        );
 
-        this.validateMythicKeystoneSeasonDetail(seasonDetailResponse);
+        validateMythicKeystoneSeasonDetail(seasonDetailResponse);
 
         seasonDetailResponse.periods.forEach((period) => expansionWeeks.add(period.id));
       } catch (error) {
@@ -368,9 +335,6 @@ export class LadderService implements OnApplicationBootstrap {
     return expansionWeeks;
   }
 
-  /**
-   * Fetch valid realms excluding the default realm (ID: 1)
-   */
   private async fetchValidRealms(): Promise<RealmsEntity[]> {
     return this.realmsRepository
       .createQueryBuilder('realms')
@@ -381,17 +345,13 @@ export class LadderService implements OnApplicationBootstrap {
       .getMany();
   }
 
-  /**
-   * Process M+ leaderboards using RxJS mergeMap for parallel requests with Redis caching
-   */
   private async processMythicPlusLeaderboardsWithRxJS(
     realmsEntity: RealmsEntity[],
     mythicPlusDungeons: Map<number, string>,
     mythicPlusExpansionWeeks: Set<number>,
-    key: KeysEntity,
+    config: IBattleNetClientConfig,
     logTag: string,
   ): Promise<void> {
-    // Build array of leaderboard requests
     const leaderboardRequests = this.buildLeaderboardRequests(
       realmsEntity,
       mythicPlusDungeons,
@@ -401,17 +361,13 @@ export class LadderService implements OnApplicationBootstrap {
     const totalRequests = leaderboardRequests.length;
     let processedCount = 0;
 
-    // Use RxJS to process requests in parallel with mergeMap
     await lastValueFrom(
       from(leaderboardRequests).pipe(
-        mergeMap(
-          async (request) => {
-            processedCount++;
-            return this.processLeaderboardRequest(request, key, logTag, processedCount, totalRequests);
-          },
-          M_PLUS_PARALLEL_REQUESTS, // Concurrency limit
-        ),
-        toArray(), // Collect all results
+        mergeMap(async (request) => {
+          processedCount++;
+          return this.processLeaderboardRequest(request, config, logTag, processedCount, totalRequests);
+        }, M_PLUS_PARALLEL_REQUESTS),
+        toArray(),
         catchError((error) => {
           this.logger.error({
             logTag,
@@ -424,18 +380,14 @@ export class LadderService implements OnApplicationBootstrap {
     );
   }
 
-  /**
-   * Process a single leaderboard request with caching and error handling
-   */
   private async processLeaderboardRequest(
     request: ILeaderboardRequest,
-    key: KeysEntity,
+    config: IBattleNetClientConfig,
     logTag: string,
     processedCount: number,
     totalRequests: number,
   ): Promise<{ success?: boolean; skipped?: boolean; error?: boolean }> {
     try {
-      // Check if this realm-dungeon combination was already processed
       const cacheKey = this.buildRealmDungeonCacheKey(request.connectedRealmId, request.dungeonId);
 
       const isCached = await this.redisService.exists(cacheKey);
@@ -450,13 +402,13 @@ export class LadderService implements OnApplicationBootstrap {
       }
 
       const leadingGroups = await this.fetchLeaderboardGroups(
+        config,
         request.connectedRealmId,
         request.dungeonId,
         request.period,
       );
 
       if (leadingGroups.length === 0) {
-        // Mark as processed even if no groups found
         await this.markRealmDungeonAsProcessed(request.connectedRealmId, request.dungeonId);
         return { skipped: true };
       }
@@ -466,14 +418,11 @@ export class LadderService implements OnApplicationBootstrap {
         request.connectedRealmId,
         request.dungeonId,
         request.period,
-        key,
         logTag,
       );
 
-      // Mark realm-dungeon as processed in Redis
       await this.markRealmDungeonAsProcessed(request.connectedRealmId, request.dungeonId);
 
-      // Log progress periodically
       if (processedCount % 10 === 0) {
         this.logger.debug({
           logTag,
@@ -483,11 +432,9 @@ export class LadderService implements OnApplicationBootstrap {
 
       return { success: true };
     } catch (error) {
-      // Check if this is a 404 error (leaderboard not found for this realm-dungeon combination)
       const is404Error = error instanceof Error && error.message.includes('404');
 
       if (is404Error) {
-        // Mark as processed even if not found, and continue with other requests
         await this.markRealmDungeonAsProcessed(request.connectedRealmId, request.dungeonId);
         this.logger.debug({
           logTag,
@@ -499,15 +446,11 @@ export class LadderService implements OnApplicationBootstrap {
         return { skipped: true };
       }
 
-      // Handle other errors
       this.handleLeaderboardError(error, request.connectedRealmId, request.dungeonId, request.period, logTag);
       return { error: true };
     }
   }
 
-  /**
-   * Build array of leaderboard requests from realms, dungeons, and periods
-   */
   private buildLeaderboardRequests(
     realmsEntity: RealmsEntity[],
     mythicPlusDungeons: Map<number, string>,
@@ -530,21 +473,15 @@ export class LadderService implements OnApplicationBootstrap {
     return requests;
   }
 
-  /**
-   * Build Redis cache key for realm-dungeon combination
-   */
   private buildRealmDungeonCacheKey(connectedRealmId: number, dungeonId: number): string {
     return `${M_PLUS_REALM_DUNGEON_PREFIX}${connectedRealmId}:${dungeonId}`;
   }
 
-  /**
-   * Mark a realm-dungeon combination as processed in Redis
-   */
   private async markRealmDungeonAsProcessed(connectedRealmId: number, dungeonId: number): Promise<void> {
     const cacheKey = this.buildRealmDungeonCacheKey(connectedRealmId, dungeonId);
     await this.redisService.setex(
       cacheKey,
-      TIME_MS.ONE_WEEK / 1000, // 7 days in seconds
+      TIME_MS.ONE_WEEK / 1000,
       JSON.stringify({
         processedAt: new Date().toISOString(),
         connectedRealmId,
@@ -553,41 +490,31 @@ export class LadderService implements OnApplicationBootstrap {
     );
   }
 
-  /**
-   * Fetch leaderboard groups for a specific realm, dungeon, and period
-   */
   private async fetchLeaderboardGroups(
+    config: IBattleNetClientConfig,
     connectedRealmId: number,
     dungeonId: number,
     period: number,
   ): Promise<MythicLeaderboardGroup[]> {
-    // TODO: Reimplement with new Blizzard API client
-    this.logger.warn({ logTag: this.fetchLeaderboardGroups.name, message: 'TODO: Blizzard API call skipped - reimplement with new client' });
-    const response: IMythicLeaderboardResponse = {
-      leading_groups: [],
-      _links: {} as any,
-      map: {} as any,
-      period: period,
-      period_end_timestamp: 0,
-    };
+    const response = await this.battleNetService.query<IMythicLeaderboardResponse>(
+      config,
+      `/data/wow/connected-realm/${connectedRealmId}/mythic-leaderboard/${dungeonId}/period/${period}`,
+      { namespace: BattleNetNamespace.DYNAMIC, locale: 'en_GB' },
+    );
 
-    this.validateMythicLeaderboardResponse(response);
+    validateMythicLeaderboardResponse(response);
     return response.leading_groups;
   }
 
-  /**
-   * Process all groups in a leaderboard and publish character jobs
-   */
   private async processLeaderboardGroups(
     leadingGroups: MythicLeaderboardGroup[],
     connectedRealmId: number,
     dungeonId: number,
     period: number,
-    key: KeysEntity,
     logTag: string,
   ): Promise<void> {
     for (const group of leadingGroups) {
-      const characterJobMembers = this.mapGroupMembersToCharacterJobs(group, key);
+      const characterJobMembers = this.mapGroupMembersToCharacterJobs(group);
 
       if (characterJobMembers.length === 0) {
         continue;
@@ -609,10 +536,7 @@ export class LadderService implements OnApplicationBootstrap {
     }
   }
 
-  /**
-   * Map group members to character job DTOs
-   */
-  private mapGroupMembersToCharacterJobs(group: MythicLeaderboardGroup, key: KeysEntity): CharacterMessageDto[] {
+  private mapGroupMembersToCharacterJobs(group: MythicLeaderboardGroup): CharacterMessageDto[] {
     return group.members.map((member) =>
       CharacterMessageDto.fromMythicPlusLadder({
         id: member.profile.id,
@@ -623,9 +547,6 @@ export class LadderService implements OnApplicationBootstrap {
     );
   }
 
-  /**
-   * Handle errors during leaderboard fetching
-   */
   private handleLeaderboardError(
     error: unknown,
     connectedRealmId: number,
@@ -641,44 +562,5 @@ export class LadderService implements OnApplicationBootstrap {
       message: 'Skipping leaderboard due to error',
       error,
     });
-  }
-
-  /**
-   * Validation methods for API responses
-   */
-  private validateMythicKeystoneDungeonResponse(response: unknown): asserts response is IMythicKeystoneDungeonResponse {
-    if (!isMythicKeystoneDungeonResponse(response)) {
-      throw new BadGatewayException('Invalid mythic keystone dungeon response');
-    }
-  }
-
-  private validateMythicKeystoneSeasonResponse(response: unknown): asserts response is IMythicKeystoneSeasonResponse {
-    if (!isMythicKeystoneSeasonResponse(response)) {
-      throw new BadGatewayException('Invalid mythic keystone season response');
-    }
-  }
-
-  private validateMythicKeystoneSeasonDetail(response: unknown): asserts response is IMythicKeystoneSeasonDetail {
-    if (!isMythicKeystoneSeasonDetail(response)) {
-      throw new BadGatewayException('Invalid mythic keystone season detail response');
-    }
-  }
-
-  private validateMythicLeaderboardResponse(response: unknown): asserts response is IMythicLeaderboardResponse {
-    if (!isMythicLeaderboardResponse(response)) {
-      throw new BadGatewayException('Invalid mythic leaderboard response');
-    }
-  }
-
-  private validatePvPSeasonIndexResponse(response: unknown): asserts response is IPvPSeasonIndexResponse {
-    if (!isPvPSeasonIndexResponse(response)) {
-      throw new BadGatewayException('Invalid PvP season index response');
-    }
-  }
-
-  private validatePvPLeaderboardResponse(response: unknown): asserts response is IPvPLeaderboardResponse {
-    if (!isPvPLeaderboardResponse(response)) {
-      throw new BadGatewayException('Invalid PvP leaderboard response');
-    }
   }
 }

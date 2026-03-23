@@ -8,6 +8,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CharactersEntity, GuildsEntity, KeysEntity } from '@app/pg';
 import { BlizzardApiService } from '@app/resources/services';
 import { guildsQueue } from '@app/resources';
+import { BattleNetModule } from '@app/battle-net';
 
 @Module({
   imports: [
@@ -30,8 +31,9 @@ import { guildsQueue } from '@app/resources';
         password: redisConfig.password,
       },
     }),
+    BattleNetModule,
   ],
   controllers: [],
-  providers: [BlizzardApiService, GuildsService],
+  providers: [BlizzardApiService, BattleNetModule, GuildsService],
 })
 export class GuildsModule {}

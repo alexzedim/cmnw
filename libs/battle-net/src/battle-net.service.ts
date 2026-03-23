@@ -2,11 +2,12 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import axios from 'axios';
 import { AxiosRequestConfig, AxiosResponse } from 'axios';
 import { Observable, throwError, timer, lastValueFrom } from 'rxjs';
 import { finalize, map, mergeMap, retryWhen, timeout } from 'rxjs/operators';
-import { BattleNetClient, IBattleNetQueryOptions, IBattleNetRetryConfig } from './battle-net-client';
+import { IBattleNetClientConfig, IBattleNetQueryOptions, IBattleNetRetryConfig, DEFAULT_RETRY_CONFIG } from './types';
+import { BattleNetRegion } from './enums';
+import { BATTLE_NET_BASE_URLS } from './constants';
 import { KeysEntity } from '@app/pg';
 import { battleNetConfig, IBattleNetKeyHealthConfig } from '@app/configuration';
 
@@ -32,8 +33,36 @@ export class BattleNetService {
     this.keyHealth = battleNetConfig;
   }
 
-  createClient(config?: ConstructorParameters<typeof BattleNetClient>[0]): BattleNetClient {
-    return new BattleNetClient(config);
+  createClient(config?: IBattleNetClientConfig): IBattleNetClientConfig {
+    return {
+      clientId: config?.clientId ?? '',
+      clientSecret: config?.clientSecret ?? '',
+      accessToken: config?.accessToken ?? '',
+      region: config?.region ?? BattleNetRegion.EU,
+    };
+  }
+
+  createClientWithKey(key: KeysEntity, region: BattleNetRegion = BattleNetRegion.EU): IBattleNetClientConfig {
+    this._currentKeyUuid = key.uuid;
+    return {
+      clientId: key.clientId,
+      clientSecret: key.clientSecret,
+      accessToken: key.accessToken,
+      region,
+    };
+  }
+
+  /**
+   * Initialize a BattleNetClient with an available key
+   * Combines getAvailableKey and createClientWithKey into a single operation
+   * Returns null if no available key is found
+   */
+  async initializeBlizzAPI(tag?: string): Promise<IBattleNetClientConfig | null> {
+    const key = await this.getAvailableKey(tag);
+    if (!key) {
+      return null;
+    }
+    return this.createClientWithKey(key);
   }
 
   // ============ Key Health Methods ============
@@ -139,7 +168,7 @@ export class BattleNetService {
     const key = await this.keysRepository.findOne({ where: { uuid: keyUuid } });
     if (!key) throw new NotFoundException(`Key ${keyUuid} not found`);
 
-    const response = await axios.post(
+    const response = await this.httpService.axiosRef.post(
       'https://oauth.battle.net/token',
       new URLSearchParams({ grant_type: 'client_credentials' }),
       {
@@ -273,16 +302,38 @@ export class BattleNetService {
     );
   }
 
-  private makeRequest<T>(request$: Observable<AxiosResponse<T>>, method: string, client: BattleNetClient): Promise<T> {
-    const retrySettings: Required<IBattleNetRetryConfig> = {
-      maxRetries: 3,
-      retryDelayMs: 1000,
-      maxDelayMs: 10000,
-      timeoutMs: 60000,
-      ...client.retryConfig,
+  private buildHeaders(config: IBattleNetClientConfig, options: IBattleNetQueryOptions): Record<string, string> {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
     };
 
-    const url = client.baseUrl;
+    if (config.accessToken) {
+      headers['Authorization'] = `Bearer ${config.accessToken}`;
+    }
+
+    headers['Battlenet-Namespace'] = options.namespace;
+
+    if (options.locale) {
+      headers['Accept-Language'] = options.locale;
+    }
+
+    return headers;
+  }
+
+  private getBaseUrl(region: BattleNetRegion): string {
+    return BATTLE_NET_BASE_URLS[region];
+  }
+
+  private makeRequest<T>(
+    request$: Observable<AxiosResponse<T>>,
+    method: string,
+    config: IBattleNetClientConfig,
+  ): Promise<T> {
+    const retrySettings: Required<IBattleNetRetryConfig> = {
+      ...DEFAULT_RETRY_CONFIG,
+    };
+
+    const url = this.getBaseUrl(config.region);
 
     const requestObservable$ = request$.pipe(
       timeout(retrySettings.timeoutMs),
@@ -296,30 +347,38 @@ export class BattleNetService {
     return lastValueFrom(requestObservable$);
   }
 
-  public async query<T>(client: BattleNetClient, path: string, options: IBattleNetQueryOptions): Promise<T> {
-    const config: AxiosRequestConfig = {
-      headers: client.buildHeaders(options),
+  public async query<T>(config: IBattleNetClientConfig, path: string, options: IBattleNetQueryOptions): Promise<T> {
+    const config_: AxiosRequestConfig = {
+      headers: this.buildHeaders(config, options),
       timeout: options.timeout,
     };
 
-    return this.makeRequest(this.httpService.get<T>(`${client.baseUrl}${path}`, config), 'GET', client);
+    return this.makeRequest(
+      this.httpService.get<T>(`${this.getBaseUrl(config.region)}${path}`, config_),
+      'GET',
+      config,
+    );
   }
 
-  public async get<T>(client: BattleNetClient, path: string, options: IBattleNetQueryOptions): Promise<T> {
-    return this.query<T>(client, path, options);
+  public async get<T>(config: IBattleNetClientConfig, path: string, options: IBattleNetQueryOptions): Promise<T> {
+    return this.query<T>(config, path, options);
   }
 
   public async post<T>(
-    client: BattleNetClient,
+    config: IBattleNetClientConfig,
     path: string,
     data: unknown,
     options: IBattleNetQueryOptions,
   ): Promise<T> {
-    const config: AxiosRequestConfig = {
-      headers: client.buildHeaders(options),
+    const config_: AxiosRequestConfig = {
+      headers: this.buildHeaders(config, options),
       timeout: options.timeout,
     };
 
-    return this.makeRequest(this.httpService.post<T>(`${client.baseUrl}${path}`, data, config), 'POST', client);
+    return this.makeRequest(
+      this.httpService.post<T>(`${this.getBaseUrl(config.region)}${path}`, data, config_),
+      'POST',
+      config,
+    );
   }
 }

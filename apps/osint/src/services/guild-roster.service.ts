@@ -7,8 +7,6 @@ import { mergeMap } from 'rxjs/operators';
 import { get } from 'lodash';
 
 import {
-  API_HEADERS_ENUM,
-  apiConstParams,
   charactersQueue,
   FACTION,
   GUILD_WORKER_CONSTANTS,
@@ -30,6 +28,8 @@ import {
   ICharacterMessageBase,
 } from '@app/resources';
 import { CharactersEntity, GuildsEntity, RealmsEntity } from '@app/pg';
+import { BattleNetService, BattleNetNamespace } from '@app/battle-net';
+import { IBattleNetClientConfig } from '@app/battle-net';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 
@@ -40,6 +40,7 @@ export class GuildRosterService {
   });
 
   constructor(
+    private readonly battleNetService: BattleNetService,
     @InjectQueue(charactersQueue.name)
     private readonly characterQueue: Queue<ICharacterMessageBase>,
     @InjectRepository(RealmsEntity)
@@ -48,31 +49,19 @@ export class GuildRosterService {
     private readonly charactersRepository: Repository<CharactersEntity>,
   ) {}
 
-  async fetchRoster(guildEntity: GuildsEntity): Promise<IGuildRoster> {
-    const roster: IGuildRoster = { members: [] };
-
-    this.logger.debug({
-      logTag: 'fetchRoster',
-      guildGuid: guildEntity.guid,
-      message: 'TODO: reimplement with new client pattern',
-    });
-
-    return roster;
-  }
-
-  // TODO: reimplement with new client pattern
-  private async _fetchRosterOriginal(guildEntity: GuildsEntity, BNet: any): Promise<IGuildRoster> {
+  async fetchRoster(config: IBattleNetClientConfig, guildEntity: GuildsEntity): Promise<IGuildRoster> {
     const roster: IGuildRoster = { members: [] };
 
     try {
       const guildNameSlug = toSlug(guildEntity.name);
-      const response = await BNet.query<Readonly<IRGuildRoster>>(
+      const response = await this.battleNetService.query<IRGuildRoster>(
+        config,
         `/data/wow/guild/${guildEntity.realm}/${guildNameSlug}/roster`,
-        apiConstParams(API_HEADERS_ENUM.PROFILE),
+        { namespace: BattleNetNamespace.DYNAMIC, locale: 'en_GB' },
       );
 
       if (!isGuildRoster(response)) {
-        return roster;
+        return this.handleRosterError(new Error('Invalid roster response'), roster, guildEntity);
       }
 
       await lastValueFrom(
@@ -87,7 +76,7 @@ export class GuildRosterService {
       roster.status = setGuildStatusString('-----', 'ROSTER', GuildStatusState.SUCCESS);
       return roster;
     } catch (errorOrException) {
-      return await this.handleRosterError(errorOrException, roster, guildEntity);
+      return this.handleRosterError(errorOrException, roster, guildEntity);
     }
   }
 
@@ -240,11 +229,11 @@ export class GuildRosterService {
     await characterAsGuildMember(this.charactersRepository, this.realmsRepository, guildEntity, guildMember);
   }
 
-  private async handleRosterError(
+  private handleRosterError(
     errorOrException: any,
     roster: IGuildRoster,
     guildEntity: GuildsEntity,
-  ): Promise<IGuildRoster> {
+  ): IGuildRoster {
     const statusCode = isAxiosError(errorOrException)
       ? errorOrException.response?.status
       : get(errorOrException, 'status', 400);

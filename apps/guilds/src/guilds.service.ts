@@ -6,7 +6,6 @@ import { CharactersEntity, GuildsEntity, KeysEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import {
-  API_HEADERS_ENUM,
   delay,
   FACTION,
   GLOBAL_OSINT_KEY,
@@ -23,6 +22,8 @@ import {
 } from '@app/resources';
 import { osintConfig } from '@app/configuration';
 import { InjectQueue } from '@nestjs/bullmq';
+import { BattleNetService, BattleNetApiNamespace } from '@app/battle-net';
+import { IBattleNetClientConfig } from '@app/battle-net';
 
 @Injectable()
 export class GuildsService implements OnApplicationBootstrap {
@@ -36,7 +37,7 @@ export class GuildsService implements OnApplicationBootstrap {
     private readonly charactersRepository: Repository<CharactersEntity>,
     @InjectQueue(guildsQueue.name)
     private readonly queueGuilds: Queue<IGuildMessageBase>,
-    private readonly blizzardApiService: BlizzardApiService,
+    private readonly battleNetService: BattleNetService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -182,9 +183,19 @@ export class GuildsService implements OnApplicationBootstrap {
         await delay(2);
 
         for (const raidFaction of RAID_FACTIONS) {
-          const response = await this.BNet.query<IHallOfFame>(
+          const config = await this.battleNetService.initializeBlizzAPI();
+          if (!config) {
+            throw new Error('No available Battle.net API key');
+          }
+
+          const response = await this.battleNetService.query<IHallOfFame>(
+            config,
             `/data/wow/leaderboard/hall-of-fame/${raid}/${raidFaction}`,
-            apiConstParams(API_HEADERS_ENUM.DYNAMIC),
+            {
+              namespace: BattleNetApiNamespace.DYNAMIC,
+              locale: 'en_GB',
+              timeout: 50000,
+            },
           );
 
           const isEntries = isHallOfFame(response);

@@ -4,8 +4,6 @@ import * as changeCase from 'change-case';
 import { get } from 'lodash';
 
 import {
-  API_HEADERS_ENUM,
-  apiConstParams,
   IGuildSummary,
   isGuildSummary,
   BlizzardApiGuildSummary,
@@ -14,6 +12,8 @@ import {
   setGuildStatusString,
 } from '@app/resources';
 import { GUILD_SUMMARY_KEYS } from '@app/resources';
+import { BattleNetService, BattleNetNamespace } from '@app/battle-net';
+import { IBattleNetClientConfig } from '@app/battle-net';
 
 @Injectable()
 export class GuildSummaryService {
@@ -21,10 +21,31 @@ export class GuildSummaryService {
     timestamp: true,
   });
 
-  async getSummary(guildNameSlug: string, realmSlug: string, BNet: any): Promise<Partial<IGuildSummary>> {
-    // TODO: Reimplement with new client pattern
-    this.logger.debug({ logTag: 'getSummary', message: 'Guild summary disabled - awaiting new client pattern' });
-    return {};
+  constructor(private readonly battleNetService: BattleNetService) {}
+
+  async getSummary(
+    config: IBattleNetClientConfig,
+    guildNameSlug: string,
+    realmSlug: string,
+  ): Promise<Partial<IGuildSummary>> {
+    try {
+      const response = await this.battleNetService.query<BlizzardApiGuildSummary>(
+        config,
+        `/data/wow/guild/${realmSlug}/${guildNameSlug}`,
+        { namespace: BattleNetNamespace.DYNAMIC, locale: 'en_GB' },
+      );
+
+      if (!isGuildSummary(response)) {
+        this.logger.warn({ logTag: 'getSummary', guildNameSlug, realmSlug, message: 'Invalid guild summary response' });
+        return {};
+      }
+
+      const summary: Partial<IGuildSummary> = {};
+      this.populateSummary(response, summary);
+      return summary;
+    } catch (errorOrException) {
+      return this.handleSummaryError(errorOrException, {}, guildNameSlug, realmSlug);
+    }
   }
 
   private populateSummary(response: BlizzardApiGuildSummary, summary: Partial<IGuildSummary>): void {

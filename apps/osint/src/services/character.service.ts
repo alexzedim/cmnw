@@ -1,6 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import chalk from 'chalk';
-import { BattleNetClient, BattleNetService, BattleNetNamespace } from '@app/battle-net';
+import { BattleNetService, BattleNetNamespace } from '@app/battle-net';
+import { IBattleNetClientConfig } from '@app/battle-net';
 import { isAxiosError } from 'axios';
 import { get } from 'lodash';
 import {
@@ -35,12 +36,16 @@ export class CharacterService {
 
   constructor(private readonly battleNetService: BattleNetService) {}
 
-  async getStatus(client: BattleNetClient, nameSlug: string, realmSlug: string): Promise<Partial<CharacterStatus>> {
+  async getStatus(
+    config: IBattleNetClientConfig,
+    nameSlug: string,
+    realmSlug: string,
+  ): Promise<Partial<CharacterStatus>> {
     const characterStatus: Partial<CharacterStatus> = {};
 
     try {
       const statusResponse = (await this.battleNetService.query<IBlizzardStatusResponse>(
-        client,
+        config,
         `/profile/wow/character/${realmSlug}/${nameSlug}/status`,
         { namespace: BattleNetNamespace.PROFILE, locale: 'en_GB' },
       )) as IBlizzardStatusResponse;
@@ -99,12 +104,16 @@ export class CharacterService {
     }
   }
 
-  async getSummary(client: BattleNetClient, nameSlug: string, realmSlug: string): Promise<Partial<CharacterSummary>> {
+  async getSummary(
+    config: IBattleNetClientConfig,
+    nameSlug: string,
+    realmSlug: string,
+  ): Promise<Partial<CharacterSummary>> {
     const summary: Partial<CharacterSummary> = {};
 
     try {
       const response = await this.battleNetService.query<BlizzardApiCharacterSummary>(
-        client,
+        config,
         `/profile/wow/character/${realmSlug}/${nameSlug}`,
         { namespace: BattleNetNamespace.PROFILE, locale: 'en_GB' },
       );
@@ -168,12 +177,12 @@ export class CharacterService {
     }
   }
 
-  async getMedia(client: BattleNetClient, nameSlug: string, realmSlug: string): Promise<Partial<Media>> {
+  async getMedia(config: IBattleNetClientConfig, nameSlug: string, realmSlug: string): Promise<Partial<Media>> {
     const media: Partial<Media> = {};
 
     try {
       const response = await this.battleNetService.query<BlizzardApiCharacterMedia>(
-        client,
+        config,
         `/profile/wow/character/${realmSlug}/${nameSlug}/character-media`,
         { namespace: BattleNetNamespace.PROFILE, locale: 'en_GB' },
       );
@@ -218,12 +227,16 @@ export class CharacterService {
     }
   }
 
-  async getMountsCollection(client: BattleNetClient, nameSlug: string, realmSlug: string): Promise<BlizzardApiMountsCollection> {
+  async getMountsCollection(
+    config: IBattleNetClientConfig,
+    nameSlug: string,
+    realmSlug: string,
+  ): Promise<BlizzardApiMountsCollection> {
     const mounts: Partial<BlizzardApiMountsCollection> = {};
 
     try {
       const response = await this.battleNetService.query<BlizzardApiMountsCollection>(
-        client,
+        config,
         `/profile/wow/character/${realmSlug}/${nameSlug}/collections/mounts`,
         { namespace: BattleNetNamespace.PROFILE, locale: 'en_GB' },
       );
@@ -265,7 +278,7 @@ export class CharacterService {
   }
 
   async getPetsCollection(
-    client: BattleNetClient,
+    config: IBattleNetClientConfig,
     nameSlug: string,
     realmSlug: string,
   ): Promise<BlizzardApiPetsCollection | null> {
@@ -273,7 +286,7 @@ export class CharacterService {
 
     try {
       const response = await this.battleNetService.query<BlizzardApiPetsCollection>(
-        client,
+        config,
         `/profile/wow/character/${realmSlug}/${nameSlug}/collections/pets`,
         { namespace: BattleNetNamespace.PROFILE, locale: 'en_GB' },
       );
@@ -315,7 +328,7 @@ export class CharacterService {
   }
 
   async getProfessions(
-    client: BattleNetClient,
+    config: IBattleNetClientConfig,
     nameSlug: string,
     realmSlug: string,
   ): Promise<BlizzardApiCharacterProfessions | null> {
@@ -323,7 +336,7 @@ export class CharacterService {
 
     try {
       const response = await this.battleNetService.query<BlizzardApiCharacterProfessions>(
-        client,
+        config,
         `/profile/wow/character/${realmSlug}/${nameSlug}/professions`,
         { namespace: BattleNetNamespace.PROFILE, locale: 'en_GB' },
       );
