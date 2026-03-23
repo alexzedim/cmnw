@@ -125,7 +125,7 @@ export class BattleNetService {
     );
 
     key.token = response.data.access_token;
-    key.tokenExpiresIn = response.data.expires_in;
+    key.expiredIn = response.data.expires_in;
 
     await this.keysRepository.save(key);
 
@@ -142,6 +142,72 @@ export class BattleNetService {
       lastFailureAt: null,
     });
     this.logger.log(`Key health reset: ${keyUuid}`);
+  }
+
+  /**
+   * Get the most available key (lowest cooldown) that is not currently in cooldown
+   * Returns null if no keys are available
+   */
+  async getAvailableKey(tag?: string): Promise<KeysEntity | null> {
+    const keys = await this.keysRepository.find({});
+
+    if (keys.length === 0) {
+      return null;
+    }
+
+    const now = new Date();
+
+    let availableKeys = keys.filter((key) => {
+      if (key.cooldownDelaySeconds === 0 || !key.lastFailureAt) {
+        return true;
+      }
+      const cooldownEnd = new Date(key.lastFailureAt.getTime() + key.cooldownDelaySeconds * 1000);
+      return cooldownEnd <= now;
+    });
+
+    if (tag) {
+      availableKeys = availableKeys.filter((key) => key.tags && key.tags.includes(tag));
+    }
+
+    if (availableKeys.length === 0) {
+      return null;
+    }
+
+    availableKeys.sort((a, b) => a.cooldownDelaySeconds - b.cooldownDelaySeconds);
+
+    return availableKeys[0];
+  }
+
+  /**
+   * Get all keys sorted by health (lowest cooldown delay first)
+   * Keys in hard cooldown are still returned but sorted last
+   */
+  async getAllKeys(tags?: string[]): Promise<KeysEntity[]> {
+    const keys = await this.keysRepository.find({});
+
+    if (keys.length === 0) {
+      return [];
+    }
+
+    const now = new Date();
+
+    let filteredKeys = keys;
+
+    if (tags && tags.length > 0) {
+      filteredKeys = filteredKeys.filter((key) => key.tags && tags.some((tag) => key.tags.includes(tag)));
+    }
+
+    return filteredKeys.sort((a, b) => {
+      const getEffectiveCooldown = (key: KeysEntity): number => {
+        if (key.cooldownDelaySeconds === 0 || !key.lastFailureAt) {
+          return 0;
+        }
+        const cooldownEnd = new Date(key.lastFailureAt.getTime() + key.cooldownDelaySeconds * 1000);
+        return cooldownEnd > now ? key.cooldownDelaySeconds : 0;
+      };
+
+      return getEffectiveCooldown(a) - getEffectiveCooldown(b);
+    });
   }
 
   // ============ HTTP Request Methods ============
