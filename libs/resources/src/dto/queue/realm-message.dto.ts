@@ -10,9 +10,9 @@ export interface IRealmMessageBase {
   name: string;
   slug: string;
   region: 'eu' | 'us' | 'kr' | 'tw';
-  clientId: string;
-  clientSecret: string;
-  accessToken: string;
+  clientId?: string;
+  clientSecret?: string;
+  accessToken?: string;
 }
 
 export class RealmMessageDto {

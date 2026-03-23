@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { cmnwConfig } from '@app/configuration';
 import { BlizzAPI } from '@alexzedim/blizzapi';
-import { API_HEADERS_ENUM, apiConstParams, TOLERANCE_ENUM } from '@app/resources';
+import { apiConstParams, BattleNetApiNamespace } from '@app/battle-net';
+import { API_HEADERS_ENUM, TOLERANCE_ENUM } from '@app/resources';
 
 @Injectable()
 export class TestsDma {
@@ -14,28 +15,31 @@ export class TestsDma {
   });
 
   async commodity(): Promise<any> {
-    return this.BNet.query('/data/wow/auctions/commodities', apiConstParams(API_HEADERS_ENUM.DYNAMIC));
+    return this.BNet.query('/data/wow/auctions/commodities', apiConstParams(BattleNetApiNamespace.DYNAMIC));
   }
 
   async auctions(connectedRealmId: number): Promise<any> {
     return this.BNet.query(
       `/data/wow/connected-realm/${connectedRealmId}/auctions`,
-      apiConstParams(API_HEADERS_ENUM.DYNAMIC),
+      apiConstParams(BattleNetApiNamespace.DYNAMIC),
     );
   }
 
   async wowToken(): Promise<any> {
-    return this.BNet.query('/data/wow/token/index', apiConstParams(API_HEADERS_ENUM.DYNAMIC));
+    return this.BNet.query('/data/wow/token/index', apiConstParams(BattleNetApiNamespace.DYNAMIC));
   }
 
   async item(itemId: number): Promise<any> {
-    return this.BNet.query(`/data/wow/item/${itemId}`, apiConstParams(API_HEADERS_ENUM.STATIC, TOLERANCE_ENUM.DMA));
+    return this.BNet.query(
+      `/data/wow/item/${itemId}`,
+      apiConstParams(BattleNetApiNamespace.STATIC, TOLERANCE_ENUM.DMA),
+    );
   }
 
   async itemMedia(itemId: number): Promise<any> {
     return this.BNet.query(
       `/data/wow/media/item/${itemId}`,
-      apiConstParams(API_HEADERS_ENUM.STATIC, TOLERANCE_ENUM.DMA),
+      apiConstParams(BattleNetApiNamespace.STATIC, TOLERANCE_ENUM.DMA),
     );
   }
 }

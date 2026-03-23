@@ -1,14 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { BlizzAPI } from '@alexzedim/blizzapi';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import chalk from 'chalk';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { BlizzardApiService } from '@app/resources/services';
+import { apiConstParams, BattleNetApiNamespace, BattleNetClient, BattleNetService } from '@app/battle-net';
 import {
-  API_HEADERS_ENUM,
-  apiConstParams,
   BlizzardApiResponse,
   IConnectedRealm,
   IRealmMessageBase,
@@ -21,7 +18,7 @@ import {
   transformConnectedRealmId,
   transformNamedField,
 } from '@app/resources';
-import { KeysEntity, RealmsEntity } from '@app/pg';
+import { RealmsEntity } from '@app/pg';
 
 import { Job } from 'bullmq';
 import { get } from 'lodash';
@@ -42,16 +39,35 @@ export class RealmsWorker extends WorkerHost {
     startTime: Date.now(),
   };
 
-  private BNet: BlizzAPI;
-
   constructor(
-    @InjectRepository(KeysEntity)
-    private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
-    private readonly blizzardApiService: BlizzardApiService,
+    private readonly battleNetService: BattleNetService,
   ) {
     super();
+  }
+
+  private async getClient(message: IRealmMessageBase): Promise<BattleNetClient> {
+    if (message.clientId && message.clientSecret && message.accessToken) {
+      return this.battleNetService.createClient({
+        clientId: message.clientId,
+        clientSecret: message.clientSecret,
+        accessToken: message.accessToken,
+        region: message.region,
+      });
+    }
+
+    const key = await this.battleNetService.getAvailableKey('blizzard');
+    if (!key) {
+      throw new Error('No available Blizzard API key found');
+    }
+
+    return this.battleNetService.createClient({
+      clientId: key.client,
+      clientSecret: key.secret,
+      accessToken: key.token,
+      region: message.region,
+    });
   }
 
   async process(job: Job<IRealmMessageBase>): Promise<void> {
@@ -74,18 +90,14 @@ export class RealmsWorker extends WorkerHost {
         });
       }
 
-      this.BNet = this.blizzardApiService.createClient({
-        clientId: message.clientId,
-        clientSecret: message.clientSecret,
-        accessToken: message.accessToken,
-        region: message.region,
-      });
+      const client = await this.getClient(message);
 
       await job.updateProgress(10);
 
-      const response: Record<string, any> = await this.BNet.query(
+      const response: Record<string, any> = await this.battleNetService.query(
+        client,
         `/data/wow/realm/${message.slug}`,
-        apiConstParams(API_HEADERS_ENUM.DYNAMIC, OSINT_TIMEOUT_TOLERANCE),
+        apiConstParams(BattleNetApiNamespace.DYNAMIC, OSINT_TIMEOUT_TOLERANCE),
       );
 
       await job.updateProgress(20);
@@ -108,9 +120,10 @@ export class RealmsWorker extends WorkerHost {
       realmEntity.locale = response.locale ? response.locale : null;
 
       if (realmEntity.locale != 'enGB') {
-        const realmLocale = await this.BNet.query<BlizzardApiResponse>(
+        const realmLocale = await this.battleNetService.query<BlizzardApiResponse>(
+          client,
           `/data/wow/realm/${message.slug}`,
-          apiConstParams(API_HEADERS_ENUM.DYNAMIC, OSINT_TIMEOUT_TOLERANCE, true),
+          apiConstParams(BattleNetApiNamespace.DYNAMIC, OSINT_TIMEOUT_TOLERANCE, true),
         );
 
         await job.updateProgress(40);
@@ -139,9 +152,10 @@ export class RealmsWorker extends WorkerHost {
 
       const connectedRealmId = transformConnectedRealmId(response);
       if (connectedRealmId) {
-        const connectedRealm = await this.BNet.query<IConnectedRealm>(
+        const connectedRealm = await this.battleNetService.query<IConnectedRealm>(
+          client,
           `/data/wow/connected-realm/${connectedRealmId}`,
-          apiConstParams(API_HEADERS_ENUM.DYNAMIC),
+          apiConstParams(BattleNetApiNamespace.DYNAMIC),
         );
 
         realmEntity.connectedRealmId = get(connectedRealm, 'id', null);
