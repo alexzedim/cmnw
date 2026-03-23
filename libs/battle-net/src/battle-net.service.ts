@@ -2,7 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AxiosRequestConfig, AxiosResponse, AxiosHeaders } from 'axios';
+import { AxiosResponse, AxiosHeaders } from 'axios';
 import { Observable, throwError, timer, lastValueFrom } from 'rxjs';
 import { finalize, map, mergeMap, retryWhen, timeout } from 'rxjs/operators';
 import { IBattleNetClientConfig, IBattleNetQueryOptions, IBattleNetRetryConfig, DEFAULT_RETRY_CONFIG } from './types';
