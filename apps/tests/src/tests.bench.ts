@@ -13,7 +13,6 @@ import { from, lastValueFrom } from 'rxjs';
 import { HttpService } from '@nestjs/axios';
 import { pipeline } from 'node:stream/promises';
 import { chromium, devices } from 'playwright';
-import { BlizzAPI } from '@alexzedim/blizzapi';
 import {
   API_HEADERS_ENUM,
   FACTION,
@@ -40,11 +39,8 @@ import { cmnwConfig } from '@app/configuration';
 export class TestsBench implements OnApplicationBootstrap {
   private readonly logger = new Logger(TestsBench.name, { timestamp: true });
 
-  private readonly BNet: BlizzAPI = new BlizzAPI({
-    region: 'eu',
-    clientId: cmnwConfig.clientId,
-    clientSecret: cmnwConfig.clientSecret,
-  });
+  // TODO: Replace with new Blizzard API client implementation
+  // private readonly BNet: any = ...;
 
   constructor(
     private httpService: HttpService,
@@ -65,17 +61,10 @@ export class TestsBench implements OnApplicationBootstrap {
     }
   }
 
+  // TODO: Replace with new Blizzard API client implementation
   async ipv6(nameSlug: string, realmSlug: string) {
-    const guild = await this.BNet.query(`/data/wow/guild/${realmSlug}/${nameSlug}`, {
-      params: { locale: 'en_GB' },
-      headers: {
-        'Battlenet-Namespace': API_HEADERS_ENUM.PROFILE,
-      },
-      timeout: 100_000,
-      proxy: false,
-    });
-
-    console.log(guild);
+    this.logger.debug(`ipv6 called with nameSlug: ${nameSlug}, realmSlug: ${realmSlug}`);
+    throw new Error('TODO: Blizzard API call skipped - reimplement with new client');
   }
 
   async sample() {

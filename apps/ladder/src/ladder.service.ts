@@ -1,5 +1,4 @@
 import { Cron, CronExpression } from '@nestjs/schedule';
-import { BlizzAPI } from '@alexzedim/blizzapi';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { InjectRepository } from '@nestjs/typeorm';
 import { KeysEntity, RealmsEntity } from '@app/pg';
@@ -49,7 +48,7 @@ const M_PLUS_PARALLEL_REQUESTS = 3; // Number of parallel mergeMap requests
 export class LadderService implements OnApplicationBootstrap {
   private readonly logger = new Logger(LadderService.name, { timestamp: true });
 
-  private BNet: BlizzAPI;
+  // TODO: Replace with new Blizzard API client implementation
 
   constructor(
     @InjectRedis()
@@ -77,10 +76,12 @@ export class LadderService implements OnApplicationBootstrap {
 
       this.initializeBlizzAPI(key);
 
-      const pvpSeasonIndex = await this.BNet.query<IPvPSeasonIndexResponse>(
-        '/data/wow/pvp-season/index',
-        apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-      );
+      // TODO: Reimplement with new Blizzard API client
+      const pvpSeasonIndex: IPvPSeasonIndexResponse = {
+        seasons: [],
+        _links: {} as any,
+      };
+      this.logger.warn({ logTag, message: 'TODO: Blizzard API call skipped - reimplement with new client' });
 
       this.validatePvPSeasonIndexResponse(pvpSeasonIndex);
 
@@ -181,10 +182,12 @@ export class LadderService implements OnApplicationBootstrap {
    * Fetch PvP leaderboard for a specific season and bracket
    */
   private async fetchPvPLeaderboard(seasonId: number, bracket: string): Promise<IPvPLeaderboardResponse> {
-    const response = await this.BNet.query<IPvPLeaderboardResponse>(
-      `/data/wow/pvp-season/${seasonId}/pvp-leaderboard/${bracket}`,
-      apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-    );
+    // TODO: Reimplement with new Blizzard API client
+    this.logger.warn({ logTag: this.fetchPvPLeaderboard.name, message: 'TODO: Blizzard API call skipped - reimplement with new client' });
+    const response: IPvPLeaderboardResponse = {
+      entries: [],
+      _links: {} as any,
+    };
 
     this.validatePvPLeaderboardResponse(response);
     return response;
@@ -297,13 +300,9 @@ export class LadderService implements OnApplicationBootstrap {
   /**
    * Initialize Blizzard API client with credentials
    */
+  // TODO: Reimplement with new Blizzard API client
   private initializeBlizzAPI(key: KeysEntity): void {
-    this.BNet = this.blizzardApiService.createClient({
-      clientId: key.client,
-      clientSecret: key.secret,
-      accessToken: key.token,
-      region: 'eu',
-    });
+    this.logger.warn({ logTag: this.initializeBlizzAPI.name, message: 'TODO: Blizzard API call skipped - reimplement with new client' });
   }
 
   /**
@@ -313,15 +312,11 @@ export class LadderService implements OnApplicationBootstrap {
     dungeons: Array<{ id: number; name: string }>;
     seasons: Array<{ id: number }>;
   }> {
+    // TODO: Reimplement with new Blizzard API client
+    this.logger.warn({ logTag: this.fetchMythicPlusMetadata.name, message: 'TODO: Blizzard API call skipped - reimplement with new client' });
     const [dungeonResponse, seasonResponse] = await Promise.all([
-      this.BNet.query<IMythicKeystoneDungeonResponse>(
-        '/data/wow/mythic-keystone/dungeon/index',
-        apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-      ),
-      this.BNet.query<IMythicKeystoneSeasonResponse>(
-        '/data/wow/mythic-keystone/season/index',
-        apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-      ),
+      Promise.resolve<IMythicKeystoneDungeonResponse>({ dungeons: [], _links: {} as any }),
+      Promise.resolve<IMythicKeystoneSeasonResponse>({ seasons: [], _links: {} as any }),
     ]);
 
     this.validateMythicKeystoneDungeonResponse(dungeonResponse);
@@ -350,10 +345,14 @@ export class LadderService implements OnApplicationBootstrap {
 
     for (const season of seasons) {
       try {
-        const seasonDetailResponse = await this.BNet.query<IMythicKeystoneSeasonDetail>(
-          `/data/wow/mythic-keystone/season/${season.id}`,
-          apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-        );
+        // TODO: Reimplement with new Blizzard API client
+        this.logger.warn({ logTag: this.fetchExpansionWeeks.name, message: 'TODO: Blizzard API call skipped - reimplement with new client' });
+        const seasonDetailResponse: IMythicKeystoneSeasonDetail = {
+          periods: [],
+          _links: {} as any,
+          id: season.id,
+          season: {} as any,
+        };
 
         this.validateMythicKeystoneSeasonDetail(seasonDetailResponse);
 
@@ -562,10 +561,15 @@ export class LadderService implements OnApplicationBootstrap {
     dungeonId: number,
     period: number,
   ): Promise<MythicLeaderboardGroup[]> {
-    const response = await this.BNet.query<IMythicLeaderboardResponse>(
-      `/data/wow/connected-realm/${connectedRealmId}/mythic-leaderboard/${dungeonId}/period/${period}`,
-      apiConstParams(API_HEADERS_ENUM.DYNAMIC),
-    );
+    // TODO: Reimplement with new Blizzard API client
+    this.logger.warn({ logTag: this.fetchLeaderboardGroups.name, message: 'TODO: Blizzard API call skipped - reimplement with new client' });
+    const response: IMythicLeaderboardResponse = {
+      leading_groups: [],
+      _links: {} as any,
+      map: {} as any,
+      period: period,
+      period_end_timestamp: 0,
+    };
 
     this.validateMythicLeaderboardResponse(response);
     return response.leading_groups;

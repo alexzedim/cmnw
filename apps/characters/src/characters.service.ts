@@ -31,32 +31,23 @@ export class CharactersService implements OnApplicationBootstrap {
   constructor(
     @InjectRedis()
     private readonly redisService: Redis,
-    @InjectRepository(KeysEntity)
-    private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
     @InjectQueue(charactersQueue.name)
     private readonly charactersQueue: Queue<ICharacterMessageBase>,
     private readonly s3Service: S3Service,
-    private readonly battleNetService: BattleNetService,
   ) {}
 
   async onApplicationBootstrap() {
     await this.indexFromFile(osintConfig.isIndexCharactersFromFile);
-    await this.indexCharacters(GLOBAL_OSINT_KEY);
+    await this.indexCharacters();
   }
 
   @Cron(CronExpression.EVERY_10_MINUTES)
-  private async indexCharacters(clearance: string = GLOBAL_OSINT_KEY): Promise<void> {
+  private async indexCharacters(): Promise<void> {
     const logTag = this.indexCharacters.name;
     try {
       let characterIteration = 0;
-      const key = await this.battleNetService.getAvailableKey();
-      if (!key) {
-        this.logger.warn({ logTag, message: 'No available key' });
-        return;
-      }
-      const { clientId, clientSecret, token } = key;
 
       const characters = await this.charactersRepository.find({
         order: { hashA: 'ASC' },
@@ -150,13 +141,6 @@ export class CharactersService implements OnApplicationBootstrap {
       }
 
       const characters: Array<Pick<CharactersEntity, 'guid'>> = JSON.parse(charactersJson);
-
-      const key = await this.battleNetService.getAvailableKey();
-      if (!key) {
-        this.logger.warn({ logTag, message: 'No available key' });
-        return;
-      }
-      const { clientId, clientSecret, token } = key;
 
       let characterIteration = 0;
 

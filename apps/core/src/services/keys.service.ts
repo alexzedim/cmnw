@@ -54,7 +54,7 @@ export class KeysService implements OnApplicationBootstrap {
         from(keys).pipe(
           mergeMap(async (key: IKeyConfig) => {
             let keyEntity = await this.keysRepository.findOneBy({
-              client: key.client,
+              clientId: key.client,
             });
             if (!keyEntity) {
               keyEntity = this.keysRepository.create(key);
@@ -87,17 +87,17 @@ export class KeysService implements OnApplicationBootstrap {
             grant_type: 'client_credentials',
           },
           auth: {
-            username: keyEntity.client,
-            password: keyEntity.secret,
+            username: keyEntity.clientId,
+            password: keyEntity.clientSecret,
           },
         });
 
-        keyEntity.token = data.access_token;
+        keyEntity.accessToken = data.access_token;
         keyEntity.expiredIn = data.expires_in;
         this.logger.log({
           logTag,
-          client: keyEntity.client,
-          message: `Updated Blizzard key: ${keyEntity.client}`,
+          client: keyEntity.clientId,
+          message: `Updated Blizzard key: ${keyEntity.clientId}`,
         });
 
         await this.keysRepository.save(keyEntity);
@@ -123,20 +123,20 @@ export class KeysService implements OnApplicationBootstrap {
             grant_type: 'client_credentials',
           },
           auth: {
-            username: keyEntity.client,
-            password: keyEntity.secret,
+            username: keyEntity.clientId,
+            password: keyEntity.clientSecret,
           },
         });
 
-        keyEntity.token = data.access_token;
+        keyEntity.accessToken = data.access_token;
         keyEntity.expiredIn = data.expires_in;
 
         await this.keysRepository.save(keyEntity);
         this.logger.log({
           logTag,
-          client: keyEntity.client,
+          client: keyEntity.clientId,
           keyType: 'wcl',
-          message: `Updated WCL key: ${keyEntity.client}`,
+          message: `Updated WCL key: ${keyEntity.clientId}`,
         });
       }
     } catch (errorOrException) {

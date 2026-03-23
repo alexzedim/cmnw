@@ -1,7 +1,7 @@
 import Redis from 'ioredis';
 import { Injectable, Logger } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { BlizzAPI } from '@alexzedim/blizzapi';
+
 import { bufferCount, concatMap } from 'rxjs/operators';
 import { from, lastValueFrom } from 'rxjs';
 import { DateTime } from 'luxon';
@@ -59,7 +59,7 @@ export class AuctionsWorker extends WorkerHost {
     startTime: Date.now(),
   };
 
-  private BNet: BlizzAPI;
+  // TODO: Replace with new Blizzard API client implementation
 
   private readonly HTTP_STATUS_CODES = {
     NOT_MODIFIED: 304,
@@ -92,12 +92,13 @@ export class AuctionsWorker extends WorkerHost {
         data: message,
       });
 
-      this.BNet = this.blizzardApiService.createClient({
-        clientId: message.clientId,
-        clientSecret: message.clientSecret,
-        accessToken: message.accessToken,
-        region: message.region,
-      });
+      // TODO: Replace with new Blizzard API client implementation
+      // this.BNet = this.blizzardApiService.createClient({
+      //   clientId: message.clientId,
+      //   clientSecret: message.clientSecret,
+      //   accessToken: message.accessToken,
+      //   region: message.region,
+      // });
 
       const isCommodity = message.connectedRealmId === REALM_ENTITY_ANY.id;
 
@@ -119,10 +120,13 @@ export class AuctionsWorker extends WorkerHost {
         ? '/data/wow/auctions/commodities'
         : `/data/wow/connected-realm/${message.connectedRealmId}/auctions`;
 
-      const marketResponse = await this.BNet.query<BlizzardApiAuctions>(
-        getMarketApiEndpoint,
-        apiConstParams(API_HEADERS_ENUM.DYNAMIC, DMA_TIMEOUT_TOLERANCE, false, ifModifiedSince),
-      );
+      // TODO: Replace with new Blizzard API client implementation
+      // const marketResponse = await this.BNet.query<BlizzardApiAuctions>(
+      //   getMarketApiEndpoint,
+      //   apiConstParams(API_HEADERS_ENUM.DYNAMIC, DMA_TIMEOUT_TOLERANCE, false, ifModifiedSince),
+      // );
+      this.logger.debug({ logTag: 'BlizzardAPI', message: 'Skipping API call - BlizzAPI client not initialized' });
+      return;
 
       const isAuctionsValid = isAuctions(marketResponse);
       if (!isAuctionsValid) {

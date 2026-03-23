@@ -14,6 +14,15 @@ import { battleNetConfig, IBattleNetKeyHealthConfig } from '@app/configuration';
 export class BattleNetService {
   private readonly logger = new Logger(BattleNetService.name, { timestamp: true });
   private readonly keyHealth: IBattleNetKeyHealthConfig;
+  private _currentKeyUuid: string | null = null;
+
+  get currentKeyUuid(): string | null {
+    return this._currentKeyUuid;
+  }
+
+  setCurrentKey(key: KeysEntity): void {
+    this._currentKeyUuid = key.uuid;
+  }
 
   constructor(
     private readonly httpService: HttpService,
@@ -54,9 +63,14 @@ export class BattleNetService {
    * Record a rate limit (429) response for a key
    * Formula: cooldownDelay = min(maxDelay, currentDelay * multiplier + baseDelay)
    */
-  async recordKeyRateLimit(keyUuid: string): Promise<number> {
-    const key = await this.keysRepository.findOne({ where: { uuid: keyUuid } });
-    if (!key) throw new NotFoundException(`Key ${keyUuid} not found`);
+  async recordKeyRateLimit(keyUuid?: string): Promise<number> {
+    const resolvedKeyUuid = keyUuid ?? this._currentKeyUuid;
+    if (!resolvedKeyUuid) {
+      throw new NotFoundException('No keyUuid provided and no current key is set');
+    }
+
+    const key = await this.keysRepository.findOne({ where: { uuid: resolvedKeyUuid } });
+    if (!key) throw new NotFoundException(`Key ${resolvedKeyUuid} not found`);
 
     const newCooldown = Math.min(
       this.keyHealth.maxDelay,
@@ -68,7 +82,7 @@ export class BattleNetService {
 
     await this.keysRepository.save(key);
 
-    this.logger.warn(`Rate limited: ${keyUuid} | cooldown: ${newCooldown}s`);
+    this.logger.warn(`Rate limited: ${resolvedKeyUuid} | cooldown: ${newCooldown}s`);
     return newCooldown;
   }
 
@@ -76,9 +90,14 @@ export class BattleNetService {
    * Record an error response for a key
    * Uses same formula as rate limit
    */
-  async recordKeyError(keyUuid: string): Promise<number> {
-    const key = await this.keysRepository.findOne({ where: { uuid: keyUuid } });
-    if (!key) throw new NotFoundException(`Key ${keyUuid} not found`);
+  async recordKeyError(keyUuid?: string): Promise<number> {
+    const resolvedKeyUuid = keyUuid ?? this._currentKeyUuid;
+    if (!resolvedKeyUuid) {
+      throw new NotFoundException('No keyUuid provided and no current key is set');
+    }
+
+    const key = await this.keysRepository.findOne({ where: { uuid: resolvedKeyUuid } });
+    if (!key) throw new NotFoundException(`Key ${resolvedKeyUuid} not found`);
 
     const newCooldown = Math.min(
       this.keyHealth.maxDelay,
@@ -96,9 +115,14 @@ export class BattleNetService {
    * Record a successful request for a key
    * Formula: cooldownDelay = max(0, cooldownDelay - decayStep)
    */
-  async recordKeySuccess(keyUuid: string): Promise<number> {
-    const key = await this.keysRepository.findOne({ where: { uuid: keyUuid } });
-    if (!key) throw new NotFoundException(`Key ${keyUuid} not found`);
+  async recordKeySuccess(keyUuid?: string): Promise<number> {
+    const resolvedKeyUuid = keyUuid ?? this._currentKeyUuid;
+    if (!resolvedKeyUuid) {
+      throw new NotFoundException('No keyUuid provided and no current key is set');
+    }
+
+    const key = await this.keysRepository.findOne({ where: { uuid: resolvedKeyUuid } });
+    if (!key) throw new NotFoundException(`Key ${resolvedKeyUuid} not found`);
 
     const newCooldown = Math.max(0, key.cooldownDelaySeconds - this.keyHealth.decayStep);
 
@@ -124,13 +148,13 @@ export class BattleNetService {
       },
     );
 
-    key.token = response.data.access_token;
+    key.accessToken = response.data.access_token;
     key.expiredIn = response.data.expires_in;
 
     await this.keysRepository.save(key);
 
     this.logger.log(`Token refreshed for key ${keyUuid}`);
-    return key.token;
+    return key.accessToken;
   }
 
   /**

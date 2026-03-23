@@ -15,6 +15,8 @@
     "baseUrl": "./",
     "incremental": true,
     "paths": {
+      "@app/battle-net": ["libs/battle-net/src"],
+      "@app/battle-net/*": ["libs/battle-net/src/*"],
       "@app/configuration": ["libs/configuration/src"],
       "@app/configuration/*": ["libs/configuration/src/*"],
       "@app/logger": ["libs/logger/src"],

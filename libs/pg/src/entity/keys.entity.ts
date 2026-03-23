@@ -11,21 +11,21 @@ export class KeysEntity {
     name: 'client',
     nullable: false,
   })
-  client: string;
+  clientId: string;
 
   @Column({
     type: 'varchar',
     name: 'secret',
     nullable: false,
   })
-  secret: string;
+  clientSecret: string;
 
   @Column({
     type: 'varchar',
     nullable: true,
     default: null,
   })
-  token?: string;
+  accessToken?: string;
 
   @Column({
     type: 'int',

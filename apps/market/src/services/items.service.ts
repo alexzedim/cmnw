@@ -26,8 +26,6 @@ export class ItemsService implements OnApplicationBootstrap {
   private readonly logger = new Logger(ItemsService.name, { timestamp: true });
 
   constructor(
-    @InjectRepository(KeysEntity)
-    private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(ItemsEntity)
     private readonly itemsRepository: Repository<ItemsEntity>,
     @InjectQueue(itemsQueue.name)
@@ -36,14 +34,13 @@ export class ItemsService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
-    await this.indexItems(GLOBAL_KEY, 1, 250_000, dmaConfig.isItemsForceUpdate, dmaConfig.isItemsIndex);
+    await this.indexItems(1, 250_000, dmaConfig.isItemsForceUpdate, dmaConfig.isItemsIndex);
 
     await this.buildItems(dmaConfig.isItemsBuild);
   }
 
   @Cron(CronExpression.EVERY_WEEK)
   async indexItems(
-    clearance: string = GLOBAL_KEY,
     from = 0,
     to = 250_000,
     isItemsForceUpdate = true,
@@ -62,8 +59,7 @@ export class ItemsService implements OnApplicationBootstrap {
       if (!isItemsIndex) return;
 
       const count = Math.abs(from - to);
-      const key = await getKey(this.keysRepository, clearance);
-
+      
       const goldItemEntity = this.itemsRepository.create(GOLD_ITEM_ENTITY);
       await this.itemsRepository.save(goldItemEntity);
 
@@ -81,9 +77,6 @@ export class ItemsService implements OnApplicationBootstrap {
             const itemMessage = ItemMessageDto.create({
               itemId: itemId,
               region: 'eu',
-              clientId: key.client,
-              clientSecret: key.secret,
-              accessToken: key.token,
             });
 
             await this.queue.add(itemMessage.name, itemMessage.data, itemMessage.opts);

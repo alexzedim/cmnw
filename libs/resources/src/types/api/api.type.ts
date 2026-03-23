@@ -16,7 +16,7 @@ import {
 import { IAxiosRetryConfig } from '../../utils/axios-retry.config';
 import { KeysEntity } from '@app/pg';
 import { Repository } from 'typeorm';
-import { RegionIdOrName } from '@alexzedim/blizzapi';
+export type RegionIdOrName = string;
 
 export type BlizzardApiStringNumber = string | number;
 

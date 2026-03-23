@@ -4,14 +4,11 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Queue } from 'bullmq';
 import { CharactersEntity, GuildsEntity, KeysEntity } from '@app/pg';
 import { Repository } from 'typeorm';
-import { BlizzAPI } from '@alexzedim/blizzapi';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import {
   API_HEADERS_ENUM,
-  apiConstParams,
   delay,
   FACTION,
-  getKeys,
   GLOBAL_OSINT_KEY,
   GuildMessageDto,
   guildsQueue,
@@ -24,20 +21,15 @@ import {
   OSINT_GUILD_LIMIT,
   RAID_FACTIONS,
 } from '@app/resources';
-import { BlizzardApiService } from '@app/resources/services';
 import { osintConfig } from '@app/configuration';
 import { InjectQueue } from '@nestjs/bullmq';
 
 @Injectable()
 export class GuildsService implements OnApplicationBootstrap {
   private offset = 0;
-  private keyEntities: KeysEntity[];
-  private BNet: BlizzAPI;
   private readonly logger = new Logger(GuildsService.name, { timestamp: true });
 
   constructor(
-    @InjectRepository(KeysEntity)
-    private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(GuildsEntity)
     private readonly guildsRepository: Repository<GuildsEntity>,
     @InjectRepository(CharactersEntity)
@@ -48,11 +40,11 @@ export class GuildsService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
-    await this.indexGuildCharactersUnique(GLOBAL_OSINT_KEY, osintConfig.isIndexGuildsFromCharacters);
-    await this.indexHallOfFame(GLOBAL_OSINT_KEY, false);
+    await this.indexGuildCharactersUnique(osintConfig.isIndexGuildsFromCharacters);
+    await this.indexHallOfFame(false);
   }
 
-  async indexGuildCharactersUnique(clearance: string = GLOBAL_OSINT_KEY, isIndexGuildsFromCharacters: boolean) {
+  async indexGuildCharactersUnique(isIndexGuildsFromCharacters: boolean) {
     const logTag = this.indexGuildCharactersUnique.name;
 
     let uniqueGuildGuidsCount = 0;
@@ -66,10 +58,6 @@ export class GuildsService implements OnApplicationBootstrap {
         message: `Index guilds from characters: ${isIndexGuildsFromCharacters}`,
       });
       if (isIndexGuildsFromCharacters) return;
-
-      this.keyEntities = await getKeys(this.keysRepository, clearance);
-
-      const length = this.keyEntities.length;
 
       const uniqueGuildGuids = await this.charactersRepository
         .createQueryBuilder('characters')
@@ -86,8 +74,6 @@ export class GuildsService implements OnApplicationBootstrap {
       });
 
       const guildJobs = uniqueGuildGuids.map((guild) => {
-        const { client, secret, token } = this.keyEntities[guildJobsItx % length];
-
         const [name, realm] = guild.guildGuid.split('@');
 
         guildJobsItx = guildJobsItx + 1;
@@ -130,13 +116,10 @@ export class GuildsService implements OnApplicationBootstrap {
   }
 
   @Cron(CronExpression.EVERY_10_MINUTES)
-  async indexGuilds(clearance: string = GLOBAL_OSINT_KEY): Promise<void> {
+  async indexGuilds(): Promise<void> {
     const logTag = this.indexGuilds.name;
     try {
       let guildIteration = 0;
-      this.keyEntities = await getKeys(this.keysRepository, clearance);
-
-      let length = this.keyEntities.length;
 
       const guilds = await this.guildsRepository.find({
         order: { updatedAt: 'ASC' },
@@ -161,8 +144,6 @@ export class GuildsService implements OnApplicationBootstrap {
       await lastValueFrom(
         from(guilds).pipe(
           mergeMap(async (guild) => {
-            const { client, secret, token } = this.keyEntities[guildIteration % length];
-
             guildIteration = guildIteration + 1;
 
             const dto = GuildMessageDto.fromGuildIndex({
@@ -175,12 +156,6 @@ export class GuildsService implements OnApplicationBootstrap {
             });
 
             await this.queueGuilds.add(dto.name, dto.data, dto.opts);
-
-            const isKeyRequest = guildIteration % 100 == 0;
-            if (isKeyRequest) {
-              this.keyEntities = await getKeys(this.keysRepository, clearance);
-              length = this.keyEntities.length;
-            }
           }),
         ),
       );
@@ -195,22 +170,10 @@ export class GuildsService implements OnApplicationBootstrap {
   }
 
   @Cron(CronExpression.EVERY_WEEK)
-  async indexHallOfFame(clearance: string = GLOBAL_OSINT_KEY, onlyLast = true): Promise<void> {
+  async indexHallOfFame(onlyLast = true): Promise<void> {
     const logTag = this.indexHallOfFame.name;
 
     try {
-      this.keyEntities = await getKeys(this.keysRepository, clearance);
-      const [key] = this.keyEntities;
-
-      const length = this.keyEntities.length;
-
-      this.BNet = this.blizzardApiService.createClient({
-        clientId: key.client,
-        clientSecret: key.secret,
-        accessToken: key.token,
-        region: 'eu',
-      });
-
       for (const raid of HALL_OF_FAME_RAIDS) {
         const isOnlyLast = onlyLast && raid !== HALL_OF_FAME_RAIDS[HALL_OF_FAME_RAIDS.length - 1];
 
@@ -228,9 +191,7 @@ export class GuildsService implements OnApplicationBootstrap {
           if (!isEntries) continue;
 
           const guildJobs = response.entries
-            .map((guildEntry, guildIteration) => {
-              const { client, secret, token } = this.keyEntities[guildIteration % length];
-
+            .map((guildEntry) => {
               const faction = raidFaction === 'HORDE' ? FACTION.H : FACTION.A;
 
               const isNotEuRegion = !isEuRegion(guildEntry.region);
