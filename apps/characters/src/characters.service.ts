@@ -12,14 +12,8 @@ import { Queue } from 'bullmq';
 import { CharactersEntity, KeysEntity } from '@app/pg';
 import { S3Service } from '@app/s3';
 import { osintConfig } from '@app/configuration';
-import {
-  charactersQueue,
-  GLOBAL_OSINT_KEY,
-  OSINT_CHARACTER_LIMIT,
-  CharacterMessageDto,
-  ICharacterMessageBase,
-} from '@app/resources';
-import { BattleNetService } from '@app/battle-net';
+import { charactersQueue, OSINT_CHARACTER_LIMIT, CharacterMessageDto, ICharacterMessageBase } from '@app/resources';
+import { BattleNetService, BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
 
 @Injectable()
 export class CharactersService implements OnApplicationBootstrap {

@@ -11,7 +11,6 @@ import {
   AuctionMessageDto,
   auctionsQueue,
   BlizzardApiWowToken,
-  GLOBAL_DMA_KEY,
   IAuctionMessageBase,
   isWowToken,
   MARKET_TYPE,
@@ -19,6 +18,7 @@ import {
   toGold,
   WOW_TOKEN_ITEM_ID,
 } from '@app/resources';
+import { BATTLE_NET_KEY_TAG_DMA } from '@app/battle-net';
 import { BlizzardApiService } from '@app/resources/services';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -137,7 +137,6 @@ export class AuctionsService implements OnApplicationBootstrap {
   async indexTokens(): Promise<void> {
     const logTag = this.indexTokens.name;
     try {
-
       // TODO: Reimplement with new Blizzard API client pattern
       this.logger.debug({
         logTag,

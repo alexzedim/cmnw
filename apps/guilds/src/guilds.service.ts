@@ -8,7 +8,6 @@ import { from, lastValueFrom, mergeMap } from 'rxjs';
 import {
   delay,
   FACTION,
-  GLOBAL_OSINT_KEY,
   GuildMessageDto,
   guildsQueue,
   HALL_OF_FAME_RAIDS,
@@ -22,8 +21,7 @@ import {
 } from '@app/resources';
 import { osintConfig } from '@app/configuration';
 import { InjectQueue } from '@nestjs/bullmq';
-import { BattleNetService, BattleNetApiNamespace } from '@app/battle-net';
-import { IBattleNetClientConfig } from '@app/battle-net';
+import { BattleNetService, BattleNetApiNamespace, BATTLE_NET_KEY_TAG_BLIZZARD, BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
 
 @Injectable()
 export class GuildsService implements OnApplicationBootstrap {
@@ -41,6 +39,7 @@ export class GuildsService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
+    await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_BLIZZARD);
     await this.indexGuildCharactersUnique(osintConfig.isIndexGuildsFromCharacters);
     await this.indexHallOfFame(false);
   }
@@ -183,13 +182,7 @@ export class GuildsService implements OnApplicationBootstrap {
         await delay(2);
 
         for (const raidFaction of RAID_FACTIONS) {
-          const config = await this.battleNetService.initializeBlizzAPI();
-          if (!config) {
-            throw new Error('No available Battle.net API key');
-          }
-
           const response = await this.battleNetService.query<IHallOfFame>(
-            config,
             `/data/wow/leaderboard/hall-of-fame/${raid}/${raidFaction}`,
             {
               namespace: BattleNetApiNamespace.DYNAMIC,
