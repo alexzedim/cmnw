@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { postgresConfig, s3Config, redisConfig, REDIS_CONNECTION } from '@app/configuration';
 import { HttpModule } from '@nestjs/axios';
 import { ScheduleModule } from '@nestjs/schedule';
+import { BattleNetModule } from '@app/battle-net';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
 import { RedisModule } from '@nestjs-modules/ioredis';
@@ -14,6 +15,7 @@ import { realmsQueue } from '@app/resources';
 @Module({
   imports: [
     HttpModule,
+    BattleNetModule,
     ScheduleModule.forRoot(),
     S3Module.forRoot(s3Config),
     TypeOrmModule.forRoot(postgresConfig),

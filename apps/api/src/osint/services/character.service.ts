@@ -31,7 +31,6 @@ import {
   findRealm,
   ICharacterMessageBase,
 } from '@app/resources';
-import { BattleNetService } from '@app/battle-net';
 import { CharacterResponseDto } from '@app/resources/dto/character/character-response.dto';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, QueueEvents } from 'bullmq';
@@ -42,7 +41,6 @@ export class CharacterOsintService {
   private readonly logger = new Logger(CharacterOsintService.name, {
     timestamp: true,
   });
-  private readonly clearance: string = GLOBAL_OSINT_KEY;
   private readonly queueEvents = new QueueEvents(charactersQueue.name, {
     connection: REDIS_CONNECTION,
   });
@@ -60,7 +58,6 @@ export class CharacterOsintService {
     private readonly logsRepository: Repository<CharactersGuildsLogsEntity>,
     @InjectQueue(charactersQueue.name)
     private readonly queueCharacter: Queue<ICharacterMessageBase>,
-    private readonly battleNetService: BattleNetService,
   ) {}
 
   private async requestCharacterFromQueue(params: {
@@ -72,8 +69,6 @@ export class CharacterOsintService {
     let requestedCharacter: CharactersEntity | null = null;
 
     try {
-      await this.battleNetService.getAvailableKey();
-
       const characterMessage = CharacterMessageDto.fromCharacterRequest({
         name: params.name,
         realm: params.realm,
