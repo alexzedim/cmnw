@@ -7,7 +7,9 @@
     "experimentalDecorators": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "lib": ["ES2020"],
+    "lib": [
+      "ES2020"
+    ],
     "target": "es2020",
     "skipLibCheck": true,
     "sourceMap": true,
@@ -15,20 +17,42 @@
     "baseUrl": "./",
     "incremental": true,
     "paths": {
-      "@app/battle-net": ["libs/battle-net/src"],
-      "@app/battle-net/*": ["libs/battle-net/src/*"],
-      "@app/configuration": ["libs/configuration/src"],
-      "@app/configuration/*": ["libs/configuration/src/*"],
-      "@app/logger": ["libs/logger/src"],
-      "@app/logger/*": ["libs/logger/src/*"],
-      "@app/mongo": ["libs/mongo/src"],
-      "@app/mongo/*": ["libs/mongo/src/*"],
-      "@app/pg": ["libs/pg/src"],
-      "@app/pg/*": ["libs/pg/src/*"],
-      "@app/resources": ["libs/resources/src"],
-      "@app/resources/*": ["libs/resources/src/*"],
-      "@app/s3": ["libs/s3/src"],
-      "@app/s3/*": ["libs/s3/src/*"]
+      "@app/battle-net": [
+        "libs/battle-net/src"
+      ],
+      "@app/battle-net/*": [
+        "libs/battle-net/src/*"
+      ],
+      "@app/configuration": [
+        "libs/configuration/src"
+      ],
+      "@app/configuration/*": [
+        "libs/configuration/src/*"
+      ],
+      "@app/logger": [
+        "libs/logger/src"
+      ],
+      "@app/logger/*": [
+        "libs/logger/src/*"
+      ],
+      "@app/pg": [
+        "libs/pg/src"
+      ],
+      "@app/pg/*": [
+        "libs/pg/src/*"
+      ],
+      "@app/resources": [
+        "libs/resources/src"
+      ],
+      "@app/resources/*": [
+        "libs/resources/src/*"
+      ],
+      "@app/s3": [
+        "libs/s3/src"
+      ],
+      "@app/s3/*": [
+        "libs/s3/src/*"
+      ]
     }
   }
 }
