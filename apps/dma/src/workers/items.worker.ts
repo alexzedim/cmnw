@@ -4,9 +4,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import {
-  API_HEADERS_ENUM,
-  apiConstParams,
-  BlizzardApiItem,
   DMA_SOURCE,
   IItem,
   IItemMessageBase,
@@ -16,7 +13,6 @@ import {
   ITEM_FIELD_MAPPING,
   itemsQueue,
   toGold,
-  TOLERANCE_ENUM,
   VALUATION_TYPE,
 } from '@app/resources';
 import { BlizzardApiService } from '@app/resources/services';

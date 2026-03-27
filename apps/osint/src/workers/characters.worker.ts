@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { from, lastValueFrom, mergeMap, toArray } from 'rxjs';
-import chalk from 'chalk';
 import { BattleNetService, BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
 import {
   CHARACTER_SUMMARY_FIELD_MAPPING,
@@ -25,7 +24,7 @@ import {
   WorkerStats,
 } from '@app/logger';
 
-import { CharactersEntity, KeysEntity } from '@app/pg';
+import { CharactersEntity } from '@app/pg';
 import { CharacterService, CharacterLifecycleService, CharacterCollectionService } from '../services';
 
 interface PetsFetchResult {

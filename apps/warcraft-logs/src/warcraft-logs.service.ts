@@ -12,7 +12,7 @@ import {
   toGuid,
   toSlug,
 } from '@app/resources';
-import { BATTLE_NET_KEY_TAG_OSINT, BATTLE_NET_KEY_TAG_WCL_V2 } from '@app/battle-net';
+import { BATTLE_NET_KEY_TAG_WCL_V2 } from '@app/battle-net';
 import { BattleNetService } from '@app/battle-net';
 
 import { Cron, CronExpression } from '@nestjs/schedule';
