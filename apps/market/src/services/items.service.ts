@@ -5,12 +5,10 @@ import { S3Service } from '@app/s3';
 import csv from 'async-csv';
 import { lastValueFrom, mergeMap, range } from 'rxjs';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ItemsEntity, KeysEntity } from '@app/pg';
+import { ItemsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import {
   EXPANSION_TICKER_ID,
-  getKey,
-  GLOBAL_KEY,
   GOLD_ITEM_ENTITY,
   IItemMessageBase,
   IItemsParse,
@@ -40,12 +38,7 @@ export class ItemsService implements OnApplicationBootstrap {
   }
 
   @Cron(CronExpression.EVERY_WEEK)
-  async indexItems(
-    from = 0,
-    to = 250_000,
-    isItemsForceUpdate = true,
-    isItemsIndex = true,
-  ): Promise<void> {
+  async indexItems(from = 0, to = 250_000, isItemsForceUpdate = true, isItemsIndex = true): Promise<void> {
     const logTag = this.indexItems.name;
     try {
       this.logger.log({
@@ -59,7 +52,7 @@ export class ItemsService implements OnApplicationBootstrap {
       if (!isItemsIndex) return;
 
       const count = Math.abs(from - to);
-      
+
       const goldItemEntity = this.itemsRepository.create(GOLD_ITEM_ENTITY);
       await this.itemsRepository.save(goldItemEntity);
 

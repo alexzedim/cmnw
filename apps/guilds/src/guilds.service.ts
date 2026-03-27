@@ -2,7 +2,7 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Queue } from 'bullmq';
-import { CharactersEntity, GuildsEntity, KeysEntity } from '@app/pg';
+import { CharactersEntity, GuildsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import {
@@ -21,7 +21,7 @@ import {
 } from '@app/resources';
 import { osintConfig } from '@app/configuration';
 import { InjectQueue } from '@nestjs/bullmq';
-import { BattleNetService, BattleNetApiNamespace, BATTLE_NET_KEY_TAG_BLIZZARD, BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
+import { BattleNetService, BattleNetApiNamespace, BATTLE_NET_KEY_TAG_BLIZZARD } from '@app/battle-net';
 
 @Injectable()
 export class GuildsService implements OnApplicationBootstrap {

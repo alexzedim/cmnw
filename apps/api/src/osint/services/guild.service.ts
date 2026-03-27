@@ -17,7 +17,6 @@ import {
 
 import { In, Repository } from 'typeorm';
 
-import { BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
 import { GuildIdDto, GuildMessageDto, guildsQueue, toGuid, findRealm, IGuildMessageBase } from '@app/resources';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, QueueEvents } from 'bullmq';

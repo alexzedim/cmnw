@@ -7,10 +7,8 @@ import { KeysEntity, MarketEntity, RealmsEntity } from '@app/pg';
 import { LessThan, Not, Repository } from 'typeorm';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import {
-  API_HEADERS_ENUM,
   AuctionMessageDto,
   auctionsQueue,
-  BlizzardApiWowToken,
   IAuctionMessageBase,
   isWowToken,
   MARKET_TYPE,
@@ -18,7 +16,6 @@ import {
   toGold,
   WOW_TOKEN_ITEM_ID,
 } from '@app/resources';
-import { BATTLE_NET_KEY_TAG_DMA } from '@app/battle-net';
 import { BlizzardApiService } from '@app/resources/services';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';

@@ -10,11 +10,8 @@ import { ItemsEntity, MarketEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import {
-  API_HEADERS_ENUM,
-  apiConstParams,
   auctionsQueue,
   BlizzardApiAuctions,
-  DMA_TIMEOUT_TOLERANCE,
   IAuctionsOrder,
   ICommodityOrder,
   IPetList,
