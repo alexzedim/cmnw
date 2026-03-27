@@ -7,11 +7,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { KeysEntity } from '@app/pg';
 import { ArrayContains, Repository } from 'typeorm';
 import { LoggerService } from '@app/logger';
-import { BATTLE_NET_KEY_TAG_BLIZZARD, BATTLE_NET_KEY_TAG_WCL_V1, BATTLE_NET_KEY_TAG_WCL_V2 } from '@app/battle-net';
-import {
-  IKeyConfig,
-  IKeysJson,
-} from '@app/resources';
+import { BATTLE_NET_KEY_TAG_BLIZZARD, BATTLE_NET_KEY_TAG_WCL_V2 } from '@app/battle-net';
+import { IKeyConfig, IKeysJson } from '@app/resources';
 
 @Injectable()
 export class KeysService implements OnApplicationBootstrap {

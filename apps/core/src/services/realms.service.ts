@@ -11,15 +11,11 @@ import { lastValueFrom, mergeMap, range } from 'rxjs';
 import { BlizzardApiService } from '@app/resources/services';
 import { BattleNetService } from '@app/battle-net';
 import {
-  API_HEADERS_ENUM,
-  apiConstParams,
   getRandomizedHeaders,
   delay,
   GLOBAL_KEY,
-  OSINT_TIMEOUT_TOLERANCE,
   REALM_ENTITY_ANY,
   realmsQueue,
-  RealmMessageDto,
   IRealmMessageBase,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
