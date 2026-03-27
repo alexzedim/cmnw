@@ -1,12 +1,13 @@
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { from, lastValueFrom, mergeMap, toArray } from 'rxjs';
+import { isAxiosError } from 'axios';
+
 import { BattleNetService, BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
 import {
-  CHARACTER_SUMMARY_FIELD_MAPPING,
+  BlizzardApiCharacterProfessions,
+  BlizzardApiMountsCollection,
+  BlizzardApiPetsCollection,
   charactersQueue,
   toSlug,
   ICharacterMessageBase,
@@ -16,32 +17,16 @@ import {
   CHARACTER_STATUS_CODES,
 } from '@app/resources';
 import {
+  WorkerStats,
   formatWorkerLog,
+  WorkerLogStatus,
   formatWorkerErrorLog,
   formatProgressReport,
   formatFinalSummary,
-  WorkerLogStatus,
-  WorkerStats,
 } from '@app/logger';
 
 import { CharactersEntity } from '@app/pg';
 import { CharacterService, CharacterLifecycleService, CharacterCollectionService } from '../services';
-
-interface PetsFetchResult {
-  petsNumber?: number;
-  statusCode?: number;
-  hashA?: string;
-  hashB?: string;
-}
-
-interface MountsFetchResult {
-  mountsNumber?: number;
-  statusCode?: number;
-}
-
-interface ProfessionsFetchResult {
-  professions?: string[];
-}
 
 @Injectable()
 @Processor(charactersQueue.name, charactersQueue.workerOptions)
@@ -61,8 +46,6 @@ export class CharactersWorker extends WorkerHost implements OnModuleInit {
   };
 
   constructor(
-    @InjectRepository(CharactersEntity)
-    private readonly charactersRepository: Repository<CharactersEntity>,
     private readonly characterService: CharacterService,
     private readonly lifecycleService: CharacterLifecycleService,
     private readonly collectionSyncService: CharacterCollectionService,
@@ -75,18 +58,14 @@ export class CharactersWorker extends WorkerHost implements OnModuleInit {
     await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_OSINT);
   }
 
-  async process(job: Job<ICharacterMessageBase>): Promise<CharactersEntity> {
-    const message = job.data;
+  public async process(job: Job<ICharacterMessageBase>): Promise<void> {
     const startTime = Date.now();
     this.stats.total++;
 
-    await job.updateProgress(10);
-
     try {
+      const message = job.data;
       const { characterEntity, isNew, isCreateOnlyUnique, isNotReadyToUpdate } =
         await this.lifecycleService.findOrCreateCharacter(message);
-
-      await job.updateProgress(30);
 
       const shouldSkipUpdate = isNotReadyToUpdate || isCreateOnlyUnique;
       if (shouldSkipUpdate) {
@@ -101,38 +80,29 @@ export class CharactersWorker extends WorkerHost implements OnModuleInit {
             'createOnly or notReady',
           ),
         );
-        return characterEntity;
+        return;
       }
 
-      const characterEntityOriginal = this.charactersRepository.create(characterEntity);
       const nameSlug = toSlug(characterEntity.name);
-
-      await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_OSINT);
-
-      this.inheritSafeValuesFromArgs(characterEntity, message);
+      this.characterService.inheritSafeValuesFromArgs(characterEntity, message);
 
       const status = await this.characterService.getStatus(nameSlug, characterEntity.realm);
 
-      await this.battleNetService.recordKeySuccess();
-
-      const hasStatus = Boolean(status);
-      if (hasStatus) Object.assign(characterEntity, status);
-
-      const isValidCharacter = status.isValid;
+      const isValidCharacter = status?.isValid;
+      if (status) Object.assign(characterEntity, status);
 
       if (isValidCharacter) {
-        await job.updateProgress(50);
         await this.fetchAndUpdateCharacterData(characterEntity, nameSlug);
-        await job.updateProgress(70);
       }
 
-      const isExistingCharacter = !isNew;
-      if (isExistingCharacter) {
-        await this.handleExistingCharacterUpdates(characterEntityOriginal, characterEntity);
+      if (!isNew) {
+        const original = await this.lifecycleService.findByGuid(characterEntity.guid);
+        if (original) {
+          await this.lifecycleService.handleExistingCharacterUpdates(original, characterEntity);
+        }
       }
 
-      await job.updateProgress(90);
-      await this.charactersRepository.save(characterEntity);
+      await this.characterService.save(characterEntity);
 
       const duration = Date.now() - startTime;
       this.logCharacterResult(characterEntity, duration);
@@ -140,57 +110,102 @@ export class CharactersWorker extends WorkerHost implements OnModuleInit {
       if (this.stats.total % 50 === 0) {
         this.logProgress();
       }
-
-      await job.updateProgress(100);
-
-      return characterEntity;
     } catch (errorOrException) {
-      const duration = Date.now() - startTime;
-      const guid = message.name && message.realm ? `${message.name}@${message.realm}` : 'unknown';
-      const updatedBy = message.updatedBy || 'unknown';
-
-      if (errorOrException instanceof RateLimitError) {
-        await this.battleNetService.recordKeyRateLimit();
-
-        this.stats.rateLimit++;
-        this.logger.warn(
-          formatWorkerLog(
-            WorkerLogStatus.RATE_LIMITED,
-            this.stats.total,
-            guid,
-            duration,
-            `Retry after: ${errorOrException.retryAfter || 'unknown'}s`,
-          ),
-        );
-        throw errorOrException;
-      }
-
-      await this.battleNetService.recordKeyError();
-
-      this.stats.errors++;
-      this.logger.error(formatWorkerErrorLog(this.stats.total, guid, duration, errorOrException.message, updatedBy));
-
+      this.handleError(errorOrException, job.data, startTime);
       throw errorOrException;
     }
   }
 
-  private processEndpointResult<T extends object>(
-    result: PromiseSettledResult<T>,
-    characterEntity: CharactersEntity,
+  private async fetchAndUpdateCharacterData(characterEntity: CharactersEntity, nameSlug: string): Promise<void> {
+    const realmSlug = characterEntity.realm;
+
+    const [summaryResult, petsResult, mountsResult, mediaResult, professionsResult] = await Promise.allSettled([
+      this.characterService.getSummary(nameSlug, realmSlug),
+      this.characterService.getPetsCollection(nameSlug, realmSlug),
+      this.characterService.getMountsCollection(nameSlug, realmSlug),
+      this.characterService.getMedia(nameSlug, realmSlug),
+      this.characterService.getProfessions(nameSlug, realmSlug),
+    ]);
+
+    let status = characterEntity.status || '------';
+
+    status = this.processResult(status, 'SUMMARY', summaryResult, (data) => {
+      Object.assign(characterEntity, data);
+    });
+
+    status = await this.processPetsResult(status, petsResult, nameSlug, realmSlug, characterEntity);
+    status = await this.processMountsResult(status, mountsResult, nameSlug, realmSlug, characterEntity);
+
+    status = this.processResult(status, 'MEDIA', mediaResult, (data) => {
+      Object.assign(characterEntity, data);
+    });
+
+    status = await this.processProfessionsResult(status, professionsResult, nameSlug, realmSlug, characterEntity);
+
+    characterEntity.status = status;
+  }
+
+  private processResult<T>(
     currentStatus: string,
     endpoint: keyof typeof CHARACTER_STATUS_CODES,
+    result: PromiseSettledResult<T>,
+    applyFn: (data: T) => void,
   ): string {
-    const isFulfilled = result.status === 'fulfilled';
-
-    if (isFulfilled && result.value) {
-      Object.assign(characterEntity, result.value);
+    if (result.status === 'fulfilled' && result.value) {
+      applyFn(result.value);
+      return setStatusString(currentStatus, endpoint, CharacterStatusState.SUCCESS);
     }
+    return setStatusString(currentStatus, endpoint, CharacterStatusState.ERROR);
+  }
 
-    return setStatusString(
-      currentStatus,
-      endpoint,
-      isFulfilled ? CharacterStatusState.SUCCESS : CharacterStatusState.ERROR,
-    );
+  private async processPetsResult(
+    currentStatus: string,
+    result: PromiseSettledResult<BlizzardApiPetsCollection | null>,
+    nameSlug: string,
+    realmSlug: string,
+    characterEntity: CharactersEntity,
+  ): Promise<string> {
+    if (result.status === 'fulfilled' && result.value) {
+      const syncResult = await this.collectionSyncService.syncCharacterPets(nameSlug, realmSlug, result.value, true);
+      characterEntity.petsNumber = syncResult.petsNumber;
+      characterEntity.hashA = syncResult.hashA;
+      characterEntity.hashB = syncResult.hashB;
+      return setStatusString(currentStatus, 'PETS', CharacterStatusState.SUCCESS);
+    }
+    return setStatusString(currentStatus, 'PETS', CharacterStatusState.ERROR);
+  }
+
+  private async processMountsResult(
+    currentStatus: string,
+    result: PromiseSettledResult<BlizzardApiMountsCollection>,
+    nameSlug: string,
+    realmSlug: string,
+    characterEntity: CharactersEntity,
+  ): Promise<string> {
+    if (result.status === 'fulfilled' && result.value) {
+      const syncResult = await this.collectionSyncService.syncCharacterMounts(nameSlug, realmSlug, result.value, true);
+      characterEntity.mountsNumber = syncResult.mountsNumber;
+      return setStatusString(currentStatus, 'MOUNTS', CharacterStatusState.SUCCESS);
+    }
+    return setStatusString(currentStatus, 'MOUNTS', CharacterStatusState.ERROR);
+  }
+
+  private async processProfessionsResult(
+    currentStatus: string,
+    result: PromiseSettledResult<BlizzardApiCharacterProfessions | null>,
+    nameSlug: string,
+    realmSlug: string,
+    characterEntity: CharactersEntity,
+  ): Promise<string> {
+    if (result.status === 'fulfilled' && result.value) {
+      characterEntity.professions = await this.collectionSyncService.syncCharacterProfessions(
+        nameSlug,
+        realmSlug,
+        result.value,
+      );
+      return setStatusString(currentStatus, 'PROFESSIONS', CharacterStatusState.SUCCESS);
+    }
+    return setStatusString(currentStatus, 'PROFESSIONS', CharacterStatusState.ERROR);
   }
 
   private logCharacterResult(character: CharactersEntity, duration: number): void {
@@ -217,126 +232,60 @@ export class CharactersWorker extends WorkerHost implements OnModuleInit {
     this.logger.log(formatFinalSummary('CharactersWorker', this.stats, 'characters'));
   }
 
-  private inheritSafeValuesFromArgs(characterEntity: CharactersEntity, args: ICharacterMessageBase): void {
-    for (const key of CHARACTER_SUMMARY_FIELD_MAPPING.keys()) {
-      const isInheritKeyValue = args[key] && !characterEntity[key];
-      if (isInheritKeyValue) {
-        characterEntity[key] = args[key];
-      }
+  private handleError(errorOrException: unknown, message: ICharacterMessageBase, startTime: number): void {
+    const duration = Date.now() - startTime;
+    const guid = message.name && message.realm ? `${message.name}@${message.realm}` : 'unknown';
+    const updatedBy = message.updatedBy || 'unknown';
+
+    if (errorOrException instanceof RateLimitError) {
+      this.handleRateLimitError(errorOrException, guid, duration);
+      return;
     }
+
+    if (isAxiosError(errorOrException)) {
+      this.handleAxiosError(errorOrException, guid, duration);
+      return;
+    }
+
+    this.handleGenericError(errorOrException, guid, duration, updatedBy);
   }
 
-  private async fetchAndUpdateCharacterData(characterEntity: CharactersEntity, nameSlug: string): Promise<void> {
-    let status = characterEntity.status || '------';
-
-    const tasks = [
-      {
-        name: 'summary',
-        fn: () => this.characterService.getSummary(nameSlug, characterEntity.realm),
-      },
-      {
-        name: 'pets',
-        fn: () => this.fetchAndSyncPets(nameSlug, characterEntity.realm),
-      },
-      {
-        name: 'mounts',
-        fn: () => this.fetchAndSyncMounts(nameSlug, characterEntity.realm),
-      },
-      {
-        name: 'media',
-        fn: () => this.characterService.getMedia(nameSlug, characterEntity.realm),
-      },
-      {
-        name: 'professions',
-        fn: () => this.fetchAndSyncProfessions(nameSlug, characterEntity.realm),
-      },
-    ];
-
-    const results = await lastValueFrom(
-      from(tasks).pipe(
-        mergeMap(async (task) => {
-          try {
-            const value = await task.fn();
-            return { status: 'fulfilled' as const, value, name: task.name };
-          } catch (error) {
-            return { status: 'rejected' as const, reason: error, name: task.name };
-          }
-        }, 2),
-        toArray(),
+  private async handleRateLimitError(error: RateLimitError, guid: string, duration: number): Promise<void> {
+    await this.battleNetService.recordKeyRateLimit();
+    this.stats.rateLimit++;
+    this.logger.warn(
+      formatWorkerLog(
+        WorkerLogStatus.RATE_LIMITED,
+        this.stats.total,
+        guid,
+        duration,
+        `Retry after: ${error.retryAfter || 'unknown'}s`,
       ),
     );
-
-    for (const result of results) {
-      const endpoint = result.name.toUpperCase() as keyof typeof CHARACTER_STATUS_CODES;
-      if (result.status === 'fulfilled') {
-        status = this.processEndpointResult(
-          { status: 'fulfilled', value: result.value as object } as PromiseSettledResult<object>,
-          characterEntity,
-          status,
-          endpoint,
-        );
-      } else {
-        status = this.processEndpointResult(
-          { status: 'rejected', reason: result.reason } as PromiseSettledResult<object>,
-          characterEntity,
-          status,
-          endpoint,
-        );
-      }
-    }
-
-    characterEntity.status = status;
   }
 
-  private async fetchAndSyncPets(nameSlug: string, realmSlug: string): Promise<PetsFetchResult> {
-    const petsResponse = await this.characterService.getPetsCollection(nameSlug, realmSlug);
+  private async handleAxiosError(error: unknown, guid: string, duration: number): Promise<void> {
+    const axiosError = error as { response?: { status?: number }; message?: string };
+    const statusCode = axiosError.response?.status;
 
-    const hasPetsResponse = Boolean(petsResponse);
-    if (!hasPetsResponse) {
-      return {};
-    }
-
-    return this.collectionSyncService.syncCharacterPets(nameSlug, realmSlug, petsResponse, true);
-  }
-
-  private async fetchAndSyncMounts(nameSlug: string, realmSlug: string): Promise<MountsFetchResult> {
-    const mountsResponse = await this.characterService.getMountsCollection(nameSlug, realmSlug);
-
-    const hasMountsResponse = Boolean(mountsResponse);
-    if (!hasMountsResponse) {
-      return {};
-    }
-
-    return this.collectionSyncService.syncCharacterMounts(nameSlug, realmSlug, mountsResponse, true);
-  }
-
-  private async fetchAndSyncProfessions(nameSlug: string, realmSlug: string): Promise<ProfessionsFetchResult> {
-    const professionsResponse = await this.characterService.getProfessions(nameSlug, realmSlug);
-
-    const hasProfessionResponse = Boolean(professionsResponse);
-    if (!hasProfessionResponse) {
-      return {};
-    }
-
-    const professions = await this.collectionSyncService.syncCharacterProfessions(
-      nameSlug,
-      realmSlug,
-      professionsResponse,
+    await this.battleNetService.recordKeyError();
+    this.stats.errors++;
+    this.logger.error(
+      formatWorkerErrorLog(this.stats.total, guid, duration, `HTTP ${statusCode}: ${axiosError.message}`),
     );
-
-    return { professions };
   }
 
-  private async handleExistingCharacterUpdates(original: CharactersEntity, updated: CharactersEntity): Promise<void> {
-    const hasGuildChanged = original.guildGuid !== updated.guildGuid && !updated.guildId;
-
-    if (hasGuildChanged) {
-      updated.guildGuid = null;
-      updated.guild = null;
-      updated.guildRank = null;
-      updated.guildId = null;
-    }
-
-    await this.lifecycleService.diffAndLogChanges(original, updated);
+  private async handleGenericError(error: unknown, guid: string, duration: number, updatedBy: string): Promise<void> {
+    await this.battleNetService.recordKeyError();
+    this.stats.errors++;
+    this.logger.error(
+      formatWorkerErrorLog(
+        this.stats.total,
+        guid,
+        duration,
+        error instanceof Error ? error.message : String(error),
+        updatedBy,
+      ),
+    );
   }
 }

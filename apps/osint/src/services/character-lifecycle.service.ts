@@ -156,4 +156,21 @@ export class CharacterLifecycleService {
 
     return updateSafe >= updatedAt;
   }
+
+  async handleExistingCharacterUpdates(original: CharactersEntity, updated: CharactersEntity): Promise<void> {
+    const hasGuildChanged = original.guildGuid !== updated.guildGuid && !updated.guildId;
+
+    if (hasGuildChanged) {
+      updated.guildGuid = null;
+      updated.guild = null;
+      updated.guildRank = null;
+      updated.guildId = null;
+    }
+
+    await this.diffAndLogChanges(original, updated);
+  }
+
+  async findByGuid(guid: string): Promise<CharactersEntity | null> {
+    return this.charactersRepository.findOneBy({ guid });
+  }
 }
