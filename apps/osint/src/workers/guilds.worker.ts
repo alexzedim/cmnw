@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { forkJoin, lastValueFrom } from 'rxjs';
+import { isAxiosError } from 'axios';
 
 import {
   formatWorkerLog,
@@ -9,7 +9,6 @@ import {
   formatProgressReport,
   formatFinalSummary,
   WorkerLogStatus,
-  WorkerStats,
 } from '@app/logger';
 import {
   isEuRegion,
@@ -26,19 +25,18 @@ import {
   GuildService,
   GuildSummaryService,
   GuildRosterService,
-  GuildMemberService,
   GuildLogService,
   GuildMasterService,
 } from '../services';
 
+const PROGRESS_LOG_INTERVAL = 50;
+
 @Injectable()
 @Processor(guildsQueue)
 export class GuildsWorker extends WorkerHost {
-  private readonly logger = new Logger(GuildsWorker.name, {
-    timestamp: true,
-  });
+  private readonly logger = new Logger(GuildsWorker.name, { timestamp: true });
 
-  private stats: WorkerStats = {
+  private stats = {
     total: 0,
     success: 0,
     errors: 0,
@@ -52,7 +50,7 @@ export class GuildsWorker extends WorkerHost {
     private readonly guildService: GuildService,
     private readonly guildSummaryService: GuildSummaryService,
     private readonly guildRosterService: GuildRosterService,
-    private readonly guildMemberService: GuildMemberService,
+    private readonly guildMemberService: any,
     private readonly guildLogService: GuildLogService,
     private readonly guildMasterService: GuildMasterService,
   ) {
@@ -83,8 +81,7 @@ export class GuildsWorker extends WorkerHost {
       const guildSnapshot = this.guildService.createSnapshot(guildEntity);
       const nameSlug = toSlug(guildEntity.name);
 
-      const isNotEuRegion = !isEuRegion(message.region);
-      if (isNotEuRegion) {
+      if (!isEuRegion(message.region)) {
         this.logger.log(formatWorkerLog(WorkerLogStatus.INFO, this.stats.total, guildEntity.guid, 0, 'not EU region'));
         return;
       }
@@ -93,57 +90,44 @@ export class GuildsWorker extends WorkerHost {
         guildEntity.updatedBy = message.updatedBy;
       }
 
-      const [summaryResult, rosterResult] = await lastValueFrom(
-        forkJoin([
-          this.guildSummaryService.getSummary(nameSlug, guildEntity.realm),
-          this.guildRosterService.fetchRoster(guildEntity),
-        ]),
+      const guildData = await this.fetchGuildData(nameSlug, guildEntity);
+
+      Object.assign(guildEntity, guildData.summaryResult);
+
+      guildData.rosterResult.updatedAt = guildEntity.updatedAt;
+      await this.guildMemberService.updateRoster(guildSnapshot, guildData.rosterResult, isNew);
+
+      const logStatusResult = isNew
+        ? this.getLogStatusForNewGuild(guildSnapshot, guildEntity)
+        : this.guildLogService.detectAndLogChanges(guildSnapshot, guildEntity);
+      
+      const masterStatusResult = this.guildMasterService.detectAndLogGuildMasterChange(
+        guildSnapshot,
+        guildData.rosterResult,
       );
 
-      Object.assign(guildEntity, summaryResult);
+      const [logStatusResolved, masterStatusResolved] = await Promise.allSettled([logStatusResult, masterStatusResult]);
 
-      let logStatus = '-----';
-      let masterStatus = '-----';
-
-      rosterResult.updatedAt = guildEntity.updatedAt;
-      await this.guildMemberService.updateRoster(guildSnapshot, rosterResult, isNew);
-
-      const [logStatusResult, masterStatusResult] = await lastValueFrom(
-        forkJoin([
-          isNew
-            ? this.guildService.findById(guildSnapshot.id, guildSnapshot.realm).then((guildById) => {
-                if (!guildById) return '-----' as const;
-                return this.guildLogService.detectAndLogChanges(guildById, guildEntity);
-              })
-            : this.guildLogService.detectAndLogChanges(guildSnapshot, guildEntity),
-          this.guildMasterService.detectAndLogGuildMasterChange(guildSnapshot, rosterResult),
-        ]),
-      );
-
-      logStatus = logStatusResult;
-      masterStatus = masterStatusResult;
+      const logStatus = logStatusResolved.status === 'fulfilled' ? logStatusResolved.value : '-----';
+      const masterStatus = masterStatusResolved.status === 'fulfilled' ? masterStatusResolved.value : '-----';
 
       const operationStatuses = {
-        roster: rosterResult.status,
+        roster: guildData.rosterResult.status,
         logs: logStatus,
         master: masterStatus,
       };
 
       guildEntity.status = this.aggregateGuildStatus(guildEntity.status, operationStatuses);
+      await this.guildService.save(guildEntity);
 
-      const hasErrors = hasAnyGuildErrorInString(guildEntity.status);
-      const isSuccess = isAllGuildSuccessInString(guildEntity.status);
-
-      if (!hasErrors && isSuccess) {
+      if (!hasAnyGuildErrorInString(guildEntity.status) && isAllGuildSuccessInString(guildEntity.status)) {
         this.stats.success++;
       }
-
-      await this.guildService.save(guildEntity);
 
       const duration = Date.now() - startTime;
       this.logGuildResult(guildEntity, duration);
 
-      if (this.stats.total % 25 === 0) {
+      if (this.stats.total % PROGRESS_LOG_INTERVAL === 0) {
         this.logProgress();
       }
     } catch (errorOrException) {
@@ -151,12 +135,57 @@ export class GuildsWorker extends WorkerHost {
       const guid = message.name && message.realm ? `${message.name}@${message.realm}` : 'unknown';
 
       this.stats.errors++;
-      this.logger.error(
-        formatWorkerErrorLog(this.stats.total, guid, duration, errorOrException.message, message.updatedBy),
-      );
+
+      if (isAxiosError(errorOrException)) {
+        const statusCode = errorOrException.response?.status;
+        this.logger.error(
+          formatWorkerErrorLog(
+            this.stats.total,
+            guid,
+            duration,
+            `HTTP ${statusCode}: ${errorOrException.message}`,
+            message.updatedBy,
+          ),
+        );
+      } else {
+        this.logger.error(
+          formatWorkerErrorLog(
+            this.stats.total,
+            guid,
+            duration,
+            errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
+            message.updatedBy,
+          ),
+        );
+      }
 
       throw errorOrException;
     }
+  }
+
+  private async getLogStatusForNewGuild(guildSnapshot: any, guildEntity: any): Promise<string> {
+    const guildById = await this.guildService.findById(guildSnapshot.id, guildSnapshot.realm);
+    if (!guildById) return '-----' as const;
+    return this.guildLogService.detectAndLogChanges(guildById, guildEntity);
+  }
+
+  private async fetchGuildData(
+    nameSlug: string,
+    guildEntity: any,
+  ): Promise<{
+    summaryResult: any;
+    rosterResult: any;
+  }> {
+    const [summaryResult, rosterResult] = await Promise.allSettled([
+      this.guildSummaryService.getSummary(nameSlug, guildEntity.realm),
+      this.guildRosterService.fetchRoster(guildEntity),
+    ]);
+
+    return {
+      summaryResult: summaryResult.status === 'fulfilled' ? summaryResult.value : {},
+      rosterResult:
+        rosterResult.status === 'fulfilled' ? rosterResult.value : { status: '-----', updatedAt: new Date() },
+    };
   }
 
   private aggregateGuildStatus(currentStatus: string, operationStatuses: Record<string, string | undefined>): string {
@@ -167,31 +196,14 @@ export class GuildsWorker extends WorkerHost {
       statusString: string | undefined;
       errorIndicator: string;
     }> = [
-      {
-        name: 'ROSTER',
-        statusString: operationStatuses.roster,
-        errorIndicator: 'r',
-      },
-      {
-        name: 'MEMBERS',
-        statusString: operationStatuses.roster,
-        errorIndicator: 'm',
-      },
-      {
-        name: 'LOGS',
-        statusString: operationStatuses.logs,
-        errorIndicator: 'l',
-      },
-      {
-        name: 'MASTER',
-        statusString: operationStatuses.master,
-        errorIndicator: 'g',
-      },
+      { name: 'ROSTER', statusString: operationStatuses.roster, errorIndicator: 'r' },
+      { name: 'MEMBERS', statusString: operationStatuses.roster, errorIndicator: 'm' },
+      { name: 'LOGS', statusString: operationStatuses.logs, errorIndicator: 'l' },
+      { name: 'MASTER', statusString: operationStatuses.master, errorIndicator: 'g' },
     ];
 
     for (const operation of operations) {
       const hasError = operation.statusString?.includes(operation.errorIndicator.toLowerCase()) ?? false;
-
       aggregated = setGuildStatusString(
         aggregated,
         operation.name,
@@ -203,41 +215,18 @@ export class GuildsWorker extends WorkerHost {
   }
 
   private logGuildResult(guild: any, duration: number): void {
-    const statusCode = guild.statusCode;
     const status = guild.status;
     const guid = guild.guid;
 
-    if (status) {
-      const hasErrors = hasAnyGuildErrorInString(status);
-      const isSuccess = isAllGuildSuccessInString(status);
+    const hasErrors = hasAnyGuildErrorInString(status);
+    const isSuccess = isAllGuildSuccessInString(status);
 
-      if (isSuccess) {
-        this.logger.log(
-          formatWorkerLog(WorkerLogStatus.SUCCESS, this.stats.total, guid, duration, `status: ${status}`),
-        );
-      } else if (hasErrors) {
-        this.logger.warn(
-          formatWorkerLog(WorkerLogStatus.PARTIAL, this.stats.total, guid, duration, `status: ${status}`),
-        );
-      } else {
-        this.logger.log(formatWorkerLog(WorkerLogStatus.INFO, this.stats.total, guid, duration, `status: ${status}`));
-      }
-      return;
-    }
-
-    if (statusCode === 200 || statusCode === 204) {
-      this.stats.success++;
-      this.logger.log(
-        formatWorkerLog(WorkerLogStatus.SUCCESS, this.stats.total, guid, duration, statusCode.toString()),
-      );
-    } else if (statusCode === 404) {
-      this.stats.notFound++;
-      this.logger.warn(formatWorkerLog(WorkerLogStatus.NOT_FOUND, this.stats.total, guid, duration));
-    } else if (statusCode === 429) {
-      this.stats.rateLimit++;
-      this.logger.warn(formatWorkerLog(WorkerLogStatus.RATE_LIMITED, this.stats.total, guid, duration));
+    if (isSuccess) {
+      this.logger.log(formatWorkerLog(WorkerLogStatus.SUCCESS, this.stats.total, guid, duration, `status: ${status}`));
+    } else if (hasErrors) {
+      this.logger.warn(formatWorkerLog(WorkerLogStatus.PARTIAL, this.stats.total, guid, duration, `status: ${status}`));
     } else {
-      this.logger.log(formatWorkerLog(WorkerLogStatus.INFO, this.stats.total, guid, duration, statusCode?.toString()));
+      this.logger.log(formatWorkerLog(WorkerLogStatus.INFO, this.stats.total, guid, duration, `status: ${status}`));
     }
   }
 
