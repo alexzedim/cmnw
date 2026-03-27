@@ -215,6 +215,12 @@ export class BattleNetService {
       headers.set('Accept-Language', options.locale);
     }
 
+    if (options.headers) {
+      for (const [key, value] of Object.entries(options.headers)) {
+        headers.set(key, value);
+      }
+    }
+
     return headers;
   }
 
@@ -338,11 +344,13 @@ export class BattleNetService {
     namespace: string,
     timeout: number = BATTLE_NET_OSINT_TIMEOUT,
     isMultiLocale?: boolean,
+    headers?: Record<string, string>,
   ): IBattleNetQueryOptions {
     return {
       namespace,
       locale: isMultiLocale ? undefined : 'en_GB',
       timeout,
+      headers,
     };
   }
 }

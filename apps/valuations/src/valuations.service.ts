@@ -4,7 +4,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Repository, In } from 'typeorm';
 import { Queue } from 'bullmq';
 import { ItemsEntity, RealmsEntity, PricingEntity, MarketEntity } from '@app/pg';
-import { ASSET_EVALUATION_PRIORITY, IVAAuctions, IVARealm, VALUATION_TYPE } from '@app/resources';
+import { ASSET_EVALUATION_PRIORITY, IVAAuctions, VALUATION_TYPE } from '@app/resources';
 import { valuationsConfig } from '@app/configuration';
 import { ItemPricing } from '@app/resources';
 

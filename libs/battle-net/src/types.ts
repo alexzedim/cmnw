@@ -11,6 +11,7 @@ export interface IBattleNetQueryOptions {
   namespace: string;
   locale?: string;
   timeout?: number;
+  headers?: Record<string, string>;
 }
 
 export interface IBattleNetRetryConfig {
