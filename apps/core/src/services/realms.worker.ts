@@ -4,7 +4,7 @@ import chalk from 'chalk';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { apiConstParams, BattleNetApiNamespace, BattleNetService, BATTLE_NET_KEY_TAG_BLIZZARD } from '@app/battle-net';
+import { BattleNetApiNamespace, BattleNetService, BATTLE_NET_KEY_TAG_BLIZZARD } from '@app/battle-net';
 import {
   BlizzardApiResponse,
   IConnectedRealm,
@@ -75,7 +75,7 @@ export class RealmsWorker extends WorkerHost implements OnModuleInit {
 
       const response: Record<string, any> = await this.battleNetService.query(
         `/data/wow/realm/${message.slug}`,
-        apiConstParams(BattleNetApiNamespace.DYNAMIC, OSINT_TIMEOUT_TOLERANCE),
+        this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC, OSINT_TIMEOUT_TOLERANCE),
       );
 
       await job.updateProgress(20);
@@ -100,7 +100,7 @@ export class RealmsWorker extends WorkerHost implements OnModuleInit {
       if (realmEntity.locale != 'enGB') {
         const realmLocale = await this.battleNetService.query<BlizzardApiResponse>(
           `/data/wow/realm/${message.slug}`,
-          apiConstParams(BattleNetApiNamespace.DYNAMIC, OSINT_TIMEOUT_TOLERANCE, true),
+          this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC, OSINT_TIMEOUT_TOLERANCE, true),
         );
 
         await job.updateProgress(40);
@@ -131,7 +131,7 @@ export class RealmsWorker extends WorkerHost implements OnModuleInit {
       if (connectedRealmId) {
         const connectedRealm = await this.battleNetService.query<IConnectedRealm>(
           `/data/wow/connected-realm/${connectedRealmId}`,
-          apiConstParams(BattleNetApiNamespace.DYNAMIC),
+          this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC),
         );
 
         realmEntity.connectedRealmId = get(connectedRealm, 'id', null);
