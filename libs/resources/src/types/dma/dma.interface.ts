@@ -1,4 +1,3 @@
-import { Model } from 'mongoose';
 import { ItemsEntity } from '@app/pg';
 import { INameWithType, ISelfKeyHref, ISelfWithId, ISelfWithNameAndId } from '@app/resources/types';
 
@@ -373,7 +372,6 @@ export interface IBuildYAxis {
 }
 
 export interface IGetCommdtyOrders {
-  readonly model: Model<any>;
   readonly itemId?: number;
   readonly connectedRealmId?: number;
   readonly timestamp?: number;

@@ -1,6 +1,11 @@
 import { AuctionItemExtra, IItem, IItemFieldMap, IPetList } from '@app/resources/types';
 import { SkillLineEntity, SpellEffectEntity } from '@app/pg';
 
+export enum TOLERANCE_ENUM {
+  DMA = 'DMA',
+  OSINT = 'OSINT',
+}
+
 export const DMA_TIMEOUT_TOLERANCE = 60 * 1_000;
 
 export const DMA_SOURCE_GOLD = 'https://funpay.ru/chips/2/';

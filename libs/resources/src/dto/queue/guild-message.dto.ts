@@ -4,9 +4,7 @@ import { Logger } from '@nestjs/common';
 import { JobsOptions } from 'bullmq';
 
 import { guildsQueue } from '../../queues/guilds.queue';
-
-// TODO: Define RegionIdOrName type locally - was imported from @alexzedim/blizzapi
-export type RegionIdOrName = string;
+import { RegionIdOrName } from '@app/resources';
 
 /**
  * Guild Message DTO for BullMQ
