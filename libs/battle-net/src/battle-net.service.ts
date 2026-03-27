@@ -3,11 +3,11 @@ import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AxiosResponse, AxiosHeaders } from 'axios';
-import { Observable, lastValueFrom } from 'rxjs';
+import { lastValueFrom } from 'rxjs';
 import { map, timeout } from 'rxjs/operators';
 import { IBattleNetClientConfig, IBattleNetQueryOptions, DEFAULT_RETRY_CONFIG } from './types';
 import { BattleNetRegion } from './enums';
-import { BATTLE_NET_BASE_URLS } from './constants';
+import { BATTLE_NET_BASE_URLS, BATTLE_NET_OSINT_TIMEOUT } from './constants';
 import { KeysEntity } from '@app/pg';
 import { battleNetConfig, IBattleNetKeyHealthConfig } from '@app/configuration';
 
@@ -243,16 +243,13 @@ export class BattleNetService {
     return BATTLE_NET_BASE_URLS[region];
   }
 
-  private makeRequest<T>(request$: Observable<AxiosResponse<T>>, method: string): Promise<T> {
-    return lastValueFrom(request$.pipe(map((response: AxiosResponse<T>) => response.data)));
-  }
-
-  public async query<T>(path: string, options: IBattleNetQueryOptions, config?: IBattleNetClientConfig): Promise<T> {
-    const resolvedConfig = config ?? this._config;
-    if (!resolvedConfig) {
-      throw new Error('BattleNetService not initialized');
-    }
-
+  private async executeQuery<T>(
+    method: 'GET' | 'POST',
+    path: string,
+    options: IBattleNetQueryOptions,
+    config: IBattleNetClientConfig,
+    data?: unknown,
+  ): Promise<T> {
     const maxRetries = DEFAULT_RETRY_CONFIG.maxRetries;
     const fixedRetryDelay = DEFAULT_RETRY_CONFIG.retryDelayMs;
     let attempt = 0;
@@ -264,14 +261,14 @@ export class BattleNetService {
         await this.waitForCooldown(this._currentKeyUuid);
       }
 
-      const headers = this.buildHeaders(resolvedConfig, options);
-      const url = `${this.getBaseUrl(resolvedConfig.region)}${path}`;
+      const headers = this.buildHeaders(config, options);
+      const url = `${this.getBaseUrl(config.region)}${path}`;
 
       try {
         const response = await lastValueFrom(
-          this.httpService.get<T>(url, { headers, timeout: options.timeout }).pipe(
+          this.httpService.request<T>({ method, url, data, headers, timeout: options.timeout }).pipe(
             timeout(DEFAULT_RETRY_CONFIG.timeoutMs),
-            map((res) => res.data),
+            map((res: AxiosResponse<T>) => res.data),
           ),
         );
 
@@ -314,6 +311,14 @@ export class BattleNetService {
         }
       }
     }
+  }
+
+  public async query<T>(path: string, options: IBattleNetQueryOptions, config?: IBattleNetClientConfig): Promise<T> {
+    const resolvedConfig = config ?? this._config;
+    if (!resolvedConfig) {
+      throw new Error('BattleNetService not initialized');
+    }
+    return this.executeQuery<T>('GET', path, options, resolvedConfig);
   }
 
   public async post<T>(
@@ -326,67 +331,18 @@ export class BattleNetService {
     if (!resolvedConfig) {
       throw new Error('BattleNetService not initialized');
     }
+    return this.executeQuery<T>('POST', path, options, resolvedConfig, data);
+  }
 
-    const maxRetries = DEFAULT_RETRY_CONFIG.maxRetries;
-    const fixedRetryDelay = DEFAULT_RETRY_CONFIG.retryDelayMs;
-    let attempt = 0;
-
-    while (true) {
-      attempt++;
-
-      if (this._currentKeyUuid) {
-        await this.waitForCooldown(this._currentKeyUuid);
-      }
-
-      const headers = this.buildHeaders(resolvedConfig, options);
-      const url = `${this.getBaseUrl(resolvedConfig.region)}${path}`;
-
-      try {
-        const response = await lastValueFrom(
-          this.httpService.post<T>(url, data, { headers, timeout: options.timeout }).pipe(
-            timeout(DEFAULT_RETRY_CONFIG.timeoutMs),
-            map((res) => res.data),
-          ),
-        );
-
-        if (this._currentKeyUuid) {
-          this.recordKeySuccess(this._currentKeyUuid).catch(() => {});
-        }
-
-        return response;
-      } catch (error) {
-        if (this.isRateLimitError(error)) {
-          if (attempt > maxRetries) {
-            this.logger.error(`Rate limited after ${attempt} attempts for ${url}`);
-            if (this._currentKeyUuid) {
-              await this.recordKeyRateLimit(this._currentKeyUuid);
-            }
-            throw error;
-          }
-
-          this.logger.warn(`Rate limited (attempt ${attempt}/${maxRetries}) for ${url}`);
-
-          if (this._currentKeyUuid) {
-            await this.recordKeyRateLimit(this._currentKeyUuid);
-            await this.waitForCooldown(this._currentKeyUuid);
-          }
-
-          continue;
-        } else if (this.isServerError(error)) {
-          if (attempt > maxRetries) {
-            this.logger.error(`Server error after ${attempt} attempts for ${url}`);
-            throw error;
-          }
-
-          this.logger.warn(
-            `Server error (attempt ${attempt}/${maxRetries}) for ${url} - retrying in ${fixedRetryDelay}ms`,
-          );
-          await this.delay(fixedRetryDelay);
-          continue;
-        } else {
-          throw error;
-        }
-      }
-    }
+  public createQueryOptions(
+    namespace: string,
+    timeout: number = BATTLE_NET_OSINT_TIMEOUT,
+    isMultiLocale?: boolean,
+  ): IBattleNetQueryOptions {
+    return {
+      namespace,
+      locale: isMultiLocale ? undefined : 'en_GB',
+      timeout,
+    };
   }
 }
