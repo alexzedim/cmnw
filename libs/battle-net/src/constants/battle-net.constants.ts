@@ -1,12 +1,10 @@
 import { BattleNetRegion } from '../enums/battle-net-region.enum';
 import { BattleNetNamespace } from '../enums/battle-net-namespace.enum';
 
-// Battle.net API Key Tags
 export const BATTLE_NET_KEY_TAG_OSINT = 'osint';
 export const BATTLE_NET_KEY_TAG_DMA = 'dma';
 export const BATTLE_NET_KEY_TAG_BLIZZARD = 'blizzard';
 
-// Warcraft Logs API Key Tags
 export const BATTLE_NET_KEY_TAG_WCL_V1 = 'v1';
 export const BATTLE_NET_KEY_TAG_WCL_V2 = 'v2';
 
@@ -44,21 +42,3 @@ export interface IBattleNetQueryOptionsInternal {
   isMultiLocale?: boolean;
   ifModifiedSince?: string;
 }
-
-export const apiConstParams = (
-  header: BattleNetApiNamespace,
-  tolerance: number = BATTLE_NET_OSINT_TIMEOUT,
-  isMultiLocale?: boolean,
-  ifModifiedSince?: string,
-) => ({
-  params: isMultiLocale ? {} : { locale: 'en_GB' },
-  headers: ifModifiedSince
-    ? {
-        'Battlenet-Namespace': header,
-        'If-Modified-Since': ifModifiedSince,
-      }
-    : {
-        'Battlenet-Namespace': header,
-      },
-  timeout: tolerance,
-});
