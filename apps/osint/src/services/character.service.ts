@@ -1,4 +1,6 @@
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import chalk from 'chalk';
 import { BattleNetService, BattleNetNamespace, BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
 import { isAxiosError } from 'axios';
@@ -19,6 +21,7 @@ import {
   toDate,
   toGuid,
   IBlizzardStatusResponse,
+  ICharacterMessageBase,
   BlizzardApiMountsCollection,
   BlizzardApiCharacterProfessions,
   isCharacterProfessions,
@@ -26,6 +29,7 @@ import {
   CharacterStatusState,
   RateLimitError,
 } from '@app/resources';
+import { CharactersEntity } from '@app/pg';
 
 @Injectable()
 export class CharacterService implements OnModuleInit {
@@ -33,20 +37,37 @@ export class CharacterService implements OnModuleInit {
     timestamp: true,
   });
 
-  constructor(private readonly battleNetService: BattleNetService) {}
+  constructor(
+    @InjectRepository(CharactersEntity)
+    private readonly charactersRepository: Repository<CharactersEntity>,
+    private readonly battleNetService: BattleNetService,
+  ) {}
 
   async onModuleInit(): Promise<void> {
     await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_OSINT);
+  }
+
+  async save(entity: CharactersEntity): Promise<CharactersEntity> {
+    return this.charactersRepository.save(entity);
+  }
+
+  inheritSafeValuesFromArgs(entity: CharactersEntity, args: ICharacterMessageBase): void {
+    for (const key of CHARACTER_SUMMARY_FIELD_MAPPING.keys()) {
+      const isInheritKeyValue = args[key] && !entity[key];
+      if (isInheritKeyValue) {
+        entity[key] = args[key];
+      }
+    }
   }
 
   async getStatus(nameSlug: string, realmSlug: string): Promise<Partial<CharacterStatus>> {
     const characterStatus: Partial<CharacterStatus> = {};
 
     try {
-      const statusResponse = (await this.battleNetService.query<IBlizzardStatusResponse>(
+      const statusResponse = await this.battleNetService.query<IBlizzardStatusResponse>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/status`,
         { namespace: BattleNetNamespace.PROFILE, locale: 'en_GB' },
-      )) as IBlizzardStatusResponse;
+      );
 
       characterStatus.isValid = false;
 
