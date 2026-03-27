@@ -1,12 +1,12 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { InjectModel } from '@nestjs/mongoose';
+import { InjectRepository } from '@nestjs/typeorm';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Market, Item, Pricing, RealmConnected } from '@app/mongo';
-import { Model } from 'mongoose';
+import { Repository, In } from 'typeorm';
 import { Queue } from 'bullmq';
+import { ItemsEntity, RealmsEntity, PricingEntity, MarketEntity } from '@app/pg';
 import { ASSET_EVALUATION_PRIORITY, IVAAuctions, IVARealm, VALUATION_TYPE } from '@app/resources';
 import { valuationsConfig } from '@app/configuration';
-// import { Cron, CronExpression } from '@nestjs/schedule';
+import { ItemPricing } from '@app/resources';
 
 @Injectable()
 export class ValuationsService implements OnApplicationBootstrap {
@@ -15,14 +15,14 @@ export class ValuationsService implements OnApplicationBootstrap {
   });
 
   constructor(
-    @InjectModel(Item.name)
-    private readonly ItemModel: Model<Item>,
-    @InjectModel(RealmConnected.name)
-    private readonly RealmModel: Model<RealmConnected>,
-    @InjectModel(Pricing.name)
-    private readonly PricingModel: Model<Pricing>,
-    @InjectModel(Market.name)
-    private readonly AuctionsModel: Model<Market>,
+    @InjectRepository(ItemsEntity)
+    private readonly itemsRepository: Repository<ItemsEntity>,
+    @InjectRepository(RealmsEntity)
+    private readonly realmsRepository: Repository<RealmsEntity>,
+    @InjectRepository(PricingEntity)
+    private readonly pricingRepository: Repository<PricingEntity>,
+    @InjectRepository(MarketEntity)
+    private readonly marketRepository: Repository<MarketEntity>,
     @InjectQueue('dma.valuations')
     private readonly valuationsQueue: Queue<any>,
   ) {}
@@ -36,68 +36,57 @@ export class ValuationsService implements OnApplicationBootstrap {
     await this.valuationsQueue.drain();
   }
 
-  // @Cron(CronExpression.EVERY_10_MINUTES)
   async initValuations(): Promise<void> {
     try {
-      await this.RealmModel.aggregate<IVARealm>([
-        {
-          $group: {
-            _id: '$connected_realm_id',
-            auctions: { $first: '$auctions' },
-            valuations: { $first: '$valuations' },
-          },
-        },
-      ])
-        .cursor({ batchSize: 1 })
-        .eachAsync(async ({ _id, auctions, valuations }: IVARealm) => {
-          /** Update valuations with new auctions data */
-          if (auctions <= valuations) return;
-          await this.buildValuations(_id, auctions);
-        });
+      const realms = await this.realmsRepository
+        .createQueryBuilder('realm')
+        .select('DISTINCT realm.connectedRealmId', 'connectedRealmId')
+        .addSelect('realm.auctionsTimestamp', 'auctions')
+        .addSelect('realm.valuationsTimestamp', 'valuations')
+        .groupBy('realm.connectedRealmId')
+        .addGroupBy('realm.auctionsTimestamp')
+        .addGroupBy('realm.valuationsTimestamp')
+        .getRawMany();
+
+      for (const realm of realms) {
+        const { connectedRealmId, auctions, valuations } = realm as any;
+        if (auctions <= valuations) continue;
+        await this.buildValuations(connectedRealmId, auctions);
+      }
     } catch (errorOrException) {
       this.logger.error(`initValuations: ${errorOrException}`);
     }
   }
 
-  async buildValuations(connected_realm_id: number, timestamp: number): Promise<void> {
+  async buildValuations(connectedRealmId: number, timestamp: number): Promise<void> {
     try {
       for (const [priority, query] of ASSET_EVALUATION_PRIORITY) {
         this.logger.log(`=======================================`);
-        this.logger.log(`buildValuations: ${connected_realm_id}-${priority}`);
-        await this.ItemModel.find(query)
-          .lean()
-          .cursor()
-          .eachAsync(
-            async (item) => {
-              const _id = `${item._id}@${connected_realm_id}_${timestamp}`;
-              await this.valuationsQueue.add(
-                'valuation',
-                {
-                  _id: item._id,
-                  last_modified: timestamp,
-                  connected_realm_id,
-                  iteration: 0,
-                },
-                {
-                  priority,
-                },
-              );
+        this.logger.log(`buildValuations: ${connectedRealmId}-${priority}`);
+        const items = await this.itemsRepository.find({ where: query as any });
+        for (const item of items) {
+          await this.valuationsQueue.add(
+            'valuation',
+            {
+              _id: item.id,
+              last_modified: timestamp,
+              connected_realm_id: connectedRealmId,
+              iteration: 0,
             },
-            { parallel: 10 },
+            {
+              priority,
+            },
           );
+        }
         this.logger.log(`=======================================`);
       }
-      await this.RealmModel.updateMany({ connected_realm_id }, { valuations: timestamp });
-      this.logger.log(`buildValuations: realm: ${connected_realm_id} updated: ${timestamp}`);
+      await this.realmsRepository.update({ connectedRealmId }, { valuationsTimestamp: timestamp });
+      this.logger.log(`buildValuations: realm: ${connectedRealmId} updated: ${timestamp}`);
     } catch (errorOrException) {
       this.logger.error(`buildValuations: ${errorOrException}`);
     }
   }
-  /**
-   * TODO add migration stage and replace root
-   * @param args
-   * @param init
-   */
+
   async buildAssetClasses(
     args: string[] = ['pricing', 'auctions', 'contracts', 'currency', 'tags'],
     init: boolean = true,
@@ -107,10 +96,6 @@ export class ValuationsService implements OnApplicationBootstrap {
       if (!init) {
         return;
       }
-      /**
-       * This stage add asset_classes from pricing
-       * such as REAGENT / DERIVATIVE
-       */
       if (args.includes('pricing')) {
         const logTag = 'buildAssetIndex';
         this.logger.debug({
@@ -118,159 +103,198 @@ export class ValuationsService implements OnApplicationBootstrap {
           stage: 'pricing',
           message: 'Pricing stage started',
         });
-        await this.PricingModel.find({})
-          .cursor()
-          .eachAsync(
-            async (pricing: Pricing) => {
-              for (const { _id } of pricing.derivatives) {
-                const item = await this.ItemModel.findById(_id);
-                if (item) {
-                  item.asset_class.addToSet(VALUATION_TYPE.DERIVATIVE);
-                  this.logger.debug({
-                    logTag,
-                    itemId: _id,
-                    assetClass: VALUATION_TYPE.DERIVATIVE,
-                    message: `Added derivative asset class to item: ${_id}`,
-                  });
-                  await item.save();
-                }
+        const pricingRecords = await this.pricingRepository.find();
+        for (const pricing of pricingRecords) {
+          const derivatives =
+            typeof pricing.derivatives === 'string' ? JSON.parse(pricing.derivatives) : pricing.derivatives;
+          const reagents = typeof pricing.reagents === 'string' ? JSON.parse(pricing.reagents) : pricing.reagents;
+
+          for (const derivative of derivatives as ItemPricing[]) {
+            const item = await this.itemsRepository.findOne({ where: { id: derivative.itemId } });
+            if (item) {
+              if (!item.assetClass) item.assetClass = [];
+              if (!item.assetClass.includes(VALUATION_TYPE.DERIVATIVE)) {
+                item.assetClass.push(VALUATION_TYPE.DERIVATIVE);
               }
-              for (const { _id } of pricing.reagents) {
-                const item = await this.ItemModel.findById(_id);
-                if (item) {
-                  item.asset_class.addToSet(VALUATION_TYPE.REAGENT);
-                  this.logger.debug({
-                    logTag,
-                    itemId: _id,
-                    assetClass: VALUATION_TYPE.REAGENT,
-                    message: `Added reagent asset class to item: ${_id}`,
-                  });
-                  await item.save();
-                }
+              this.logger.debug({
+                logTag,
+                itemId: derivative.itemId,
+                assetClass: VALUATION_TYPE.DERIVATIVE,
+                message: `Added derivative asset class to item: ${derivative.itemId}`,
+              });
+              await this.itemsRepository.save(item);
+            }
+          }
+          for (const reagent of reagents as ItemPricing[]) {
+            const item = await this.itemsRepository.findOne({ where: { id: reagent.itemId } });
+            if (item) {
+              if (!item.assetClass) item.assetClass = [];
+              if (!item.assetClass.includes(VALUATION_TYPE.REAGENT)) {
+                item.assetClass.push(VALUATION_TYPE.REAGENT);
               }
-            },
-            { parallel: 20 },
-          );
+              this.logger.debug({
+                logTag,
+                itemId: reagent.itemId,
+                assetClass: VALUATION_TYPE.REAGENT,
+                message: `Added reagent asset class to item: ${reagent.itemId}`,
+              });
+              await this.itemsRepository.save(item);
+            }
+          }
+        }
         this.logger.debug({
           logTag,
           stage: 'pricing',
           message: 'Pricing stage ended',
         });
       }
-      /**
-       * This stage add asset_classes from auction_db
-       * such as COMMDTY / ITEM and MARKET
-       */
       if (args.includes('auctions')) {
         this.logger.debug('auctions stage started');
-        await this.AuctionsModel.aggregate<IVAAuctions>([
-          {
-            $group: {
-              _id: '$item_id',
-              data: { $first: '$$ROOT' },
-            },
-          },
-        ])
-          .allowDiskUse(true)
-          .cursor({})
-          .eachAsync(
-            async (itemAuction: IVAAuctions) => {
-              const item = await this.ItemModel.findById(itemAuction._id);
-              if (item) {
-                item.asset_class.addToSet(VALUATION_TYPE.MARKET);
-                const { data: order } = itemAuction;
-                if (order.price) {
-                  item.asset_class.addToSet(VALUATION_TYPE.COMMDTY);
-                  this.logger.debug(`item: ${item._id}, asset_class: ${VALUATION_TYPE.COMMDTY}`);
-                } else if (order.bid || order.buyout) {
-                  item.asset_class.addToSet(VALUATION_TYPE.ITEM);
-                  this.logger.debug(`item: ${item._id}, asset_class: ${VALUATION_TYPE.ITEM}`);
-                }
-                await item.save();
+        const itemAuctions = await this.marketRepository
+          .createQueryBuilder('market')
+          .select('market.itemId')
+          .groupBy('market.itemId')
+          .getRawMany();
+
+        for (const itemAuction of itemAuctions as IVAAuctions[]) {
+          const item = await this.itemsRepository.findOne({ where: { id: itemAuction._id } });
+          if (item) {
+            if (!item.assetClass) item.assetClass = [];
+            if (!item.assetClass.includes(VALUATION_TYPE.MARKET)) {
+              item.assetClass.push(VALUATION_TYPE.MARKET);
+            }
+            const auctionData = await this.marketRepository.findOne({
+              where: { itemId: itemAuction._id },
+            });
+            if (auctionData?.price) {
+              if (!item.assetClass.includes(VALUATION_TYPE.COMMDTY)) {
+                item.assetClass.push(VALUATION_TYPE.COMMDTY);
               }
-            },
-            { parallel: 20 },
-          );
+              this.logger.debug(`item: ${item.id}, asset_class: ${VALUATION_TYPE.COMMDTY}`);
+            } else if (auctionData?.bid || auctionData?.price) {
+              if (!item.assetClass.includes(VALUATION_TYPE.ITEM)) {
+                item.assetClass.push(VALUATION_TYPE.ITEM);
+              }
+              this.logger.debug(`item: ${item.id}, asset_class: ${VALUATION_TYPE.ITEM}`);
+            }
+            await this.itemsRepository.save(item);
+          }
+        }
         this.logger.debug('auctions stage ended');
       }
-      /**
-       * This stage check does item suits the
-       * contract criteria based on asset class
-       */
       if (args.includes('contracts')) {
         this.logger.debug('contracts stage started');
-        await this.ItemModel.updateMany(
-          {
-            $or: [
-              { _id: 1 },
-              {
-                expansion: 'SHDW',
-                asset_class: {
-                  $all: [VALUATION_TYPE.MARKET, VALUATION_TYPE.COMMDTY],
-                },
-                ticker: { $exists: true },
-              },
-            ],
-          },
-          { contracts: true },
-        );
+        await this.itemsRepository
+          .createQueryBuilder()
+          .update(ItemsEntity)
+          .set({ hasContracts: true })
+          .where('id = :id', { id: 1 })
+          .orWhere('(expansion = :expansion AND assetClass @> :assetClass AND ticker IS NOT NULL)', {
+            expansion: 'SHDW',
+            assetClass: [VALUATION_TYPE.MARKET, VALUATION_TYPE.COMMDTY],
+          })
+          .execute();
         this.logger.debug('contracts stage ended');
       }
-      /**
-       * This stage define to items a special asset_class called PREMIUM
-       * based on loot_type and asset_class: REAGENT
-       */
       if (args.includes('premium')) {
         this.logger.debug('premium stage started');
-        await this.ItemModel.updateMany(
-          { asset_class: VALUATION_TYPE.REAGENT, loot_type: 'ON_ACQUIRE' },
-          { $addToSet: { asset_class: VALUATION_TYPE.PREMIUM } },
-        );
+        const premiumItems = await this.itemsRepository.find({
+          where: {
+            assetClass: In([VALUATION_TYPE.REAGENT]),
+            lootType: 'ON_ACQUIRE',
+          },
+        });
+        for (const item of premiumItems) {
+          if (!item.assetClass) item.assetClass = [];
+          if (!item.assetClass.includes(VALUATION_TYPE.PREMIUM)) {
+            item.assetClass.push(VALUATION_TYPE.PREMIUM);
+            await this.itemsRepository.save(item);
+          }
+        }
         this.logger.debug('premium stage ended');
       }
-      /**
-       * This stage define CURRENCY and WOWTOKEN
-       * asset classes to GOLD / WOWTOKEN
-       */
       if (args.includes('currency')) {
         this.logger.debug('currency stage started');
-        await this.ItemModel.updateOne({ _id: 122270 }, { $addToSet: { asset_class: VALUATION_TYPE.WOWTOKEN } });
-        await this.ItemModel.updateOne({ _id: 122284 }, { $addToSet: { asset_class: VALUATION_TYPE.WOWTOKEN } });
-        await this.ItemModel.updateOne({ _id: 1 }, { $addToSet: { asset_class: VALUATION_TYPE.GOLD } });
+        const item122270 = await this.itemsRepository.findOne({ where: { id: 122270 } });
+        if (item122270) {
+          if (!item122270.assetClass) item122270.assetClass = [];
+          if (!item122270.assetClass.includes(VALUATION_TYPE.WOWTOKEN)) {
+            item122270.assetClass.push(VALUATION_TYPE.WOWTOKEN);
+            await this.itemsRepository.save(item122270);
+          }
+        }
+        const item122284 = await this.itemsRepository.findOne({ where: { id: 122284 } });
+        if (item122284) {
+          if (!item122284.assetClass) item122284.assetClass = [];
+          if (!item122284.assetClass.includes(VALUATION_TYPE.WOWTOKEN)) {
+            item122284.assetClass.push(VALUATION_TYPE.WOWTOKEN);
+            await this.itemsRepository.save(item122284);
+          }
+        }
+        const item1 = await this.itemsRepository.findOne({ where: { id: 1 } });
+        if (item1) {
+          if (!item1.assetClass) item1.assetClass = [];
+          if (!item1.assetClass.includes(VALUATION_TYPE.GOLD)) {
+            item1.assetClass.push(VALUATION_TYPE.GOLD);
+            await this.itemsRepository.save(item1);
+          }
+        }
         this.logger.debug('currency stage ended');
       }
-      /**
-       * In this stage we build tags
-       */
       if (args.includes('tags')) {
         this.logger.debug('tags stage started');
-        await this.ItemModel.find()
-          .cursor()
-          .eachAsync(
-            async (item: Item) => {
-              if (item.sell_price) item.asset_class.addToSet(VALUATION_TYPE.VSP);
-              if (item.expansion) item.tags.addToSet(item.expansion.toLowerCase());
-              if (item.profession_class) item.tags.addToSet(item.profession_class.toLowerCase());
-              if (item.asset_class)
-                item.asset_class.map((asset_class) => item.tags.addToSet(asset_class.toLowerCase()));
-              if (item.item_class) item.tags.addToSet(item.item_class.toLowerCase());
-              if (item.item_subclass) item.tags.addToSet(item.item_subclass.toLowerCase());
-              if (item.quality) item.tags.addToSet(item.quality.toLowerCase());
-              if (item.ticker) {
-                item.ticker.split('.').map((ticker) => {
-                  const t: string = ticker.toLowerCase();
-                  if (t === 'j' || t === 'petal' || t === 'nugget') {
-                    item.tags.addToSet(t);
-                    return;
-                  }
-                  item.tags.addToSet(t);
-                });
+        const items = await this.itemsRepository.find();
+        for (const item of items) {
+          if (item.assetClass === null || item.assetClass === undefined) {
+            item.assetClass = [];
+          }
+          if (item.tags === null || item.tags === undefined) {
+            item.tags = [];
+          }
+          if (item.vendorSellPrice && !item.assetClass.includes(VALUATION_TYPE.VSP)) {
+            item.assetClass.push(VALUATION_TYPE.VSP);
+          }
+          if (item.expansion && !item.tags.includes(item.expansion.toLowerCase())) {
+            item.tags.push(item.expansion.toLowerCase());
+          }
+          if (item.professionClass && !item.tags.includes(item.professionClass.toLowerCase())) {
+            item.tags.push(item.professionClass.toLowerCase());
+          }
+          if (item.assetClass) {
+            for (const assetClass of item.assetClass) {
+              const tag = assetClass.toLowerCase();
+              if (!item.tags.includes(tag)) {
+                item.tags.push(tag);
               }
-              this.logger.debug(`item: ${item._id}, tags: ${item.tags.join(', ')}`);
-              await item.save();
-            },
-            { parallel: 20 },
-          );
+            }
+          }
+          if (item.itemClass && !item.tags.includes(item.itemClass.toLowerCase())) {
+            item.tags.push(item.itemClass.toLowerCase());
+          }
+          if (item.itemSubClass && !item.tags.includes(item.itemSubClass.toLowerCase())) {
+            item.tags.push(item.itemSubClass.toLowerCase());
+          }
+          if (item.quality && !item.tags.includes(item.quality.toLowerCase())) {
+            item.tags.push(item.quality.toLowerCase());
+          }
+          if (item.ticker) {
+            const tickerParts = item.ticker.split('.');
+            for (const t of tickerParts) {
+              const tag = t.toLowerCase();
+              if (tag === 'j' || tag === 'petal' || tag === 'nugget') {
+                if (!item.tags.includes(tag)) {
+                  item.tags.push(tag);
+                }
+                continue;
+              }
+              if (!item.tags.includes(tag)) {
+                item.tags.push(tag);
+              }
+            }
+          }
+          this.logger.debug(`item: ${item.id}, tags: ${item.tags.join(', ')}`);
+          await this.itemsRepository.save(item);
+        }
         this.logger.debug('tags stage ended');
       }
     } catch (errorOrException) {
