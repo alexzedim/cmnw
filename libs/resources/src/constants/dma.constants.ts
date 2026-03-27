@@ -296,3 +296,6 @@ export const REDIS_TTL = {
  * Used for processing large datasets in chunks
  */
 export const BATCH_SIZE = 500;
+
+export const GOLD_FIELDS = new Set(['sell_price', 'purchase_price']);
+export const NAMED_FIELDS = new Set(['name', 'quality', 'item_class', 'item_subclass', 'inventory_type']);
