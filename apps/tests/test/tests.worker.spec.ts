@@ -2,25 +2,35 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { TestsWorker } from '../src/tests.worker';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { postgresConfig } from '@app/configuration';
-import { CharactersGuildsMembersEntity, CharactersGuildsLogsEntity } from '@app/pg';
+import { CharactersGuildsMembersEntity, CharactersGuildsLogsEntity, GuildsEntity } from '@app/pg';
 import { guildOriginal, guildUpdated } from '../mocks';
 import { ACTION_LOG, OSINT_GM_RANK } from '@app/resources';
 
 describe('WORKER', () => {
   let testsService: TestsWorker;
+  let app: TestingModule;
   jest.setTimeout(600_000);
 
+  const testPostgresConfig = {
+    ...postgresConfig,
+    autoLoadEntities: true,
+  };
+
   beforeAll(async () => {
-    const app: TestingModule = await Test.createTestingModule({
+    app = await Test.createTestingModule({
       imports: [
-        TypeOrmModule.forRoot(postgresConfig),
-        TypeOrmModule.forFeature([CharactersGuildsLogsEntity, CharactersGuildsMembersEntity]),
+        TypeOrmModule.forRoot(testPostgresConfig),
+        TypeOrmModule.forFeature([CharactersGuildsLogsEntity, CharactersGuildsMembersEntity, GuildsEntity]),
       ],
       controllers: [],
       providers: [TestsWorker],
     }).compile();
 
     testsService = app.get<TestsWorker>(TestsWorker);
+  });
+
+  afterAll(async () => {
+    await app.close();
   });
 
   describe('INTERSECTION', () => {

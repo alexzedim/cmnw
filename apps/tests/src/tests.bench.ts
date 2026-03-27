@@ -14,7 +14,6 @@ import { HttpService } from '@nestjs/axios';
 import { pipeline } from 'node:stream/promises';
 import { chromium, devices } from 'playwright';
 import {
-  API_HEADERS_ENUM,
   FACTION,
   ICharacterRaiderIo,
   IChartOrder,
