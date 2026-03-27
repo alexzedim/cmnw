@@ -1,57 +1,35 @@
-import { Injectable } from '@nestjs/common';
-import { cmnwConfig } from '@app/configuration';
-// TODO: Remove BlizzAPI import and reimplement with new Blizzard API client
-// import { BlizzAPI } from '@alexzedim/blizzapi';
-import { apiConstParams, BattleNetApiNamespace } from '@app/battle-net';
-import { API_HEADERS_ENUM, TOLERANCE_ENUM } from '@app/resources';
+import { Injectable, Logger } from '@nestjs/common';
+import { BattleNetService, BattleNetApiNamespace } from '@app/battle-net';
+import { BATTLE_NET_DMA_TIMEOUT } from '@app/battle-net';
 
 @Injectable()
 export class TestsDma {
-  // private readonly logger = new Logger(TestsDma.name, { timestamp: true });
+  private readonly logger = new Logger(TestsDma.name, { timestamp: true });
 
-  // TODO: Replace with new Blizzard API client implementation
-  // private BNet: any = new BlizzAPI({
-  //   region: 'eu',
-  //   clientId: cmnwConfig.clientId,
-  //   clientSecret: cmnwConfig.clientSecret,
-  // });
+  constructor(private readonly battleNetService: BattleNetService) {}
 
-  // TODO: Blizzard API call skipped - reimplement with new client
   async commodity(): Promise<any> {
-    // return this.BNet.query('/data/wow/auctions/commodities', apiConstParams(BattleNetApiNamespace.DYNAMIC));
-    throw new Error('TODO: Blizzard API call skipped - reimplement with new client');
+    const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC, BATTLE_NET_DMA_TIMEOUT);
+    return this.battleNetService.query('/data/wow/auctions/commodities', options);
   }
 
-  // TODO: Blizzard API call skipped - reimplement with new client
   async auctions(connectedRealmId: number): Promise<any> {
-    // return this.BNet.query(
-    //   `/data/wow/connected-realm/${connectedRealmId}/auctions`,
-    //   apiConstParams(BattleNetApiNamespace.DYNAMIC),
-    // );
-    throw new Error('TODO: Blizzard API call skipped - reimplement with new client');
+    const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC, BATTLE_NET_DMA_TIMEOUT);
+    return this.battleNetService.query(`/data/wow/connected-realm/${connectedRealmId}/auctions`, options);
   }
 
-  // TODO: Blizzard API call skipped - reimplement with new client
   async wowToken(): Promise<any> {
-    // return this.BNet.query('/data/wow/token/index', apiConstParams(BattleNetApiNamespace.DYNAMIC));
-    throw new Error('TODO: Blizzard API call skipped - reimplement with new client');
+    const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC, BATTLE_NET_DMA_TIMEOUT);
+    return this.battleNetService.query('/data/wow/token/index', options);
   }
 
-  // TODO: Blizzard API call skipped - reimplement with new client
   async item(itemId: number): Promise<any> {
-    // return this.BNet.query(
-    //   `/data/wow/item/${itemId}`,
-    //   apiConstParams(BattleNetApiNamespace.STATIC, TOLERANCE_ENUM.DMA),
-    // );
-    throw new Error('TODO: Blizzard API call skipped - reimplement with new client');
+    const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.STATIC, BATTLE_NET_DMA_TIMEOUT);
+    return this.battleNetService.query(`/data/wow/item/${itemId}`, options);
   }
 
-  // TODO: Blizzard API call skipped - reimplement with new client
   async itemMedia(itemId: number): Promise<any> {
-    // return this.BNet.query(
-    //   `/data/wow/media/item/${itemId}`,
-    //   apiConstParams(BattleNetApiNamespace.STATIC, TOLERANCE_ENUM.DMA),
-    // );
-    throw new Error('TODO: Blizzard API call skipped - reimplement with new client');
+    const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.STATIC, BATTLE_NET_DMA_TIMEOUT);
+    return this.battleNetService.query(`/data/wow/media/item/${itemId}`, options);
   }
 }

@@ -1,15 +1,5 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { cmnwConfig } from '@app/configuration';
-import {
-  API_HEADERS_ENUM,
-  apiConstParams,
-  getKey,
-  getKeys,
-} from '@app/resources';
-import { BATTLE_NET_KEY_TAG_WCL_V1, BATTLE_NET_KEY_TAG_WCL_V2 } from '@app/battle-net';
-import { InjectRepository } from '@nestjs/typeorm';
-import { KeysEntity } from '@app/pg';
-import { Repository } from 'typeorm';
+import { BattleNetService, BattleNetApiNamespace, BATTLE_NET_KEY_TAG_WCL_V2 } from '@app/battle-net';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
 
@@ -17,13 +7,7 @@ import { join } from 'path';
 export class TestsCore implements OnApplicationBootstrap {
   private readonly logger = new Logger(TestsCore.name, { timestamp: true });
 
-  // TODO: Replace with new Blizzard API client implementation
-  // private BNet: any = ...;
-
-  constructor(
-    @InjectRepository(KeysEntity)
-    private readonly keysRepository: Repository<KeysEntity>,
-  ) {}
+  constructor(private readonly battleNetService: BattleNetService) {}
 
   async onApplicationBootstrap() {
     console.log('--- TestsCore onApplicationBootstrap ---');
@@ -35,60 +19,50 @@ export class TestsCore implements OnApplicationBootstrap {
     console.log('--- | ---');
   }
 
-  // TODO: Blizzard API call skipped - reimplement with new client
   async characterStats(nameSlug: string, realmSlug: string): Promise<any> {
-    this.logger.debug(`TODO: Blizzard API call skipped - reimplement with new client: ${nameSlug}:${realmSlug}`);
-    return null;
+    const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.PROFILE);
+    return this.battleNetService.query(`/profile/wow/character/${realmSlug}/${nameSlug}/stats`, options);
   }
 
-  // TODO: Blizzard API call skipped - reimplement with new client
   async dungeonIndex(): Promise<any> {
-    this.logger.debug(`TODO: Blizzard API call skipped - reimplement with new client`);
-    return null;
+    const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC);
+    return this.battleNetService.query('/journal-expansion/index', options);
   }
 
-  // TODO: Blizzard API call skipped - reimplement with new client
-  async mythicLeaderboard() {
-    this.logger.debug(`TODO: Blizzard API call skipped - reimplement with new client`);
-    return null;
+  async mythicLeaderboard(connectedRealmId: number, dungeonId: number, period: number): Promise<any> {
+    const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC);
+    return this.battleNetService.query(
+      `/connected-realm/${connectedRealmId}/mythic-leaderboard/${dungeonId}/period/${period}`,
+      options,
+    );
   }
 
-  // TODO: Blizzard API call skipped - reimplement with new client
   async seasonIndex(): Promise<any> {
-    this.logger.debug(`TODO: Blizzard API call skipped - reimplement with new client`);
-    return null;
+    const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC);
+    return this.battleNetService.query('/pvp-season/index', options);
   }
 
-  // TODO: Blizzard API call skipped - reimplement with new client
-  async seasonOne() {
-    this.logger.debug(`TODO: Blizzard API call skipped - reimplement with new client`);
-    return null;
+  async seasonOne(seasonId: number): Promise<any> {
+    const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC);
+    return this.battleNetService.query(`/pvp-season/${seasonId}`, options);
   }
 
-  // TODO: Blizzard API call skipped - reimplement with new client
-  async leadingGroups() {
-    this.logger.debug(`TODO: Blizzard API call skipped - reimplement with new client`);
-    return null;
+  async leadingGroups(seasonId: number, bracketType: number): Promise<any> {
+    const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC);
+    return this.battleNetService.query(`/pvp-season/${seasonId}/pvp-leaderboard/${bracketType}`, options);
   }
 
-  // TODO: Blizzard API call skipped - reimplement with new client
-  async pvpIndexIndex() {
-    this.logger.debug(`TODO: Blizzard API call skipped - reimplement with new client`);
-    return null;
+  async pvpIndexIndex(): Promise<any> {
+    const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC);
+    return this.battleNetService.query('/pvp-season/index', options);
   }
 
-  // TODO: Blizzard API call skipped - reimplement with new client
-  async pvpSeasonLeaderboard() {
-    this.logger.debug(`TODO: Blizzard API call skipped - reimplement with new client`);
-    return null;
+  async pvpSeasonLeaderboard(): Promise<any> {
+    const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC);
+    return this.battleNetService.query('/pvp-season/1/season/1/leaderboard/3v3', options);
   }
 
   async getWclKeys() {
-    const keyV1 = await getKey(this.keysRepository, BATTLE_NET_KEY_TAG_WCL_V1);
-    const keysV1 = await getKeys(this.keysRepository, BATTLE_NET_KEY_TAG_WCL_V1);
-    const keyV2 = await getKey(this.keysRepository, BATTLE_NET_KEY_TAG_WCL_V2);
-    const keysV2 = await getKeys(this.keysRepository, BATTLE_NET_KEY_TAG_WCL_V2);
-
-    return [keyV1, keysV1, keyV2, keysV2];
+    return this.battleNetService.getAllKeys([BATTLE_NET_KEY_TAG_WCL_V2]);
   }
 }

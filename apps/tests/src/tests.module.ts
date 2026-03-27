@@ -11,10 +11,15 @@ import {
   RealmsEntity,
 } from '@app/pg';
 import { HttpModule } from '@nestjs/axios';
+import { BattleNetModule } from '@app/battle-net';
+import { TestsOsint } from './tests.osint';
+import { TestsDma } from './tests.dma';
+import { TestsCore } from './tests.core';
 
 @Module({
   imports: [
     HttpModule,
+    BattleNetModule,
     TypeOrmModule.forRoot(postgresConfig),
     TypeOrmModule.forFeature([
       CharactersEntity,
@@ -27,14 +32,6 @@ import { HttpModule } from '@nestjs/axios';
     ]),
   ],
   controllers: [],
-  providers: [
-    // TestsOsint,
-    // TestsDma,
-    // TestsCore,
-    // TestsBench,
-    // TestsCommunity,
-    // TestsWorker,
-    // TestsCharactersQueueWorker,
-  ],
+  providers: [TestsOsint, TestsDma, TestsCore],
 })
 export class TestsModule {}

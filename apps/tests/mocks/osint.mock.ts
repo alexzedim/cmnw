@@ -167,16 +167,16 @@ export const guildObj = {
 
 export const professionObj = {
   lastModified: expect.any(String),
-  primaries: expect.objectContaining([
+  primaries: expect.arrayContaining([
     expect.objectContaining({
-      profession: expect.objectContaining([]),
-      tiers: expect.objectContaining([]),
+      profession: expect.objectContaining({}),
+      tiers: expect.arrayContaining([]),
     }),
   ]),
-  secondaries: expect.objectContaining([
+  secondaries: expect.arrayContaining([
     expect.objectContaining({
-      profession: expect.objectContaining([]),
-      tiers: expect.objectContaining([]),
+      profession: expect.objectContaining({}),
+      tiers: expect.arrayContaining([]),
     }),
   ]),
   character: expect.objectContaining({
