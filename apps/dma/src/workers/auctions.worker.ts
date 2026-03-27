@@ -1,5 +1,5 @@
 import Redis from 'ioredis';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 
 import { bufferCount, concatMap } from 'rxjs/operators';
@@ -9,6 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ItemsEntity, MarketEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
+import { BattleNetService, BattleNetNamespace, BATTLE_NET_KEY_TAG_DMA } from '@app/battle-net';
 import {
   auctionsQueue,
   BlizzardApiAuctions,
@@ -25,7 +26,6 @@ import {
   formatBytes,
   IAuctionMessageBase,
 } from '@app/resources';
-import { BlizzardApiService } from '@app/resources/services';
 import {
   formatWorkerLog,
   formatWorkerErrorLog,
@@ -40,7 +40,7 @@ import { Job } from 'bullmq';
 
 @Injectable()
 @Processor(auctionsQueue)
-export class AuctionsWorker extends WorkerHost {
+export class AuctionsWorker extends WorkerHost implements OnModuleInit {
   private readonly logger = new Logger(AuctionsWorker.name, {
     timestamp: true,
   });
@@ -56,8 +56,6 @@ export class AuctionsWorker extends WorkerHost {
     startTime: Date.now(),
   };
 
-  // TODO: Replace with new Blizzard API client implementation
-
   private readonly HTTP_STATUS_CODES = {
     NOT_MODIFIED: 304,
   } as const;
@@ -71,9 +69,13 @@ export class AuctionsWorker extends WorkerHost {
     private readonly _itemsRepository: Repository<ItemsEntity>,
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
-    private readonly blizzardApiService: BlizzardApiService,
+    private readonly battleNetService: BattleNetService,
   ) {
     super();
+  }
+
+  async onModuleInit(): Promise<void> {
+    await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_DMA);
   }
 
   async process(job: Job<IAuctionMessageBase>): Promise<void> {
@@ -88,14 +90,6 @@ export class AuctionsWorker extends WorkerHost {
         message: 'Received auction message',
         data: message,
       });
-
-      // TODO: Replace with new Blizzard API client implementation
-      // this.BNet = this.blizzardApiService.createClient({
-      //   clientId: message.clientId,
-      //   clientSecret: message.clientSecret,
-      //   accessToken: message.accessToken,
-      //   region: message.region,
-      // });
 
       const isCommodity = message.connectedRealmId === REALM_ENTITY_ANY.id;
 
@@ -117,13 +111,11 @@ export class AuctionsWorker extends WorkerHost {
         ? '/data/wow/auctions/commodities'
         : `/data/wow/connected-realm/${message.connectedRealmId}/auctions`;
 
-      // TODO: Replace with new Blizzard API client implementation
-      // const marketResponse = await this.BNet.query<BlizzardApiAuctions>(
-      //   getMarketApiEndpoint,
-      //   apiConstParams(API_HEADERS_ENUM.DYNAMIC, DMA_TIMEOUT_TOLERANCE, false, ifModifiedSince),
-      // );
-      this.logger.debug({ logTag: 'BlizzardAPI', message: 'Skipping API call - BlizzAPI client not initialized' });
-      return;
+      const marketResponse = await this.battleNetService.query<BlizzardApiAuctions>(getMarketApiEndpoint, {
+        namespace: BattleNetNamespace.DYNAMIC,
+        timeout: 60_000,
+        headers: { 'If-Modified-Since': ifModifiedSince },
+      });
 
       const isAuctionsValid = isAuctions(marketResponse);
       if (!isAuctionsValid) {
@@ -142,9 +134,10 @@ export class AuctionsWorker extends WorkerHost {
 
       const { auctions } = marketResponse;
 
-      const auctionsHash = this.computeAuctionsPayloadHash(auctions);
-      const auctionsHashKey = `DMA:AUCTIONS:HASH:${auctionsHash}`;
-      const payloadBytes = Buffer.byteLength(JSON.stringify(auctions), 'utf8');
+      const auctionsString = JSON.stringify(auctions);
+      const payloadBytes = Buffer.byteLength(auctionsString, 'utf8');
+      const auctionsHash = this.computeAuctionsPayloadHash(auctionsString);
+      const auctionsHashKey = `DMA:AUCTIONS:HASH:${auctionsHash}:${payloadBytes}`;
 
       const previouslyPersistedHash = await this.redisService.exists(auctionsHashKey);
 
@@ -352,7 +345,7 @@ export class AuctionsWorker extends WorkerHost {
     this.logger.log(formatFinalSummary('AuctionsWorker', this.stats, 'realms'));
   }
 
-  private computeAuctionsPayloadHash(auctions: BlizzardApiAuctions['auctions']): string {
-    return createHash('sha1').update(JSON.stringify(auctions)).digest('hex');
+  private computeAuctionsPayloadHash(auctionsString: string): string {
+    return createHash('sha256').update(auctionsString).digest('hex');
   }
 }

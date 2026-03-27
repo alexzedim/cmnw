@@ -1,7 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { BattleNetService, BattleNetNamespace, BATTLE_NET_KEY_TAG_DMA } from '@app/battle-net';
 
 import {
   DMA_SOURCE,
@@ -15,7 +16,6 @@ import {
   toGold,
   VALUATION_TYPE,
 } from '@app/resources';
-import { BlizzardApiService } from '@app/resources/services';
 import { ItemsEntity } from '@app/pg';
 import { Job } from 'bullmq';
 import { get } from 'lodash';
@@ -32,12 +32,10 @@ import {
 
 @Injectable()
 @Processor(itemsQueue)
-export class ItemsWorker extends WorkerHost {
+export class ItemsWorker extends WorkerHost implements OnModuleInit {
   private readonly logger = new Logger(ItemsWorker.name, {
     timestamp: true,
   });
-
-  // TODO: Replace with new Blizzard API client implementation
 
   private stats: WorkerStats = {
     total: 0,
@@ -50,9 +48,13 @@ export class ItemsWorker extends WorkerHost {
   constructor(
     @InjectRepository(ItemsEntity)
     private readonly itemsRepository: Repository<ItemsEntity>,
-    private readonly blizzardApiService: BlizzardApiService,
+    private readonly battleNetService: BattleNetService,
   ) {
     super();
+  }
+
+  async onModuleInit(): Promise<void> {
+    await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_DMA);
   }
 
   public async process(message: Job<IItemMessageBase>): Promise<void> {
@@ -62,10 +64,30 @@ export class ItemsWorker extends WorkerHost {
     try {
       const { data: args } = message;
 
-      // --- Check exits, if not, create --- //
+      const isMultiLocale = true;
+
+      let itemResponse: any = null;
+      let mediaResponse: any = null;
+
+      try {
+        itemResponse = await this.battleNetService.query(`/data/wow/item/${args.itemId}`, {
+          namespace: BattleNetNamespace.STATIC,
+          timeout: 60_000,
+          locale: isMultiLocale ? undefined : 'en_GB',
+        });
+      } catch {}
+
+      try {
+        mediaResponse = await this.battleNetService.query(`/data/wow/media/item/${args.itemId}`, {
+          namespace: BattleNetNamespace.STATIC,
+          timeout: 60_000,
+        });
+      } catch {}
+
       let itemEntity = await this.itemsRepository.findOneBy({
         id: args.itemId,
       });
+
       const isNew = !itemEntity;
       if (isNew) {
         itemEntity = this.itemsRepository.create({
@@ -74,32 +96,7 @@ export class ItemsWorker extends WorkerHost {
         });
       }
 
-      // TODO: Re-implement Blizzard API client
-      // this.BNet = this.blizzardApiService.createClient({
-      //   clientId: args.clientId,
-      //   clientSecret: args.clientSecret,
-      //   accessToken: args.accessToken,
-      //   region: args.region || 'eu',
-      // });
-
-      // --- Request item data --- //
-      // TODO: Re-implement Blizzard API calls
-      // const isMultiLocale = true;
-      // const [getItemSummary, getItemMedia] = await Promise.allSettled([
-      //   this.BNet.query<BlizzardApiItem>(
-      //     `/data/wow/item/${args.itemId}`,
-      //     apiConstParams(API_HEADERS_ENUM.STATIC, TOLERANCE_ENUM.DMA, isMultiLocale),
-      //   ),
-      //   this.BNet.query(
-      //     `/data/wow/media/item/${args.itemId}`,
-      //     apiConstParams(API_HEADERS_ENUM.STATIC, TOLERANCE_ENUM.DMA),
-      //   ),
-      // ]);
-
-      // Debug: Skip API calls
-      this.logger.debug(`Skipping API calls for item ${args.itemId}`);
-
-      const isItemValid = isItem(getItemSummary);
+      const isItemValid = itemResponse && isItem({ status: 'fulfilled', value: itemResponse } as any);
       if (!isItemValid) {
         this.stats.notFound++;
         const duration = Date.now() - startTime;
@@ -110,11 +107,11 @@ export class ItemsWorker extends WorkerHost {
       const gold = new Set(['sell_price', 'purchase_price']);
       const namedFields = new Set(['name', 'quality', 'item_class', 'item_subclass', 'inventory_type']);
 
-      Object.keys(getItemSummary.value).forEach((key: keyof IItem) => {
+      Object.keys(itemResponse).forEach((key: keyof IItem) => {
         const isKeyInPath = ITEM_FIELD_MAPPING.has(key);
         if (isKeyInPath) {
           const property = ITEM_FIELD_MAPPING.get(key);
-          let value = get(getItemSummary.value, property.path, null);
+          let value = get(itemResponse, property.path, null);
           const isFieldName = namedFields.has(key) ? isNamedField(value) : false;
 
           if (isFieldName) value = get(value, `en_GB`, null);
@@ -128,7 +125,7 @@ export class ItemsWorker extends WorkerHost {
       });
 
       if (isMultiLocale) {
-        itemEntity.names = getItemSummary.value.name as unknown as string;
+        itemEntity.names = itemResponse.name as unknown as string;
       }
 
       const isVSP =
@@ -140,9 +137,9 @@ export class ItemsWorker extends WorkerHost {
         itemEntity.assetClass = Array.from(assetClass);
       }
 
-      const isItemMediaValid = isItemMedia(getItemMedia);
+      const isItemMediaValid = mediaResponse && isItemMedia({ status: 'fulfilled', value: mediaResponse } as any);
       if (isItemMediaValid) {
-        const [icon] = getItemMedia.value.assets;
+        const [icon] = mediaResponse.assets;
         itemEntity.icon = icon.value;
       }
 
@@ -157,7 +154,6 @@ export class ItemsWorker extends WorkerHost {
         }),
       );
 
-      // Progress report every 50 items
       if (this.stats.total % 50 === 0) {
         this.logProgress();
       }

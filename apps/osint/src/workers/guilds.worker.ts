@@ -1,11 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { Job } from 'bullmq';
 import { forkJoin, lastValueFrom } from 'rxjs';
-import { isAxiosError } from 'axios';
-import chalk from 'chalk';
 
 import {
   formatWorkerLog,
@@ -15,7 +11,6 @@ import {
   WorkerLogStatus,
   WorkerStats,
 } from '@app/logger';
-import { BlizzardApiService } from '@app/resources/services';
 import {
   isEuRegion,
   toSlug,
@@ -25,9 +20,7 @@ import {
   GuildStatusState,
   guildsQueue,
   IGuildMessageBase,
-  RateLimitError,
 } from '@app/resources';
-import { KeysEntity } from '@app/pg';
 
 import {
   GuildService,
@@ -55,20 +48,13 @@ export class GuildsWorker extends WorkerHost {
     startTime: Date.now(),
   };
 
-  // TODO: Replace with new Blizzard API client implementation
-  private BNet: any;
-  private currentAccessToken: string | null = null;
-
   constructor(
-    @InjectRepository(KeysEntity)
-    private readonly keysRepository: Repository<KeysEntity>,
     private readonly guildService: GuildService,
     private readonly guildSummaryService: GuildSummaryService,
     private readonly guildRosterService: GuildRosterService,
     private readonly guildMemberService: GuildMemberService,
     private readonly guildLogService: GuildLogService,
     private readonly guildMasterService: GuildMasterService,
-    private readonly blizzardApiService: BlizzardApiService,
   ) {
     super();
   }
@@ -103,24 +89,16 @@ export class GuildsWorker extends WorkerHost {
         return;
       }
 
-      const { client, accessToken } = await this.initializeApiClient(message);
-      this.BNet = client;
-      this.currentAccessToken = accessToken;
-
       if (message.updatedBy) {
         guildEntity.updatedBy = message.updatedBy;
       }
 
       const [summaryResult, rosterResult] = await lastValueFrom(
         forkJoin([
-          this.callWithRetry(() => this.guildSummaryService.getSummary(nameSlug, guildEntity.realm, this.BNet)),
-          this.callWithRetry(() => this.guildRosterService.fetchRoster(guildEntity, this.BNet)),
+          this.guildSummaryService.getSummary(nameSlug, guildEntity.realm),
+          this.guildRosterService.fetchRoster(guildEntity),
         ]),
       );
-
-      if (this.currentAccessToken) {
-        await this.blizzardApiService.recordSuccess(this.currentAccessToken);
-      }
 
       Object.assign(guildEntity, summaryResult);
 
@@ -171,25 +149,6 @@ export class GuildsWorker extends WorkerHost {
     } catch (errorOrException) {
       const duration = Date.now() - startTime;
       const guid = message.name && message.realm ? `${message.name}@${message.realm}` : 'unknown';
-
-      if (errorOrException instanceof RateLimitError) {
-        this.stats.rateLimit++;
-        this.logger.warn(
-          formatWorkerLog(
-            WorkerLogStatus.RATE_LIMITED,
-            this.stats.total,
-            guid,
-            duration,
-            `Retry after: ${errorOrException.retryAfter || 'unknown'}s`,
-          ),
-        );
-        throw errorOrException;
-      }
-
-      if (this.currentAccessToken) {
-        const statusCode = isAxiosError(errorOrException) ? errorOrException.response?.status : 0;
-        await this.blizzardApiService.recordError(this.currentAccessToken, statusCode);
-      }
 
       this.stats.errors++;
       this.logger.error(
@@ -288,95 +247,5 @@ export class GuildsWorker extends WorkerHost {
 
   public logFinalSummary(): void {
     this.logger.log(formatFinalSummary('GuildsWorker', this.stats, 'guilds'));
-  }
-
-  // TODO: Replace with new Blizzard API client implementation
-  private async initializeApiClient(args: IGuildMessageBase): Promise<{ client: any; accessToken: string }> {
-    const pooledKey = await this.blizzardApiService.getNextKey({
-      tag: 'blizzard',
-      skipCooldown: true,
-    });
-
-    if (pooledKey && pooledKey.token) {
-      const client = this.blizzardApiService.createClientFromKey(pooledKey, args.region || 'eu');
-      return { client, accessToken: pooledKey.token };
-    }
-
-    const client = this.blizzardApiService.createClient(
-      {
-        clientId: args.clientId,
-        clientSecret: args.clientSecret,
-        accessToken: args.accessToken,
-        region: args.region || 'eu',
-      },
-      {
-        keysRepository: this.keysRepository,
-        keyTag: 'blizzard',
-      },
-    );
-    return { client, accessToken: args.accessToken };
-  }
-
-  // TODO: Replace with new Blizzard API client implementation
-  private async handleRateLimitAndRotate(
-    currentAccessToken: string,
-    currentClient: any,
-  ): Promise<{ client: any; accessToken: string } | null> {
-    const rotationResult = await this.blizzardApiService.rotateOnRateLimit(currentAccessToken, {
-      tag: 'blizzard',
-    });
-
-    if (rotationResult.key && rotationResult.key.token) {
-      const bnetClient = currentClient as any;
-      if (bnetClient.accessTokenObject) {
-        bnetClient.accessTokenObject.access_token = rotationResult.key.token;
-      }
-
-      this.currentAccessToken = rotationResult.key.token;
-      this.logger.log(
-        `${chalk.yellow('🔄')} Rotated to key [${chalk.dim(rotationResult.key.client?.substring(0, 8))}...]`,
-      );
-      return { client: currentClient, accessToken: rotationResult.key.token };
-    }
-
-    this.logger.warn(`${chalk.yellow('⚠')} No alternative key available for rotation`);
-    return null;
-  }
-
-  private async callWithRetry<T>(fn: () => Promise<T>, attempt = 0): Promise<T> {
-    const maxRetries = 2;
-    const baseDelayMs = 1000;
-
-    try {
-      const result = await fn();
-      if (this.currentAccessToken) {
-        await this.blizzardApiService.recordSuccess(this.currentAccessToken);
-      }
-      return result;
-    } catch (error) {
-      const isRateLimit = isAxiosError(error) && error.response?.status === 429;
-
-      if (isRateLimit && attempt < maxRetries && this.currentAccessToken) {
-        await this.blizzardApiService.recordRateLimit(this.currentAccessToken);
-        const delayMs = baseDelayMs * Math.pow(2, attempt) + Math.random() * 500;
-        this.logger.warn(
-          `${chalk.yellow('⚠')} Rate limited, retrying in ${Math.round(delayMs)}ms (attempt ${attempt + 1}/${maxRetries})`,
-        );
-        await new Promise((resolve) => setTimeout(resolve, delayMs));
-
-        const rotationResult = await this.handleRateLimitAndRotate(this.currentAccessToken, this.BNet);
-        if (rotationResult) {
-          this.BNet = rotationResult.client;
-          return this.callWithRetry(fn, attempt + 1);
-        }
-        throw error;
-      }
-
-      if (this.currentAccessToken) {
-        const statusCode = isAxiosError(error) ? (error.response?.status ?? 0) : 0;
-        await this.blizzardApiService.recordError(this.currentAccessToken, statusCode);
-      }
-      throw error;
-    }
   }
 }
