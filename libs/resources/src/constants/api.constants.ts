@@ -1,7 +1,3 @@
-import { Logger } from '@nestjs/common';
-import { JobsOptions } from 'bullmq';
-import { realmsQueue } from '../../queues/realms.queue';
-
 /**
  * HTTP status codes that indicate rate limiting or API key errors
  * Used for efficient status code checking with Set.has() instead of multiple === comparisons
