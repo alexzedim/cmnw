@@ -127,18 +127,18 @@ export const isGold = (response: unknown): response is GoldApiListing =>
   'counterparty' in response &&
   typeof response.counterparty === 'string';
 
-export const isItem = (response: PromiseSettledResult<any>): response is PromiseFulfilledResult<BlizzardApiItem> =>
+export const isItem = (response: PromiseSettledResult<unknown>): response is PromiseFulfilledResult<BlizzardApiItem> =>
   typeof response === 'object' && response.status === 'fulfilled' && 'value' in response && Boolean(response.value);
 
 export const isItemMedia = (
-  response: PromiseSettledResult<any>,
+  response: PromiseSettledResult<unknown>,
 ): response is PromiseFulfilledResult<BlizzardApiItemMedia> =>
   typeof response === 'object' &&
   response.status === 'fulfilled' &&
   'value' in response &&
-  'assets' in response.value &&
-  Boolean(response.value.assets) &&
-  Array.isArray(response.value.assets);
+  'assets' in (response.value as Record<string, unknown>) &&
+  Boolean((response.value as Record<string, unknown>).assets) &&
+  Array.isArray((response.value as Record<string, unknown>).assets);
 
 export const isRaiderIoProfile = (response: unknown): response is ICharacterRaiderIo =>
   typeof response === 'object' &&

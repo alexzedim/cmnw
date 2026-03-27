@@ -5,7 +5,10 @@ import { Repository } from 'typeorm';
 import { BattleNetService, BattleNetNamespace, BATTLE_NET_KEY_TAG_DMA } from '@app/battle-net';
 
 import {
+  BlizzardApiItem,
+  BlizzardApiItemMedia,
   DMA_SOURCE,
+  GOLD_FIELDS,
   IItem,
   IItemMessageBase,
   isItem,
@@ -13,22 +16,23 @@ import {
   isNamedField,
   ITEM_FIELD_MAPPING,
   itemsQueue,
+  NAMED_FIELDS,
   toGold,
   VALUATION_TYPE,
 } from '@app/resources';
 import { ItemsEntity } from '@app/pg';
-import { Job } from 'bullmq';
-import { get } from 'lodash';
-import { isAxiosError } from 'axios';
 import {
+  WorkerStats,
   formatWorkerLog,
+  WorkerLogStatus,
   formatWorkerLogWithDetails,
   formatWorkerErrorLog,
   formatProgressReport,
   formatFinalSummary,
-  WorkerLogStatus,
-  WorkerStats,
 } from '@app/logger';
+import { isAxiosError } from 'axios';
+import { Job } from 'bullmq';
+import { get } from 'lodash';
 
 @Injectable()
 @Processor(itemsQueue)
@@ -62,84 +66,35 @@ export class ItemsWorker extends WorkerHost implements OnModuleInit {
     this.stats.total++;
 
     try {
-      const { data: args } = message;
+      const { itemId } = message.data;
+      const results = await this.fetchData(itemId);
 
-      const isMultiLocale = true;
+      const [itemResult, mediaResult] = results;
 
-      let itemResponse: any = null;
-      let mediaResponse: any = null;
+      if (!isItem(itemResult)) {
+        this.stats.notFound++;
+        const duration = Date.now() - startTime;
+        this.logger.warn(formatWorkerLog(WorkerLogStatus.NOT_FOUND, this.stats.total, `item-${itemId}`, duration));
+        return;
+      }
 
-      try {
-        itemResponse = await this.battleNetService.query(`/data/wow/item/${args.itemId}`, {
-          namespace: BattleNetNamespace.STATIC,
-          timeout: 60_000,
-          locale: isMultiLocale ? undefined : 'en_GB',
-        });
-      } catch {}
-
-      try {
-        mediaResponse = await this.battleNetService.query(`/data/wow/media/item/${args.itemId}`, {
-          namespace: BattleNetNamespace.STATIC,
-          timeout: 60_000,
-        });
-      } catch {}
-
-      let itemEntity = await this.itemsRepository.findOneBy({
-        id: args.itemId,
-      });
+      const itemResponse = itemResult.value;
+      let itemEntity = await this.itemsRepository.findOneBy({ id: itemId });
 
       const isNew = !itemEntity;
       if (isNew) {
         itemEntity = this.itemsRepository.create({
-          id: args.itemId,
+          id: itemId,
           indexBy: DMA_SOURCE.API,
         });
       }
 
-      const isItemValid = itemResponse && isItem({ status: 'fulfilled', value: itemResponse } as any);
-      if (!isItemValid) {
-        this.stats.notFound++;
-        const duration = Date.now() - startTime;
-        this.logger.warn(formatWorkerLog(WorkerLogStatus.NOT_FOUND, this.stats.total, `item-${args.itemId}`, duration));
-        return;
-      }
+      this.applyFieldMappings(itemEntity, itemResponse);
+      itemEntity.names = itemResponse.name;
+      this.applyVendorSellPriceFlag(itemEntity, isNew);
 
-      const gold = new Set(['sell_price', 'purchase_price']);
-      const namedFields = new Set(['name', 'quality', 'item_class', 'item_subclass', 'inventory_type']);
-
-      Object.keys(itemResponse).forEach((key: keyof IItem) => {
-        const isKeyInPath = ITEM_FIELD_MAPPING.has(key);
-        if (isKeyInPath) {
-          const property = ITEM_FIELD_MAPPING.get(key);
-          let value = get(itemResponse, property.path, null);
-          const isFieldName = namedFields.has(key) ? isNamedField(value) : false;
-
-          if (isFieldName) value = get(value, `en_GB`, null);
-
-          if (gold.has(key)) {
-            value = toGold(value);
-          }
-
-          if (value && value !== itemEntity[property.key]) (itemEntity[property.key] as string | number) = value;
-        }
-      });
-
-      if (isMultiLocale) {
-        itemEntity.names = itemResponse.name as unknown as string;
-      }
-
-      const isVSP =
-        (itemEntity.vendorSellPrice && isNew) ||
-        (itemEntity.vendorSellPrice && itemEntity.assetClass && !itemEntity.assetClass.includes(VALUATION_TYPE.VSP));
-
-      if (isVSP) {
-        const assetClass = new Set(itemEntity.assetClass).add(VALUATION_TYPE.VSP);
-        itemEntity.assetClass = Array.from(assetClass);
-      }
-
-      const isItemMediaValid = mediaResponse && isItemMedia({ status: 'fulfilled', value: mediaResponse } as any);
-      if (isItemMediaValid) {
-        const [icon] = mediaResponse.assets;
+      if (isItemMedia(mediaResult)) {
+        const [icon] = mediaResult.value.assets;
         itemEntity.icon = icon.value;
       }
 
@@ -185,6 +140,69 @@ export class ItemsWorker extends WorkerHost implements OnModuleInit {
       }
 
       throw errorOrException;
+    }
+  }
+
+  private async fetchData(
+    itemId: number,
+  ): Promise<[PromiseSettledResult<BlizzardApiItem>, PromiseSettledResult<BlizzardApiItemMedia>]> {
+    const itemPromise = this.queryItem(itemId);
+    const mediaPromise = this.queryMedia(itemId);
+
+    return Promise.allSettled([itemPromise, mediaPromise]);
+  }
+
+  private async queryItem(itemId: number): Promise<BlizzardApiItem | null> {
+    try {
+      return await this.battleNetService.query<BlizzardApiItem>(`/data/wow/item/${itemId}`, {
+        namespace: BattleNetNamespace.STATIC,
+        timeout: 60_000,
+        locale: undefined,
+      });
+    } catch {
+      return null;
+    }
+  }
+
+  private async queryMedia(itemId: number): Promise<BlizzardApiItemMedia | null> {
+    try {
+      return await this.battleNetService.query<BlizzardApiItemMedia>(`/data/wow/media/item/${itemId}`, {
+        namespace: BattleNetNamespace.STATIC,
+        timeout: 60_000,
+      });
+    } catch {
+      return null;
+    }
+  }
+
+  private applyFieldMappings(itemEntity: ItemsEntity, itemResponse: Partial<IItem>): void {
+    Object.keys(itemResponse).forEach((key: keyof IItem) => {
+      if (!ITEM_FIELD_MAPPING.has(key)) return;
+
+      const property = ITEM_FIELD_MAPPING.get(key);
+      let value = get(itemResponse, property.path, null);
+
+      if (NAMED_FIELDS.has(key) && isNamedField(value)) {
+        value = get(value, 'en_GB', null);
+      }
+
+      if (GOLD_FIELDS.has(key)) {
+        value = toGold(value);
+      }
+
+      if (value && value !== itemEntity[property.key]) {
+        (itemEntity[property.key] as string | number) = value;
+      }
+    });
+  }
+
+  private applyVendorSellPriceFlag(itemEntity: ItemsEntity, isNew: boolean): void {
+    if (!itemEntity.vendorSellPrice) return;
+
+    const hasVSP = itemEntity.assetClass?.includes(VALUATION_TYPE.VSP);
+    if (isNew || !hasVSP) {
+      const assetClass = new Set(itemEntity.assetClass).add(VALUATION_TYPE.VSP);
+      itemEntity.assetClass = Array.from(assetClass);
     }
   }
 
