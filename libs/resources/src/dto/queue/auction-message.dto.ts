@@ -1,4 +1,3 @@
-import { Logger } from '@nestjs/common';
 import { JobsOptions } from 'bullmq';
 import { auctionsQueue } from '../../queues/auctions.queue';
 import { REALM_ENTITY_ANY } from '@app/resources/constants';
@@ -10,19 +9,12 @@ export interface IAuctionMessageBase {
   connectedRealmId: number;
   auctionsTimestamp?: number;
   commoditiesTimestamp?: number;
-  isAssetClassIndex?: boolean;
-  region?: 'eu' | 'us' | 'kr' | 'tw';
-  clientId?: string;
-  clientSecret?: string;
-  accessToken?: string;
 }
 
 export class AuctionMessageDto {
   public readonly name: string;
   public readonly data: IAuctionMessageBase;
   public readonly opts?: JobsOptions;
-
-  private static readonly auctionLogger = new Logger(AuctionMessageDto.name);
 
   /**
    * Constructor - creates a validated Auction Message with BullMQ properties
