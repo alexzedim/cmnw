@@ -62,34 +62,6 @@ export const BULLMQ_QUEUES: Record<string, IQueueConfig> = {
     },
   },
 
-  CHARACTERS_REQUESTS: {
-    name: 'osint.characters.requests',
-    domain: 'osint',
-    jobType: 'ICharacterMessageBase',
-    options: {
-      name: 'osint.characters.requests',
-      connection: REDIS_CONNECTION,
-      defaultJobOptions: {
-        ...DEFAULT_JOB_OPTIONS,
-        priority: 7,
-      },
-    },
-  },
-
-  CHARACTERS_RESPONSES: {
-    name: 'osint.characters.responses',
-    domain: 'osint',
-    jobType: 'ICharacterMessageBase',
-    options: {
-      name: 'osint.characters.responses',
-      connection: REDIS_CONNECTION,
-      defaultJobOptions: {
-        ...DEFAULT_JOB_OPTIONS,
-        priority: 7,
-      },
-    },
-  },
-
   GUILDS: {
     name: 'osint.guilds',
     domain: 'osint',
@@ -175,23 +147,6 @@ export const BULLMQ_QUEUES: Record<string, IQueueConfig> = {
       },
     },
   },
-
-  // Dead Letter Queue
-  DLQ: {
-    name: 'dlx.dlq',
-    domain: 'dlx',
-    jobType: 'ICharacterMessageBase',
-    options: {
-      name: 'dlx.dlq',
-      connection: REDIS_CONNECTION,
-      defaultJobOptions: {
-        ...DEFAULT_JOB_OPTIONS,
-        priority: 0,
-        removeOnComplete: 100,
-        removeOnFail: 50,
-      },
-    },
-  },
 };
 
 /**
@@ -220,7 +175,7 @@ export function getQueueConfig(queueName: string): IQueueConfig | undefined {
  * @example
  * ```typescript
  * const allQueues = getAllQueueNames();
- * // ['CHARACTERS', 'CHARACTERS_REQUESTS', 'CHARACTERS_RESPONSES', ...]
+ * // ['CHARACTERS', 'GUILDS', 'PROFILES', ...]
  * ```
  */
 export function getAllQueueNames(): string[] {
