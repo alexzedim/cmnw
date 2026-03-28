@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import chalk from 'chalk';
@@ -42,7 +42,7 @@ export class CharacterService implements OnModuleInit {
     private readonly battleNetService: BattleNetService,
   ) {}
 
-  async onModuleInit(): Promise<void> {
+  async onApplicationBootstrap(): Promise<void> {
     await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_OSINT);
   }
 
