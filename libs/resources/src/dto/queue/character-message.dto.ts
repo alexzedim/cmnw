@@ -574,27 +574,6 @@ export class CharacterMessageDto {
         });
       }
     }
-
-    // Warn about missing optional credentials (non-blocking)
-    // Skip warning for sources that intentionally omit credentials
-    const skipCredentialWarningTags = [
-      'CharacterMessageDto.fromWowProgressLfg',
-      'CharacterMessageDto.fromCharacterIndex',
-    ];
-    if (!strict && !skipCredentialWarningTags.includes(logTag)) {
-      const credentials = ['clientId', 'clientSecret', 'accessToken'];
-      const missingCredentials = credentials.filter(
-        (field) => !characterData?.[field] || characterData?.[field] === undefined,
-      );
-      if (missingCredentials.length > 0) {
-        CharacterMessageDto.characterLogger.warn({
-          logTag,
-          message: `Missing optional credentials: ${missingCredentials.join(', ')}`,
-          guid: characterData?.guid,
-          missingCredentials,
-        });
-      }
-    }
   }
 
   /**
