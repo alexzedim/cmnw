@@ -8,8 +8,6 @@ export const BATTLE_NET_KEY_TAG_BLIZZARD = 'blizzard';
 export const BATTLE_NET_KEY_TAG_WCL_V1 = 'v1';
 export const BATTLE_NET_KEY_TAG_WCL_V2 = 'v2';
 
-export const BATTLE_NET_API_VERSION = '2024-01-15';
-
 export const BATTLE_NET_BASE_URLS: Record<BattleNetRegion, string> = {
   [BattleNetRegion.EU]: 'https://eu.battle.net',
   [BattleNetRegion.US]: 'https://us.battle.net',

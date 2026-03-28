@@ -1,7 +1,7 @@
 import { InjectRepository } from '@nestjs/typeorm';
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
-import { KeysEntity, RealmsEntity } from '@app/pg';
+import { RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { chromium } from 'playwright-extra';
 import stealth from 'puppeteer-extra-plugin-stealth';
@@ -35,7 +35,6 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
   private readonly maxRetries = 3;
   private readonly retryDelay = 2; // 2 seconds
   private readonly requestDelay = 1; // 1 second between requests
-  private keyEntities: KeysEntity[];
   private guildJobsItx = 0;
 
   private stats = {
@@ -393,8 +392,6 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
       this.logger.log(
         chalk.cyan(`\n📊 Extracting guilds from ${chalk.bold(listWowProgressGzipFiles.length)} rank files...`),
       );
-
-      this.keyEntities = await this.battleNetService.getAllKeys([clearance]);
 
       for (const fileName of listWowProgressGzipFiles) {
         const realmName = extractRealmName(fileName);
