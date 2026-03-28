@@ -5,7 +5,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import chalk from 'chalk';
 import { difference, union } from 'lodash';
 import { In, Repository } from 'typeorm';
-import { CharactersProfileEntity, KeysEntity, RealmsEntity } from '@app/pg';
+import { CharactersProfileEntity, RealmsEntity } from '@app/pg';
 import { from, lastValueFrom } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
 import * as cheerio from 'cheerio';
@@ -182,7 +182,6 @@ export class WowProgressLfgService {
     characterGuid: string,
     charactersLfg: Map<string, ICharacterQueueWP>,
     realmsEntity: Map<string, RealmsEntity>,
-    keysEntity: KeysEntity[],
     lookingForGuild: LFG_STATUS,
   ): Promise<void> {
     try {
