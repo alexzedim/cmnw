@@ -73,9 +73,11 @@ export class RealmsWorker extends WorkerHost implements OnModuleInit {
 
       await job.updateProgress(10);
 
+      const config = await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_BLIZZARD);
       const response: Record<string, any> = await this.battleNetService.query(
         `/data/wow/realm/${message.slug}`,
         this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC, OSINT_TIMEOUT_TOLERANCE),
+        config,
       );
 
       await job.updateProgress(20);
@@ -101,6 +103,7 @@ export class RealmsWorker extends WorkerHost implements OnModuleInit {
         const realmLocale = await this.battleNetService.query<BlizzardApiResponse>(
           `/data/wow/realm/${message.slug}`,
           this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC, OSINT_TIMEOUT_TOLERANCE, true),
+          config,
         );
 
         await job.updateProgress(40);
@@ -132,6 +135,7 @@ export class RealmsWorker extends WorkerHost implements OnModuleInit {
         const connectedRealm = await this.battleNetService.query<IConnectedRealm>(
           `/data/wow/connected-realm/${connectedRealmId}`,
           this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC),
+          config,
         );
 
         realmEntity.connectedRealmId = get(connectedRealm, 'id', null);

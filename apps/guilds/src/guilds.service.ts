@@ -174,6 +174,7 @@ export class GuildsService implements OnApplicationBootstrap {
     const logTag = this.indexHallOfFame.name;
 
     try {
+      const config = await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_BLIZZARD);
       for (const raid of HALL_OF_FAME_RAIDS) {
         const isOnlyLast = onlyLast && raid !== HALL_OF_FAME_RAIDS[HALL_OF_FAME_RAIDS.length - 1];
 
@@ -189,6 +190,7 @@ export class GuildsService implements OnApplicationBootstrap {
               locale: 'en_GB',
               timeout: 50000,
             },
+            config,
           );
 
           const isEntries = isHallOfFame(response);
