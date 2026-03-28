@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { isAxiosError } from 'axios';
@@ -33,12 +33,12 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 
 @Injectable()
-export class GuildRosterService implements OnModuleInit {
+export class GuildRosterService implements OnApplicationBootstrap {
   private readonly logger = new Logger(GuildRosterService.name, {
     timestamp: true,
   });
 
-  async onModuleInit(): Promise<void> {
+  async onApplicationBootstrap(): Promise<void> {
     await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_OSINT);
   }
 
