@@ -3,7 +3,7 @@ import { dmaConfig } from '@app/configuration';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { DateTime } from 'luxon';
 import { InjectRepository } from '@nestjs/typeorm';
-import { KeysEntity, MarketEntity, RealmsEntity } from '@app/pg';
+import { MarketEntity, RealmsEntity } from '@app/pg';
 import { LessThan, Not, Repository } from 'typeorm';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import {
@@ -28,8 +28,6 @@ export class AuctionsService implements OnApplicationBootstrap {
   });
 
   constructor(
-    @InjectRepository(KeysEntity)
-    private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(MarketEntity)
@@ -135,8 +133,9 @@ export class AuctionsService implements OnApplicationBootstrap {
   async indexTokens(): Promise<void> {
     const logTag = this.indexTokens.name;
     try {
+      const config = await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_DMA);
       const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC, 60_000);
-      const response = await this.battleNetService.query<BlizzardApiWowToken>('/data/wow/token/index', options);
+      const response = await this.battleNetService.query<BlizzardApiWowToken>('/data/wow/token/index', options, config);
 
       const isWowTokenValid = isWowToken(response);
       if (!isWowTokenValid) {

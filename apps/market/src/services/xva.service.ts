@@ -7,7 +7,6 @@ import { CsvFileName, DISENCHANTING, MILLING, PROSPECTING } from '../libs';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
-  KeysEntity,
   PricingEntity,
   SkillLineEntity,
   SpellEffectEntity,
@@ -54,8 +53,6 @@ export class XvaService implements OnApplicationBootstrap {
   constructor(
     @InjectRedis()
     private readonly redisService: Redis,
-    @InjectRepository(KeysEntity)
-    private readonly keysRepository: Repository<KeysEntity>,
     @InjectRepository(PricingEntity)
     private readonly pricingRepository: Repository<PricingEntity>,
     @InjectRepository(SkillLineEntity)
@@ -289,10 +286,12 @@ export class XvaService implements OnApplicationBootstrap {
         message: 'Starting profession indexing from Blizzard API',
       });
 
+      const config = await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_DMA);
       const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.STATIC, 10_000);
       const professionIndexResponse = await this.battleNetService.query<IProfessionResponse>(
         '/data/wow/profession/index',
         options,
+        config,
       );
 
       if (!isBnetProfessionIndexResponse(professionIndexResponse)) {
@@ -311,6 +310,7 @@ export class XvaService implements OnApplicationBootstrap {
         const professionDetailResponse = await this.battleNetService.query<IProfessionDetailResponse>(
           `/data/wow/profession/${profession.id}`,
           professionDetailOptions,
+          config,
         );
 
         if (!isBnetProfessionDetailResponse(professionDetailResponse)) {
@@ -339,6 +339,7 @@ export class XvaService implements OnApplicationBootstrap {
           const skillTierDetailResponse = await this.battleNetService.query<ISkillTieryResponse>(
             `/data/wow/profession/${profession.id}/skill-tier/${tier.id}`,
             skillTierOptions,
+            config,
           );
 
           if (!isBnetSkillTierDetailResponse(skillTierDetailResponse)) {
@@ -1062,7 +1063,9 @@ export class XvaService implements OnApplicationBootstrap {
     // Batch update tags
     for (let i = 0; i < updates.length; i += BATCH_SIZE) {
       const chunk = updates.slice(i, i + BATCH_SIZE);
-      await Promise.all(chunk.map((update) => this.itemsRepository.update({ id: update.id }, { tags: update.tags })));
+      for (const update of chunk) {
+        await this.itemsRepository.update({ id: update.id }, { tags: update.tags });
+      }
     }
 
     await this.markStageAsProcessed('tags');
@@ -1103,7 +1106,9 @@ export class XvaService implements OnApplicationBootstrap {
     // Process in batches
     for (let i = 0; i < uniqueIds.length; i += BATCH_SIZE) {
       const chunk = uniqueIds.slice(i, i + BATCH_SIZE);
-      await Promise.all(chunk.map((itemId) => this.addAssetClassToItem(itemId, assetClass)));
+      for (const itemId of chunk) {
+        await this.addAssetClassToItem(itemId, assetClass);
+      }
     }
   }
 

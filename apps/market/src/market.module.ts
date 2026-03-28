@@ -17,7 +17,6 @@ import {
   ContractEntity,
   EvaluationEntity,
   ItemsEntity,
-  KeysEntity,
   MarketEntity,
   PricingEntity,
   RealmsEntity,
@@ -41,7 +40,6 @@ import { BullModule } from '@nestjs/bullmq';
     S3Module.forRoot(s3Config),
     TypeOrmModule.forRoot(postgresConfig),
     TypeOrmModule.forFeature([
-      KeysEntity,
       RealmsEntity,
       MarketEntity,
       ContractEntity,
