@@ -24,9 +24,8 @@ import {
   isWowProgressJson,
   extractRealmName,
   WowProgressJson,
-  getKeys,
 } from '@app/resources';
-import { BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
+import { BattleNetService, BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
 import { findRealm } from '@app/resources/dao/realms.dao';
 
 @Injectable()
@@ -56,8 +55,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
     @InjectRedis()
     private readonly redisService: Redis,
     private s3Service: S3Service,
-    @InjectRepository(KeysEntity)
-    private readonly keysRepository: Repository<KeysEntity>,
+    private readonly battleNetService: BattleNetService,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectQueue('osint.guilds')
@@ -396,7 +394,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
         chalk.cyan(`\n📊 Extracting guilds from ${chalk.bold(listWowProgressGzipFiles.length)} rank files...`),
       );
 
-      this.keyEntities = await getKeys(this.keysRepository, clearance);
+      this.keyEntities = await this.battleNetService.getAllKeys([clearance]);
 
       for (const fileName of listWowProgressGzipFiles) {
         const realmName = extractRealmName(fileName);

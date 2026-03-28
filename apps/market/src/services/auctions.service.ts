@@ -9,6 +9,7 @@ import { from, lastValueFrom, mergeMap } from 'rxjs';
 import {
   AuctionMessageDto,
   auctionsQueue,
+  BlizzardApiWowToken,
   IAuctionMessageBase,
   isWowToken,
   MARKET_TYPE,
@@ -16,13 +17,12 @@ import {
   toGold,
   WOW_TOKEN_ITEM_ID,
 } from '@app/resources';
-import { BlizzardApiService } from '@app/resources/services';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { BattleNetApiNamespace, BattleNetService, BATTLE_NET_KEY_TAG_DMA } from '@app/battle-net';
 
 @Injectable()
 export class AuctionsService implements OnApplicationBootstrap {
-  // TODO: Replace with new Blizzard API client implementation
   private readonly logger = new Logger(AuctionsService.name, {
     timestamp: true,
   });
@@ -36,10 +36,11 @@ export class AuctionsService implements OnApplicationBootstrap {
     private readonly marketRepository: Repository<MarketEntity>,
     @InjectQueue(auctionsQueue.name)
     private readonly queue: Queue<IAuctionMessageBase>,
-    private readonly blizzardApiService: BlizzardApiService,
+    private readonly battleNetService: BattleNetService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
+    await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_DMA);
     await this.indexAuctions();
     await this.indexCommodity();
   }
@@ -134,22 +135,8 @@ export class AuctionsService implements OnApplicationBootstrap {
   async indexTokens(): Promise<void> {
     const logTag = this.indexTokens.name;
     try {
-      // TODO: Reimplement with new Blizzard API client pattern
-      this.logger.debug({
-        logTag,
-        message: 'TODO: Blizzard API call skipped - reimplement with new client',
-      });
-      /* this.BNet = this.blizzardApiService.createClient({
-        clientId: key.client,
-        clientSecret: key.secret,
-        accessToken: key.token,
-        region: 'eu',
-      });
-
-      const response = await this.BNet.query<BlizzardApiWowToken>(
-        '/data/wow/token/index',
-        apiConstParams(API_HEADERS_ENUM.DYNAMIC, TOLERANCE_ENUM.DMA, false),
-      ); */
+      const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC, 60_000);
+      const response = await this.battleNetService.query<BlizzardApiWowToken>('/data/wow/token/index', options);
 
       const isWowTokenValid = isWowToken(response);
       if (!isWowTokenValid) {

@@ -9,7 +9,6 @@ import { RedisModule } from '@nestjs-modules/ioredis';
 import { KeysService, RealmsWorker, RealmsService } from './services';
 import { S3Module } from '@app/s3';
 import { KeysEntity, RealmsEntity } from '@app/pg';
-import { BlizzardApiService } from '@app/resources/services';
 import { realmsQueue } from '@app/resources';
 
 @Module({
@@ -36,6 +35,6 @@ import { realmsQueue } from '@app/resources';
     }),
   ],
   controllers: [],
-  providers: [BlizzardApiService, KeysService, RealmsService, RealmsWorker],
+  providers: [KeysService, RealmsService, RealmsWorker],
 })
 export class CoreModule {}
