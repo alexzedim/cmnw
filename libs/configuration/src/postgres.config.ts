@@ -59,6 +59,12 @@ export const postgresConfig: TypeOrmModuleOptions = {
     SpellReagentsEntity,
   ],
   synchronize: true,
+  poolSize: 25,
+  extra: {
+    max: 25,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+  },
   namingStrategy: new SnakeNamingStrategy(),
   ssl:
     process.env.POSTGRES_SSL === 'true'
