@@ -124,21 +124,5 @@ export class ProfileMessageDto {
         });
       }
     }
-
-    // Warn about missing optional credentials (non-blocking)
-    if (!strict) {
-      const credentials = ['clientId', 'clientSecret', 'accessToken'];
-      const missingCredentials = credentials.filter(
-        (field) => !profileData?.[field] || profileData?.[field] === undefined,
-      );
-      if (missingCredentials.length > 0) {
-        ProfileMessageDto.profileLogger.warn({
-          logTag: logTag || 'ProfileMessageDto.validate',
-          message: `Missing optional credentials: ${missingCredentials.join(', ')}`,
-          name: profileData?.name,
-          missingCredentials,
-        });
-      }
-    }
   }
 }
