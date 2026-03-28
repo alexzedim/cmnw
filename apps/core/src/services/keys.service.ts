@@ -52,7 +52,13 @@ export class KeysService implements OnApplicationBootstrap {
               clientId: key.client,
             });
             if (!keyEntity) {
-              keyEntity = this.keysRepository.create(key);
+              keyEntity = this.keysRepository.create({
+                clientId: key.client,
+                clientSecret: key.secret,
+                accessToken: key.token,
+                expiredIn: key.expiredIn,
+                tags: key.tags,
+              });
               await this.keysRepository.save(keyEntity);
             }
           }, 5),
