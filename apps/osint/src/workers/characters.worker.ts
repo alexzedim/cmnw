@@ -1,9 +1,9 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { isAxiosError } from 'axios';
 
-import { BattleNetService, BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
+import { BattleNetService, BATTLE_NET_KEY_TAG_OSINT, IBattleNetClientConfig } from '@app/battle-net';
 import {
   BlizzardApiCharacterProfessions,
   BlizzardApiMountsCollection,
@@ -30,7 +30,7 @@ import { CharacterService, CharacterLifecycleService, CharacterCollectionService
 
 @Injectable()
 @Processor(charactersQueue.name, charactersQueue.workerOptions)
-export class CharactersWorker extends WorkerHost implements OnApplicationBootstrap {
+export class CharactersWorker extends WorkerHost {
   private readonly logger = new Logger(CharactersWorker.name, {
     timestamp: true,
   });
@@ -52,10 +52,6 @@ export class CharactersWorker extends WorkerHost implements OnApplicationBootstr
     private readonly battleNetService: BattleNetService,
   ) {
     super();
-  }
-
-  async onApplicationBootstrap(): Promise<void> {
-    await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_OSINT);
   }
 
   public async process(job: Job<ICharacterMessageBase>): Promise<void> {
@@ -83,16 +79,18 @@ export class CharactersWorker extends WorkerHost implements OnApplicationBootstr
         return;
       }
 
+      const config = await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_OSINT);
+
       const nameSlug = toSlug(characterEntity.name);
       this.characterService.inheritSafeValuesFromArgs(characterEntity, message);
 
-      const status = await this.characterService.getStatus(nameSlug, characterEntity.realm);
+      const status = await this.characterService.getStatus(nameSlug, characterEntity.realm, config);
 
       const isValidCharacter = status?.isValid;
       if (status) Object.assign(characterEntity, status);
 
       if (isValidCharacter) {
-        await this.fetchAndUpdateCharacterData(characterEntity, nameSlug);
+        await this.fetchAndUpdateCharacterData(characterEntity, nameSlug, config);
       }
 
       if (!isNew) {
@@ -116,15 +114,19 @@ export class CharactersWorker extends WorkerHost implements OnApplicationBootstr
     }
   }
 
-  private async fetchAndUpdateCharacterData(characterEntity: CharactersEntity, nameSlug: string): Promise<void> {
+  private async fetchAndUpdateCharacterData(
+    characterEntity: CharactersEntity,
+    nameSlug: string,
+    config: IBattleNetClientConfig,
+  ): Promise<void> {
     const realmSlug = characterEntity.realm;
 
     const [summaryResult, petsResult, mountsResult, mediaResult, professionsResult] = await Promise.allSettled([
-      this.characterService.getSummary(nameSlug, realmSlug),
-      this.characterService.getPetsCollection(nameSlug, realmSlug),
-      this.characterService.getMountsCollection(nameSlug, realmSlug),
-      this.characterService.getMedia(nameSlug, realmSlug),
-      this.characterService.getProfessions(nameSlug, realmSlug),
+      this.characterService.getSummary(nameSlug, realmSlug, config),
+      this.characterService.getPetsCollection(nameSlug, realmSlug, config),
+      this.characterService.getMountsCollection(nameSlug, realmSlug, config),
+      this.characterService.getMedia(nameSlug, realmSlug, config),
+      this.characterService.getProfessions(nameSlug, realmSlug, config),
     ]);
 
     let status = characterEntity.status || '------';

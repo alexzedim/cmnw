@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { isAxiosError } from 'axios';
 import * as changeCase from 'change-case';
 import { get } from 'lodash';
@@ -12,25 +12,26 @@ import {
   setGuildStatusString,
 } from '@app/resources';
 import { GUILD_SUMMARY_KEYS } from '@app/resources';
-import { BattleNetService, BattleNetNamespace, BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
+import { BattleNetService, BattleNetNamespace, IBattleNetClientConfig } from '@app/battle-net';
 
 @Injectable()
-export class GuildSummaryService implements OnApplicationBootstrap {
+export class GuildSummaryService {
   private readonly logger = new Logger(GuildSummaryService.name, {
     timestamp: true,
   });
 
   constructor(private readonly battleNetService: BattleNetService) {}
 
-  async onApplicationBootstrap(): Promise<void> {
-    await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_OSINT);
-  }
-
-  async getSummary(guildNameSlug: string, realmSlug: string): Promise<Partial<IGuildSummary>> {
+  async getSummary(
+    guildNameSlug: string,
+    realmSlug: string,
+    config?: IBattleNetClientConfig,
+  ): Promise<Partial<IGuildSummary>> {
     try {
       const response = await this.battleNetService.query<BlizzardApiGuildSummary>(
         `/data/wow/guild/${realmSlug}/${guildNameSlug}`,
         { namespace: BattleNetNamespace.DYNAMIC, locale: 'en_GB' },
+        config,
       );
 
       if (!isGuildSummary(response)) {

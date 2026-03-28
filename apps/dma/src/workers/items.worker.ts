@@ -1,8 +1,8 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { BattleNetService, BattleNetNamespace, BATTLE_NET_KEY_TAG_DMA } from '@app/battle-net';
+import { BattleNetService, BattleNetNamespace, BATTLE_NET_KEY_TAG_DMA, IBattleNetClientConfig } from '@app/battle-net';
 
 import {
   BlizzardApiItem,
@@ -36,7 +36,7 @@ import { get } from 'lodash';
 
 @Injectable()
 @Processor(itemsQueue)
-export class ItemsWorker extends WorkerHost implements OnModuleInit {
+export class ItemsWorker extends WorkerHost {
   private readonly logger = new Logger(ItemsWorker.name, {
     timestamp: true,
   });
@@ -57,17 +57,14 @@ export class ItemsWorker extends WorkerHost implements OnModuleInit {
     super();
   }
 
-  async onModuleInit(): Promise<void> {
-    await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_DMA);
-  }
-
   public async process(message: Job<IItemMessageBase>): Promise<void> {
     const startTime = Date.now();
     this.stats.total++;
 
     try {
       const { itemId } = message.data;
-      const results = await this.fetchData(itemId);
+      const config = await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_DMA);
+      const results = await this.fetchData(itemId, config);
 
       const [itemResult, mediaResult] = results;
 
@@ -145,31 +142,40 @@ export class ItemsWorker extends WorkerHost implements OnModuleInit {
 
   private async fetchData(
     itemId: number,
+    config: IBattleNetClientConfig,
   ): Promise<[PromiseSettledResult<BlizzardApiItem>, PromiseSettledResult<BlizzardApiItemMedia>]> {
-    const itemPromise = this.queryItem(itemId);
-    const mediaPromise = this.queryMedia(itemId);
+    const itemPromise = this.queryItem(itemId, config);
+    const mediaPromise = this.queryMedia(itemId, config);
 
     return Promise.allSettled([itemPromise, mediaPromise]);
   }
 
-  private async queryItem(itemId: number): Promise<BlizzardApiItem | null> {
+  private async queryItem(itemId: number, config: IBattleNetClientConfig): Promise<BlizzardApiItem | null> {
     try {
-      return await this.battleNetService.query<BlizzardApiItem>(`/data/wow/item/${itemId}`, {
-        namespace: BattleNetNamespace.STATIC,
-        timeout: 60_000,
-        locale: undefined,
-      });
+      return await this.battleNetService.query<BlizzardApiItem>(
+        `/data/wow/item/${itemId}`,
+        {
+          namespace: BattleNetNamespace.STATIC,
+          timeout: 60_000,
+          locale: undefined,
+        },
+        config,
+      );
     } catch {
       return null;
     }
   }
 
-  private async queryMedia(itemId: number): Promise<BlizzardApiItemMedia | null> {
+  private async queryMedia(itemId: number, config: IBattleNetClientConfig): Promise<BlizzardApiItemMedia | null> {
     try {
-      return await this.battleNetService.query<BlizzardApiItemMedia>(`/data/wow/media/item/${itemId}`, {
-        namespace: BattleNetNamespace.STATIC,
-        timeout: 60_000,
-      });
+      return await this.battleNetService.query<BlizzardApiItemMedia>(
+        `/data/wow/media/item/${itemId}`,
+        {
+          namespace: BattleNetNamespace.STATIC,
+          timeout: 60_000,
+        },
+        config,
+      );
     } catch {
       return null;
     }

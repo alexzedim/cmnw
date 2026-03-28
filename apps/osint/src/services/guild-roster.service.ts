@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
 import { isAxiosError } from 'axios';
@@ -28,19 +28,15 @@ import {
   ICharacterMessageBase,
 } from '@app/resources';
 import { CharactersEntity, GuildsEntity, RealmsEntity } from '@app/pg';
-import { BattleNetService, BattleNetNamespace, BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
+import { BattleNetService, BattleNetNamespace, IBattleNetClientConfig } from '@app/battle-net';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 
 @Injectable()
-export class GuildRosterService implements OnApplicationBootstrap {
+export class GuildRosterService {
   private readonly logger = new Logger(GuildRosterService.name, {
     timestamp: true,
   });
-
-  async onApplicationBootstrap(): Promise<void> {
-    await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_OSINT);
-  }
 
   constructor(
     private readonly battleNetService: BattleNetService,
@@ -52,7 +48,7 @@ export class GuildRosterService implements OnApplicationBootstrap {
     private readonly charactersRepository: Repository<CharactersEntity>,
   ) {}
 
-  async fetchRoster(guildEntity: GuildsEntity): Promise<IGuildRoster> {
+  async fetchRoster(guildEntity: GuildsEntity, config?: IBattleNetClientConfig): Promise<IGuildRoster> {
     const roster: IGuildRoster = { members: [] };
 
     try {
@@ -60,6 +56,7 @@ export class GuildRosterService implements OnApplicationBootstrap {
       const response = await this.battleNetService.query<IRGuildRoster>(
         `/data/wow/guild/${guildEntity.realm}/${guildNameSlug}/roster`,
         { namespace: BattleNetNamespace.DYNAMIC, locale: 'en_GB' },
+        config,
       );
 
       if (!isGuildRoster(response)) {

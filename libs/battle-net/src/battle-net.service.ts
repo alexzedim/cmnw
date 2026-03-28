@@ -30,19 +30,42 @@ export class BattleNetService {
     this.keyHealth = battleNetConfig;
   }
 
-  async initialize(tag?: string): Promise<void> {
-    const key = await this.getAvailableKey(tag);
-    if (!key) {
-      throw new Error(`No available Battle.net key found${tag ? ` for tag '${tag}'` : ''}`);
+  async initialize(tag?: string): Promise<IBattleNetClientConfig> {
+    const maxAttempts = 10;
+    let attempt = 0;
+    let lastError: Error | null = null;
+
+    while (attempt < maxAttempts) {
+      attempt++;
+      const key = await this.getAvailableKey(tag);
+
+      if (key) {
+        this._currentKeyUuid = key.uuid;
+        this._config = {
+          clientId: key.clientId,
+          clientSecret: key.clientSecret,
+          accessToken: key.accessToken,
+          region: BattleNetRegion.EU,
+        };
+        return this._config;
+      }
+
+      if (attempt >= maxAttempts) {
+        break;
+      }
+
+      const delayMs = Math.min(
+        this.keyHealth.baseDelay * Math.pow(this.keyHealth.multiplier, attempt - 1),
+        this.keyHealth.maxDelay * 1000,
+      );
+      lastError = new Error(
+        `No available Battle.net key found${tag ? ` for tag '${tag}'` : ''} after ${attempt} attempts`,
+      );
+      this.logger.warn(`${lastError.message} | retrying in ${delayMs}ms`);
+      await this.delay(delayMs);
     }
 
-    this._currentKeyUuid = key.uuid;
-    this._config = {
-      clientId: key.clientId,
-      clientSecret: key.clientSecret,
-      accessToken: key.accessToken,
-      region: BattleNetRegion.EU,
-    };
+    throw lastError || new Error(`No available Battle.net key found${tag ? ` for tag '${tag}'` : ''}`);
   }
 
   async getKeyCooldownMs(keyUuid: string): Promise<number> {

@@ -1,9 +1,9 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { isAxiosError } from 'axios';
 
-import { BattleNetService, BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
+import { BattleNetService, BATTLE_NET_KEY_TAG_OSINT, IBattleNetClientConfig } from '@app/battle-net';
 import {
   formatWorkerLog,
   formatWorkerErrorLog,
@@ -38,7 +38,7 @@ const PROGRESS_LOG_INTERVAL = 50;
 
 @Injectable()
 @Processor(guildsQueue)
-export class GuildsWorker extends WorkerHost implements OnApplicationBootstrap {
+export class GuildsWorker extends WorkerHost {
   private readonly logger = new Logger(GuildsWorker.name, { timestamp: true });
 
   private stats = {
@@ -61,10 +61,6 @@ export class GuildsWorker extends WorkerHost implements OnApplicationBootstrap {
     private readonly battleNetService: BattleNetService,
   ) {
     super();
-  }
-
-  async onApplicationBootstrap(): Promise<void> {
-    await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_OSINT);
   }
 
   async process(job: Job<IGuildMessageBase>): Promise<void> {
@@ -100,7 +96,9 @@ export class GuildsWorker extends WorkerHost implements OnApplicationBootstrap {
         guildEntity.updatedBy = message.updatedBy;
       }
 
-      const guildData = await this.fetchGuildData(nameSlug, guildEntity);
+      const config = await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_OSINT);
+
+      const guildData = await this.fetchGuildData(nameSlug, guildEntity, config);
 
       Object.assign(guildEntity, guildData.summaryResult);
 
@@ -182,13 +180,14 @@ export class GuildsWorker extends WorkerHost implements OnApplicationBootstrap {
   private async fetchGuildData(
     nameSlug: string,
     guildEntity: GuildsEntity,
+    config: IBattleNetClientConfig,
   ): Promise<{
     summaryResult: Partial<IGuildSummary>;
     rosterResult: IGuildRoster;
   }> {
     const [summaryResult, rosterResult] = await Promise.allSettled([
-      this.guildSummaryService.getSummary(nameSlug, guildEntity.realm),
-      this.guildRosterService.fetchRoster(guildEntity),
+      this.guildSummaryService.getSummary(nameSlug, guildEntity.realm, config),
+      this.guildRosterService.fetchRoster(guildEntity, config),
     ]);
 
     return {
