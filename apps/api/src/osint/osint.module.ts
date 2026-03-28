@@ -21,9 +21,11 @@ import {
 import { CharacterOsintService, GuildOsintService, RealmOsintService } from './services';
 import { charactersQueue, guildsQueue } from '@app/resources';
 import { BullModule } from '@nestjs/bullmq';
+import { BattleNetModule } from '@app/battle-net';
 
 @Module({
   imports: [
+    BattleNetModule,
     TypeOrmModule.forRoot(postgresConfig),
     TypeOrmModule.forFeature([
       AnalyticsEntity,

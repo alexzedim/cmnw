@@ -12,7 +12,6 @@ import * as cheerio from 'cheerio';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
-  getKeys,
   getRandomElement,
   ICharacterQueueWP,
   LFG_STATUS,
@@ -24,7 +23,7 @@ import {
   IProfileMessageBase,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
-import { BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
+import { BattleNetService, BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
 
 @Injectable()
 export class WowProgressLfgService {
@@ -42,8 +41,7 @@ export class WowProgressLfgService {
 
   constructor(
     private httpService: HttpService,
-    @InjectRepository(KeysEntity)
-    private readonly keysRepository: Repository<KeysEntity>,
+    private readonly battleNetService: BattleNetService,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(CharactersProfileEntity)
@@ -99,7 +97,7 @@ export class WowProgressLfgService {
         chalk.dim(`Revoked status: NOW ${nowUpdatedResult.affected} | NEW ${newUpdatedResult.affected}`),
       );
 
-      const keysEntity = await getKeys(this.keysRepository, clearance);
+      const keysEntity = await this.battleNetService.getAllKeys([clearance]);
       const [firstPageUrl, secondPageUrl] = OSINT_LFG_WOW_PROGRESS;
 
       const [firstPage, secondPage] = await Promise.all([

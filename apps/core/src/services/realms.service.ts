@@ -8,8 +8,7 @@ import { Queue } from 'bullmq';
 import { KeysEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { lastValueFrom, mergeMap, range } from 'rxjs';
-import { BlizzardApiService } from '@app/resources/services';
-import { BattleNetService } from '@app/battle-net';
+import { BattleNetApiNamespace, BattleNetService } from '@app/battle-net';
 import {
   getRandomizedHeaders,
   delay,
@@ -17,6 +16,7 @@ import {
   REALM_ENTITY_ANY,
   realmsQueue,
   IRealmMessageBase,
+  RealmMessageDto,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
 import { LoggerService } from '@app/logger';
@@ -24,8 +24,6 @@ import { LoggerService } from '@app/logger';
 @Injectable()
 export class RealmsService implements OnApplicationBootstrap {
   private readonly logger = new LoggerService(RealmsService.name);
-
-  // TODO: Replace with new Blizzard API client implementation
 
   constructor(
     private httpService: HttpService,
@@ -35,13 +33,13 @@ export class RealmsService implements OnApplicationBootstrap {
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectQueue(realmsQueue.name)
     private readonly realmsQueue: Queue<IRealmMessageBase>,
-    private readonly blizzardApiService: BlizzardApiService,
     private readonly battleNetService: BattleNetService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
+    await this.battleNetService.initialize(GLOBAL_KEY);
     await this.init();
-    await this.indexRealms(GLOBAL_KEY);
+    await this.indexRealms();
     await this.getRealmsWarcraftLogsId();
   }
 
@@ -54,52 +52,35 @@ export class RealmsService implements OnApplicationBootstrap {
   }
 
   @Cron(CronExpression.EVERY_WEEK)
-  async indexRealms(clearance: string = GLOBAL_KEY): Promise<void> {
+  async indexRealms(): Promise<void> {
     const logTag = this.indexRealms.name;
     try {
-      const keyEntity = await this.battleNetService.getAvailableKey(clearance);
-
       await this.realmsQueue.drain(true);
 
-      // TODO: Replace with new Blizzard API client implementation
-      // this.BNet = this.blizzardApiService.createClient({
-      //   clientId: keyEntity.clientId,
-      //   clientSecret: keyEntity.clientSecret,
-      //   accessToken: keyEntity.accessToken,
-      //   region: 'eu',
-      // });
+      const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC, 60_000);
+      const { realms: realmList } = await this.battleNetService.query<{
+        realms: Array<{ id: number; name: string; slug: string }>;
+      }>('/data/wow/realm/index', options);
 
-      // TODO: Replace with new Blizzard API client implementation
-      // const { realms: realmList }: Record<string, any> = await this.BNet.query(
-      //   '/data/wow/realm/index',
-      //   apiConstParams(API_HEADERS_ENUM.DYNAMIC, OSINT_TIMEOUT_TOLERANCE),
-      // );
+      for (const { id, name, slug } of realmList) {
+        this.logger.log({
+          logTag,
+          realmId: id,
+          realmName: name,
+          message: `Processing realm: ${id}:${name}`,
+        });
 
-      this.logger.debug({ logTag, message: 'TODO: Blizzard API call skipped - reimplement with new client' });
+        const dto = RealmMessageDto.create({
+          id: id,
+          name: name,
+          slug: slug,
+          region: 'eu',
+        });
 
-      // TODO: Replace with new Blizzard API client implementation
-      // for (const { id, name, slug } of realmList) {
-      //   this.logger.log({
-      //     logTag,
-      //     realmId: id,
-      //     realmName: name,
-      //     message: `Processing realm: ${id}:${name}`,
-      //   });
-
-      //   const dto = RealmMessageDto.create({
-      //     id: id,
-      //     name: name,
-      //     slug: slug,
-      //     region: 'eu',
-      //     clientId: keyEntity.clientId,
-      //     clientSecret: keyEntity.clientSecret,
-      //     accessToken: keyEntity.accessToken,
-      //   });
-
-      //   await this.realmsQueue.add(dto.name, dto.data, {
-      //     priority: 5,
-      //   });
-      // }
+        await this.realmsQueue.add(dto.name, dto.data, {
+          priority: 5,
+        });
+      }
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });
     }

@@ -9,7 +9,6 @@ import {
   ItemsService,
 } from './services';
 
-import { BlizzardApiService } from '@app/resources/services';
 import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { RedisModule } from '@nestjs-modules/ioredis';
@@ -75,7 +74,6 @@ import { BullModule } from '@nestjs/bullmq';
   ],
   controllers: [],
   providers: [
-    BlizzardApiService,
     RealmsCacheService,
     AuctionsService,
     GoldService,

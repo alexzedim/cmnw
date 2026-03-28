@@ -6,7 +6,6 @@ import { GuildsService } from './guilds.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CharactersEntity, GuildsEntity, KeysEntity } from '@app/pg';
-import { BlizzardApiService } from '@app/resources/services';
 import { guildsQueue } from '@app/resources';
 import { BattleNetModule } from '@app/battle-net';
 
@@ -34,6 +33,6 @@ import { BattleNetModule } from '@app/battle-net';
     BattleNetModule,
   ],
   controllers: [],
-  providers: [BlizzardApiService, BattleNetModule, GuildsService],
+  providers: [BattleNetModule, GuildsService],
 })
 export class GuildsModule {}

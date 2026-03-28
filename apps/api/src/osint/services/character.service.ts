@@ -34,6 +34,7 @@ import { CharacterResponseDto } from '@app/resources/dto/character/character-res
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, QueueEvents } from 'bullmq';
 import { REDIS_CONNECTION } from '@app/configuration';
+import { BattleNetService } from '@app/battle-net';
 
 @Injectable()
 export class CharacterOsintService {
@@ -57,6 +58,7 @@ export class CharacterOsintService {
     private readonly logsRepository: Repository<CharactersGuildsLogsEntity>,
     @InjectQueue(charactersQueue.name)
     private readonly queueCharacter: Queue<ICharacterMessageBase>,
+    private readonly battleNetService: BattleNetService,
   ) {}
 
   private async requestCharacterFromQueue(params: {

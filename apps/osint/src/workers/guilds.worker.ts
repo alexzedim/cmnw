@@ -25,6 +25,7 @@ import {
   GuildService,
   GuildSummaryService,
   GuildRosterService,
+  GuildMemberService,
   GuildLogService,
   GuildMasterService,
 } from '../services';
@@ -50,7 +51,7 @@ export class GuildsWorker extends WorkerHost {
     private readonly guildService: GuildService,
     private readonly guildSummaryService: GuildSummaryService,
     private readonly guildRosterService: GuildRosterService,
-    private readonly guildMemberService: any,
+    private readonly guildMemberService: GuildMemberService,
     private readonly guildLogService: GuildLogService,
     private readonly guildMasterService: GuildMasterService,
   ) {
@@ -100,7 +101,7 @@ export class GuildsWorker extends WorkerHost {
       const logStatusResult = isNew
         ? this.getLogStatusForNewGuild(guildSnapshot, guildEntity)
         : this.guildLogService.detectAndLogChanges(guildSnapshot, guildEntity);
-      
+
       const masterStatusResult = this.guildMasterService.detectAndLogGuildMasterChange(
         guildSnapshot,
         guildData.rosterResult,

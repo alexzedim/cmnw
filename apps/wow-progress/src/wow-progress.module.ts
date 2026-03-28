@@ -9,10 +9,12 @@ import { S3Module } from '@app/s3';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { guildsQueue, charactersQueue, profileQueue } from '@app/resources';
 import { BullModule } from '@nestjs/bullmq';
+import { BattleNetModule } from '@app/battle-net';
 
 @Module({
   imports: [
     HttpModule,
+    BattleNetModule,
     ScheduleModule.forRoot(),
     S3Module.forRoot(s3Config),
     RedisModule.forRoot({
