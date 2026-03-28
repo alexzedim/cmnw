@@ -22,7 +22,6 @@ export class KeysEntity {
 
   @Column({
     type: 'varchar',
-    name: 'token',
     nullable: true,
     default: null,
   })

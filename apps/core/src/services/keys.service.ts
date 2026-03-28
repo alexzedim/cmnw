@@ -51,6 +51,7 @@ export class KeysService implements OnApplicationBootstrap {
             let keyEntity = await this.keysRepository.findOneBy({
               clientId: key.client,
             });
+            
             if (!keyEntity) {
               keyEntity = this.keysRepository.create({
                 clientId: key.client,
