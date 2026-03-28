@@ -1,5 +1,5 @@
 import Redis from 'ioredis';
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 
 import { bufferCount, concatMap } from 'rxjs/operators';
@@ -9,7 +9,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ItemsEntity, MarketEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
-import { BattleNetService, BattleNetNamespace, BATTLE_NET_KEY_TAG_DMA } from '@app/battle-net';
+import { BattleNetService, BattleNetNamespace, BATTLE_NET_KEY_TAG_DMA, IBattleNetClientConfig } from '@app/battle-net';
 import {
   auctionsQueue,
   BlizzardApiAuctions,
@@ -40,7 +40,7 @@ import { Job } from 'bullmq';
 
 @Injectable()
 @Processor(auctionsQueue)
-export class AuctionsWorker extends WorkerHost implements OnModuleInit {
+export class AuctionsWorker extends WorkerHost {
   private readonly logger = new Logger(AuctionsWorker.name, {
     timestamp: true,
   });
@@ -74,10 +74,6 @@ export class AuctionsWorker extends WorkerHost implements OnModuleInit {
     super();
   }
 
-  async onModuleInit(): Promise<void> {
-    await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_DMA);
-  }
-
   async process(job: Job<IAuctionMessageBase>): Promise<void> {
     const startTime = Date.now();
     this.stats.total++;
@@ -106,16 +102,22 @@ export class AuctionsWorker extends WorkerHost implements OnModuleInit {
         throw new Error(`Missing ${isCommodity ? 'commoditiesTimestamp' : 'auctionsTimestamp'} in message`);
       }
 
+      const config = await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_DMA);
+
       const ifModifiedSince = DateTime.fromMillis(previousTimestamp).toHTTP();
       const getMarketApiEndpoint = isCommodity
         ? '/data/wow/auctions/commodities'
         : `/data/wow/connected-realm/${message.connectedRealmId}/auctions`;
 
-      const marketResponse = await this.battleNetService.query<BlizzardApiAuctions>(getMarketApiEndpoint, {
-        namespace: BattleNetNamespace.DYNAMIC,
-        timeout: 60_000,
-        headers: { 'If-Modified-Since': ifModifiedSince },
-      });
+      const marketResponse = await this.battleNetService.query<BlizzardApiAuctions>(
+        getMarketApiEndpoint,
+        {
+          namespace: BattleNetNamespace.DYNAMIC,
+          timeout: 60_000,
+          headers: { 'If-Modified-Since': ifModifiedSince },
+        },
+        config,
+      );
 
       const isAuctionsValid = isAuctions(marketResponse);
       if (!isAuctionsValid) {
