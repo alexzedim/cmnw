@@ -12,7 +12,6 @@ import * as cheerio from 'cheerio';
 import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
 import {
-  getRandomElement,
   ICharacterQueueWP,
   LFG_STATUS,
   OSINT_LFG_WOW_PROGRESS,
@@ -201,8 +200,6 @@ export class WowProgressLfgService {
       }
 
       if (!isRealmInStore) realmsEntity.set(characterQueue.realm, realmEntity);
-
-      const key = getRandomElement(keysEntity);
 
       const characterMessageDto = CharacterMessageDto.fromWowProgressLfg({
         name: characterQueue.name,

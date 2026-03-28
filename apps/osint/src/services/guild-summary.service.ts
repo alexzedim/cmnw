@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { isAxiosError } from 'axios';
 import * as changeCase from 'change-case';
 import { get } from 'lodash';
@@ -15,14 +15,14 @@ import { GUILD_SUMMARY_KEYS } from '@app/resources';
 import { BattleNetService, BattleNetNamespace, BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
 
 @Injectable()
-export class GuildSummaryService implements OnModuleInit {
+export class GuildSummaryService implements OnApplicationBootstrap {
   private readonly logger = new Logger(GuildSummaryService.name, {
     timestamp: true,
   });
 
   constructor(private readonly battleNetService: BattleNetService) {}
 
-  async onModuleInit(): Promise<void> {
+  async onApplicationBootstrap(): Promise<void> {
     await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_OSINT);
   }
 
