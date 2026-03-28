@@ -96,7 +96,6 @@ export class WowProgressLfgService {
         chalk.dim(`Revoked status: NOW ${nowUpdatedResult.affected} | NEW ${newUpdatedResult.affected}`),
       );
 
-      const keysEntity = await this.battleNetService.getAllKeys([clearance]);
       const [firstPageUrl, secondPageUrl] = OSINT_LFG_WOW_PROGRESS;
 
       const [firstPage, secondPage] = await Promise.all([
@@ -159,13 +158,7 @@ export class WowProgressLfgService {
       await lastValueFrom(
         from(charactersDiffNew).pipe(
           mergeMap(async (characterGuid) =>
-            this.pushCharacterAndProfileToQueue(
-              characterGuid,
-              charactersLfg,
-              realmsEntity,
-              keysEntity,
-              lookingForGuild,
-            ),
+            this.pushCharacterAndProfileToQueue(characterGuid, charactersLfg, realmsEntity, lookingForGuild),
           ),
         ),
       );

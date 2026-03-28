@@ -27,6 +27,7 @@ import {
   ValuationEntity,
 } from '@app/pg';
 import { HttpModule } from '@nestjs/axios';
+import { BattleNetModule } from '@app/battle-net';
 import { S3Module } from '@app/s3';
 import { s3Config } from '@app/configuration';
 import { auctionsQueue, itemsQueue } from '@app/resources';
@@ -35,6 +36,7 @@ import { BullModule } from '@nestjs/bullmq';
 @Module({
   imports: [
     HttpModule,
+    BattleNetModule,
     ScheduleModule.forRoot(),
     S3Module.forRoot(s3Config),
     TypeOrmModule.forRoot(postgresConfig),

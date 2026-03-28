@@ -113,15 +113,6 @@
         "tsConfigPath": "apps/market/tsconfig.app.json"
       }
     },
-    "mongo": {
-      "type": "library",
-      "root": "libs/mongo",
-      "entryFile": "index",
-      "sourceRoot": "libs/mongo/src",
-      "compilerOptions": {
-        "tsConfigPath": "libs/mongo/tsconfig.lib.json"
-      }
-    },
     "osint": {
       "type": "application",
       "root": "apps/osint",
