@@ -366,20 +366,6 @@ export class GuildMessageDto {
         providedRegion: guildData.region,
       });
     }
-
-    // Warn about missing optional credentials (non-blocking)
-    if (!strict) {
-      const credentials = ['clientId', 'clientSecret', 'accessToken'];
-      const missingCredentials = credentials.filter((field) => !guildData?.[field] || guildData?.[field] === undefined);
-      if (missingCredentials.length > 0) {
-        GuildMessageDto.guildLogger.warn({
-          logTag,
-          message: `Missing optional credentials: ${missingCredentials.join(', ')}`,
-          guid: guildData?.guid,
-          missingCredentials,
-        });
-      }
-    }
   }
 
   /**
