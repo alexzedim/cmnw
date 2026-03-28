@@ -11,4 +11,3 @@ export * from './swagger';
 // Import directly from '@app/resources/services' if needed
 export * from './transformers';
 export * from './enums';
-export * from './errors';
