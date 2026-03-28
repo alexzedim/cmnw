@@ -1,6 +1,6 @@
 export enum BattleNetNamespace {
-  PROFILE = 'profile',
-  DYNAMIC = 'dynamic',
-  STATIC = 'static',
+  PROFILE = 'profile-eu',
+  DYNAMIC = 'dynamic-eu',
+  STATIC = 'static-eu',
   COMMUNITY = 'community',
 }

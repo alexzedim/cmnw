@@ -9,10 +9,10 @@ export const BATTLE_NET_KEY_TAG_WCL_V1 = 'v1';
 export const BATTLE_NET_KEY_TAG_WCL_V2 = 'v2';
 
 export const BATTLE_NET_BASE_URLS: Record<BattleNetRegion, string> = {
-  [BattleNetRegion.EU]: 'https://eu.battle.net',
-  [BattleNetRegion.US]: 'https://us.battle.net',
-  [BattleNetRegion.KR]: 'https://kr.battle.net',
-  [BattleNetRegion.TW]: 'https://tw.battle.net',
+  [BattleNetRegion.EU]: 'https://eu.api.blizzard.com',
+  [BattleNetRegion.US]: 'https://us.api.blizzard.com',
+  [BattleNetRegion.KR]: 'https://kr.api.blizzard.com',
+  [BattleNetRegion.TW]: 'https://tw.api.blizzard.com',
   [BattleNetRegion.CN]: 'https://gateway.battlenet.com.cn',
 };
 
