@@ -72,8 +72,6 @@ export class AuctionsService implements OnApplicationBootstrap {
             const message = AuctionMessageDto.create({
               connectedRealmId: realmEntity.connectedRealmId,
               auctionsTimestamp: realmEntity.auctionsTimestamp,
-              region: 'eu',
-              isAssetClassIndex: true,
             });
 
             await this.queue.add(message.name, message.data, message.opts);
@@ -110,10 +108,8 @@ export class AuctionsService implements OnApplicationBootstrap {
       });
 
       const message = AuctionMessageDto.create({
-        region: 'eu',
         connectedRealmId: realmEntity.connectedRealmId,
         commoditiesTimestamp: realmEntity.commoditiesTimestamp,
-        isAssetClassIndex: true,
       });
 
       await this.queue.add(message.name, message.data, message.opts);
