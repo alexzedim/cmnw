@@ -57,10 +57,11 @@ export class RealmsService implements OnApplicationBootstrap {
     try {
       await this.realmsQueue.drain(true);
 
+      const config = await this.battleNetService.initialize(GLOBAL_KEY);
       const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC, 60_000);
       const { realms: realmList } = await this.battleNetService.query<{
         realms: Array<{ id: number; name: string; slug: string }>;
-      }>('/data/wow/realm/index', options);
+      }>('/data/wow/realm/index', options, config);
 
       for (const { id, name, slug } of realmList) {
         this.logger.log({
