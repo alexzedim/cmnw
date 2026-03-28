@@ -1,7 +1,7 @@
 import { Injectable, OnApplicationBootstrap, Logger } from '@nestjs/common';
 import { BattleNetService, BattleNetApiNamespace } from '@app/battle-net';
 import { BATTLE_NET_OSINT_TIMEOUT } from '@app/battle-net';
-import { BlizzardApiResponse } from '@app/resources';
+import { BlizzardApiResponse, GLOBAL_KEY } from '@app/resources';
 
 @Injectable()
 export class TestsOsint implements OnApplicationBootstrap {
@@ -10,9 +10,7 @@ export class TestsOsint implements OnApplicationBootstrap {
   constructor(private readonly battleNetService: BattleNetService) {}
 
   async onApplicationBootstrap() {
-    await this.battleNetService.initialize();
-    const g = await this.guild('рак-гейминг', 'soulflayer');
-    console.log(JSON.stringify(g));
+    await this.battleNetService.initialize(GLOBAL_KEY);
   }
 
   async realm(realmSlug: string): Promise<BlizzardApiResponse> {
