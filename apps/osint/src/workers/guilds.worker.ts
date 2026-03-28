@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { isAxiosError } from 'axios';
 
 import { BattleNetService, BATTLE_NET_KEY_TAG_OSINT, IBattleNetClientConfig } from '@app/battle-net';
 import {
@@ -45,7 +44,6 @@ export class GuildsWorker extends WorkerHost {
     total: 0,
     success: 0,
     errors: 0,
-    rateLimit: 0,
     notFound: 0,
     skipped: 0,
     startTime: Date.now(),
@@ -139,34 +137,12 @@ export class GuildsWorker extends WorkerHost {
         this.logProgress();
       }
     } catch (errorOrException) {
+      this.stats.errors++;
       const duration = Date.now() - startTime;
       const guid = message.name && message.realm ? `${message.name}@${message.realm}` : 'unknown';
+      const error = errorOrException instanceof Error ? errorOrException.message : String(errorOrException);
 
-      this.stats.errors++;
-
-      if (isAxiosError(errorOrException)) {
-        const statusCode = errorOrException.response?.status;
-        this.logger.error(
-          formatWorkerErrorLog(
-            this.stats.total,
-            guid,
-            duration,
-            `HTTP ${statusCode}: ${errorOrException.message}`,
-            message.updatedBy,
-          ),
-        );
-      } else {
-        this.logger.error(
-          formatWorkerErrorLog(
-            this.stats.total,
-            guid,
-            duration,
-            errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
-            message.updatedBy,
-          ),
-        );
-      }
-
+      this.logger.error(formatWorkerErrorLog(this.stats.total, guid, duration, error, message.updatedBy));
       throw errorOrException;
     }
   }

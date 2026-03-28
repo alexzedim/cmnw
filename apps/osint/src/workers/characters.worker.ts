@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
-import { isAxiosError } from 'axios';
 
 import { BattleNetService, BATTLE_NET_KEY_TAG_OSINT, IBattleNetClientConfig } from '@app/battle-net';
 import {
@@ -13,7 +12,6 @@ import {
   ICharacterMessageBase,
   setStatusString,
   CharacterStatusState,
-  RateLimitError,
   CHARACTER_STATUS_CODES,
 } from '@app/resources';
 import {
@@ -39,7 +37,6 @@ export class CharactersWorker extends WorkerHost {
     total: 0,
     success: 0,
     errors: 0,
-    rateLimit: 0,
     notFound: 0,
     skipped: 0,
     startTime: Date.now(),
@@ -57,9 +54,9 @@ export class CharactersWorker extends WorkerHost {
   public async process(job: Job<ICharacterMessageBase>): Promise<void> {
     const startTime = Date.now();
     this.stats.total++;
+    const message = job.data;
 
     try {
-      const message = job.data;
       const { characterEntity, isNew, isCreateOnlyUnique, isNotReadyToUpdate } =
         await this.lifecycleService.findOrCreateCharacter(message);
 
@@ -109,7 +106,12 @@ export class CharactersWorker extends WorkerHost {
         this.logProgress();
       }
     } catch (errorOrException) {
-      this.handleError(errorOrException, job.data, startTime);
+      this.stats.errors++;
+      const duration = Date.now() - startTime;
+      const guid = message.name && message.realm ? `${message.name}@${message.realm}` : 'unknown';
+      const error = errorOrException instanceof Error ? errorOrException.message : String(errorOrException);
+
+      this.logger.error(formatWorkerErrorLog(this.stats.total, guid, duration, error));
       throw errorOrException;
     }
   }
@@ -232,62 +234,5 @@ export class CharactersWorker extends WorkerHost {
 
   public logFinalSummary(): void {
     this.logger.log(formatFinalSummary('CharactersWorker', this.stats, 'characters'));
-  }
-
-  private handleError(errorOrException: unknown, message: ICharacterMessageBase, startTime: number): void {
-    const duration = Date.now() - startTime;
-    const guid = message.name && message.realm ? `${message.name}@${message.realm}` : 'unknown';
-    const updatedBy = message.updatedBy || 'unknown';
-
-    if (errorOrException instanceof RateLimitError) {
-      this.handleRateLimitError(errorOrException, guid, duration);
-      return;
-    }
-
-    if (isAxiosError(errorOrException)) {
-      this.handleAxiosError(errorOrException, guid, duration);
-      return;
-    }
-
-    this.handleGenericError(errorOrException, guid, duration, updatedBy);
-  }
-
-  private async handleRateLimitError(error: RateLimitError, guid: string, duration: number): Promise<void> {
-    await this.battleNetService.recordKeyRateLimit();
-    this.stats.rateLimit++;
-    this.logger.warn(
-      formatWorkerLog(
-        WorkerLogStatus.RATE_LIMITED,
-        this.stats.total,
-        guid,
-        duration,
-        `Retry after: ${error.retryAfter || 'unknown'}s`,
-      ),
-    );
-  }
-
-  private async handleAxiosError(error: unknown, guid: string, duration: number): Promise<void> {
-    const axiosError = error as { response?: { status?: number }; message?: string };
-    const statusCode = axiosError.response?.status;
-
-    await this.battleNetService.recordKeyError();
-    this.stats.errors++;
-    this.logger.error(
-      formatWorkerErrorLog(this.stats.total, guid, duration, `HTTP ${statusCode}: ${axiosError.message}`),
-    );
-  }
-
-  private async handleGenericError(error: unknown, guid: string, duration: number, updatedBy: string): Promise<void> {
-    await this.battleNetService.recordKeyError();
-    this.stats.errors++;
-    this.logger.error(
-      formatWorkerErrorLog(
-        this.stats.total,
-        guid,
-        duration,
-        error instanceof Error ? error.message : String(error),
-        updatedBy,
-      ),
-    );
   }
 }
