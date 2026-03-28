@@ -54,10 +54,10 @@ export interface ICharacterMessageBase {
   updatedBy: OSINT_SOURCE;
   createdBy?: OSINT_SOURCE;
 
-  // BattleNetOptions
-  clientId: string;
-  clientSecret: string;
-  accessToken: string;
+  // BattleNetOptions (legacy - credentials are managed internally by BattleNetService)
+  clientId?: string;
+  clientSecret?: string;
+  accessToken?: string;
 }
 
 /**
@@ -576,7 +576,12 @@ export class CharacterMessageDto {
     }
 
     // Warn about missing optional credentials (non-blocking)
-    if (!strict) {
+    // Skip warning for sources that intentionally omit credentials
+    const skipCredentialWarningTags = [
+      'CharacterMessageDto.fromWowProgressLfg',
+      'CharacterMessageDto.fromCharacterIndex',
+    ];
+    if (!strict && !skipCredentialWarningTags.includes(logTag)) {
       const credentials = ['clientId', 'clientSecret', 'accessToken'];
       const missingCredentials = credentials.filter(
         (field) => !characterData?.[field] || characterData?.[field] === undefined,

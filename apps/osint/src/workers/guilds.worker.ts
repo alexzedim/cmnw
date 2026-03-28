@@ -1,8 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { isAxiosError } from 'axios';
 
+import { BattleNetService, BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
 import {
   formatWorkerLog,
   formatWorkerErrorLog,
@@ -10,6 +11,7 @@ import {
   formatFinalSummary,
   WorkerLogStatus,
 } from '@app/logger';
+import { GuildsEntity } from '@app/pg';
 import {
   isEuRegion,
   toSlug,
@@ -19,6 +21,8 @@ import {
   GuildStatusState,
   guildsQueue,
   IGuildMessageBase,
+  IGuildSummary,
+  IGuildRoster,
 } from '@app/resources';
 
 import {
@@ -34,7 +38,7 @@ const PROGRESS_LOG_INTERVAL = 50;
 
 @Injectable()
 @Processor(guildsQueue)
-export class GuildsWorker extends WorkerHost {
+export class GuildsWorker extends WorkerHost implements OnApplicationBootstrap {
   private readonly logger = new Logger(GuildsWorker.name, { timestamp: true });
 
   private stats = {
@@ -54,8 +58,13 @@ export class GuildsWorker extends WorkerHost {
     private readonly guildMemberService: GuildMemberService,
     private readonly guildLogService: GuildLogService,
     private readonly guildMasterService: GuildMasterService,
+    private readonly battleNetService: BattleNetService,
   ) {
     super();
+  }
+
+  async onApplicationBootstrap(): Promise<void> {
+    await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_OSINT);
   }
 
   async process(job: Job<IGuildMessageBase>): Promise<void> {
@@ -164,7 +173,7 @@ export class GuildsWorker extends WorkerHost {
     }
   }
 
-  private async getLogStatusForNewGuild(guildSnapshot: any, guildEntity: any): Promise<string> {
+  private async getLogStatusForNewGuild(guildSnapshot: GuildsEntity, guildEntity: GuildsEntity): Promise<string> {
     const guildById = await this.guildService.findById(guildSnapshot.id, guildSnapshot.realm);
     if (!guildById) return '-----' as const;
     return this.guildLogService.detectAndLogChanges(guildById, guildEntity);
@@ -172,10 +181,10 @@ export class GuildsWorker extends WorkerHost {
 
   private async fetchGuildData(
     nameSlug: string,
-    guildEntity: any,
+    guildEntity: GuildsEntity,
   ): Promise<{
-    summaryResult: any;
-    rosterResult: any;
+    summaryResult: Partial<IGuildSummary>;
+    rosterResult: IGuildRoster;
   }> {
     const [summaryResult, rosterResult] = await Promise.allSettled([
       this.guildSummaryService.getSummary(nameSlug, guildEntity.realm),
@@ -185,7 +194,9 @@ export class GuildsWorker extends WorkerHost {
     return {
       summaryResult: summaryResult.status === 'fulfilled' ? summaryResult.value : {},
       rosterResult:
-        rosterResult.status === 'fulfilled' ? rosterResult.value : { status: '-----', updatedAt: new Date() },
+        rosterResult.status === 'fulfilled'
+          ? rosterResult.value
+          : ({ status: '-----', updatedAt: new Date() } as IGuildRoster),
     };
   }
 
@@ -215,7 +226,7 @@ export class GuildsWorker extends WorkerHost {
     return aggregated;
   }
 
-  private logGuildResult(guild: any, duration: number): void {
+  private logGuildResult(guild: GuildsEntity, duration: number): void {
     const status = guild.status;
     const guid = guild.guid;
 

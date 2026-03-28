@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Job } from 'bullmq';
 import { isAxiosError } from 'axios';
@@ -30,7 +30,7 @@ import { CharacterService, CharacterLifecycleService, CharacterCollectionService
 
 @Injectable()
 @Processor(charactersQueue.name, charactersQueue.workerOptions)
-export class CharactersWorker extends WorkerHost implements OnModuleInit {
+export class CharactersWorker extends WorkerHost implements OnApplicationBootstrap {
   private readonly logger = new Logger(CharactersWorker.name, {
     timestamp: true,
   });
@@ -54,7 +54,7 @@ export class CharactersWorker extends WorkerHost implements OnModuleInit {
     super();
   }
 
-  async onModuleInit(): Promise<void> {
+  async onApplicationBootstrap(): Promise<void> {
     await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_OSINT);
   }
 
