@@ -4,6 +4,7 @@ import { Logger } from '@nestjs/common';
 import { JobsOptions } from 'bullmq';
 
 import { guildsQueue } from '../../queues/guilds.queue';
+import { normalizeRealmName } from '../../guard';
 import { RegionIdOrName } from '@app/resources';
 
 /**
@@ -213,7 +214,7 @@ export class GuildMessageDto {
       name: params.name,
       realm: params.realm,
       realmId: params.realmId,
-      realmName: params.realmName,
+      realmName: normalizeRealmName(params.realmName),
       faction: params.faction,
       iteration: params.rank,
       forceUpdate: TIME_MS.ONE_HOUR,
