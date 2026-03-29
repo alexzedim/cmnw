@@ -104,9 +104,7 @@ export const isCharacterMedia = (response: unknown): response is BlizzardApiChar
   Boolean(response.assets.length);
 
 export const isWowToken = (response: unknown): response is BlizzardApiWowToken =>
-  typeof response === 'object' &&
-  'price' in response &&
-  'last_updated_timestamp' in response;
+  typeof response === 'object' && 'price' in response && 'last_updated_timestamp' in response;
 
 export const isAuctions = (response: unknown): response is BlizzardApiAuctions =>
   typeof response === 'object' &&
