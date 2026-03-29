@@ -27,6 +27,7 @@ import {
   isCharacterProfessions,
   setStatusString,
   CharacterStatusState,
+  normalizeLocaleField,
 } from '@app/resources';
 import { CharactersEntity } from '@app/pg';
 
@@ -144,7 +145,7 @@ export class CharacterService {
               summary[key] = numericId;
             }
           } else {
-            summary[key] = value;
+            summary[key] = typeof value === 'object' ? normalizeLocaleField(value) : value;
           }
         }
       }
