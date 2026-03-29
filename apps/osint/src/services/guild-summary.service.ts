@@ -11,6 +11,7 @@ import {
   GuildStatusState,
   setGuildStatusString,
   toGuid,
+  normalizeLocaleField,
 } from '@app/resources';
 import { GUILD_SUMMARY_KEYS } from '@app/resources';
 import { BattleNetService, BattleNetNamespace, IBattleNetClientConfig } from '@app/battle-net';
@@ -54,18 +55,20 @@ export class GuildSummaryService {
       if (value === null || !GUILD_SUMMARY_KEYS.includes(key as any)) {
         return;
       }
-      summary[changeCase.camelCase(key)] = value;
+      summary[changeCase.camelCase(key)] = typeof value === 'object' ? normalizeLocaleField(value) : value;
     });
 
     // Extract faction information using transformFaction
-    const transformedFaction = transformFaction(response.faction);
+    const normalizedName = normalizeLocaleField(response.faction.name);
+    const normalizedFaction = { ...response.faction, name: normalizedName };
+    const transformedFaction = transformFaction(normalizedFaction);
     if (transformedFaction) {
       summary.faction = transformedFaction;
     }
 
     // Extract realm information (guaranteed by typeguard)
     summary.realmId = response.realm.id;
-    summary.realmName = response.realm.name;
+    summary.realmName = normalizeLocaleField(response.realm.name);
     summary.realm = response.realm.slug;
 
     // Extract date information
