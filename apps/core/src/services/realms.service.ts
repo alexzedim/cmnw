@@ -8,7 +8,7 @@ import { Queue } from 'bullmq';
 import { KeysEntity, RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import { lastValueFrom, mergeMap, range } from 'rxjs';
-import { BattleNetApiNamespace, BattleNetService } from '@app/battle-net';
+import { BattleNetNamespace, BattleNetService } from '@app/battle-net';
 import {
   getRandomizedHeaders,
   delay,
@@ -58,7 +58,7 @@ export class RealmsService implements OnApplicationBootstrap {
       await this.realmsQueue.drain(true);
 
       const config = await this.battleNetService.initialize(GLOBAL_KEY);
-      const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC, 60_000);
+      const options = this.battleNetService.createQueryOptions(BattleNetNamespace.DYNAMIC, 60_000);
       const { realms: realmList } = await this.battleNetService.query<{
         realms: Array<{ id: number; name: string; slug: string }>;
       }>('/data/wow/realm/index', options, config);

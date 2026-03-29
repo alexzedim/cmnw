@@ -111,11 +111,9 @@ export class AuctionsWorker extends WorkerHost {
 
       const marketResponse = await this.battleNetService.query<BlizzardApiAuctions>(
         getMarketApiEndpoint,
-        {
-          namespace: BattleNetNamespace.DYNAMIC,
-          timeout: 60_000,
-          headers: { 'If-Modified-Since': ifModifiedSince },
-        },
+        this.battleNetService.createQueryOptions(BattleNetNamespace.DYNAMIC, 60_000, undefined, {
+          'If-Modified-Since': ifModifiedSince,
+        }),
         config,
       );
 

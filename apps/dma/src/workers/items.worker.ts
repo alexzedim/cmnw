@@ -154,11 +154,7 @@ export class ItemsWorker extends WorkerHost {
     try {
       return await this.battleNetService.query<BlizzardApiItem>(
         `/data/wow/item/${itemId}`,
-        {
-          namespace: BattleNetNamespace.STATIC,
-          timeout: 60_000,
-          locale: undefined,
-        },
+        this.battleNetService.createQueryOptions(BattleNetNamespace.STATIC, 60_000),
         config,
       );
     } catch {
@@ -170,10 +166,7 @@ export class ItemsWorker extends WorkerHost {
     try {
       return await this.battleNetService.query<BlizzardApiItemMedia>(
         `/data/wow/media/item/${itemId}`,
-        {
-          namespace: BattleNetNamespace.STATIC,
-          timeout: 60_000,
-        },
+        this.battleNetService.createQueryOptions(BattleNetNamespace.STATIC, 60_000),
         config,
       );
     } catch {

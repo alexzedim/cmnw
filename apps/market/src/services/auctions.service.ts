@@ -19,7 +19,7 @@ import {
 } from '@app/resources';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
-import { BattleNetApiNamespace, BattleNetService, BATTLE_NET_KEY_TAG_DMA } from '@app/battle-net';
+import { BattleNetNamespace, BattleNetService, BATTLE_NET_KEY_TAG_DMA } from '@app/battle-net';
 
 @Injectable()
 export class AuctionsService implements OnApplicationBootstrap {
@@ -130,7 +130,7 @@ export class AuctionsService implements OnApplicationBootstrap {
     const logTag = this.indexTokens.name;
     try {
       const config = await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_DMA);
-      const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC, 60_000);
+      const options = this.battleNetService.createQueryOptions(BattleNetNamespace.DYNAMIC, 60_000);
       const response = await this.battleNetService.query<BlizzardApiWowToken>('/data/wow/token/index', options, config);
 
       const isWowTokenValid = isWowToken(response);
