@@ -18,7 +18,7 @@ import {
 } from '@app/pg';
 import { Repository } from 'typeorm';
 import { dmaConfig } from '@app/configuration';
-import { BattleNetApiNamespace, BattleNetService, BATTLE_NET_KEY_TAG_DMA } from '@app/battle-net';
+import { BattleNetNamespace, BattleNetService, BATTLE_NET_KEY_TAG_DMA } from '@app/battle-net';
 import {
   DMA_SOURCE,
   IProfessionResponse,
@@ -287,7 +287,7 @@ export class XvaService implements OnApplicationBootstrap {
       });
 
       const config = await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_DMA);
-      const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.STATIC, 10_000);
+      const options = this.battleNetService.createQueryOptions(BattleNetNamespace.STATIC, 10_000);
       const professionIndexResponse = await this.battleNetService.query<IProfessionResponse>(
         '/data/wow/profession/index',
         options,
@@ -306,7 +306,7 @@ export class XvaService implements OnApplicationBootstrap {
       const { professions } = professionIndexResponse;
 
       for (const profession of professions) {
-        const professionDetailOptions = this.battleNetService.createQueryOptions(BattleNetApiNamespace.STATIC, 10_000);
+        const professionDetailOptions = this.battleNetService.createQueryOptions(BattleNetNamespace.STATIC, 10_000);
         const professionDetailResponse = await this.battleNetService.query<IProfessionDetailResponse>(
           `/data/wow/profession/${profession.id}`,
           professionDetailOptions,
@@ -335,7 +335,7 @@ export class XvaService implements OnApplicationBootstrap {
             return false;
           });
 
-          const skillTierOptions = this.battleNetService.createQueryOptions(BattleNetApiNamespace.STATIC, 10_000);
+          const skillTierOptions = this.battleNetService.createQueryOptions(BattleNetNamespace.STATIC, 10_000);
           const skillTierDetailResponse = await this.battleNetService.query<ISkillTieryResponse>(
             `/data/wow/profession/${profession.id}/skill-tier/${tier.id}`,
             skillTierOptions,

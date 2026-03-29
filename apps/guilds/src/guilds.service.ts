@@ -21,7 +21,7 @@ import {
 } from '@app/resources';
 import { osintConfig } from '@app/configuration';
 import { InjectQueue } from '@nestjs/bullmq';
-import { BattleNetService, BattleNetApiNamespace, BATTLE_NET_KEY_TAG_BLIZZARD } from '@app/battle-net';
+import { BattleNetService, BattleNetNamespace, BATTLE_NET_KEY_TAG_BLIZZARD } from '@app/battle-net';
 
 @Injectable()
 export class GuildsService implements OnApplicationBootstrap {
@@ -185,11 +185,7 @@ export class GuildsService implements OnApplicationBootstrap {
         for (const raidFaction of RAID_FACTIONS) {
           const response = await this.battleNetService.query<IHallOfFame>(
             `/data/wow/leaderboard/hall-of-fame/${raid}/${raidFaction}`,
-            {
-              namespace: BattleNetApiNamespace.DYNAMIC,
-              locale: 'en_GB',
-              timeout: 50000,
-            },
+            this.battleNetService.createQueryOptions(BattleNetNamespace.DYNAMIC, 50_000),
             config,
           );
 

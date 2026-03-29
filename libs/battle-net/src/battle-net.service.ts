@@ -234,10 +234,6 @@ export class BattleNetService {
 
     headers.set('Battlenet-Namespace', options.namespace);
 
-    if (options.locale) {
-      headers.set('Accept-Language', options.locale);
-    }
-
     if (options.headers) {
       for (const [key, value] of Object.entries(options.headers)) {
         headers.set(key, value);
@@ -292,10 +288,11 @@ export class BattleNetService {
 
       const headers = this.buildHeaders(config, options);
       const url = `${this.getBaseUrl(config.region)}${path}`;
+      const params = options.locale ? { locale: options.locale } : undefined;
 
       try {
         const response = await lastValueFrom(
-          this.httpService.request<T>({ method, url, data, headers, timeout: options.timeout }).pipe(
+          this.httpService.request<T>({ method, url, data, headers, timeout: options.timeout, params }).pipe(
             timeout(DEFAULT_RETRY_CONFIG.timeoutMs),
             map((res: AxiosResponse<T>) => res.data),
           ),
@@ -366,12 +363,12 @@ export class BattleNetService {
   public createQueryOptions(
     namespace: string,
     timeout: number = BATTLE_NET_OSINT_TIMEOUT,
-    isMultiLocale?: boolean,
+    locale: string = 'en_GB',
     headers?: Record<string, string>,
   ): IBattleNetQueryOptions {
     return {
       namespace,
-      locale: isMultiLocale ? undefined : 'en_GB',
+      locale,
       timeout,
       headers,
     };

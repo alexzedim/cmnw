@@ -4,7 +4,7 @@ import chalk from 'chalk';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
-import { BattleNetApiNamespace, BattleNetService, BATTLE_NET_KEY_TAG_BLIZZARD } from '@app/battle-net';
+import { BattleNetNamespace, BattleNetService, BATTLE_NET_KEY_TAG_BLIZZARD } from '@app/battle-net';
 import {
   BlizzardApiResponse,
   IConnectedRealm,
@@ -77,7 +77,7 @@ export class RealmsWorker extends WorkerHost implements OnModuleInit {
       const config = await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_BLIZZARD);
       const response: Record<string, any> = await this.battleNetService.query(
         `/data/wow/realm/${message.slug}`,
-        this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC, OSINT_TIMEOUT_TOLERANCE),
+        this.battleNetService.createQueryOptions(BattleNetNamespace.DYNAMIC, OSINT_TIMEOUT_TOLERANCE),
         config,
       );
 
@@ -104,7 +104,7 @@ export class RealmsWorker extends WorkerHost implements OnModuleInit {
       if (realmEntity.locale != 'enGB') {
         const realmLocale = await this.battleNetService.query<BlizzardApiResponse>(
           `/data/wow/realm/${message.slug}`,
-          this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC, OSINT_TIMEOUT_TOLERANCE, true),
+          { namespace: BattleNetNamespace.DYNAMIC, timeout: OSINT_TIMEOUT_TOLERANCE },
           config,
         );
 
@@ -136,7 +136,7 @@ export class RealmsWorker extends WorkerHost implements OnModuleInit {
       if (connectedRealmId) {
         const connectedRealm = await this.battleNetService.query<IConnectedRealm>(
           `/data/wow/connected-realm/${connectedRealmId}`,
-          this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC),
+          this.battleNetService.createQueryOptions(BattleNetNamespace.DYNAMIC),
           config,
         );
 

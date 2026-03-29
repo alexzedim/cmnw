@@ -1,5 +1,5 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { BattleNetService, BattleNetApiNamespace, BATTLE_NET_KEY_TAG_WCL_V2 } from '@app/battle-net';
+import { BattleNetService, BattleNetNamespace, BATTLE_NET_KEY_TAG_WCL_V2 } from '@app/battle-net';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
 
@@ -20,17 +20,17 @@ export class TestsCore implements OnApplicationBootstrap {
   }
 
   async characterStats(nameSlug: string, realmSlug: string): Promise<any> {
-    const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.PROFILE);
+    const options = this.battleNetService.createQueryOptions(BattleNetNamespace.PROFILE);
     return this.battleNetService.query(`/profile/wow/character/${realmSlug}/${nameSlug}/stats`, options);
   }
 
   async dungeonIndex(): Promise<any> {
-    const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC);
+    const options = this.battleNetService.createQueryOptions(BattleNetNamespace.DYNAMIC);
     return this.battleNetService.query('/journal-expansion/index', options);
   }
 
   async mythicLeaderboard(connectedRealmId: number, dungeonId: number, period: number): Promise<any> {
-    const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC);
+    const options = this.battleNetService.createQueryOptions(BattleNetNamespace.DYNAMIC);
     return this.battleNetService.query(
       `/connected-realm/${connectedRealmId}/mythic-leaderboard/${dungeonId}/period/${period}`,
       options,
@@ -38,27 +38,27 @@ export class TestsCore implements OnApplicationBootstrap {
   }
 
   async seasonIndex(): Promise<any> {
-    const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC);
+    const options = this.battleNetService.createQueryOptions(BattleNetNamespace.DYNAMIC);
     return this.battleNetService.query('/pvp-season/index', options);
   }
 
   async seasonOne(seasonId: number): Promise<any> {
-    const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC);
+    const options = this.battleNetService.createQueryOptions(BattleNetNamespace.DYNAMIC);
     return this.battleNetService.query(`/pvp-season/${seasonId}`, options);
   }
 
   async leadingGroups(seasonId: number, bracketType: number): Promise<any> {
-    const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC);
+    const options = this.battleNetService.createQueryOptions(BattleNetNamespace.DYNAMIC);
     return this.battleNetService.query(`/pvp-season/${seasonId}/pvp-leaderboard/${bracketType}`, options);
   }
 
   async pvpIndexIndex(): Promise<any> {
-    const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC);
+    const options = this.battleNetService.createQueryOptions(BattleNetNamespace.DYNAMIC);
     return this.battleNetService.query('/pvp-season/index', options);
   }
 
   async pvpSeasonLeaderboard(): Promise<any> {
-    const options = this.battleNetService.createQueryOptions(BattleNetApiNamespace.DYNAMIC);
+    const options = this.battleNetService.createQueryOptions(BattleNetNamespace.DYNAMIC);
     return this.battleNetService.query('/pvp-season/1/season/1/leaderboard/3v3', options);
   }
 
