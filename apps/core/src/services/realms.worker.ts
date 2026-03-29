@@ -10,6 +10,7 @@ import {
   IConnectedRealm,
   IRealmMessageBase,
   isFieldNamed,
+  normalizeLocaleField,
   OSINT_TIMEOUT_TOLERANCE,
   REALM_TICKER,
   realmsQueue,
@@ -87,7 +88,8 @@ export class RealmsWorker extends WorkerHost implements OnModuleInit {
 
       await job.updateProgress(25);
 
-      const name = isFieldNamed(response.name) ? get(response, 'name.name', null) : response.name;
+      const rawName = isFieldNamed(response.name) ? get(response, 'name.name', null) : response.name;
+      const name = normalizeLocaleField(rawName);
 
       if (name) realmEntity.name = name;
 
@@ -123,11 +125,11 @@ export class RealmsWorker extends WorkerHost implements OnModuleInit {
         await job.updateProgress(45);
       }
 
-      const region = transformNamedField(response.region);
+      const region = normalizeLocaleField(transformNamedField(response.region));
       if (region) realmEntity.region = region;
       if (response.timezone) realmEntity.timezone = response.timezone;
 
-      const category = get(response, 'category', null);
+      const category = normalizeLocaleField(get(response, 'category', null));
       if (category) realmEntity.category = category;
 
       const connectedRealmId = transformConnectedRealmId(response);
@@ -139,8 +141,8 @@ export class RealmsWorker extends WorkerHost implements OnModuleInit {
         );
 
         realmEntity.connectedRealmId = get(connectedRealm, 'id', null);
-        realmEntity.status = get(connectedRealm, 'status.name', null);
-        realmEntity.populationStatus = get(connectedRealm, 'population.name', null);
+        realmEntity.status = normalizeLocaleField(get(connectedRealm, 'status.name', null));
+        realmEntity.populationStatus = normalizeLocaleField(get(connectedRealm, 'population.name', null));
         await job.updateProgress(50);
 
         const isRealmsExists = 'realms' in connectedRealm && Array.isArray(connectedRealm.realms);
