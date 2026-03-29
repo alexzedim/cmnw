@@ -49,3 +49,29 @@ export const normalizeRealmName = (realmName: unknown): string => {
   }
   return typeof realmName === 'string' ? realmName : String(realmName ?? '');
 };
+
+export const normalizeLocaleField = (value: unknown): string | null => {
+  if (value == null) return null;
+
+  if (typeof value === 'string') {
+    if (isLocaleObjectString(value)) {
+      try {
+        const parsed = JSON.parse(value);
+        return parsed.en_GB ?? parsed.en_US ?? Object.values(parsed).find((v) => typeof v === 'string') ?? null;
+      } catch {
+        return value;
+      }
+    }
+    return value;
+  }
+
+  if (typeof value === 'object') {
+    const obj = value as Record<string, unknown>;
+    if (LOCALE_KEYS.some((key) => key in obj)) {
+      const result = obj.en_GB ?? obj.en_US ?? Object.values(obj).find((v) => typeof v === 'string');
+      return typeof result === 'string' ? result : null;
+    }
+  }
+
+  return null;
+};
