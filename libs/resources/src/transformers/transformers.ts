@@ -18,7 +18,10 @@ const KEBAB_REGEX = /\p{Lu}/gu;
  * @returns The kebab-cased string
  */
 export const kebabCase = (str: string, keepLeadingDash = false): string => {
-  const result = str.replace(KEBAB_REGEX, (match) => `-${match.toLowerCase()}`);
+  const result = str
+    .replace(/\s+/g, '-')
+    .replace(KEBAB_REGEX, (match) => `-${match.toLowerCase()}`)
+    .replace(/-+/g, '-');
 
   if (keepLeadingDash) {
     return result;

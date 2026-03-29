@@ -10,6 +10,7 @@ import {
   transformFaction,
   GuildStatusState,
   setGuildStatusString,
+  toGuid,
 } from '@app/resources';
 import { GUILD_SUMMARY_KEYS } from '@app/resources';
 import { BattleNetService, BattleNetNamespace, IBattleNetClientConfig } from '@app/battle-net';
@@ -94,7 +95,7 @@ export class GuildSummaryService {
 
     this.logger.error({
       logTag: 'getSummary',
-      guildGuid: `${guildNameSlug}@${realmSlug}`,
+      guildGuid: toGuid(guildNameSlug, realmSlug),
       statusCode,
     });
 
