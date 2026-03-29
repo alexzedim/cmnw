@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import { OSINT_SOURCE, TIME_MS } from '@app/resources/constants';
 import { toGuid } from '@app/resources/transformers';
 import { charactersQueue } from '@app/resources/queues/characters.queue';
+import { normalizeRealmName } from '@app/resources/guard';
 import { JobsOptions } from 'bullmq';
 
 /**
@@ -272,7 +273,7 @@ export class CharacterMessageDto {
       name: params.name,
       realm: params.realm,
       realmId: params.realmId,
-      realmName: params.realmName,
+      realmName: normalizeRealmName(params.realmName),
       forceUpdate: TIME_MS.IMMEDIATE,
       createOnlyUnique: true,
       region: 'eu',
@@ -425,7 +426,7 @@ export class CharacterMessageDto {
       name: params.name,
       realm: params.realm,
       realmId: params.realmId,
-      realmName: params.realmName,
+      realmName: normalizeRealmName(params.realmName),
       guild: params.guild,
       guildGuid: params.guildGuid,
       guildId: params.guildId,
