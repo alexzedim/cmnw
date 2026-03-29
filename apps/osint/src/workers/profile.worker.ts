@@ -74,13 +74,11 @@ export class ProfileWorker extends WorkerHost {
   }
 
   async process(job: any): Promise<void> {
-    const message = job.data;
+    const args = job.data;
     const startTime = Date.now();
     this.stats.total++;
 
     try {
-      const { data: args } = message;
-
       let profileEntity = await this.charactersProfileRepository.findOneBy({
         guid: args.guid,
       });
@@ -143,7 +141,7 @@ export class ProfileWorker extends WorkerHost {
       this.stats.errors++;
       const duration = Date.now() - startTime;
 
-      this.logger.error(formatWorkerErrorLog(this.stats.total, message.data?.guid, duration, errorOrException.message));
+      this.logger.error(formatWorkerErrorLog(this.stats.total, args?.guid, duration, errorOrException.message));
 
       throw errorOrException;
     }

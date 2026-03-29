@@ -17,7 +17,7 @@ import {
   OSINT_LFG_WOW_PROGRESS,
   toGuid,
   CharacterMessageDto,
-  QueueMessageDto,
+  ProfileMessageDto,
   ICharacterMessageBase,
   IProfileMessageBase,
 } from '@app/resources';
@@ -200,23 +200,11 @@ export class WowProgressLfgService {
         realmName: realmEntity.name,
       });
 
-      const profileMessageDto = new QueueMessageDto(
-        'osint.profiles.lfg.normal',
-        {
-          guid: characterQueue.guid,
-          name: characterQueue.name,
-          realm: realmEntity.slug,
-          region: 'eu' as const,
-          lookingForGuild,
-          updateRIO: true,
-          updateWCL: true,
-          updateWP: true,
-        },
-        {
-          jobId: characterQueue.guid,
-          priority: 1,
-        },
-      );
+      const profileMessageDto = ProfileMessageDto.fromWowProgressLfg({
+        name: characterQueue.name,
+        realm: realmEntity.slug,
+        lookingForGuild,
+      });
 
       await Promise.allSettled([
         this.profileQueue.add(profileMessageDto.name, profileMessageDto.data, profileMessageDto.opts),

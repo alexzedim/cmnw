@@ -8,6 +8,7 @@ import { toGuid } from '@app/resources/transformers';
  */
 export interface IProfileMessageBase {
   // Essential identification
+  guid?: string;
   name: string;
   realm: string;
   region: 'eu';
@@ -32,6 +33,12 @@ export interface IProfileMessageBase {
   level?: number;
   specialization?: string;
   gender?: string;
+
+  // Processing flags
+  lookingForGuild?: string;
+  updateRIO?: boolean;
+  updateWCL?: boolean;
+  updateWP?: boolean;
 
   // API credentials
   clientId?: string;
@@ -74,6 +81,35 @@ export class ProfileMessageDto {
     };
 
     const dto = new ProfileMessageDto(profileQueue.name, data, mergedOpts);
+    return dto;
+  }
+
+  /**
+   * Create from WoW Progress LFG data
+   *
+   * Priority: 1 (Very Low - background LFG processing)
+   */
+  static fromWowProgressLfg(params: { name: string; realm: string; lookingForGuild: string }): ProfileMessageDto {
+    const guid = toGuid(params.name, params.realm);
+    const profileData: IProfileMessageBase = {
+      guid,
+      name: params.name,
+      realm: params.realm,
+      region: 'eu',
+      lookingForGuild: params.lookingForGuild,
+      updateRIO: true,
+      updateWCL: true,
+      updateWP: true,
+    };
+
+    const opts: JobsOptions = {
+      jobId: guid,
+      ...profileQueue.defaultJobOptions,
+      priority: 1,
+    };
+
+    const dto = new ProfileMessageDto(profileQueue.name, profileData, opts);
+    dto.validate(false, 'ProfileMessageDto.fromWowProgressLfg');
     return dto;
   }
 
