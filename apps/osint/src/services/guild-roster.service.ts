@@ -55,7 +55,7 @@ export class GuildRosterService {
       const guildNameSlug = toSlug(guildEntity.name);
       const response = await this.battleNetService.query<IRGuildRoster>(
         `/data/wow/guild/${guildEntity.realm}/${guildNameSlug}/roster`,
-        { namespace: BattleNetNamespace.DYNAMIC, locale: 'en_GB' },
+        this.battleNetService.createQueryOptions(BattleNetNamespace.DYNAMIC),
         config,
       );
 

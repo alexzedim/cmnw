@@ -66,7 +66,7 @@ export class CharacterService {
     try {
       const statusResponse = await this.battleNetService.query<IBlizzardStatusResponse>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/status`,
-        { namespace: BattleNetNamespace.PROFILE, locale: 'en_GB' },
+        this.battleNetService.createQueryOptions(BattleNetNamespace.PROFILE),
         config,
       );
 
@@ -126,7 +126,7 @@ export class CharacterService {
     try {
       const response = await this.battleNetService.query<BlizzardApiCharacterSummary>(
         `/profile/wow/character/${realmSlug}/${nameSlug}`,
-        { namespace: BattleNetNamespace.PROFILE, locale: 'en_GB' },
+        this.battleNetService.createQueryOptions(BattleNetNamespace.PROFILE),
         config,
       );
 
@@ -183,7 +183,7 @@ export class CharacterService {
     try {
       const response = await this.battleNetService.query<BlizzardApiCharacterMedia>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/character-media`,
-        { namespace: BattleNetNamespace.PROFILE, locale: 'en_GB' },
+        this.battleNetService.createQueryOptions(BattleNetNamespace.PROFILE),
         config,
       );
 
@@ -227,7 +227,7 @@ export class CharacterService {
     try {
       const response = await this.battleNetService.query<BlizzardApiMountsCollection>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/collections/mounts`,
-        { namespace: BattleNetNamespace.PROFILE, locale: 'en_GB' },
+        this.battleNetService.createQueryOptions(BattleNetNamespace.PROFILE),
         config,
       );
 
@@ -267,7 +267,7 @@ export class CharacterService {
     try {
       const response = await this.battleNetService.query<BlizzardApiPetsCollection>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/collections/pets`,
-        { namespace: BattleNetNamespace.PROFILE, locale: 'en_GB' },
+        this.battleNetService.createQueryOptions(BattleNetNamespace.PROFILE),
         config,
       );
 
@@ -307,7 +307,7 @@ export class CharacterService {
     try {
       const response = await this.battleNetService.query<BlizzardApiCharacterProfessions>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/professions`,
-        { namespace: BattleNetNamespace.PROFILE, locale: 'en_GB' },
+        this.battleNetService.createQueryOptions(BattleNetNamespace.PROFILE),
         config,
       );
 

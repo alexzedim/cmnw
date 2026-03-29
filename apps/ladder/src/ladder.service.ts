@@ -161,10 +161,7 @@ export class LadderService implements OnApplicationBootstrap {
   private async fetchPvPSeasonIndex(config: IBattleNetClientConfig): Promise<IPvPSeasonIndexResponse> {
     const response = await this.battleNetService.query<IPvPSeasonIndexResponse>(
       '/data/wow/pvp-season/index',
-      {
-        namespace: BattleNetNamespace.DYNAMIC,
-        locale: 'en_GB',
-      },
+      this.battleNetService.createQueryOptions(BattleNetNamespace.DYNAMIC),
       config,
     );
     return response;
@@ -177,7 +174,7 @@ export class LadderService implements OnApplicationBootstrap {
   ): Promise<IPvPLeaderboardResponse> {
     const response = await this.battleNetService.query<IPvPLeaderboardResponse>(
       `/data/wow/pvp-season/${seasonId}/pvp-leaderboard/${bracket}`,
-      { namespace: BattleNetNamespace.DYNAMIC, locale: 'en_GB' },
+      this.battleNetService.createQueryOptions(BattleNetNamespace.DYNAMIC),
       config,
     );
 
@@ -322,7 +319,7 @@ export class LadderService implements OnApplicationBootstrap {
       try {
         const seasonDetailResponse = await this.battleNetService.query<IMythicKeystoneSeasonDetail>(
           `/data/wow/mythic-keystone/season/${season.id}`,
-          { namespace: BattleNetNamespace.DYNAMIC, locale: 'en_GB' },
+          this.battleNetService.createQueryOptions(BattleNetNamespace.DYNAMIC),
           config,
         );
 
@@ -503,7 +500,7 @@ export class LadderService implements OnApplicationBootstrap {
   ): Promise<MythicLeaderboardGroup[]> {
     const response = await this.battleNetService.query<IMythicLeaderboardResponse>(
       `/data/wow/connected-realm/${connectedRealmId}/mythic-leaderboard/${dungeonId}/period/${period}`,
-      { namespace: BattleNetNamespace.DYNAMIC, locale: 'en_GB' },
+      this.battleNetService.createQueryOptions(BattleNetNamespace.DYNAMIC),
       config,
     );
 
