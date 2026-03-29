@@ -143,7 +143,7 @@ export class AuctionsService implements OnApplicationBootstrap {
         return;
       }
 
-      const { price, lastModified, last_updated_timestamp: timestamp } = response;
+      const { price, last_updated_timestamp: timestamp } = response;
 
       const isWowTokenExists = await this.marketRepository.exists({
         where: {
@@ -155,7 +155,7 @@ export class AuctionsService implements OnApplicationBootstrap {
       });
 
       if (isWowTokenExists) {
-        this.logger.debug(`Token exists on timestamp ${timestamp} | ${lastModified}`);
+        this.logger.debug(`Token exists on timestamp ${timestamp}`);
         return;
       }
 
