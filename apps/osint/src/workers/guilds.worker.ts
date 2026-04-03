@@ -14,8 +14,8 @@ import { GuildsEntity } from '@app/pg';
 import {
   isEuRegion,
   toSlug,
-  hasAnyGuildErrorInString,
-  isAllGuildSuccessInString,
+  hasCoreGuildErrorInString,
+  isCoreGuildSuccessInString,
   setGuildStatusString,
   GuildStatusState,
   guildsQueue,
@@ -126,7 +126,7 @@ export class GuildsWorker extends WorkerHost {
       guildEntity.status = this.aggregateGuildStatus(guildEntity.status, operationStatuses);
       await this.guildService.save(guildEntity);
 
-      if (!hasAnyGuildErrorInString(guildEntity.status) && isAllGuildSuccessInString(guildEntity.status)) {
+      if (!hasCoreGuildErrorInString(guildEntity.status) && isCoreGuildSuccessInString(guildEntity.status)) {
         this.stats.success++;
       }
 
@@ -205,8 +205,8 @@ export class GuildsWorker extends WorkerHost {
     const status = guild.status;
     const guid = guild.guid;
 
-    const hasErrors = hasAnyGuildErrorInString(status);
-    const isSuccess = isAllGuildSuccessInString(status);
+    const hasErrors = hasCoreGuildErrorInString(status);
+    const isSuccess = isCoreGuildSuccessInString(status);
 
     if (isSuccess) {
       this.logger.log(formatWorkerLog(WorkerLogStatus.SUCCESS, this.stats.total, guid, duration, `status: ${status}`));

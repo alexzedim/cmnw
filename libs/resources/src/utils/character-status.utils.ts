@@ -301,7 +301,12 @@ export function toLowercaseStatusString(status: string): string {
 // Guild Status Utility Functions
 // ============================================================================
 
-import { GuildStatusState, GUILD_STATUS_CODES, GUILD_STATUS_OPERATION_ORDER } from '@app/resources/constants';
+import {
+  GuildStatusState,
+  GUILD_STATUS_CODES,
+  GUILD_STATUS_OPERATION_ORDER,
+  GUILD_CORE_OPERATIONS,
+} from '@app/resources/constants';
 
 /**
  * Set operation status in guild status string
@@ -465,6 +470,22 @@ export function isAllGuildSuccessInString(status: string): boolean {
  */
 export function hasAnyGuildErrorInString(status: string): boolean {
   return getFailedGuildOperationsInString(status).length > 0;
+}
+
+export function isCoreGuildSuccessInString(status: string): boolean {
+  const coreFailed = GUILD_CORE_OPERATIONS.filter((op) =>
+    isGuildOperationErrorInString(status, op as keyof typeof GUILD_STATUS_CODES),
+  );
+  const corePending = GUILD_CORE_OPERATIONS.filter((op) =>
+    isGuildOperationPendingInString(status, op as keyof typeof GUILD_STATUS_CODES),
+  );
+  return coreFailed.length === 0 && corePending.length === 0;
+}
+
+export function hasCoreGuildErrorInString(status: string): boolean {
+  return GUILD_CORE_OPERATIONS.some((op) =>
+    isGuildOperationErrorInString(status, op as keyof typeof GUILD_STATUS_CODES),
+  );
 }
 
 /**
