@@ -13,6 +13,7 @@ import {
   setStatusString,
   CharacterStatusState,
   CHARACTER_STATUS_CODES,
+  isEndpointSuccessInString,
 } from '@app/resources';
 import {
   WorkerStats,
@@ -215,7 +216,7 @@ export class CharactersWorker extends WorkerHost {
   private logCharacterResult(character: CharactersEntity, duration: number): void {
     const status = character.status || '------';
     const guid = character.guid;
-    const isAllSuccess = status === 'SU-MPVR';
+    const isAllSuccess = isEndpointSuccessInString(status, 'STATUS') && isEndpointSuccessInString(status, 'SUMMARY');
     const hasAnyError = /[a-z]/.test(status);
 
     if (isAllSuccess) {
