@@ -66,3 +66,5 @@ export const GUILD_STATUS_CODES = {
  * Defines the position of each operation in the 5-character status string
  */
 export const GUILD_STATUS_OPERATION_ORDER = ['SUMMARY', 'ROSTER', 'MEMBERS', 'LOGS', 'MASTER'] as const;
+
+export const GUILD_CORE_OPERATIONS = ['SUMMARY', 'ROSTER', 'MEMBERS'] as const;
