@@ -259,7 +259,7 @@ export class BattleNetService {
   private async waitForCooldown(keyUuid: string): Promise<void> {
     const cooldownMs = await this.getKeyCooldownMs(keyUuid);
     if (cooldownMs > 0) {
-      this.logger.warn(`Waiting ${cooldownMs}ms for key ${keyUuid} cooldown`);
+      this.logger.warn(`Waiting ${(cooldownMs / 1000).toFixed(2)}s for key ${keyUuid} cooldown`);
       await this.delay(cooldownMs);
     }
   }
