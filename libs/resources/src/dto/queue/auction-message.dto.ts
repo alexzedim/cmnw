@@ -35,18 +35,17 @@ export class AuctionMessageDto {
    * @returns New AuctionMessageDto instance
    */
   static create(data: IAuctionMessageBase, opts?: JobsOptions): AuctionMessageDto {
-    const jobId =
+    const name =
       data.connectedRealmId === REALM_ENTITY_ANY.connectedRealmId
         ? `commodity-${data.connectedRealmId}`
         : `auctions-${data.connectedRealmId}`;
 
     const mergedOpts = {
-      jobId: jobId,
       ...auctionsQueue.defaultJobOptions,
       ...opts,
     };
 
-    const dto = new AuctionMessageDto(jobId, data, mergedOpts);
+    const dto = new AuctionMessageDto(name, data, mergedOpts);
     return dto;
   }
 }
