@@ -81,24 +81,30 @@ export class AuctionsWorker extends WorkerHost {
     const message = job.data;
 
     try {
-      this.logger.debug({
-        logTag: 'handleAuctionMessage',
-        message: 'Received auction message',
-        data: message,
-      });
+      this.logger.debug(
+        formatWorkerLog(
+          WorkerLogStatus.INFO,
+          this.stats.total,
+          `realm ${message.connectedRealmId}`,
+          0,
+          'Received auction message',
+        ),
+      );
 
       const isCommodity = message.connectedRealmId === REALM_ENTITY_ANY.id;
 
       const previousTimestamp = isCommodity ? message.commoditiesTimestamp : message.auctionsTimestamp;
 
       if (!previousTimestamp) {
-        this.logger.error({
-          logTag: 'handleAuctionMessage',
-          message: `Missing timestamp for ${isCommodity ? 'commodity' : 'auctions'}`,
-          connectedRealmId: message.connectedRealmId,
-          auctionsTimestamp: message.auctionsTimestamp,
-          commoditiesTimestamp: message.commoditiesTimestamp,
-        });
+        this.logger.error(
+          formatWorkerErrorLog(
+            this.stats.total,
+            `realm ${message.connectedRealmId}`,
+            0,
+            `Missing ${isCommodity ? 'commoditiesTimestamp' : 'auctionsTimestamp'} in message`,
+            'handleAuctionMessage',
+          ),
+        );
         throw new Error(`Missing ${isCommodity ? 'commoditiesTimestamp' : 'auctionsTimestamp'} in message`);
       }
 
@@ -186,17 +192,25 @@ export class AuctionsWorker extends WorkerHost {
                 }
 
                 iterator += ordersBulkAuctions.length;
-                this.logger.log({
-                  logTag: 'ordersBatch',
-                  connectedRealmId,
-                  iterator,
-                  timestamp,
-                });
+                this.logger.debug(
+                  formatWorkerLog(
+                    WorkerLogStatus.INFO,
+                    this.stats.total,
+                    `realm ${connectedRealmId}`,
+                    0,
+                    `${iterator} orders saved`,
+                  ),
+                );
               } catch (errorOrException) {
-                this.logger.error({
-                  logTag: 'ordersBatch',
-                  error: JSON.stringify(errorOrException),
-                });
+                this.logger.error(
+                  formatWorkerErrorLog(
+                    this.stats.total,
+                    `realm ${connectedRealmId}`,
+                    0,
+                    errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
+                    'ordersBatch',
+                  ),
+                );
               }
             }),
           ),

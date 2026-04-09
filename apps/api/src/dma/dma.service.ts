@@ -20,6 +20,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { ContractEntity, ItemsEntity, KeysEntity, MarketEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import Redis from 'ioredis';
+import { formatServiceErrorLog } from '@app/logger';
 
 @Injectable()
 export class DmaService {
@@ -425,15 +426,16 @@ export class DmaService {
 
       return priceLevelDataset;
     } catch (errorOrException) {
-      // Log error and return empty dataset for this timestamp
-      const logTag = 'processTimestampData';
-      this.logger.error({
-        logTag,
-        timestamp,
-        itemId,
-        errorOrException,
-        message: `Error processing timestamp ${timestamp} for item ${itemId}`,
-      });
+      this.logger.error(
+        formatServiceErrorLog(
+          'processTimestampData',
+          `item-${itemId}`,
+          0,
+          `timestamp ${timestamp}: ${
+            errorOrException instanceof Error ? errorOrException.message : String(errorOrException)
+          }`,
+        ),
+      );
       return yPriceAxis.map((priceLevel, ytx) => ({
         lt: yPriceAxis[ytx + 1] ?? priceLevel,
         x: itx,
@@ -467,14 +469,14 @@ export class DmaService {
 
       return { dataset };
     } catch (errorOrException) {
-      const logTag = 'buildChartDataset';
-      this.logger.error({
-        logTag,
-        itemId,
-        errorOrException,
-        message: `Error building chart dataset for item ${itemId}`,
-      });
-      // Return empty dataset on error
+      this.logger.error(
+        formatServiceErrorLog(
+          'buildChartDataset',
+          `item-${itemId}`,
+          0,
+          errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
+        ),
+      );
       return { dataset: [] };
     }
   }

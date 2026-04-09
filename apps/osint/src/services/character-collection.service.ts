@@ -23,6 +23,7 @@ import {
   MountsEntity,
   PetsEntity,
 } from '@app/pg';
+import { formatServiceErrorLog } from '@app/logger';
 import { CharacterEntityIndexingService } from './character-entity-indexing.service';
 
 @Injectable()
@@ -134,11 +135,14 @@ export class CharacterCollectionService {
 
       return mountsCollection;
     } catch (errorOrException) {
-      this.logger.error({
-        logTag: 'syncCharacterMounts',
-        guid: `${nameSlug}@${realmSlug}`,
-        error: JSON.stringify(errorOrException),
-      });
+      this.logger.error(
+        formatServiceErrorLog(
+          'syncCharacterMounts',
+          `${nameSlug}@${realmSlug}`,
+          0,
+          errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
+        ),
+      );
       mountsCollection.status = setStatusString(
         mountsCollection.status || '------',
         'MOUNTS',
@@ -233,10 +237,15 @@ export class CharacterCollectionService {
                   characterPetsEntities.push(characterPetEntity);
                 }
               } catch (error) {
-                this.logger.error({
-                  logTag: 'syncCharacterPets|processPet',
-                  error: JSON.stringify(error),
-                });
+                this.logger.error(
+                  formatServiceErrorLog(
+                    'syncCharacterPets',
+                    `${nameSlug}@${realmSlug}`,
+                    0,
+                    error instanceof Error ? error.message : String(error),
+                    'processPet',
+                  ),
+                );
               }
             }, 5),
           ),
@@ -275,11 +284,14 @@ export class CharacterCollectionService {
 
       return petsCollection;
     } catch (errorOrException) {
-      this.logger.error({
-        logTag: 'syncCharacterPets',
-        guid: `${nameSlug}@${realmSlug}`,
-        error: JSON.stringify(errorOrException),
-      });
+      this.logger.error(
+        formatServiceErrorLog(
+          'syncCharacterPets',
+          `${nameSlug}@${realmSlug}`,
+          0,
+          errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
+        ),
+      );
       petsCollection.status = setStatusString(petsCollection.status || '------', 'PETS', CharacterStatusState.ERROR);
       return petsCollection;
     }
@@ -351,12 +363,14 @@ export class CharacterCollectionService {
 
       return professionsSummary;
     } catch (errorOrException) {
-      this.logger.error({
-        logTag: 'syncCharacterProfessions',
-        guid: `${nameSlug}@${realmSlug}`,
-        error: JSON.stringify(errorOrException),
-      });
-      // Set status to ERROR for PROFESSIONS endpoint on exception
+      this.logger.error(
+        formatServiceErrorLog(
+          'syncCharacterProfessions',
+          `${nameSlug}@${realmSlug}`,
+          0,
+          errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
+        ),
+      );
       professionsData.status = setStatusString(
         professionsData.status || '------',
         'PROFESSIONS',

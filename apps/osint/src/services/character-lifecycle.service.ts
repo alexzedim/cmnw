@@ -12,6 +12,7 @@ import {
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
 import { CharactersEntity, CharactersGuildsLogsEntity, RealmsEntity } from '@app/pg';
+import { formatServiceErrorLog } from '@app/logger';
 
 @Injectable()
 export class CharacterLifecycleService {
@@ -141,11 +142,14 @@ export class CharacterLifecycleService {
         await this.charactersGuildsLogsRepository.save(logEntity);
       }
     } catch (errorOrException) {
-      this.logger.error({
-        logTag: 'diffAndLogChanges',
-        guid: original.guid,
-        error: JSON.stringify(errorOrException),
-      });
+      this.logger.error(
+        formatServiceErrorLog(
+          'diffAndLogChanges',
+          original.guid,
+          0,
+          errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
+        ),
+      );
     }
   }
 
