@@ -5,6 +5,7 @@ import { Repository } from 'typeorm';
 import { AxiosResponse, AxiosHeaders } from 'axios';
 import { lastValueFrom } from 'rxjs';
 import { map, timeout } from 'rxjs/operators';
+import chalk from 'chalk';
 import { IBattleNetClientConfig, IBattleNetQueryOptions, DEFAULT_RETRY_CONFIG } from './types';
 import { BattleNetRegion } from './enums';
 import { BATTLE_NET_BASE_URLS, BATTLE_NET_OSINT_TIMEOUT } from './constants';
@@ -61,7 +62,10 @@ export class BattleNetService {
       lastError = new Error(
         `No available Battle.net key found${tag ? ` for tag '${tag}'` : ''} after ${attempt} attempts`,
       );
-      this.logger.warn(`${lastError.message} | retrying in ${delayMs}ms`);
+      this.logger.warn(
+        `${chalk.yellow('⚠')} ${chalk.yellow('Retry')} attempt ${chalk.bold(attempt)}/${chalk.bold(maxAttempts)}` +
+          ` ${chalk.dim(`retrying in ${delayMs}ms`)}`,
+      );
       await this.delay(delayMs);
     }
 
@@ -99,7 +103,10 @@ export class BattleNetService {
     key.lastFailureAt = new Date();
 
     await this.keysRepository.save(key);
-    this.logger.warn(`${isRateLimit ? 'Rate limited' : 'Error'}: ${keyUuid} | cooldown: ${newCooldown}s`);
+    this.logger.warn(
+      `${isRateLimit ? chalk.yellow('⚠ 429 Rate limited') : chalk.red('✗ Error')}` +
+        ` ${chalk.dim(`key ${keyUuid}`)} | cooldown: ${chalk.bold(`${newCooldown}s`)}`,
+    );
     return newCooldown;
   }
 
@@ -153,7 +160,7 @@ export class BattleNetService {
 
     await this.keysRepository.save(key);
 
-    this.logger.log(`Token refreshed for key ${keyUuid}`);
+    this.logger.log(`${chalk.green('✓')} ${chalk.green('Token refreshed')} ${chalk.dim(`key ${keyUuid}`)}`);
     return key.accessToken;
   }
 
@@ -162,7 +169,7 @@ export class BattleNetService {
       cooldownDelaySeconds: 0,
       lastFailureAt: null,
     });
-    this.logger.log(`Key health reset: ${keyUuid}`);
+    this.logger.log(`${chalk.green('✓')} ${chalk.green('Key health reset')} ${chalk.dim(keyUuid)}`);
   }
 
   async getAvailableKey(tag?: string): Promise<KeysEntity | null> {
@@ -259,7 +266,10 @@ export class BattleNetService {
   private async waitForCooldown(keyUuid: string): Promise<void> {
     const cooldownMs = await this.getKeyCooldownMs(keyUuid);
     if (cooldownMs > 0) {
-      this.logger.warn(`Waiting ${(cooldownMs / 1000).toFixed(2)}s for key ${keyUuid} cooldown`);
+      this.logger.warn(
+        `${chalk.yellow('⏳')} ${chalk.yellow('Cooldown')} ${chalk.bold(`${(cooldownMs / 1000).toFixed(2)}s`)}` +
+          ` ${chalk.dim(`key ${keyUuid}`)}`,
+      );
       await this.delay(cooldownMs);
     }
   }
@@ -306,14 +316,20 @@ export class BattleNetService {
       } catch (error) {
         if (this.isRateLimitError(error)) {
           if (attempt > maxRetries) {
-            this.logger.error(`Rate limited after ${attempt} attempts for ${url}`);
+            this.logger.error(
+              `${chalk.red('✗')} ${chalk.red('429 Rate limited')}` +
+                ` after ${chalk.bold(attempt)} attempts ${chalk.dim(url)}`,
+            );
             if (this._currentKeyUuid) {
               await this.recordKeyRateLimit(this._currentKeyUuid);
             }
             throw error;
           }
 
-          this.logger.warn(`Rate limited (attempt ${attempt}/${maxRetries}) for ${url}`);
+          this.logger.warn(
+            `${chalk.yellow('⚠')} ${chalk.yellow('429 Rate limited')}` +
+              ` ${chalk.dim(`(attempt ${attempt}/${maxRetries})`)} ${chalk.dim(url)}`,
+          );
 
           if (this._currentKeyUuid) {
             await this.recordKeyRateLimit(this._currentKeyUuid);
@@ -323,12 +339,17 @@ export class BattleNetService {
           continue;
         } else if (this.isServerError(error)) {
           if (attempt > maxRetries) {
-            this.logger.error(`Server error after ${attempt} attempts for ${url}`);
+            this.logger.error(
+              `${chalk.red('✗')} ${chalk.red('Server error')}` +
+                ` after ${chalk.bold(attempt)} attempts ${chalk.dim(url)}`,
+            );
             throw error;
           }
 
           this.logger.warn(
-            `Server error (attempt ${attempt}/${maxRetries}) for ${url} - retrying in ${fixedRetryDelay}ms`,
+            `${chalk.yellow('⚠')} ${chalk.yellow('Server error')}` +
+              ` ${chalk.dim(`(attempt ${attempt}/${maxRetries})`)}` +
+              ` ${chalk.dim(`retrying in ${fixedRetryDelay}ms ${url}`)}`,
           );
           await this.delay(fixedRetryDelay);
           continue;
