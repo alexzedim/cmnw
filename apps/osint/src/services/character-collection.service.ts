@@ -15,6 +15,8 @@ import {
   toGuid,
   setStatusString,
   CharacterStatusState,
+  EXPANSION_TICKER,
+  EXPANSION_TICKER_MAP,
 } from '@app/resources';
 import {
   CharactersMountsEntity,
@@ -342,7 +344,18 @@ export class CharacterCollectionService {
                 });
 
                 professionRecords.push(record);
-                professionsSummary.push(`${professionName} ${skill_points}/${max_skill_points}`);
+                let expansionTicker = EXPANSION_TICKER.CLSC;
+                Array.from(EXPANSION_TICKER_MAP.entries()).some(([key, ticker]) => {
+                  if (tierName.includes(key)) {
+                    expansionTicker = ticker;
+                    return true;
+                  }
+                  return false;
+                });
+                const specializationSuffix = profSpecialization?.name ? ` (${profSpecialization.name})` : '';
+                professionsSummary.push(
+                  `${expansionTicker} ${professionName}${specializationSuffix} ${skill_points}/${max_skill_points}`,
+                );
               });
             }, 5),
           ),
