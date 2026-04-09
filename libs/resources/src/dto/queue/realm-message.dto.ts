@@ -42,7 +42,6 @@ export class RealmMessageDto {
    */
   static create(data: IRealmMessageBase, opts?: JobsOptions): RealmMessageDto {
     const mergedOpts = {
-      jobId: `${data.id}`,
       ...realmsQueue.defaultJobOptions,
       ...opts,
     };
