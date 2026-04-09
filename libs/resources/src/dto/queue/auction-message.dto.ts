@@ -13,39 +13,29 @@ export interface IAuctionMessageBase {
 
 export class AuctionMessageDto {
   public readonly name: string;
+  public readonly jobId: string;
   public readonly data: IAuctionMessageBase;
   public readonly opts?: JobsOptions;
 
-  /**
-   * Constructor - creates a validated Auction Message with BullMQ properties
-   * @param name - Queue name (e.g., 'dma.auctions')
-   * @param data - Auction message data
-   * @param opts - BullMQ job options (optional)
-   */
   constructor(name: string, data: IAuctionMessageBase, opts?: JobsOptions) {
     this.name = name;
     this.data = data;
     this.opts = opts;
   }
 
-  /**
-   * Create from auction data with BullMQ options
-   * @param data - Auction data
-   * @param opts - Optional job options
-   * @returns New AuctionMessageDto instance
-   */
   static create(data: IAuctionMessageBase, opts?: JobsOptions): AuctionMessageDto {
-    const name =
+    const jobId =
       data.connectedRealmId === REALM_ENTITY_ANY.connectedRealmId
-        ? `commodity-${data.connectedRealmId}`
-        : `auctions-${data.connectedRealmId}`;
+        ? `commodity-${data.connectedRealmId}-${data.commoditiesTimestamp}`
+        : `auctions-${data.connectedRealmId}-${data.auctionsTimestamp}`;
 
     const mergedOpts = {
+      jobId: jobId,
       ...auctionsQueue.defaultJobOptions,
       ...opts,
     };
 
-    const dto = new AuctionMessageDto(name, data, mergedOpts);
+    const dto = new AuctionMessageDto(jobId, data, mergedOpts);
     return dto;
   }
 }

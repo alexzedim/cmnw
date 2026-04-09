@@ -111,7 +111,7 @@ export class GuildMessageDto {
   /**
    * Create from Guild Characters Unique (discovered from character rosters)
    * Pattern: GuildsService.indexGuildCharactersUnique
-   * Priority: 7
+   * Priority: 3
    */
   static fromGuildCharactersUnique(params: {
     name: string;
@@ -139,7 +139,7 @@ export class GuildMessageDto {
     const opts: JobsOptions = {
       jobId: guid,
       ...guildsQueue.defaultJobOptions,
-      priority: 7,
+      priority: 3,
     };
 
     const dto = new GuildMessageDto(guid, guildData, opts);
@@ -191,7 +191,7 @@ export class GuildMessageDto {
    * Create from Hall of Fame (Blizzard leaderboards)
    * Pattern: GuildsService.indexHallOfFame
    * Note: Only EU region is supported - any other region will be ignored and defaulted to EU
-   * Priority: 9
+   * Priority: 2
    */
   static fromHallOfFame(params: {
     id?: number;
@@ -230,7 +230,7 @@ export class GuildMessageDto {
     const opts: JobsOptions = {
       jobId: guid,
       ...guildsQueue.defaultJobOptions,
-      priority: 9,
+      priority: 2,
     };
 
     const dto = new GuildMessageDto(guid, guildData, opts);
@@ -241,7 +241,7 @@ export class GuildMessageDto {
   /**
    * Create from WoW Progress rankings
    * Pattern: WowProgressRanksService.transformWowProgressToGuildJobs
-   * Priority: 6
+   * Priority: 3
    */
   static fromWowProgress(params: {
     name: string;
@@ -270,7 +270,7 @@ export class GuildMessageDto {
     const opts: JobsOptions = {
       jobId: guid,
       ...guildsQueue.defaultJobOptions,
-      priority: 6,
+      priority: 3,
     };
 
     const dto = new GuildMessageDto(guid, guildData, opts);
@@ -281,7 +281,7 @@ export class GuildMessageDto {
   /**
    * Create from Guild Request (direct API request for specific guild)
    * Pattern: OsintService.getGuild
-   * Priority: 8
+   * Priority: 0
    */
   static fromGuildRequest(params: {
     name: string;
@@ -308,7 +308,7 @@ export class GuildMessageDto {
     const opts: JobsOptions = {
       jobId: guid,
       ...guildsQueue.defaultJobOptions,
-      priority: 8,
+      priority: 0,
     };
 
     const dto = new GuildMessageDto(guildsQueue.name, guildData, opts);
