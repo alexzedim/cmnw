@@ -109,7 +109,7 @@ export class CharactersWorker extends WorkerHost {
     } catch (errorOrException) {
       this.stats.errors++;
       const duration = Date.now() - startTime;
-      const guid = message.name && message.realm ? `${message.name}@${message.realm}` : 'unknown';
+      const guid = message.name && message.realm ? `${toSlug(message.name)}@${toSlug(message.realm)}` : 'unknown';
       const error = errorOrException instanceof Error ? errorOrException.message : String(errorOrException);
 
       this.logger.error(formatWorkerErrorLog(this.stats.total, guid, duration, error));
