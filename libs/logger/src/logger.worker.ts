@@ -139,6 +139,48 @@ export function formatWorkerErrorLog(
   return `${icon} Failed [${countStr}] ${identifier} ${duration}${sourceStr} - ${errorMessage}`;
 }
 
+export function formatServiceLog(
+  status: WorkerLogStatus,
+  method: string,
+  identifier: string,
+  durationMs: number,
+  context?: string,
+  source?: string,
+): string {
+  const config = LOG_CONFIGS[status];
+  const icon = chalk[config.color](config.icon);
+  const statusText = chalk[config.color](config.statusText);
+  const methodStr = chalk.cyan(`[${method}]`);
+  const duration = chalk.dim(`(${durationMs}ms)`);
+
+  let message = `${icon} | ${statusText} ${methodStr} ${chalk.bold(identifier)} ${duration}`;
+
+  if (context) {
+    message += ` ${chalk.dim(`(${context})`)}`;
+  }
+
+  if (source) {
+    message += ` [${chalk.bold(source)}]`;
+  }
+
+  return message;
+}
+
+export function formatServiceErrorLog(
+  method: string,
+  identifier: string,
+  durationMs: number,
+  errorMessage: string,
+  source?: string,
+): string {
+  const icon = chalk.red('✗');
+  const methodStr = chalk.cyan(`[${method}]`);
+  const duration = chalk.dim(`(${durationMs}ms)`);
+  const sourceStr = source ? ` [${chalk.bold(source)}]` : '';
+
+  return `${icon} | FAIL ${methodStr} ${chalk.bold(identifier)} ${duration}${sourceStr} - ${errorMessage}`;
+}
+
 export interface WorkerStats {
   total: number;
   success: number;

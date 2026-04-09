@@ -1,7 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import chalk from 'chalk';
 import { BattleNetService, BattleNetNamespace, IBattleNetClientConfig } from '@app/battle-net';
 import { isAxiosError } from 'axios';
 import { get } from 'lodash';
@@ -30,6 +29,7 @@ import {
   normalizeLocaleField,
 } from '@app/resources';
 import { CharactersEntity } from '@app/pg';
+import { formatServiceLog, formatServiceErrorLog, WorkerLogStatus } from '@app/logger';
 
 @Injectable()
 export class CharacterService {
@@ -104,11 +104,10 @@ export class CharacterService {
 
       const isStatusNotFound = statusCode === 404;
       if (isStatusNotFound) {
-        this.logger.debug(`${chalk.blue('404')} Not found: ${nameSlug}@${realmSlug}`);
+        this.logger.debug(formatServiceLog(WorkerLogStatus.NOT_FOUND, 'getStatus', `${nameSlug}@${realmSlug}`, 0));
       } else {
         this.logger.warn(
-          `${chalk.red('getStatus')} ${nameSlug}@${realmSlug} | ${characterStatus.status} - ` +
-            `${errorOrException.message}`,
+          formatServiceLog(WorkerLogStatus.WARNING, 'getStatus', `${nameSlug}@${realmSlug}`, 0, characterStatus.status),
         );
       }
 
@@ -170,7 +169,7 @@ export class CharacterService {
       summary.status = setStatusString(summary.status || '------', 'SUMMARY', CharacterStatusState.ERROR);
 
       this.logger.error(
-        `${chalk.red('getSummary')} ${nameSlug}@${realmSlug} | ${summary.status} - ${errorOrException.message}`,
+        formatServiceErrorLog('getSummary', `${nameSlug}@${realmSlug}`, 0, errorOrException.message, summary.status),
       );
 
       return summary;
@@ -210,7 +209,7 @@ export class CharacterService {
         : get(errorOrException, 'status', 400);
 
       this.logger.error(
-        `${chalk.red('getMedia')} ${nameSlug}@${realmSlug} | ${statusCode} - ${errorOrException.message}`,
+        formatServiceErrorLog('getMedia', `${nameSlug}@${realmSlug}`, 0, `${statusCode} - ${errorOrException.message}`),
       );
 
       return media;
@@ -250,7 +249,12 @@ export class CharacterService {
         : get(errorOrException, 'status', 400);
 
       this.logger.error(
-        `${chalk.red('getMountsCollection')} ${nameSlug}@${realmSlug} | ${statusCode} - ${errorOrException.message}`,
+        formatServiceErrorLog(
+          'getMountsCollection',
+          `${nameSlug}@${realmSlug}`,
+          0,
+          `${statusCode} - ${errorOrException.message}`,
+        ),
       );
 
       return mounts as BlizzardApiMountsCollection;
@@ -290,7 +294,12 @@ export class CharacterService {
         : get(errorOrException, 'status', 400);
 
       this.logger.error(
-        `${chalk.red('getPetsCollection')} ${nameSlug}@${realmSlug} | ${statusCode} - ${errorOrException.message}`,
+        formatServiceErrorLog(
+          'getPetsCollection',
+          `${nameSlug}@${realmSlug}`,
+          0,
+          `${statusCode} - ${errorOrException.message}`,
+        ),
       );
 
       return pets as BlizzardApiPetsCollection;
@@ -330,7 +339,12 @@ export class CharacterService {
         : get(errorOrException, 'status', 400);
 
       this.logger.error(
-        `${chalk.red('getProfessions')} ${nameSlug}@${realmSlug} | ${statusCode} - ${errorOrException.message}`,
+        formatServiceErrorLog(
+          'getProfessions',
+          `${nameSlug}@${realmSlug}`,
+          0,
+          `${statusCode} - ${errorOrException.message}`,
+        ),
       );
 
       return professions as BlizzardApiCharacterProfessions;
