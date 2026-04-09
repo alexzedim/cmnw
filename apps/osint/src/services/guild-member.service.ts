@@ -108,7 +108,7 @@ export class GuildMemberService {
       );
     }
 
-    const shouldProcessJoins = membersJoinedIds.length && !isNew;
+    const shouldProcessJoins = membersJoinedIds.length > 0;
     if (shouldProcessJoins) {
       await lastValueFrom(
         from(membersJoinedIds).pipe(
