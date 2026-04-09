@@ -135,7 +135,6 @@ export class GuildRosterService {
           resolvedFaction,
         );
       }
-
       await this.saveCharacterAsGuildMember(
         member,
         guildEntity,
