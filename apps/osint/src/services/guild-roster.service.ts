@@ -80,7 +80,7 @@ export class GuildRosterService {
   }
 
   private async processRosterMember(
-    member: any,
+    member: IRGuildRosterMember,
     guildEntity: GuildsEntity,
     guildNameSlug: string,
     roster: IGuildRoster,
@@ -107,7 +107,6 @@ export class GuildRosterService {
         ? PLAYABLE_RACE.get(member.character.playable_race.id)
         : null;
 
-      // @todo
       const factionData = get(member, 'character.faction', null) as Record<string, any> | null;
 
       let resolvedFaction = guildEntity.faction ?? null;
@@ -129,8 +128,6 @@ export class GuildRosterService {
         await this.queueGuildMasterUpdate(
           member,
           guildEntity,
-          guildNameSlug,
-          characterGuid,
           characterRealmSlug,
           level,
           characterClass,
@@ -175,8 +172,6 @@ export class GuildRosterService {
   private async queueGuildMasterUpdate(
     member: Readonly<IRGuildRosterMember>,
     guildEntity: GuildsEntity,
-    guildNameSlug: string,
-    guid: string,
     realmSlug: string,
     level: number | null,
     characterClass: string | null,
@@ -202,7 +197,7 @@ export class GuildRosterService {
   }
 
   private async saveCharacterAsGuildMember(
-    member: any,
+    member: IRGuildRosterMember,
     guildEntity: GuildsEntity,
     guildNameSlug: string,
     guid: string,
