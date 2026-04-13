@@ -105,7 +105,7 @@ export enum EXPANSION_TICKER {
   LT = 'LT', // The Last Titan
 }
 
-export const EXPANSION_TICKER_MAP: Map<string, string> = new Map([
+export const EXPANSION_TICKER_MAP: Map<string, EXPANSION_TICKER> = new Map([
   ['Within', EXPANSION_TICKER.TWW],
   ['Dragon', EXPANSION_TICKER.DF],
   ['Shadowlands', EXPANSION_TICKER.SHDW],
