@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { OSINT_SOURCE, TIME_MS } from '@app/resources/constants';
+import { OSINT_SOURCE, TIME_MS, PLAYABLE_CLASS, PLAYABLE_RACE } from '@app/resources/constants';
 import { toGuid } from '@app/resources/transformers';
 import { charactersQueue } from '@app/resources/queues/characters.queue';
 import { normalizeRealmName } from '@app/resources/guard';
@@ -44,7 +44,6 @@ export interface ICharacterMessageBase {
   avatarImage?: string;
   insetImage?: string;
   mainImage?: string;
-  statusCode?: number;
   hashA?: string;
   hashB?: string;
 
@@ -77,6 +76,7 @@ export interface ICharacterMessageBase {
  * @see fromCharacterIndex - Character database index (priority: 5)
  * @see fromGuildMember - Guild member from guild roster (priority: 4)
  * @see fromMigrationFile - S3 migration file (priority: 3)
+ * @see fromAddonScan - Addon scan file entry (priority: 3)
  * @see fromCharacterRequest - Direct API request (priority: 0)
  *
  * GUID FORMAT:
@@ -85,6 +85,25 @@ export interface ICharacterMessageBase {
  * - Format: "character-name@realm-slug"
  * - Example: toGuid('Arthas', 'Burning Legion') => 'arthas@burning-legion'
  */
+export interface IAddonScanEntry {
+  guid: string;
+  id?: number;
+  name: string;
+  realmId?: number;
+  realm: string;
+  guild?: string;
+  guildGuid?: string;
+  guildRank?: number;
+  class?: number | string;
+  race?: number | string;
+  gender?: string;
+  faction?: string;
+  level?: number;
+  lastModified?: string;
+  createdBy?: string;
+  updatedBy?: string;
+}
+
 export class CharacterMessageDto {
   public readonly name: string;
   public readonly data: ICharacterMessageBase;
@@ -492,6 +511,42 @@ export class CharacterMessageDto {
 
     const dto = new CharacterMessageDto(characterData.guid, characterData, opts);
     dto.validate(false, 'CharacterMessageDto.fromMigrationFile');
+    return dto;
+  }
+
+  static fromAddonScan(params: IAddonScanEntry & { iteration?: number }): CharacterMessageDto {
+    const [nameSlug, realmSlug] = params.guid.split('@');
+    const characterData: ICharacterMessageBase = {
+      guid: params.guid,
+      id: params.id,
+      name: params.name || nameSlug,
+      realm: params.realm || realmSlug,
+      realmId: params.realmId,
+      guild: params.guild,
+      guildGuid: params.guildGuid,
+      guildRank: params.guildRank,
+      class: typeof params.class === 'number' ? PLAYABLE_CLASS.get(params.class) : params.class,
+      race: typeof params.race === 'number' ? PLAYABLE_RACE.get(params.race) : params.race,
+      gender: params.gender,
+      faction: params.faction,
+      level: params.level,
+      lastModified: params.lastModified ? new Date(params.lastModified) : undefined,
+      iteration: params.iteration,
+      region: 'eu',
+      forceUpdate: TIME_MS.IMMEDIATE,
+      createOnlyUnique: true,
+      createdBy: (params.createdBy as OSINT_SOURCE) || OSINT_SOURCE.OSINT_LUA,
+      updatedBy: (params.updatedBy as OSINT_SOURCE) || OSINT_SOURCE.OSINT_LUA,
+    };
+
+    const opts: JobsOptions = {
+      jobId: characterData.guid,
+      ...charactersQueue.defaultJobOptions,
+      priority: 0,
+    };
+
+    const dto = new CharacterMessageDto(characterData.guid, characterData, opts);
+    dto.validate(false, 'CharacterMessageDto.fromAddonScan');
     return dto;
   }
 

@@ -1,5 +1,6 @@
 export interface IOsintConfig {
   readonly isIndexCharactersFromFile: boolean;
+  readonly isIndexCharactersFromOsintFile: boolean;
   readonly isIndexGuildsFromCharacters: boolean;
 
   readonly wclFromPage: number;
