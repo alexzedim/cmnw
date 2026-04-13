@@ -65,6 +65,8 @@ export interface SummaryFieldMapping {
   transform?: SummaryFieldTransformer;
 }
 
+export const GUILD_INHERIT_KEYS = ['guild', 'guildGuid', 'guildId', 'guildRank'] as const;
+
 export const CHARACTER_ARGS_ENTITY_KEYS = [
   'id',
   'guild',
