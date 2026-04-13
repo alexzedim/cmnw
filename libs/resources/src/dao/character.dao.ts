@@ -14,7 +14,7 @@ export const characterAsGuildMember = async (
   });
 
   if (characterEntity) {
-    const isUpdateByGuild = isGuildUpdateMoreRecent(guildEntity.lastModified, characterEntity.lastModified);
+    const isUpdateByGuild = isGuildUpdateMoreRecent(guildEntity.lastModified, characterEntity.updatedAt);
 
     if (isUpdateByGuild) {
       characterEntity.guildGuid = guildEntity.guid;
