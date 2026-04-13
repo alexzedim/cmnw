@@ -115,15 +115,15 @@ export class AuctionsWorker extends WorkerHost {
         ? '/data/wow/auctions/commodities'
         : `/data/wow/connected-realm/${message.connectedRealmId}/auctions`;
 
-      const marketResponse = await this.battleNetService.query<BlizzardApiAuctions>(
+      const marketResponse = await this.battleNetService.queryWithResponse<BlizzardApiAuctions>(
         getMarketApiEndpoint,
-        this.battleNetService.createQueryOptions(BattleNetNamespace.DYNAMIC, 60_000, undefined, {
+        this.battleNetService.createQueryOptions(BattleNetNamespace.DYNAMIC, 60_000, 'en_GB', {
           'If-Modified-Since': ifModifiedSince,
         }),
         config,
       );
 
-      const isAuctionsValid = isAuctions(marketResponse);
+      const isAuctionsValid = isAuctions(marketResponse.data);
       if (!isAuctionsValid) {
         this.stats.notModified++;
         const duration = Date.now() - startTime;
@@ -136,9 +136,27 @@ export class AuctionsWorker extends WorkerHost {
 
       const connectedRealmId = isCommodity ? REALM_ENTITY_ANY.id : message.connectedRealmId;
 
-      const timestamp = DateTime.fromRFC2822(marketResponse.lastModified).toMillis();
+      const lastModifiedHeader = marketResponse.headers['last-modified'];
 
-      const { auctions } = marketResponse;
+      if (!lastModifiedHeader || typeof lastModifiedHeader !== 'string') {
+        this.stats.noData++;
+        const duration = Date.now() - startTime;
+        const realmId = message.connectedRealmId;
+        this.logger.log(
+          formatWorkerLog(
+            WorkerLogStatus.SKIPPED,
+            this.stats.total,
+            `realm ${realmId}`,
+            duration,
+            'Missing last-modified header',
+          ),
+        );
+        return;
+      }
+
+      const timestamp = DateTime.fromRFC2822(lastModifiedHeader).toMillis();
+
+      const { auctions } = marketResponse.data;
 
       const auctionsString = JSON.stringify(auctions);
       const payloadBytes = Buffer.byteLength(auctionsString, 'utf8');
