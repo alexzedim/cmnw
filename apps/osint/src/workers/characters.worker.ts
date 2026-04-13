@@ -61,6 +61,8 @@ export class CharactersWorker extends WorkerHost {
       const { characterEntity, isNew, isCreateOnlyUnique, isNotReadyToUpdate } =
         await this.lifecycleService.findOrCreateCharacter(message);
 
+      const loadedUpdatedAt = characterEntity.updatedAt ? new Date(characterEntity.updatedAt) : null;
+
       const shouldSkipUpdate = isNotReadyToUpdate || isCreateOnlyUnique;
       if (shouldSkipUpdate) {
         this.stats.skipped++;
@@ -95,6 +97,16 @@ export class CharactersWorker extends WorkerHost {
         const original = await this.lifecycleService.findByGuid(characterEntity.guid);
         if (original) {
           await this.lifecycleService.handleExistingCharacterUpdates(original, characterEntity);
+        }
+      }
+
+      if (!isNew && loadedUpdatedAt) {
+        const currentDbState = await this.lifecycleService.findByGuid(characterEntity.guid);
+        if (currentDbState && currentDbState.updatedAt > loadedUpdatedAt) {
+          characterEntity.guildGuid = currentDbState.guildGuid;
+          characterEntity.guild = currentDbState.guild;
+          characterEntity.guildId = currentDbState.guildId;
+          characterEntity.guildRank = currentDbState.guildRank;
         }
       }
 
