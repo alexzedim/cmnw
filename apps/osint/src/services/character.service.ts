@@ -3,11 +3,12 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { BattleNetService, BattleNetNamespace, IBattleNetClientConfig } from '@app/battle-net';
 import { isAxiosError } from 'axios';
-import { get } from 'lodash';
+import { get, set } from 'lodash';
 import {
   BlizzardApiCharacterMedia,
   BlizzardApiCharacterSummary,
   BlizzardApiPetsCollection,
+  CHARACTER_ARGS_ENTITY_KEYS,
   CHARACTER_MEDIA_FIELD_MAPPING,
   CHARACTER_SUMMARY_FIELD_MAPPING,
   CharacterStatus,
@@ -49,10 +50,10 @@ export class CharacterService {
   }
 
   inheritSafeValuesFromArgs(entity: CharactersEntity, args: ICharacterMessageBase): void {
-    for (const key of CHARACTER_SUMMARY_FIELD_MAPPING.keys()) {
-      const isInheritKeyValue = args[key] && !entity[key];
-      if (isInheritKeyValue) {
-        entity[key] = args[key];
+    for (const key of CHARACTER_ARGS_ENTITY_KEYS) {
+      const value = args[key];
+      if (value != null && !entity[key]) {
+        set(entity, key, value);
       }
     }
   }
@@ -165,20 +166,20 @@ export class CharacterService {
         summary.guildGuid = null;
         summary.guildRank = null;
       }
-     
+
       if (response.guild) {
         const guildName = get(response, 'guild.name', null);
         const guildRealmSlug = get(response, 'guild.realm.slug', null);
         const guildId = get(response, 'guild.id', null);
-        
+
         if (guildId) {
           summary.guildId = guildId;
         }
-        
+
         if (guildName) {
           summary.guild = guildName;
         }
-        
+
         if (guildName && guildRealmSlug) {
           summary.guildGuid = toGuid(guildName, guildRealmSlug);
         }

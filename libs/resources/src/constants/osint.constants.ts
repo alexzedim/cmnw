@@ -65,6 +65,36 @@ export interface SummaryFieldMapping {
   transform?: SummaryFieldTransformer;
 }
 
+export const CHARACTER_ARGS_ENTITY_KEYS = [
+  'id',
+  'guild',
+  'guildGuid',
+  'guildId',
+  'guildRank',
+  'hashA',
+  'hashB',
+  'race',
+  'class',
+  'specialization',
+  'gender',
+  'faction',
+  'level',
+  'achievementPoints',
+  'averageItemLevel',
+  'equippedItemLevel',
+  'covenantId',
+  'avatarImage',
+  'insetImage',
+  'mainImage',
+  'mountsNumber',
+  'petsNumber',
+  'lastModified',
+  'createdBy',
+  'updatedBy',
+] as const;
+
+export type CharacterArgsEntityKey = (typeof CHARACTER_ARGS_ENTITY_KEYS)[number];
+
 export const CHARACTER_SUMMARY_FIELD_MAPPING = new Map<string, SummaryFieldMapping>([
   ['id', { path: 'id' }],
   ['level', { path: 'level' }],
