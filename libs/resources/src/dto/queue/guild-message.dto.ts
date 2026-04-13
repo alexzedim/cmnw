@@ -317,6 +317,35 @@ export class GuildMessageDto {
   }
 
   /**
+   * Create from Addon Scan (discovered via cmnw-osint.json)
+   * Pattern: CharactersService.indexFromOsintFile
+   * Priority: 0 (highest — discovered guilds should be processed immediately)
+   */
+  static fromAddonScan(params: { name: string; realm: string }): GuildMessageDto {
+    const guid = toGuid(params.name, params.realm);
+    const guildData: IGuildMessageBase = {
+      guid,
+      name: params.name,
+      realm: params.realm,
+      forceUpdate: TIME_MS.IMMEDIATE,
+      region: 'eu',
+      createdBy: OSINT_SOURCE.OSINT_LUA,
+      updatedBy: OSINT_SOURCE.OSINT_LUA,
+      createOnlyUnique: true,
+    };
+
+    const opts: JobsOptions = {
+      jobId: guid,
+      ...guildsQueue.defaultJobOptions,
+      priority: 0,
+    };
+
+    const dto = new GuildMessageDto(guid, guildData, opts);
+    dto.validate(false, 'GuildMessageDto.fromAddonScan');
+    return dto;
+  }
+
+  /**
    * Validate that required fields are present
    * @param strict - If true, throws errors; if false, logs warnings
    * @param logTag - Optional log tag for warnings (defaults to 'GuildMessageDto.validate')
