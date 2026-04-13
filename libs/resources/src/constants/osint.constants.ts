@@ -639,3 +639,29 @@ export const GUILD_WORKER_CONSTANTS = {
 } as const;
 
 export const GUILD_SUMMARY_KEYS = ['id', 'name', 'achievement_points'] as const;
+
+export const ADDON_SCAN_FIELD_ORDER = [
+  'id',
+  'name',
+  'realmId',
+  'realm',
+  'guild',
+  'guildRank',
+  'guildRankName',
+  'class',
+  'race',
+  'gender',
+  'faction',
+  'level',
+  'status',
+  'lastModified',
+  'createdBy',
+  'updatedBy',
+] as const;
+
+export const ADDON_SCAN_LUA_REGEX = {
+  TABLE_OPEN: /^\["[^"]+"\]\s*=\s*\{\s*$/,
+  TABLE_CLOSE: /^\}\s*,?\s*$/,
+  STRING_FIELD: /^\["(\w+)"\]\s*=\s*"(.*)"\s*,?\s*$/,
+  NUMBER_FIELD: /^\["(\w+)"\]\s*=\s*(\d+)\s*,?\s*$/,
+} as const;

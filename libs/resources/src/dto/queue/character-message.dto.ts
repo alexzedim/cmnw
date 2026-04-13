@@ -104,6 +104,16 @@ export interface IAddonScanEntry {
   updatedBy?: string;
 }
 
+export interface IAddonScanEntryWithStatus extends IAddonScanEntry {
+  isNew: boolean;
+}
+
+export interface IAddonScanGuild {
+  guildGuid: string;
+  guild: string;
+  realm: string;
+}
+
 export class CharacterMessageDto {
   public readonly name: string;
   public readonly data: ICharacterMessageBase;
