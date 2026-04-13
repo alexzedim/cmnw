@@ -1,6 +1,17 @@
 import { CharacterOsintService, GuildOsintService, RealmOsintService } from './services';
 
-import { Controller, Get, HttpCode, HttpStatus, Param, Query } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+  Query,
+  UploadedFile,
+  UseInterceptors,
+} from '@nestjs/common';
 
 import {
   ApiOperation,
@@ -13,7 +24,17 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { CharacterHashDto, CharacterIdDto, CharacterLfgDto, GuildIdDto, RealmDto } from '@app/resources';
+import { FileInterceptor } from '@nestjs/platform-express';
+
+import {
+  CharacterHashDto,
+  CharacterIdDto,
+  CharacterLfgDto,
+  GuildIdDto,
+  IAddonScanEntryWithStatus,
+  IAddonScanGuild,
+  RealmDto,
+} from '@app/resources';
 import {
   CharactersEntity,
   CharactersGuildsLogsEntity,
@@ -30,6 +51,27 @@ export class OsintController {
     private readonly guildOsintService: GuildOsintService,
     private readonly realmOsintService: RealmOsintService,
   ) {}
+
+  @ApiOperation({ description: 'Upload CMNW OSINT Lua addon scan file' })
+  @ApiBadRequestResponse({ description: 'Invalid file format' })
+  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
+  @Post('/upload/lua')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: 10 * 1024 * 1024 },
+      fileFilter: (_req, file, cb) => {
+        if (!file.originalname.endsWith('.lua')) {
+          return cb(new BadRequestException('Only .lua files are accepted'), false);
+        }
+        cb(null, true);
+      },
+    }),
+  )
+  async uploadOsintLua(
+    @UploadedFile() file: any,
+  ): Promise<{ characters: IAddonScanEntryWithStatus[]; guilds: IAddonScanGuild[]; s3Key: string }> {
+    return this.characterOsintService.processOsintLuaFile(file.buffer);
+  }
 
   @ApiOperation({ description: 'Returns requested character' })
   @ApiOkResponse({ description: 'Request character with selected guid' })

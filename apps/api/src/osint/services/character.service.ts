@@ -12,12 +12,15 @@ import {
   CharactersEntity,
   CharactersGuildsLogsEntity,
   CharactersProfileEntity,
+  GuildsEntity,
   RealmsEntity,
 } from '@app/pg';
 
 import { FindOptionsWhere, In, MoreThanOrEqual, Repository } from 'typeorm';
 
 import {
+  ADDON_SCAN_FIELD_ORDER,
+  ADDON_SCAN_LUA_REGEX,
   CHARACTER_HASH_FIELDS,
   CharacterHashDto,
   CharacterHashFieldType,
@@ -25,16 +28,24 @@ import {
   CharacterMessageDto,
   CharacterLfgDto,
   charactersQueue,
+  guildsQueue,
+  IAddonScanEntry,
+  IAddonScanEntryWithStatus,
+  IAddonScanGuild,
+  ICharacterMessageBase,
+  IGuildMessageBase,
   LFG_STATUS,
   toGuid,
   findRealm,
-  ICharacterMessageBase,
 } from '@app/resources';
 import { CharacterResponseDto } from '@app/resources/dto/character/character-response.dto';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, QueueEvents } from 'bullmq';
 import { REDIS_CONNECTION } from '@app/configuration';
 import { BattleNetService } from '@app/battle-net';
+import { S3Service } from '@app/s3';
+import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class CharacterOsintService {
@@ -56,9 +67,15 @@ export class CharacterOsintService {
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(CharactersGuildsLogsEntity)
     private readonly logsRepository: Repository<CharactersGuildsLogsEntity>,
+    @InjectRepository(GuildsEntity)
+    private readonly guildsRepository: Repository<GuildsEntity>,
     @InjectQueue(charactersQueue.name)
     private readonly queueCharacter: Queue<ICharacterMessageBase>,
+    @InjectQueue(guildsQueue.name)
+    private readonly queueGuild: Queue<IGuildMessageBase>,
     private readonly battleNetService: BattleNetService,
+    private readonly s3Service: S3Service,
+    private readonly realmsCache: RealmsCacheService,
   ) {}
 
   private async requestCharacterFromQueue(params: {
@@ -379,6 +396,198 @@ export class CharacterOsintService {
       });
 
       throw new ServiceUnavailableException(`Error fetching logs for character ${input.guid}`);
+    }
+  }
+
+  private validateOsintFile(file: Buffer): string {
+    const content = file.toString('utf8');
+
+    if (!content.startsWith('CMNWOSINT_DB')) {
+      throw new BadRequestException('Invalid CMNW OSINT file: must start with CMNWOSINT_DB');
+    }
+
+    return content;
+  }
+
+  parseAddonScanEntries(content: string): IAddonScanEntry[] {
+    const lines = content.split('\n');
+    const entries: IAddonScanEntry[] = [];
+    let currentEntry: Record<string, string | number> | null = null;
+
+    for (const rawLine of lines) {
+      const line = rawLine.trim();
+
+      if (ADDON_SCAN_LUA_REGEX.TABLE_OPEN.test(line)) {
+        currentEntry = {};
+        continue;
+      }
+
+      if (currentEntry !== null && ADDON_SCAN_LUA_REGEX.TABLE_CLOSE.test(line)) {
+        if (currentEntry['name'] && currentEntry['realm']) {
+          const nameStr = String(currentEntry['name']);
+          const realmStr = String(currentEntry['realm']);
+          const guid = toGuid(nameStr, realmStr);
+
+          const entry: Record<string, any> = { guid };
+          for (const field of ADDON_SCAN_FIELD_ORDER) {
+            if (currentEntry[field] !== undefined) {
+              entry[field] = currentEntry[field];
+            }
+          }
+
+          entries.push(entry as IAddonScanEntry);
+        }
+
+        currentEntry = null;
+        continue;
+      }
+
+      if (currentEntry !== null) {
+        const stringMatch = line.match(ADDON_SCAN_LUA_REGEX.STRING_FIELD);
+        if (stringMatch) {
+          currentEntry[stringMatch[1]] = stringMatch[2];
+          continue;
+        }
+
+        const numberMatch = line.match(ADDON_SCAN_LUA_REGEX.NUMBER_FIELD);
+        if (numberMatch) {
+          currentEntry[numberMatch[1]] = parseInt(numberMatch[2], 10);
+        }
+      }
+    }
+
+    return entries;
+  }
+
+  private async resolveRealmMap(entries: IAddonScanEntry[]): Promise<Map<number, RealmsEntity | null>> {
+    const realmMap = new Map<number, RealmsEntity | null>();
+
+    for (const entry of entries) {
+      if (entry.realmId && !realmMap.has(entry.realmId)) {
+        realmMap.set(entry.realmId, await this.realmsCache.findById(entry.realmId));
+      }
+    }
+
+    return realmMap;
+  }
+
+  private async enrichEntriesWithRealms(
+    entries: IAddonScanEntry[],
+    realmMap: Map<number, RealmsEntity | null>,
+  ): Promise<void> {
+    const guildRealmCache = new Map<string, RealmsEntity | null>();
+
+    for (const entry of entries) {
+      const realmEntity = entry.realmId ? realmMap.get(entry.realmId) : null;
+      if (realmEntity) {
+        entry.realm = realmEntity.slug;
+        entry.guid = toGuid(entry.name, realmEntity.slug);
+      }
+
+      if (entry.guild) {
+        const lastDash = entry.guild.lastIndexOf('-');
+        if (lastDash > 0) {
+          const suffix = entry.guild.substring(lastDash + 1);
+          let guildRealm = guildRealmCache.get(suffix);
+          if (guildRealm === undefined) {
+            guildRealm = await this.realmsCache.findRealm(suffix);
+            guildRealmCache.set(suffix, guildRealm);
+          }
+          if (guildRealm) {
+            entry.guild = entry.guild.substring(0, lastDash);
+            entry.guildGuid = toGuid(entry.guild, guildRealm.slug);
+          }
+        }
+      }
+    }
+  }
+
+  private async checkNewCharacters(entries: IAddonScanEntry[]): Promise<IAddonScanEntryWithStatus[]> {
+    return Promise.all(
+      entries.map(async (entry) => {
+        const isNew = !(await this.charactersRepository.exists({ where: { guid: entry.guid } }));
+        return { ...entry, isNew };
+      }),
+    );
+  }
+
+  private extractUniqueGuilds(entries: IAddonScanEntry[]): IAddonScanGuild[] {
+    const guildMap = new Map<string, IAddonScanGuild>();
+
+    for (const entry of entries) {
+      if (entry.guildGuid && entry.guild && entry.realm) {
+        if (!guildMap.has(entry.guildGuid)) {
+          guildMap.set(entry.guildGuid, {
+            guildGuid: entry.guildGuid,
+            guild: entry.guild,
+            realm: entry.realm,
+          });
+        }
+      }
+    }
+
+    return Array.from(guildMap.values());
+  }
+
+  async processOsintLuaFile(file: Buffer): Promise<{
+    characters: IAddonScanEntryWithStatus[];
+    guilds: IAddonScanGuild[];
+    s3Key: string;
+  }> {
+    const logTag = 'processOsintLuaFile';
+
+    try {
+      const content = this.validateOsintFile(file);
+      const entries = this.parseAddonScanEntries(content);
+      const realmMap = await this.resolveRealmMap(entries);
+      await this.enrichEntriesWithRealms(entries, realmMap);
+
+      const guilds = this.extractUniqueGuilds(entries);
+
+      const s3Key = `cmnw-osint-${uuidv4()}.json`;
+      await this.s3Service.writeJsonFile(s3Key, entries, { bucketName: 'cmnw' });
+
+      this.logger.log({
+        logTag,
+        s3Key,
+        totalEntries: entries.length,
+        message: `Uploaded OSINT file to S3: ${s3Key}`,
+      });
+
+      const characters = await this.checkNewCharacters(entries);
+
+      // @todo: queue dispatch
+      // for (const entry of characters) {
+      //   if (entry.isNew) {
+      //     const dto = CharacterMessageDto.fromAddonScan({ ...entry });
+      //     await this.queueCharacter.add(dto.name, dto.data, dto.opts);
+      //   }
+      // }
+      // for (const guild of guilds) {
+      //   const dto = GuildMessageDto.fromAddonScan({ name: guild.guild, realm: guild.realm });
+      //   await this.queueGuild.add(dto.name, dto.data, dto.opts);
+      // }
+
+      this.logger.log({
+        logTag,
+        totalEntries: entries.length,
+        guildCount: guilds.length,
+        newCount: characters.filter((c) => c.isNew).length,
+        existingCount: characters.filter((c) => !c.isNew).length,
+        message: `Extracted ${guilds.length} unique guilds from ${entries.length} entries`,
+      });
+
+      return { characters, guilds, s3Key };
+    } catch (errorOrException) {
+      if (errorOrException instanceof BadRequestException) throw errorOrException;
+
+      this.logger.error({
+        logTag,
+        errorOrException,
+        message: 'Error processing OSINT Lua file',
+      });
+
+      throw new ServiceUnavailableException('Error processing OSINT Lua file');
     }
   }
 }

@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { REDIS_CONNECTION, postgresConfig } from '@app/configuration';
+import { REDIS_CONNECTION, postgresConfig, s3Config } from '@app/configuration';
 import { OsintController } from './osint.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
@@ -22,10 +22,13 @@ import { CharacterOsintService, GuildOsintService, RealmOsintService } from './s
 import { charactersQueue, guildsQueue } from '@app/resources';
 import { BullModule } from '@nestjs/bullmq';
 import { BattleNetModule } from '@app/battle-net';
+import { S3Module } from '@app/s3';
+import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
 
 @Module({
   imports: [
     BattleNetModule,
+    S3Module.forRoot(s3Config),
     TypeOrmModule.forRoot(postgresConfig),
     TypeOrmModule.forFeature([
       AnalyticsEntity,
@@ -56,6 +59,6 @@ import { BattleNetModule } from '@app/battle-net';
     }),
   ],
   controllers: [OsintController],
-  providers: [CharacterOsintService, GuildOsintService, RealmOsintService],
+  providers: [CharacterOsintService, GuildOsintService, RealmOsintService, RealmsCacheService],
 })
 export class OsintModule {}
