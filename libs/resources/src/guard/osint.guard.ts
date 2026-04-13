@@ -50,6 +50,18 @@ export const normalizeRealmName = (realmName: unknown): string => {
   return typeof realmName === 'string' ? realmName : String(realmName ?? '');
 };
 
+export const toPositiveInt = (value: unknown): number | null => {
+  const num = Number(value);
+  return !isNaN(num) && Number.isInteger(num) && num > 0 ? num : null;
+};
+
+export const toNormalizedString = (value: unknown): string | null => {
+  if (value == null) return null;
+  if (typeof value === 'object') return normalizeLocaleField(value);
+  if (typeof value === 'string') return value || null;
+  return null;
+};
+
 export const normalizeLocaleField = (value: unknown): string | null => {
   if (value == null) return null;
 

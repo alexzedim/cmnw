@@ -26,6 +26,7 @@ import {
   isCharacterProfessions,
   setStatusString,
   CharacterStatusState,
+  toPositiveInt,
   normalizeLocaleField,
 } from '@app/resources';
 import { CharactersEntity } from '@app/pg';
@@ -134,32 +135,53 @@ export class CharacterService {
         return summary;
       }
 
-      for (const [key, path] of CHARACTER_SUMMARY_FIELD_MAPPING.entries()) {
-        const value = get(response, path, null);
-        const hasValue = Boolean(value);
-        if (hasValue) {
-          if (key === 'id') {
-            const numericId = Number(value);
-            if (!isNaN(numericId) && Number.isInteger(numericId) && numericId > 0) {
-              summary[key] = numericId;
-            }
-          } else {
-            summary[key] = typeof value === 'object' ? normalizeLocaleField(value) : value;
-          }
+      for (const [key, mapping] of CHARACTER_SUMMARY_FIELD_MAPPING.entries()) {
+        const rawValue = get(response, mapping.path, null);
+        if (rawValue == null) continue;
+
+        let value: unknown;
+
+        if (mapping.transform) {
+          value = mapping.transform(rawValue);
+        } else if (typeof rawValue === 'number') {
+          value = toPositiveInt(rawValue);
+        } else if (typeof rawValue === 'object') {
+          value = normalizeLocaleField(rawValue);
+        } else {
+          value = rawValue;
+        }
+
+        if (value != null) {
+          summary[key] = value;
         }
       }
 
       summary.guid = toGuid(nameSlug, summary.realm);
       summary.lastModified = toDate(summary.lastModified);
 
-      const hasNoGuild = !summary.guild;
-      if (hasNoGuild) {
+      if (!response.guild) {
         summary.guildId = null;
         summary.guild = null;
         summary.guildGuid = null;
         summary.guildRank = null;
-      } else {
-        summary.guildGuid = toGuid(summary.guild, summary.realm);
+      }
+     
+      if (response.guild) {
+        const guildName = get(response, 'guild.name', null);
+        const guildRealmSlug = get(response, 'guild.realm.slug', null);
+        const guildId = get(response, 'guild.id', null);
+        
+        if (guildId) {
+          summary.guildId = guildId;
+        }
+        
+        if (guildName) {
+          summary.guild = guildName;
+        }
+        
+        if (guildName && guildRealmSlug) {
+          summary.guildGuid = toGuid(guildName, guildRealmSlug);
+        }
       }
 
       summary.status = setStatusString(summary.status || '------', 'SUMMARY', CharacterStatusState.SUCCESS);

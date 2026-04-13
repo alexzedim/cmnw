@@ -7,6 +7,8 @@ import {
   WowProgressProfile,
 } from '@app/resources/types';
 
+import { toNormalizedString } from '../guard/osint.guard';
+
 export const MAX_LEVEL = 80;
 
 export const OSINT_GM_RANK = 0;
@@ -56,25 +58,33 @@ export const HALL_OF_FAME_RAIDS = [
 
 export const RAID_FACTIONS = ['alliance', 'horde'];
 
-export const CHARACTER_SUMMARY_FIELD_MAPPING = new Map<string, string>([
-  ['id', 'id'],
-  ['name', 'name'],
-  ['gender', 'gender.name'],
-  ['faction', 'faction.name'],
-  ['race', 'race.name'],
-  ['class', 'character_class.name'],
-  ['specialization', 'active_spec.name'],
-  ['level', 'level'],
-  ['achievementPoints', 'achievement_points'],
-  ['averageItemLevel', 'average_item_level'],
-  ['equippedItemLevel', 'equipped_item_level'],
-  ['covenantId', 'covenant_progress.chosen_covenant.id'],
-  ['lastModified', 'last_login_timestamp'],
-  ['realmId', 'realm.id'],
-  ['realmName', 'realm.name'],
-  ['realm', 'realm.slug'],
-  ['guild', 'guild.name'],
-  ['guildId', 'guild.id'],
+export type SummaryFieldTransformer = (value: unknown) => unknown;
+
+export interface SummaryFieldMapping {
+  path: string;
+  transform?: SummaryFieldTransformer;
+}
+
+export const CHARACTER_SUMMARY_FIELD_MAPPING = new Map<string, SummaryFieldMapping>([
+  ['id', { path: 'id' }],
+  ['level', { path: 'level' }],
+  ['achievementPoints', { path: 'achievement_points' }],
+  ['averageItemLevel', { path: 'average_item_level' }],
+  ['equippedItemLevel', { path: 'equipped_item_level' }],
+  ['realmId', { path: 'realm.id' }],
+  ['covenantId', { path: 'covenant_progress.chosen_covenant.id' }],
+
+  ['gender', { path: 'gender.name', transform: toNormalizedString }],
+  ['faction', { path: 'faction.name', transform: toNormalizedString }],
+  ['race', { path: 'race.name', transform: toNormalizedString }],
+  ['class', { path: 'character_class.name', transform: toNormalizedString }],
+  ['specialization', { path: 'active_spec.name', transform: toNormalizedString }],
+  ['realmName', { path: 'realm.name', transform: toNormalizedString }],
+
+  ['name', { path: 'name' }],
+  ['realm', { path: 'realm.slug' }],
+
+  ['lastModified', { path: 'last_login_timestamp' }],
 ]);
 
 export const CHARACTER_MEDIA_FIELD_MAPPING = new Map<string, string>([

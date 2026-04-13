@@ -61,7 +61,7 @@ describe('CharacterService', () => {
 
   describe('getSummary', () => {
     it('should return character summary from Blizzard API', async () => {
-      const result = await service.getSummary('инициатива', 'gordunni', config);
+      const result = await service.getSummary('сингараши', 'howling-fjord', config);
 
       expect(result).toHaveProperty('id');
       expect(result).toHaveProperty('name');
