@@ -10,6 +10,7 @@ import {
   BlizzardApiPetsCollection,
   CHARACTER_ARGS_ENTITY_KEYS,
   CHARACTER_MEDIA_FIELD_MAPPING,
+  GUILD_INHERIT_KEYS,
   CHARACTER_SUMMARY_FIELD_MAPPING,
   CharacterStatus,
   CharacterSummary,
@@ -53,6 +54,9 @@ export class CharacterService {
     for (const key of CHARACTER_ARGS_ENTITY_KEYS) {
       const value = args[key];
       if (value != null && !entity[key]) {
+        if ((GUILD_INHERIT_KEYS as readonly string[]).includes(key) && entity.guildGuid == null) {
+          continue;
+        }
         set(entity, key, value);
       }
     }
