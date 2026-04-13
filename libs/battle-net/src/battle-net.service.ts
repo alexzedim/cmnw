@@ -278,13 +278,30 @@ export class BattleNetService {
     return BATTLE_NET_BASE_URLS[region];
   }
 
+  private executeQuery<T>(
+    method: 'GET' | 'POST',
+    path: string,
+    options: IBattleNetQueryOptions,
+    config: IBattleNetClientConfig,
+    data?: unknown,
+    fullResponse?: false,
+  ): Promise<T>;
+  private executeQuery<T>(
+    method: 'GET' | 'POST',
+    path: string,
+    options: IBattleNetQueryOptions,
+    config: IBattleNetClientConfig,
+    data?: unknown,
+    fullResponse?: true,
+  ): Promise<AxiosResponse<T>>;
   private async executeQuery<T>(
     method: 'GET' | 'POST',
     path: string,
     options: IBattleNetQueryOptions,
     config: IBattleNetClientConfig,
     data?: unknown,
-  ): Promise<T> {
+    fullResponse = false,
+  ): Promise<T | AxiosResponse<T>> {
     const maxRetries = DEFAULT_RETRY_CONFIG.maxRetries;
     const fixedRetryDelay = DEFAULT_RETRY_CONFIG.retryDelayMs;
     let attempt = 0;
@@ -304,7 +321,7 @@ export class BattleNetService {
         const response = await lastValueFrom(
           this.httpService.request<T>({ method, url, data, headers, timeout: options.timeout, params }).pipe(
             timeout(DEFAULT_RETRY_CONFIG.timeoutMs),
-            map((res: AxiosResponse<T>) => res.data),
+            map((res: AxiosResponse<T>) => (fullResponse ? res : res.data)),
           ),
         );
 
@@ -366,6 +383,18 @@ export class BattleNetService {
       throw new Error('BattleNetService not initialized');
     }
     return this.executeQuery<T>('GET', path, options, resolvedConfig);
+  }
+
+  public async queryWithResponse<T>(
+    path: string,
+    options: IBattleNetQueryOptions,
+    config?: IBattleNetClientConfig,
+  ): Promise<AxiosResponse<T>> {
+    const resolvedConfig = config ?? this._config;
+    if (!resolvedConfig) {
+      throw new Error('BattleNetService not initialized');
+    }
+    return this.executeQuery<T>('GET', path, options, resolvedConfig, undefined, true);
   }
 
   public async post<T>(
