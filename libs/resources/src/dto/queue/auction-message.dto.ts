@@ -13,7 +13,6 @@ export interface IAuctionMessageBase {
 
 export class AuctionMessageDto {
   public readonly name: string;
-  public readonly jobId: string;
   public readonly data: IAuctionMessageBase;
   public readonly opts?: JobsOptions;
 
@@ -24,18 +23,17 @@ export class AuctionMessageDto {
   }
 
   static create(data: IAuctionMessageBase, opts?: JobsOptions): AuctionMessageDto {
-    const jobId =
+    const name =
       data.connectedRealmId === REALM_ENTITY_ANY.connectedRealmId
         ? `commodity-${data.connectedRealmId}-${data.commoditiesTimestamp}`
         : `auctions-${data.connectedRealmId}-${data.auctionsTimestamp}`;
 
     const mergedOpts = {
-      jobId: jobId,
       ...auctionsQueue.defaultJobOptions,
       ...opts,
     };
 
-    const dto = new AuctionMessageDto(jobId, data, mergedOpts);
+    const dto = new AuctionMessageDto(name, data, mergedOpts);
     return dto;
   }
 }
