@@ -108,7 +108,6 @@ export const isWowToken = (response: unknown): response is BlizzardApiWowToken =
 
 export const isAuctions = (response: unknown): response is BlizzardApiAuctions =>
   typeof response === 'object' &&
-  'lastModified' in response &&
   'auctions' in response &&
   Array.isArray(response.auctions) &&
   Boolean(response.auctions.length);

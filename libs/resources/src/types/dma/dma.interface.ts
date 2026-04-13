@@ -65,7 +65,6 @@ export interface ICommodityOrder {
 
 export interface IAuctions {
   auctions: Array<IAuctionsOrder | ICommodityOrder>;
-  lastModified: string;
 }
 
 export interface IQItemValuation {
