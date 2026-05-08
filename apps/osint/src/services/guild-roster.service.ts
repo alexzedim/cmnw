@@ -31,6 +31,7 @@ import { CharactersEntity, GuildsEntity, RealmsEntity } from '@app/pg';
 import { BattleNetService, BattleNetNamespace, IBattleNetClientConfig } from '@app/battle-net';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
 
 @Injectable()
 export class GuildRosterService {
@@ -46,6 +47,7 @@ export class GuildRosterService {
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
+    private readonly realmsCacheService: RealmsCacheService,
   ) {}
 
   async fetchRoster(guildEntity: GuildsEntity, config?: IBattleNetClientConfig): Promise<IGuildRoster> {
@@ -94,7 +96,8 @@ export class GuildRosterService {
       const isCharacterGM = member.rank === OSINT_GM_RANK;
 
       const characterRealmId = get(member, 'character.realm.id', guildEntity.realmId);
-      const characterRealmSlug = get(member, 'character.realm.slug', guildEntity.realm);
+      const rawRealmSlug = get(member, 'character.realm.slug', guildEntity.realm);
+      const characterRealmSlug = await CharacterMessageDto.resolveRealmSlug(this.realmsCacheService, rawRealmSlug);
 
       const characterGuid = toGuid(member.character.name, characterRealmSlug);
 
