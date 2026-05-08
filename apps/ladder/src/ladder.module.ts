@@ -9,6 +9,7 @@ import { RealmsEntity } from '@app/pg';
 import { charactersQueue, guildsQueue } from '@app/resources';
 import { BullModule } from '@nestjs/bullmq';
 import { BattleNetModule } from '@app/battle-net';
+import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
 
 @Module({
   imports: [
@@ -40,6 +41,6 @@ import { BattleNetModule } from '@app/battle-net';
     BattleNetModule,
   ],
   controllers: [],
-  providers: [LadderService],
+  providers: [LadderService, RealmsCacheService],
 })
 export class LadderModule {}

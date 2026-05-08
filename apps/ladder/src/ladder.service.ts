@@ -42,6 +42,7 @@ import {
   BATTLE_NET_KEY_TAG_BLIZZARD,
   IBattleNetClientConfig,
 } from '@app/battle-net';
+import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
 
 const M_PLUS_PARALLEL_REQUESTS = 3;
 
@@ -57,6 +58,7 @@ export class LadderService implements OnApplicationBootstrap {
     @InjectQueue(charactersQueue.name)
     private readonly queueCharacters: Queue<ICharacterMessageBase>,
     private readonly battleNetService: BattleNetService,
+    private readonly realmsCacheService: RealmsCacheService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -188,13 +190,25 @@ export class LadderService implements OnApplicationBootstrap {
     bracket: string,
     logTag: string,
   ): Promise<void> {
-    const characterJobs = pvpLeaderboard.entries.map((entry) =>
-      CharacterMessageDto.fromPvPLadder({
-        name: entry.character.name,
-        realm: entry.character.realm.slug,
-        faction: transformFaction(entry.faction.type),
-      }),
-    );
+    const realmSlugCache = new Map<string, string>();
+
+    const characterJobs: CharacterMessageDto[] = [];
+    for (const entry of pvpLeaderboard.entries) {
+      const rawRealm = entry.character.realm.slug;
+      let canonicalSlug = realmSlugCache.get(rawRealm);
+      if (canonicalSlug === undefined) {
+        canonicalSlug = await CharacterMessageDto.resolveRealmSlug(this.realmsCacheService, rawRealm);
+        realmSlugCache.set(rawRealm, canonicalSlug);
+      }
+
+      characterJobs.push(
+        CharacterMessageDto.fromPvPLadder({
+          name: entry.character.name,
+          realm: canonicalSlug,
+          faction: transformFaction(entry.faction.type),
+        }),
+      );
+    }
 
     if (characterJobs.length === 0) {
       this.logger.warn({
@@ -516,7 +530,7 @@ export class LadderService implements OnApplicationBootstrap {
     logTag: string,
   ): Promise<void> {
     for (const group of leadingGroups) {
-      const characterJobMembers = this.mapGroupMembersToCharacterJobs(group);
+      const characterJobMembers = await this.mapGroupMembersToCharacterJobs(group);
 
       if (characterJobMembers.length === 0) {
         continue;
@@ -538,15 +552,29 @@ export class LadderService implements OnApplicationBootstrap {
     }
   }
 
-  private mapGroupMembersToCharacterJobs(group: MythicLeaderboardGroup): CharacterMessageDto[] {
-    return group.members.map((member) =>
-      CharacterMessageDto.fromMythicPlusLadder({
-        id: member.profile.id,
-        name: member.profile.name,
-        realm: member.profile.realm.slug,
-        faction: transformFaction(member.faction),
-      }),
-    );
+  private async mapGroupMembersToCharacterJobs(group: MythicLeaderboardGroup): Promise<CharacterMessageDto[]> {
+    const realmSlugCache = new Map<string, string>();
+
+    const characterJobs: CharacterMessageDto[] = [];
+    for (const member of group.members) {
+      const rawRealm = member.profile.realm.slug;
+      let canonicalSlug = realmSlugCache.get(rawRealm);
+      if (canonicalSlug === undefined) {
+        canonicalSlug = await CharacterMessageDto.resolveRealmSlug(this.realmsCacheService, rawRealm);
+        realmSlugCache.set(rawRealm, canonicalSlug);
+      }
+
+      characterJobs.push(
+        CharacterMessageDto.fromMythicPlusLadder({
+          id: member.profile.id,
+          name: member.profile.name,
+          realm: canonicalSlug,
+          faction: transformFaction(member.faction),
+        }),
+      );
+    }
+
+    return characterJobs;
   }
 
   private handleLeaderboardError(
