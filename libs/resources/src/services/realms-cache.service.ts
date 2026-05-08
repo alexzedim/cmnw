@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { RealmsEntity } from '@app/pg';
@@ -10,7 +10,7 @@ import { toSlug } from '../transformers';
  * Provides O(1) lookup by id, name, slug, localeName, localeSlug, or ticker.
  */
 @Injectable()
-export class RealmsCacheService implements OnModuleInit {
+export class RealmsCacheService implements OnApplicationBootstrap {
   private readonly logger = new Logger(RealmsCacheService.name, {
     timestamp: true,
   });
@@ -30,7 +30,7 @@ export class RealmsCacheService implements OnModuleInit {
     private readonly realmsRepository: Repository<RealmsEntity>,
   ) {}
 
-  async onModuleInit() {
+  async onApplicationBootstrap() {
     await this.loadRealms();
   }
 
