@@ -10,6 +10,7 @@ import { REDIS_CONNECTION, postgresConfig, redisConfig } from '@app/configuratio
 import { BullModule } from '@nestjs/bullmq';
 import { charactersQueue, guildsQueue, profileQueue } from '@app/resources';
 import { BattleNetModule } from '@app/battle-net';
+import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
 
 @Module({
   imports: [
@@ -46,6 +47,6 @@ import { BattleNetModule } from '@app/battle-net';
     BattleNetModule,
   ],
   controllers: [],
-  providers: [WarcraftLogsService],
+  providers: [WarcraftLogsService, RealmsCacheService],
 })
 export class WarcraftLogsModule {}

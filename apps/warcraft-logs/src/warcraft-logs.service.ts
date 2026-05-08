@@ -14,6 +14,7 @@ import {
 } from '@app/resources';
 import { BATTLE_NET_KEY_TAG_WCL_V2 } from '@app/battle-net';
 import { BattleNetService } from '@app/battle-net';
+import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
 
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { osintConfig } from '@app/configuration';
@@ -61,6 +62,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
     @InjectQueue('osint.characters')
     private readonly charactersQueue: Queue<ICharacterMessageBase>,
     private readonly battleNetService: BattleNetService,
+    private readonly realmsCacheService: RealmsCacheService,
   ) {
     // Initialize headers on service creation
     this.refreshHeaders();
@@ -459,26 +461,31 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         throw new Error(`Bad response status: ${response.status}`);
       }
 
-      // Filter friendlies to get only playable characters (exclude NPCs)
-      const players = (response.data.friendlies || [])
-        .filter((f) => f.type !== 'NPC' && f.server)
-        .map((character) => {
-          // Normalize character name and realm to match database standards
-          const normalizedName = character.name.trim();
-          const normalizedRealm = toSlug(character.server);
+      const realmSlugCache = new Map<string, string>();
 
-          return {
-            guid: toGuid(normalizedName, normalizedRealm),
-            name: normalizedName,
-            realm: normalizedRealm,
-          };
+      const players: RaidCharacter[] = [];
+      for (const character of response.data.friendlies || []) {
+        if (character.type === 'NPC' || !character.server) continue;
+
+        const normalizedName = character.name.trim();
+        const normalizedRealm = toSlug(character.server);
+
+        let canonicalSlug = realmSlugCache.get(normalizedRealm);
+        if (canonicalSlug === undefined) {
+          canonicalSlug = await CharacterMessageDto.resolveRealmSlug(this.realmsCacheService, normalizedRealm);
+          realmSlugCache.set(normalizedRealm, canonicalSlug);
+        }
+
+        players.push({
+          guid: toGuid(normalizedName, canonicalSlug),
+          name: normalizedName,
+          realm: canonicalSlug,
         });
+      }
 
-      // Remove duplicates
       const characters = new Map<string, RaidCharacter>();
       for (const character of players) {
-        const isCondition = characters.has(character.guid);
-        if (isCondition) continue;
+        if (characters.has(character.guid)) continue;
         characters.set(character.guid, character);
       }
 
@@ -581,33 +588,44 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
       const isGuard = isCharacterRaidLogResponse(response);
       if (!isGuard) return [];
 
-      // --- Take both characters ranked & playable --- //
       const timestamp = get(response, 'data.data.reportData.report.startTime', 1);
-      const rankedCharacters: Array<RaidCharacter> = get(
-        response,
-        'data.data.reportData.report.rankedCharacters',
-        [],
-      ).map((character) => ({
-        guid: toGuid(character.name, character.server.slug),
-        id: character.id,
-        name: character.name,
-        realm: toSlug(character.server.slug),
-        guildRank: character.guildRank,
-        timestamp: timestamp,
-      }));
+      const realmSlugCache = new Map<string, string>();
 
-      const playableCharacters: Array<RaidCharacter> = get(
-        response,
-        'data.data.reportData.report.masterData.actors',
-        [],
-      )
-        .filter((character) => character.type === 'Player')
-        .map((character) => ({
-          guid: toGuid(character.name, character.server),
+      const resolveSlug = async (input: string): Promise<string> => {
+        const slug = toSlug(input);
+        let canonicalSlug = realmSlugCache.get(slug);
+        if (canonicalSlug === undefined) {
+          canonicalSlug = await CharacterMessageDto.resolveRealmSlug(this.realmsCacheService, slug);
+          realmSlugCache.set(slug, canonicalSlug);
+        }
+        return canonicalSlug;
+      };
+
+      const rankedCharacters: Array<RaidCharacter> = [];
+      for (const character of get(response, 'data.data.reportData.report.rankedCharacters', []) as Array<any>) {
+        const canonicalSlug = await resolveSlug(character.server.slug);
+        rankedCharacters.push({
+          guid: toGuid(character.name, canonicalSlug),
+          id: character.id,
           name: character.name,
-          realm: toSlug(character.server),
+          realm: canonicalSlug,
+          guildRank: character.guildRank,
           timestamp: timestamp,
-        }));
+        });
+      }
+
+      const playableCharacters: Array<RaidCharacter> = [];
+      for (const character of (get(response, 'data.data.reportData.report.masterData.actors', []) as Array<any>).filter(
+        (c) => c.type === 'Player',
+      )) {
+        const canonicalSlug = await resolveSlug(character.server);
+        playableCharacters.push({
+          guid: toGuid(character.name, canonicalSlug),
+          name: character.name,
+          realm: canonicalSlug,
+          timestamp: timestamp,
+        });
+      }
 
       const raidCharacters = [...rankedCharacters, ...playableCharacters];
       const characters = new Map<string, RaidCharacter>();
@@ -631,8 +649,6 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
 
   async charactersToQueue(raidCharacters: Array<RaidCharacter>): Promise<boolean> {
     try {
-      let itx = 0;
-
       const charactersToJobs = raidCharacters.map((raidCharacter) =>
         CharacterMessageDto.fromWarcraftLogs({
           name: raidCharacter.name,
