@@ -7,7 +7,7 @@ import { toSlug } from '../transformers';
 /**
  * In-memory cache service for realm lookups.
  * Loads all realms (~257) into memory on startup (~460KB total).
- * Provides O(1) lookup by name, slug, localeName, or localeSlug.
+ * Provides O(1) lookup by id, name, slug, localeName, localeSlug, or ticker.
  */
 @Injectable()
 export class RealmsCacheService implements OnModuleInit {
@@ -20,6 +20,7 @@ export class RealmsCacheService implements OnModuleInit {
   private realmsBySlug = new Map<string, RealmsEntity>();
   private realmsByLocaleName = new Map<string, RealmsEntity>();
   private realmsByLocaleSlug = new Map<string, RealmsEntity>();
+  private realmsByTicker = new Map<string, RealmsEntity>();
 
   private isInitialized = false;
   private initializationPromise: Promise<void> | null = null;
@@ -54,6 +55,7 @@ export class RealmsCacheService implements OnModuleInit {
         this.realmsBySlug.clear();
         this.realmsByLocaleName.clear();
         this.realmsByLocaleSlug.clear();
+        this.realmsByTicker.clear();
 
         // Build lookup maps
         for (const realm of realms) {
@@ -77,6 +79,11 @@ export class RealmsCacheService implements OnModuleInit {
           if (realm.localeSlug) {
             this.realmsByLocaleSlug.set(realm.localeSlug, realm);
             this.realmsByLocaleSlug.set(realm.localeSlug.toLowerCase(), realm);
+          }
+
+          if (realm.ticker) {
+            this.realmsByTicker.set(realm.ticker, realm);
+            this.realmsByTicker.set(realm.ticker.toLowerCase(), realm);
           }
         }
 
@@ -126,7 +133,8 @@ export class RealmsCacheService implements OnModuleInit {
       this.realmsByName.get(query) ||
       this.realmsBySlug.get(query) ||
       this.realmsByLocaleName.get(query) ||
-      this.realmsByLocaleSlug.get(query);
+      this.realmsByLocaleSlug.get(query) ||
+      this.realmsByTicker.get(query);
 
     if (realm) return realm;
 
@@ -142,14 +150,16 @@ export class RealmsCacheService implements OnModuleInit {
       this.realmsByName.get(lowerQuery) ||
       this.realmsBySlug.get(lowerQuery) ||
       this.realmsByLocaleName.get(lowerQuery) ||
-      this.realmsByLocaleSlug.get(lowerQuery);
+      this.realmsByLocaleSlug.get(lowerQuery) ||
+      this.realmsByTicker.get(lowerQuery);
 
     return realm || null;
   }
 
-  /**
-   * Get realm by ID
-   */
+  async resolveCanonicalSlug(query: string): Promise<string | null> {
+    const realm = await this.findRealm(query);
+    return realm?.slug ?? null;
+  }
   async findById(id: number): Promise<RealmsEntity | null> {
     if (!this.isInitialized) {
       await this.loadRealms();
@@ -201,6 +211,7 @@ export class RealmsCacheService implements OnModuleInit {
       slugMapSize: this.realmsBySlug.size,
       localeNameMapSize: this.realmsByLocaleName.size,
       localeSlugMapSize: this.realmsByLocaleSlug.size,
+      tickerMapSize: this.realmsByTicker.size,
       estimatedMemoryKB: Math.round((this.realmsById.size * 450) / 1024),
     };
   }

@@ -1,8 +1,9 @@
 import { Logger } from '@nestjs/common';
 import { OSINT_SOURCE, TIME_MS, PLAYABLE_CLASS, PLAYABLE_RACE } from '@app/resources/constants';
-import { toGuid } from '@app/resources/transformers';
+import { toGuid, toSlug } from '@app/resources/transformers';
 import { charactersQueue } from '@app/resources/queues/characters.queue';
 import { normalizeRealmName } from '@app/resources/guard';
+import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
 import { JobsOptions } from 'bullmq';
 
 /**
@@ -652,5 +653,10 @@ export class CharacterMessageDto {
     const dto = CharacterMessageDto.create(data, opts);
     dto.validate();
     return dto;
+  }
+
+  static async resolveRealmSlug(realmsCache: RealmsCacheService, realmInput: string): Promise<string> {
+    const realm = await realmsCache.findRealm(realmInput);
+    return realm?.slug ?? toSlug(realmInput);
   }
 }
