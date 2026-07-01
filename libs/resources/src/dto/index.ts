@@ -6,6 +6,7 @@ export * from './contracts';
 export * from './discord';
 export * from './guild';
 export * from './item';
+export * from './osint';
 export * from './queue';
 export * from './realm';
 export * from './req';
