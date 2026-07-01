@@ -21,6 +21,7 @@ export class RealmsCacheService implements OnApplicationBootstrap {
   private realmsByLocaleName = new Map<string, RealmsEntity>();
   private realmsByLocaleSlug = new Map<string, RealmsEntity>();
   private realmsByTicker = new Map<string, RealmsEntity>();
+  private realmsByNormalizedSlug = new Map<string, RealmsEntity>();
 
   private isInitialized = false;
   private initializationPromise: Promise<void> | null = null;
@@ -56,6 +57,7 @@ export class RealmsCacheService implements OnApplicationBootstrap {
         this.realmsByLocaleName.clear();
         this.realmsByLocaleSlug.clear();
         this.realmsByTicker.clear();
+        this.realmsByNormalizedSlug.clear();
 
         // Build lookup maps
         for (const realm of realms) {
@@ -84,6 +86,19 @@ export class RealmsCacheService implements OnApplicationBootstrap {
           if (realm.ticker) {
             this.realmsByTicker.set(realm.ticker, realm);
             this.realmsByTicker.set(realm.ticker.toLowerCase(), realm);
+          }
+
+          if (realm.slug) {
+            const normalized = realm.slug.replace(/-/g, '').toLowerCase();
+            if (!this.realmsByNormalizedSlug.has(normalized)) {
+              this.realmsByNormalizedSlug.set(normalized, realm);
+            }
+          }
+          if (realm.localeSlug) {
+            const normalized = realm.localeSlug.replace(/-/g, '').toLowerCase();
+            if (!this.realmsByNormalizedSlug.has(normalized)) {
+              this.realmsByNormalizedSlug.set(normalized, realm);
+            }
           }
         }
 
@@ -153,6 +168,11 @@ export class RealmsCacheService implements OnApplicationBootstrap {
       this.realmsByLocaleSlug.get(lowerQuery) ||
       this.realmsByTicker.get(lowerQuery);
 
+    if (realm) return realm;
+
+    const normalizedQuery = query.replace(/-/g, '').toLowerCase();
+    realm = this.realmsByNormalizedSlug.get(normalizedQuery);
+
     return realm || null;
   }
 
@@ -212,6 +232,7 @@ export class RealmsCacheService implements OnApplicationBootstrap {
       localeNameMapSize: this.realmsByLocaleName.size,
       localeSlugMapSize: this.realmsByLocaleSlug.size,
       tickerMapSize: this.realmsByTicker.size,
+      normalizedSlugMapSize: this.realmsByNormalizedSlug.size,
       estimatedMemoryKB: Math.round((this.realmsById.size * 450) / 1024),
     };
   }
