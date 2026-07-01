@@ -43,7 +43,7 @@ lerna-debug.log*
 *.sublime-workspace
 
 # Kilo Code
-.kilocode/
+.kilo/
 
 # Warp AI
 WARP.md
