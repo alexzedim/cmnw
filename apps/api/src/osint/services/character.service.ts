@@ -19,8 +19,6 @@ import {
 import { FindOptionsWhere, In, MoreThanOrEqual, Repository } from 'typeorm';
 
 import {
-  ADDON_SCAN_FIELD_ORDER,
-  ADDON_SCAN_LUA_REGEX,
   CHARACTER_HASH_FIELDS,
   CharacterHashDto,
   CharacterHashFieldType,
@@ -28,6 +26,7 @@ import {
   CharacterMessageDto,
   CharacterLfgDto,
   charactersQueue,
+  GuildMessageDto,
   guildsQueue,
   IAddonScanEntry,
   IAddonScanEntryWithStatus,
@@ -399,66 +398,6 @@ export class CharacterOsintService {
     }
   }
 
-  private validateOsintFile(file: Buffer): string {
-    const content = file.toString('utf8');
-
-    if (!content.startsWith('CMNWOSINT_DB')) {
-      throw new BadRequestException('Invalid CMNW OSINT file: must start with CMNWOSINT_DB');
-    }
-
-    return content;
-  }
-
-  parseAddonScanEntries(content: string): IAddonScanEntry[] {
-    const lines = content.split('\n');
-    const entries: IAddonScanEntry[] = [];
-    let currentEntry: Record<string, string | number> | null = null;
-
-    for (const rawLine of lines) {
-      const line = rawLine.trim();
-
-      if (ADDON_SCAN_LUA_REGEX.TABLE_OPEN.test(line)) {
-        currentEntry = {};
-        continue;
-      }
-
-      if (currentEntry !== null && ADDON_SCAN_LUA_REGEX.TABLE_CLOSE.test(line)) {
-        if (currentEntry['name'] && currentEntry['realm']) {
-          const nameStr = String(currentEntry['name']);
-          const realmStr = String(currentEntry['realm']);
-          const guid = toGuid(nameStr, realmStr);
-
-          const entry: Record<string, any> = { guid };
-          for (const field of ADDON_SCAN_FIELD_ORDER) {
-            if (currentEntry[field] !== undefined) {
-              entry[field] = currentEntry[field];
-            }
-          }
-
-          entries.push(entry as IAddonScanEntry);
-        }
-
-        currentEntry = null;
-        continue;
-      }
-
-      if (currentEntry !== null) {
-        const stringMatch = line.match(ADDON_SCAN_LUA_REGEX.STRING_FIELD);
-        if (stringMatch) {
-          currentEntry[stringMatch[1]] = stringMatch[2];
-          continue;
-        }
-
-        const numberMatch = line.match(ADDON_SCAN_LUA_REGEX.NUMBER_FIELD);
-        if (numberMatch) {
-          currentEntry[numberMatch[1]] = parseInt(numberMatch[2], 10);
-        }
-      }
-    }
-
-    return entries;
-  }
-
   private async resolveRealmMap(entries: IAddonScanEntry[]): Promise<Map<number, RealmsEntity | null>> {
     const realmMap = new Map<number, RealmsEntity | null>();
 
@@ -503,12 +442,13 @@ export class CharacterOsintService {
   }
 
   private async checkNewCharacters(entries: IAddonScanEntry[]): Promise<IAddonScanEntryWithStatus[]> {
-    return Promise.all(
-      entries.map(async (entry) => {
-        const isNew = !(await this.charactersRepository.exists({ where: { guid: entry.guid } }));
-        return { ...entry, isNew };
-      }),
-    );
+    const guids = entries.map((e) => e.guid);
+    const existing = await this.charactersRepository.find({
+      where: { guid: In(guids) },
+      select: ['guid'],
+    });
+    const existingSet = new Set(existing.map((e) => e.guid));
+    return entries.map((entry) => ({ ...entry, isNew: !existingSet.has(entry.guid) }));
   }
 
   private extractUniqueGuilds(entries: IAddonScanEntry[]): IAddonScanGuild[] {
@@ -529,52 +469,71 @@ export class CharacterOsintService {
     return Array.from(guildMap.values());
   }
 
-  async processOsintLuaFile(file: Buffer): Promise<{
+  async processOsintJsonUpload(entries: IAddonScanEntry[]): Promise<{
     characters: IAddonScanEntryWithStatus[];
     guilds: IAddonScanGuild[];
     s3Key: string;
   }> {
-    const logTag = 'processOsintLuaFile';
+    const logTag = 'processOsintJsonUpload';
 
     try {
-      const content = this.validateOsintFile(file);
-      const entries = this.parseAddonScanEntries(content);
-      const realmMap = await this.resolveRealmMap(entries);
-      await this.enrichEntriesWithRealms(entries, realmMap);
+      const validEntries = entries.filter((entry) => entry.name && entry.realm);
 
-      const guilds = this.extractUniqueGuilds(entries);
+      const realmMap = await this.resolveRealmMap(validEntries);
+      await this.enrichEntriesWithRealms(validEntries, realmMap);
+
+      for (const entry of validEntries) {
+        if (!entry.realmId && entry.realm) {
+          const realm = await this.realmsCache.findRealm(entry.realm);
+          if (realm) {
+            entry.realm = realm.slug;
+            entry.realmId = realm.id;
+            entry.guid = toGuid(entry.name, realm.slug);
+          }
+        }
+      }
+
+      const seen = new Map<string, IAddonScanEntry>();
+      for (const entry of validEntries) {
+        if (!seen.has(entry.guid)) {
+          seen.set(entry.guid, entry);
+        }
+      }
+      const uniqueEntries = Array.from(seen.values());
+
+      const guilds = this.extractUniqueGuilds(uniqueEntries);
 
       const s3Key = `cmnw-osint-${uuidv4()}.json`;
-      await this.s3Service.writeJsonFile(s3Key, entries, { bucketName: 'cmnw' });
+      await this.s3Service.writeJsonFile(s3Key, uniqueEntries, { bucketName: 'cmnw' });
 
       this.logger.log({
         logTag,
         s3Key,
-        totalEntries: entries.length,
-        message: `Uploaded OSINT file to S3: ${s3Key}`,
+        totalEntries: uniqueEntries.length,
+        duplicatesRemoved: validEntries.length - uniqueEntries.length,
+        message: `Uploaded OSINT data to S3: ${s3Key}`,
       });
 
-      const characters = await this.checkNewCharacters(entries);
+      const characters = await this.checkNewCharacters(uniqueEntries);
 
-      // @todo: queue dispatch
-      // for (const entry of characters) {
-      //   if (entry.isNew) {
-      //     const dto = CharacterMessageDto.fromAddonScan({ ...entry });
-      //     await this.queueCharacter.add(dto.name, dto.data, dto.opts);
-      //   }
-      // }
-      // for (const guild of guilds) {
-      //   const dto = GuildMessageDto.fromAddonScan({ name: guild.guild, realm: guild.realm });
-      //   await this.queueGuild.add(dto.name, dto.data, dto.opts);
-      // }
+      for (const entry of characters) {
+        if (entry.isNew) {
+          const dto = CharacterMessageDto.fromAddonScan({ ...entry });
+          await this.queueCharacter.add(dto.name, dto.data, dto.opts);
+        }
+      }
+      for (const guild of guilds) {
+        const dto = GuildMessageDto.fromAddonScan({ name: guild.guild, realm: guild.realm });
+        await this.queueGuild.add(dto.name, dto.data, dto.opts);
+      }
 
       this.logger.log({
         logTag,
-        totalEntries: entries.length,
+        totalEntries: validEntries.length,
         guildCount: guilds.length,
         newCount: characters.filter((c) => c.isNew).length,
         existingCount: characters.filter((c) => !c.isNew).length,
-        message: `Extracted ${guilds.length} unique guilds from ${entries.length} entries`,
+        message: `Extracted ${guilds.length} unique guilds from ${validEntries.length} entries`,
       });
 
       return { characters, guilds, s3Key };
@@ -584,10 +543,10 @@ export class CharacterOsintService {
       this.logger.error({
         logTag,
         errorOrException,
-        message: 'Error processing OSINT Lua file',
+        message: 'Error processing OSINT JSON upload',
       });
 
-      throw new ServiceUnavailableException('Error processing OSINT Lua file');
+      throw new ServiceUnavailableException('Error processing OSINT JSON upload');
     }
   }
 }

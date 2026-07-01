@@ -11,9 +11,12 @@ import { cmnwConfig } from '@app/configuration';
 import { useContainer } from 'class-validator';
 import { LoggerService } from '@app/logger';
 import { APP_LABELS } from '@app/resources';
+import { json } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  app.use(json({ limit: '15mb' }));
 
   app.useLogger(new LoggerService(APP_LABELS.CMNW));
 

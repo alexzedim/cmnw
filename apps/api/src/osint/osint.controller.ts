@@ -1,17 +1,6 @@
 import { CharacterOsintService, GuildOsintService, RealmOsintService } from './services';
 
-import {
-  BadRequestException,
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  Param,
-  Post,
-  Query,
-  UploadedFile,
-  UseInterceptors,
-} from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query } from '@nestjs/common';
 
 import {
   ApiOperation,
@@ -24,8 +13,6 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 
-import { FileInterceptor } from '@nestjs/platform-express';
-
 import {
   CharacterHashDto,
   CharacterIdDto,
@@ -34,6 +21,7 @@ import {
   IAddonScanEntryWithStatus,
   IAddonScanGuild,
   RealmDto,
+  UploadOsintDto,
 } from '@app/resources';
 import {
   CharactersEntity,
@@ -52,25 +40,14 @@ export class OsintController {
     private readonly realmOsintService: RealmOsintService,
   ) {}
 
-  @ApiOperation({ description: 'Upload CMNW OSINT Lua addon scan file' })
-  @ApiBadRequestResponse({ description: 'Invalid file format' })
+  @ApiOperation({ description: 'Upload CMNW OSINT addon scan entries as JSON' })
+  @ApiBadRequestResponse({ description: 'Invalid request body' })
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @Post('/upload/lua')
-  @UseInterceptors(
-    FileInterceptor('file', {
-      limits: { fileSize: 10 * 1024 * 1024 },
-      fileFilter: (_req, file, cb) => {
-        if (!file.originalname.endsWith('.lua')) {
-          return cb(new BadRequestException('Only .lua files are accepted'), false);
-        }
-        cb(null, true);
-      },
-    }),
-  )
-  async uploadOsintLua(
-    @UploadedFile() file: any,
+  @Post('/upload')
+  async uploadOsintJson(
+    @Body() body: UploadOsintDto,
   ): Promise<{ characters: IAddonScanEntryWithStatus[]; guilds: IAddonScanGuild[]; s3Key: string }> {
-    return this.characterOsintService.processOsintLuaFile(file.buffer);
+    return this.characterOsintService.processOsintJsonUpload(body.entries);
   }
 
   @ApiOperation({ description: 'Returns requested character' })
