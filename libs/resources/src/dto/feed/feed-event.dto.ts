@@ -91,7 +91,7 @@ export class FeedEventDto implements IFeedEventBase {
     meta?: Record<string, unknown>,
   ): IFeedEventBase {
     const metaConfig = FEED_STATUS_META[status];
-    const message = `${metaConfig.icon} ${metaConfig.statusText} [${count}] ${identifier.toLowerCase()} (${durationMs}ms)`;
+    const message = `[${count}] ${identifier.toLowerCase()} (${durationMs}ms)`;
 
     return FeedEventDto.create({
       category,
