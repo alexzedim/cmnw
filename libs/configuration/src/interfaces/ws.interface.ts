@@ -1,4 +1,4 @@
 export interface IWsConfig {
-  readonly namespace: string;
+  readonly path: string;
   readonly channel: string;
 }
