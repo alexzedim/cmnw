@@ -4,6 +4,7 @@ import { OsintModule } from './osint/osint.module';
 import { DmaModule } from './dma/dma.module';
 import { QueueModule } from './queue/queue.module';
 import { AuthModule } from './auth/auth.module';
+import { FeedModule } from './feed/feed.module';
 import { HttpModule } from '@nestjs/axios';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { AppInfoModule } from './app/app.module';
@@ -32,6 +33,7 @@ import { ExpressAdapter } from '@bull-board/express';
     AuthModule,
     QueueModule,
     AppInfoModule,
+    FeedModule,
   ],
   controllers: [],
   providers: [],
