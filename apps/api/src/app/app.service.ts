@@ -2,7 +2,7 @@ import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common'
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike } from 'typeorm';
+import { Repository, ILike, In } from 'typeorm';
 import { AnalyticsEntity, CharactersEntity, GuildsEntity, ItemsEntity, MarketEntity } from '@app/pg';
 import { AnalyticsMetricSnapshotDto, AnalyticsMetricType, AppHealthPayload, SearchQueryDto } from '@app/resources';
 
@@ -158,7 +158,13 @@ export class AppService {
         .addOrderBy('analytics.created_at', 'DESC')
         .getOne();
 
-      return metric ?? null;
+      if (!metric) return null;
+
+      if (category === 'market' || category === 'contracts') {
+        await this.enrichWithItemNames(metric);
+      }
+
+      return metric;
     } catch (errorOrException) {
       this.logger.error({
         logTag,
@@ -170,6 +176,41 @@ export class AppService {
       });
 
       throw new ServiceUnavailableException('Unable to load analytics metric snapshot');
+    }
+  }
+
+  private async enrichWithItemNames(entity: AnalyticsEntity): Promise<void> {
+    const value = entity.value;
+    if (!value || typeof value !== 'object') return;
+
+    const itemIds: number[] = [];
+    for (const entry of Object.values(value)) {
+      if (entry && typeof entry === 'object' && 'itemId' in entry) {
+        const itemId = (entry as Record<string, unknown>).itemId;
+        if (typeof itemId === 'number') itemIds.push(itemId);
+      }
+    }
+
+    if (itemIds.length === 0) return;
+
+    const items = await this.itemsRepository.find({
+      where: { id: In(itemIds) },
+      select: ['id', 'name', 'names'],
+    });
+
+    const itemMap = new Map(items.map((item) => [item.id, item]));
+
+    for (const key of Object.keys(value)) {
+      const entry = value[key];
+      if (entry && typeof entry === 'object' && 'itemId' in entry) {
+        const itemId = (entry as Record<string, unknown>).itemId;
+        if (typeof itemId !== 'number') continue;
+        const item = itemMap.get(itemId);
+        if (!item) continue;
+        const enriched = entry as Record<string, unknown>;
+        if (item.name) enriched.name = item.name;
+        if (item.names) enriched.names = item.names;
+      }
     }
   }
 
