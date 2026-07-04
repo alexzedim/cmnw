@@ -4,7 +4,6 @@ import dotenv from 'dotenv';
 dotenv.config({ quiet: true });
 
 import { NestFactory } from '@nestjs/core';
-import { WsAdapter } from '@nestjs/platform-ws';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
@@ -16,8 +15,6 @@ import { json } from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-
-  app.useWebSocketAdapter(new WsAdapter(app));
 
   app.use(json({ limit: '15mb' }));
 

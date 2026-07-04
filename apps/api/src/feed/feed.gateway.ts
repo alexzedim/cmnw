@@ -1,32 +1,18 @@
+import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { HttpAdapterHost } from '@nestjs/core';
 import { LoggerService } from '@app/logger';
-import { cmnwConfig, redisConfig, wsConfig } from '@app/configuration';
-import {
-  OnGatewayConnection,
-  OnGatewayDisconnect,
-  OnGatewayInit,
-  WebSocketGateway,
-  WebSocketServer,
-} from '@nestjs/websockets';
+import { redisConfig, wsConfig } from '@app/configuration';
 import Redis from 'ioredis';
 import { Server } from 'ws';
-import { Injectable } from '@nestjs/common';
+import type { Server as HttpServer, IncomingMessage } from 'http';
 
 @Injectable()
-@WebSocketGateway({
-  namespace: wsConfig.namespace,
-  cors: {
-    origin: cmnwConfig.cors.origins.length > 0 ? cmnwConfig.cors.origins : true,
-    credentials: cmnwConfig.cors.allowCredentials,
-  },
-})
-export class FeedGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
-  @WebSocketServer()
-  private readonly server: Server;
-
+export class FeedGateway implements OnApplicationBootstrap {
   private readonly logger = new LoggerService(FeedGateway.name);
   private readonly subscriber: Redis;
+  private server: Server | null = null;
 
-  constructor() {
+  constructor(private readonly httpAdapterHost: HttpAdapterHost) {
     this.subscriber = new Redis({
       host: redisConfig.host,
       port: redisConfig.port,
@@ -34,7 +20,43 @@ export class FeedGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     });
   }
 
-  async afterInit(): Promise<void> {
+  onApplicationBootstrap(): void {
+    const httpServer = this.httpAdapterHost.httpAdapter.getHttpServer() as HttpServer;
+    this.server = new Server({ noServer: true, clientTracking: true });
+
+    httpServer.on('upgrade', (request: IncomingMessage, socket, head) => {
+      const { pathname } = new URL(request.url || '', `ws://${request.headers.host}`);
+      if (pathname !== wsConfig.path) {
+        return;
+      }
+      this.server!.handleUpgrade(request, socket, head, (ws) => {
+        this.server!.emit('connection', ws, request);
+      });
+    });
+
+    this.server.on('connection', (ws) => {
+      const count = this.server?.clients.size ?? 0;
+      this.logger.info({ logTag: 'FEED_CONNECT', data: { count } });
+      ws.on('close', () => {
+        const c = this.server?.clients.size ?? 0;
+        this.logger.info({ logTag: 'FEED_DISCONNECT', data: { count: c } });
+      });
+      ws.on('error', (error) => {
+        this.logger.error({ logTag: 'FEED_WS_ERROR', errorOrException: error });
+      });
+    });
+
+    this.startSubscriber().catch((error) => {
+      this.logger.error({ logTag: 'FEED_SUBSCRIBE_INIT', errorOrException: error });
+    });
+
+    this.logger.info({
+      logTag: 'FEED_INIT',
+      data: { path: wsConfig.path, channel: wsConfig.channel },
+    });
+  }
+
+  private async startSubscriber(): Promise<void> {
     await this.subscriber.subscribe(wsConfig.channel);
     this.subscriber.on('message', (_channel: string, raw: string) => {
       this.broadcast(raw);
@@ -42,17 +64,6 @@ export class FeedGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
     this.subscriber.on('error', (error: unknown) => {
       this.logger.error({ logTag: 'FEED_SUBSCRIBE', errorOrException: error });
     });
-    this.logger.info({ logTag: 'FEED_INIT', data: { namespace: wsConfig.namespace, channel: wsConfig.channel } });
-  }
-
-  handleConnection(): void {
-    const count = this.server?.clients?.size ?? 0;
-    this.logger.info({ logTag: 'FEED_CONNECT', data: { count } });
-  }
-
-  handleDisconnect(): void {
-    const count = this.server?.clients?.size ?? 0;
-    this.logger.info({ logTag: 'FEED_DISCONNECT', data: { count } });
   }
 
   private broadcast(raw: string): void {
