@@ -7,6 +7,7 @@ import { AuctionsWorker, ItemsWorker } from './workers';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { ItemsEntity, KeysEntity, MarketEntity, RealmsEntity } from '@app/pg';
 import { auctionsQueue, itemsQueue } from '@app/resources';
+import { FeedService } from '@app/resources/services/feed.service';
 
 @Module({
   imports: [
@@ -34,6 +35,6 @@ import { auctionsQueue, itemsQueue } from '@app/resources';
     }),
   ],
   controllers: [],
-  providers: [AuctionsWorker, ItemsWorker],
+  providers: [AuctionsWorker, ItemsWorker, FeedService],
 })
 export class DmaModule {}

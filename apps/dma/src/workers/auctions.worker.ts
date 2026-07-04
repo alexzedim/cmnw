@@ -37,6 +37,8 @@ import {
 import { createHash } from 'crypto';
 import { isAxiosError } from 'axios';
 import { Job } from 'bullmq';
+import { FeedService } from '@app/resources/services/feed.service';
+import { FeedEventCategory, FeedStatus } from '@app/resources';
 
 @Injectable()
 @Processor(auctionsQueue)
@@ -70,6 +72,7 @@ export class AuctionsWorker extends WorkerHost {
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
     private readonly battleNetService: BattleNetService,
+    private readonly feedService: FeedService,
   ) {
     super();
   }
@@ -259,6 +262,15 @@ export class AuctionsWorker extends WorkerHost {
           duration,
           `${iterator} orders`,
         ),
+      );
+      this.feedService.emitWorker(
+        FeedStatus.SUCCESS,
+        iterator,
+        `${isCommodity ? 'commodities' : `realm ${connectedRealmId}`} auctions`,
+        duration,
+        'dma.auctions',
+        FeedEventCategory.AUCTION,
+        { connectedRealmId, isCommodity, orders: iterator },
       );
 
       if (this.stats.total % 10 === 0) {
