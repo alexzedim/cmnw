@@ -9,6 +9,7 @@ export { dmaConfig } from './dma.config';
 export { s3Config } from './s3.config';
 export { battleNetConfig } from './battle-net.config';
 export { workerConfig } from './worker.config';
+export { wsConfig } from './ws.config';
 export {
   REDIS_CONNECTION,
   BULLMQ_QUEUES,
