@@ -37,6 +37,7 @@ import { REDIS_CONNECTION } from '@app/configuration';
 import { charactersQueue, guildsQueue, profileQueue } from '@app/resources';
 import { BattleNetModule } from '@app/battle-net';
 import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
+import { FeedService } from '@app/resources/services/feed.service';
 
 @Module({
   imports: [
@@ -100,6 +101,7 @@ import { RealmsCacheService } from '@app/resources/services/realms-cache.service
     CharacterCollectionService,
     CharacterEntityIndexingService,
     RealmsCacheService,
+    FeedService,
   ],
 })
 export class OsintModule {}

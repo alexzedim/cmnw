@@ -26,6 +26,8 @@ import {
 
 import { CharactersEntity } from '@app/pg';
 import { CharacterService, CharacterLifecycleService, CharacterCollectionService } from '../services';
+import { FeedService } from '@app/resources/services/feed.service';
+import { FeedEventCategory, FeedStatus } from '@app/resources';
 
 @Injectable()
 @Processor(charactersQueue.name, charactersQueue.workerOptions)
@@ -48,6 +50,7 @@ export class CharactersWorker extends WorkerHost {
     private readonly lifecycleService: CharacterLifecycleService,
     private readonly collectionSyncService: CharacterCollectionService,
     private readonly battleNetService: BattleNetService,
+    private readonly feedService: FeedService,
   ) {
     super();
   }
@@ -234,10 +237,13 @@ export class CharactersWorker extends WorkerHost {
     if (isAllSuccess) {
       this.stats.success++;
       this.logger.log(formatWorkerLog(WorkerLogStatus.SUCCESS, this.stats.total, guid, duration, status));
+      this.feedService.emitWorker(FeedStatus.SUCCESS, this.stats.total, `character ${guid}`, duration, 'osint.characters', FeedEventCategory.CHARACTER, { guid, status });
     } else if (hasAnyError) {
       this.logger.warn(formatWorkerLog(WorkerLogStatus.PARTIAL, this.stats.total, guid, duration, status));
+      this.feedService.emitWorker(FeedStatus.PARTIAL, this.stats.total, `character ${guid}`, duration, 'osint.characters', FeedEventCategory.CHARACTER, { guid, status });
     } else {
       this.logger.log(formatWorkerLog(WorkerLogStatus.INFO, this.stats.total, guid, duration, status));
+      this.feedService.emitWorker(FeedStatus.INFO, this.stats.total, `character ${guid}`, duration, 'osint.characters', FeedEventCategory.CHARACTER, { guid, status });
     }
   }
 

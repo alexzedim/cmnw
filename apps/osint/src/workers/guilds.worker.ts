@@ -32,6 +32,8 @@ import {
   GuildLogService,
   GuildMasterService,
 } from '../services';
+import { FeedService } from '@app/resources/services/feed.service';
+import { FeedEventCategory, FeedStatus } from '@app/resources';
 
 const PROGRESS_LOG_INTERVAL = 50;
 
@@ -57,6 +59,7 @@ export class GuildsWorker extends WorkerHost {
     private readonly guildLogService: GuildLogService,
     private readonly guildMasterService: GuildMasterService,
     private readonly battleNetService: BattleNetService,
+    private readonly feedService: FeedService,
   ) {
     super();
   }
@@ -210,10 +213,13 @@ export class GuildsWorker extends WorkerHost {
 
     if (isSuccess) {
       this.logger.log(formatWorkerLog(WorkerLogStatus.SUCCESS, this.stats.total, guid, duration, `status: ${status}`));
+      this.feedService.emitWorker(FeedStatus.SUCCESS, this.stats.total, `guild ${guid}`, duration, 'osint.guilds', FeedEventCategory.GUILD, { guid, status });
     } else if (hasErrors) {
       this.logger.warn(formatWorkerLog(WorkerLogStatus.PARTIAL, this.stats.total, guid, duration, `status: ${status}`));
+      this.feedService.emitWorker(FeedStatus.PARTIAL, this.stats.total, `guild ${guid}`, duration, 'osint.guilds', FeedEventCategory.GUILD, { guid, status });
     } else {
       this.logger.log(formatWorkerLog(WorkerLogStatus.INFO, this.stats.total, guid, duration, `status: ${status}`));
+      this.feedService.emitWorker(FeedStatus.INFO, this.stats.total, `guild ${guid}`, duration, 'osint.guilds', FeedEventCategory.GUILD, { guid, status });
     }
   }
 
