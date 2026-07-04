@@ -283,10 +283,17 @@ export class GuildMetricsService {
       .limit(10)
       .getRawMany<GuildTopByMembers>();
 
+    const topByMembersValue: Record<string, GuildTopByMembers> = {};
+    for (const guild of topByMembers) {
+      if (guild?.guid) {
+        topByMembersValue[guild.guid] = guild;
+      }
+    }
+
     const guildTopByMembersMetric = this.analyticsMetricRepository.create({
       category: AnalyticsMetricCategory.GUILDS,
       metricType: AnalyticsMetricType.TOP_BY_MEMBERS,
-      value: topByMembers,
+      value: topByMembersValue,
       snapshotDate,
     });
     await this.analyticsMetricRepository.save(guildTopByMembersMetric);
@@ -316,10 +323,17 @@ export class GuildMetricsService {
       .limit(10)
       .getRawMany<GuildTopByMembers>();
 
+    const topByAchievementsValue: Record<string, GuildTopByMembers> = {};
+    for (const guild of topByAchievements) {
+      if (guild?.guid) {
+        topByAchievementsValue[guild.guid] = guild;
+      }
+    }
+
     const guildTopByAchievementsMetric = this.analyticsMetricRepository.create({
       category: AnalyticsMetricCategory.GUILDS,
       metricType: AnalyticsMetricType.TOP_BY_ACHIEVEMENTS,
-      value: topByAchievements,
+      value: topByAchievementsValue,
       snapshotDate,
     });
     await this.analyticsMetricRepository.save(guildTopByAchievementsMetric);

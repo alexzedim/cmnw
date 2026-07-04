@@ -222,9 +222,11 @@ export class ContractMetricsService {
       category: AnalyticsMetricCategory.CONTRACTS,
       metricType: AnalyticsMetricType.TOP_BY_QUANTITY,
       value: {
-        itemId: topByQuantity.item_id,
-        quantity: parseInt(topByQuantity.quantity || '0', 10),
-        openInterest: parseFloat(topByQuantity.open_interest || '0'),
+        [String(topByQuantity.item_id)]: {
+          itemId: topByQuantity.item_id,
+          quantity: parseInt(topByQuantity.quantity || '0', 10),
+          openInterest: parseFloat(topByQuantity.open_interest || '0'),
+        },
       },
       snapshotDate,
     });
@@ -263,9 +265,11 @@ export class ContractMetricsService {
       category: AnalyticsMetricCategory.CONTRACTS,
       metricType: AnalyticsMetricType.TOP_BY_OPEN_INTEREST,
       value: {
-        itemId: topByOpenInterest.item_id,
-        openInterest: parseFloat(topByOpenInterest.open_interest || '0'),
-        quantity: parseInt(topByOpenInterest.quantity || '0', 10),
+        [String(topByOpenInterest.item_id)]: {
+          itemId: topByOpenInterest.item_id,
+          openInterest: parseFloat(topByOpenInterest.open_interest || '0'),
+          quantity: parseInt(topByOpenInterest.quantity || '0', 10),
+        },
       },
       snapshotDate,
     });
@@ -305,9 +309,11 @@ export class ContractMetricsService {
       category: AnalyticsMetricCategory.CONTRACTS,
       metricType: AnalyticsMetricType.PRICE_VOLATILITY,
       value: {
-        itemId: volatility.item_id,
-        stdDev: parseFloat(volatility.std_dev || '0'),
-        avgPrice: parseFloat(volatility.avg_price || '0'),
+        [String(volatility.item_id)]: {
+          itemId: volatility.item_id,
+          stdDev: parseFloat(volatility.std_dev || '0'),
+          avgPrice: parseFloat(volatility.avg_price || '0'),
+        },
       },
       snapshotDate,
     });

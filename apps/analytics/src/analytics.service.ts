@@ -3,6 +3,7 @@ import { Cron } from '@nestjs/schedule';
 import { Repository, MoreThan } from 'typeorm';
 import { DateTime } from 'luxon';
 import { CharacterMetricsService, ContractMetricsService, GuildMetricsService, MarketMetricsService } from './services';
+import { AnalyticsMigrationService } from './services/analytics-migration.service';
 import { AnalyticsEntity } from '@app/pg';
 import { InjectRepository } from '@nestjs/typeorm';
 
@@ -19,11 +20,14 @@ export class AnalyticsService implements OnApplicationBootstrap {
     private readonly guildMetricsService: GuildMetricsService,
     private readonly marketMetricsService: MarketMetricsService,
     private readonly contractMetricsService: ContractMetricsService,
+    private readonly analyticsMigrationService: AnalyticsMigrationService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
     const logTag = 'onApplicationBootstrap';
     try {
+      await this.analyticsMigrationService.migrate();
+
       const today = DateTime.now().startOf('day').toJSDate();
 
       // Check if today's snapshot already exists

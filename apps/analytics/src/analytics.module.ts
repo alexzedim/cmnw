@@ -10,6 +10,7 @@ import { CharacterMetricsService } from './services';
 import { GuildMetricsService } from './services';
 import { MarketMetricsService } from './services';
 import { ContractMetricsService } from './services';
+import { AnalyticsMigrationService } from './services/analytics-migration.service';
 
 @Module({
   imports: [
@@ -35,6 +36,7 @@ import { ContractMetricsService } from './services';
   controllers: [],
   providers: [
     AnalyticsService,
+    AnalyticsMigrationService,
     CharacterMetricsService,
     GuildMetricsService,
     MarketMetricsService,

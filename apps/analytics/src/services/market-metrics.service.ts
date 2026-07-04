@@ -286,14 +286,20 @@ export class MarketMetricsService {
       .limit(10)
       .getRawMany<MarketTopByVolume>();
 
-    const marketTopByVolumeMetric = this.analyticsMetricRepository.create({
-      category: AnalyticsMetricCategory.MARKET,
-      metricType: AnalyticsMetricType.TOP_BY_VOLUME,
-      value: topByVolume.map((item) => ({
+    const topByVolumeValue: Record<string, { itemId: number; volume: number; auctions: number }> = {};
+    for (const item of topByVolume) {
+      const record = {
         itemId: item.item_id,
         volume: parseFloat(item.volume),
         auctions: parseInt(item.auctions, 10),
-      })),
+      };
+      topByVolumeValue[String(item.item_id)] = record;
+    }
+
+    const marketTopByVolumeMetric = this.analyticsMetricRepository.create({
+      category: AnalyticsMetricCategory.MARKET,
+      metricType: AnalyticsMetricType.TOP_BY_VOLUME,
+      value: topByVolumeValue,
       snapshotDate,
     });
     await this.analyticsMetricRepository.save(marketTopByVolumeMetric);
@@ -322,13 +328,19 @@ export class MarketMetricsService {
       .limit(10)
       .getRawMany<MarketTopByAuctions>();
 
+    const topByAuctionsValue: Record<string, { itemId: number; auctions: number }> = {};
+    for (const item of topByAuctions) {
+      const record = {
+        itemId: item.item_id,
+        auctions: parseInt(item.auctions, 10),
+      };
+      topByAuctionsValue[String(item.item_id)] = record;
+    }
+
     const marketTopByAuctionsMetric = this.analyticsMetricRepository.create({
       category: AnalyticsMetricCategory.MARKET,
       metricType: AnalyticsMetricType.TOP_BY_AUCTIONS,
-      value: topByAuctions.map((item) => ({
-        itemId: item.item_id,
-        auctions: parseInt(item.auctions, 10),
-      })),
+      value: topByAuctionsValue,
       snapshotDate,
     });
     await this.analyticsMetricRepository.save(marketTopByAuctionsMetric);
