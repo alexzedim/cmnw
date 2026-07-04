@@ -12,3 +12,4 @@ export * from './realm';
 export * from './req';
 export * from './search';
 export * from './wow';
+export * from './feed';
