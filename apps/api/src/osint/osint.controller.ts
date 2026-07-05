@@ -17,6 +17,7 @@ import {
   CharacterHashDto,
   CharacterIdDto,
   CharacterLfgDto,
+  CharacterRefreshDto,
   GuildIdDto,
   IAddonScanEntryWithStatus,
   IAddonScanGuild,
@@ -65,6 +66,18 @@ export class OsintController {
   @Get('/character')
   async getCharacter(@Query() input: CharacterIdDto): Promise<CharactersEntity> {
     return await this.characterOsintService.getCharacter(input);
+  }
+
+  @ApiOperation({ description: 'Force-refresh a character from Blizzard; progress is streamed over the WS feed to the originating session' })
+  @ApiOkResponse({ description: 'Character refresh job was queued' })
+  @ApiBadRequestResponse({ description: 'Invalid request body or unknown realm' })
+  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
+  @HttpCode(HttpStatus.OK)
+  @Post('/character/refresh')
+  async refreshCharacter(
+    @Body() input: CharacterRefreshDto,
+  ): Promise<{ queued: true; guid: string }> {
+    return this.characterOsintService.refreshCharacter(input);
   }
 
   @ApiOperation({

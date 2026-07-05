@@ -25,6 +25,7 @@ import {
   CharacterIdDto,
   CharacterMessageDto,
   CharacterLfgDto,
+  CharacterRefreshDto,
   charactersQueue,
   GuildMessageDto,
   guildsQueue,
@@ -207,6 +208,50 @@ export class CharacterOsintService {
       });
 
       throw new ServiceUnavailableException(`Error fetching character data for ${input.guid}`);
+    }
+  }
+
+  async refreshCharacter(input: CharacterRefreshDto): Promise<{ queued: true; guid: string }> {
+    const logTag = 'refreshCharacter';
+    const guid = input.guid;
+
+    try {
+      const [nameSlug, realmSlug] = guid.split('@');
+
+      const realmEntity = await findRealm(this.realmsRepository, realmSlug);
+      if (!realmEntity) {
+        throw new BadRequestException(`Realm: ${realmSlug} for character ${guid} not found!`);
+      }
+
+      const characterMessage = CharacterMessageDto.fromCharacterForceRefresh({
+        name: nameSlug,
+        realm: realmEntity.slug,
+        sessionId: input.sessionId,
+        requestId: input.requestId,
+      });
+
+      await this.queueCharacter.add(characterMessage.name, characterMessage.data, characterMessage.opts);
+
+      this.logger.log({
+        logTag,
+        characterGuid: guid,
+        message: `Character force-refresh queued: ${guid}`,
+      });
+
+      return { queued: true, guid };
+    } catch (errorOrException) {
+      if (errorOrException instanceof BadRequestException) {
+        throw errorOrException;
+      }
+
+      this.logger.error({
+        logTag,
+        characterGuid: guid,
+        errorOrException,
+        message: `Error queueing character refresh: ${guid}`,
+      });
+
+      throw new ServiceUnavailableException(`Error queueing character refresh for ${guid}`);
     }
   }
 
