@@ -167,26 +167,42 @@ export class GuildMemberService {
         createdAt: rosterUpdatedAt,
       });
 
-      await Promise.allSettled([
-        this.charactersGuildsLogsRepository.save(logEntityGuildMemberDemote),
-        this.charactersRepository.update(
-          { guid: guildMemberUpdated.guid, id: guildMemberUpdated.id },
+      await this.settleAndLog(
+        [
           {
-            guildRank: guildMemberUpdated.rank,
-            updatedBy: OSINT_SOURCE.GUILD_ROSTER,
-          },
-        ),
-        this.characterGuildsMembersRepository.update(
-          {
-            characterGuid: guildMemberOriginal.characterGuid,
-            guildGuid: guildEntity.guid,
+            name: 'log.save',
+            promise: this.charactersGuildsLogsRepository.save(logEntityGuildMemberDemote),
           },
           {
-            rank: guildMemberUpdated.rank,
-            updatedBy: OSINT_SOURCE.GUILD_ROSTER,
+            name: 'character.update',
+            promise: this.charactersRepository.update(
+              { guid: guildMemberUpdated.guid, id: guildMemberUpdated.id },
+              {
+                guildRank: guildMemberUpdated.rank,
+                updatedBy: OSINT_SOURCE.GUILD_ROSTER,
+              },
+            ),
           },
-        ),
-      ]);
+          {
+            name: 'member.update',
+            promise: this.characterGuildsMembersRepository.update(
+              {
+                characterGuid: guildMemberOriginal.characterGuid,
+                guildGuid: guildEntity.guid,
+              },
+              {
+                rank: guildMemberUpdated.rank,
+                updatedBy: OSINT_SOURCE.GUILD_ROSTER,
+              },
+            ),
+          },
+        ],
+        {
+          logTag: 'processIntersectionMember',
+          guildGuid: guildEntity.guid,
+          characterGuid: guildMemberOriginal.characterGuid,
+        },
+      );
     } catch (errorOrException) {
       this.logger.error({
         logTag: 'processIntersectionMember',
@@ -242,19 +258,32 @@ export class GuildMemberService {
         await this.charactersGuildsLogsRepository.save(logEntityGuildMemberJoin);
       }
 
-      await Promise.allSettled([
-        this.characterGuildsMembersRepository.save(charactersGuildsMembersEntity),
-        this.charactersRepository.update(
-          { guid: guildMemberUpdated.guid, id: guildMemberUpdated.id },
+      await this.settleAndLog(
+        [
           {
-            guild: guildEntity.name,
-            guildId: guildEntity.id,
-            guildGuid: guildEntity.guid,
-            guildRank: guildMemberUpdated.rank,
-            updatedBy: OSINT_SOURCE.GUILD_ROSTER,
+            name: 'member.save',
+            promise: this.characterGuildsMembersRepository.save(charactersGuildsMembersEntity),
           },
-        ),
-      ]);
+          {
+            name: 'character.update',
+            promise: this.charactersRepository.update(
+              { guid: guildMemberUpdated.guid, id: guildMemberUpdated.id },
+              {
+                guild: guildEntity.name,
+                guildId: guildEntity.id,
+                guildGuid: guildEntity.guid,
+                guildRank: guildMemberUpdated.rank,
+                updatedBy: OSINT_SOURCE.GUILD_ROSTER,
+              },
+            ),
+          },
+        ],
+        {
+          logTag: 'processJoinMember',
+          guildGuid: guildEntity.guid,
+          characterGuid: guildMemberUpdated.guid,
+        },
+      );
     } catch (errorOrException) {
       this.logger.error({
         logTag: 'processJoinMember',
@@ -287,25 +316,38 @@ export class GuildMemberService {
         await this.charactersGuildsLogsRepository.save(logEntityGuildMemberLeave);
       }
 
-      await Promise.allSettled([
-        this.characterGuildsMembersRepository.delete({
+      await this.settleAndLog(
+        [
+          {
+            name: 'member.delete',
+            promise: this.characterGuildsMembersRepository.delete({
+              guildGuid: guildEntity.guid,
+              characterGuid: guildMemberOriginal.characterGuid,
+            }),
+          },
+          {
+            name: 'character.update',
+            promise: this.charactersRepository.update(
+              {
+                guid: guildMemberOriginal.characterGuid,
+                guildGuid: guildEntity.guid,
+              },
+              {
+                guild: null,
+                guildId: null,
+                guildGuid: null,
+                guildRank: null,
+                updatedBy: OSINT_SOURCE.GUILD_ROSTER,
+              },
+            ),
+          },
+        ],
+        {
+          logTag: 'processLeaveMember',
           guildGuid: guildEntity.guid,
           characterGuid: guildMemberOriginal.characterGuid,
-        }),
-        this.charactersRepository.update(
-          {
-            guid: guildMemberOriginal.characterGuid,
-            guildGuid: guildEntity.guid,
-          },
-          {
-            guild: null,
-            guildId: null,
-            guildGuid: null,
-            guildRank: null,
-            updatedBy: OSINT_SOURCE.GUILD_ROSTER,
-          },
-        ),
-      ]);
+        },
+      );
     } catch (errorOrException) {
       this.logger.error({
         logTag: 'processLeaveMember',
@@ -313,5 +355,24 @@ export class GuildMemberService {
         error: JSON.stringify(errorOrException),
       });
     }
+  }
+
+  private async settleAndLog(
+    operations: ReadonlyArray<{ name: string; promise: Promise<unknown> }>,
+    context: { logTag: string; guildGuid: string; characterGuid: string },
+  ): Promise<void> {
+    const results = await Promise.allSettled(operations.map((operation) => operation.promise));
+
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        const operation = operations[index].name;
+        this.logger.error({
+          logTag: `${context.logTag}:${operation}`,
+          guildGuid: context.guildGuid,
+          characterGuid: context.characterGuid,
+          error: JSON.stringify(result.reason),
+        });
+      }
+    });
   }
 }
