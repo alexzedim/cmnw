@@ -101,11 +101,12 @@ export enum EXPANSION_TICKER {
   SHDW = 'SHDW',
   DF = 'DF',
   TWW = 'TWW', // The War Within
-  MINT = 'MINT', // Midnight
+  MDNT = 'MDNT', // Midnight
   LT = 'LT', // The Last Titan
 }
 
 export const EXPANSION_TICKER_MAP: Map<string, EXPANSION_TICKER> = new Map([
+  ['Khaz Algar', EXPANSION_TICKER.TWW], // The War Within
   ['Within', EXPANSION_TICKER.TWW],
   ['Dragon', EXPANSION_TICKER.DF],
   ['Shadowlands', EXPANSION_TICKER.SHDW],
@@ -117,11 +118,13 @@ export const EXPANSION_TICKER_MAP: Map<string, EXPANSION_TICKER> = new Map([
   ['Cataclysm', EXPANSION_TICKER.CATA],
   ['Northrend', EXPANSION_TICKER.WOTLK],
   ['Outland', EXPANSION_TICKER.TBC],
+  ['Midnight', EXPANSION_TICKER.MDNT],
+  ['Classic', EXPANSION_TICKER.CLSC],
 ]);
 
 export const EXPANSION_TICKER_ID: Map<number, string> = new Map([
   [12, EXPANSION_TICKER.LT],
-  [11, EXPANSION_TICKER.MINT],
+  [11, EXPANSION_TICKER.MDNT],
   [10, EXPANSION_TICKER.TWW],
   [9, EXPANSION_TICKER.DF],
   [8, EXPANSION_TICKER.SHDW],
