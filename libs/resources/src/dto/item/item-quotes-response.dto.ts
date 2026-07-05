@@ -19,23 +19,25 @@ export class ItemQuotesResponseDto {
   readonly quotes: IOrderQuotes[];
 
   /**
-   * Static method to remap raw database query results from snake_case to camelCase
-   * @param rawQuotes - Raw query results with snake_case field names
-   * @returns Array of remapped quotes with camelCase field names
+   * Remap raw database query results from snake_case to camelCase AND coerce
+   * the aggregate columns to numbers.
+   *
+   * TypeORM returns PostgreSQL aggregate results (`COUNT(*)`, `SUM(...)`) as
+   * strings (bigint-safe), even though the typed `select` pretends they are
+   * numbers. Without this coercion, `quantity` and `size` reach the client as
+   * JSON strings — which silently breaks `toLocaleString()` grouping in the
+   * quotes table. Coerce here at the response boundary so the rest of the
+   * stack can trust the declared `number` types.
+   *
+   * `price` is a non-aggregated numeric column, but it is normalised here too
+   * for symmetry and to survive any future driver/ORM change.
    */
-  static remapQuotes(
-    rawQuotes: Array<{
-      price: number;
-      size: number;
-      quantity: number;
-      open_interest: number;
-    }>,
-  ): IOrderQuotes[] {
+  static remapQuotes(rawQuotes: Array<Record<string, string | number>>): IOrderQuotes[] {
     return rawQuotes.map((quote) => ({
-      price: quote.price,
-      size: quote.size,
-      quantity: quote.quantity,
-      openInterest: quote.open_interest,
+      price: Number(quote.price),
+      size: Number(quote.size),
+      quantity: Number(quote.quantity),
+      openInterest: Number(quote.open_interest),
     }));
   }
 }
