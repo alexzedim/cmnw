@@ -119,11 +119,18 @@ export class CharacterLifecycleService {
 
   async diffAndLogChanges(original: CharactersEntity, updated: CharactersEntity): Promise<void> {
     try {
-      const actionLogFields = [ACTION_LOG.NAME, ACTION_LOG.RACE, ACTION_LOG.GENDER, ACTION_LOG.FACTION];
+      const actionLogFields = [
+        { action: ACTION_LOG.NAME, key: 'name' },
+        { action: ACTION_LOG.RACE, key: 'race' },
+        { action: ACTION_LOG.GENDER, key: 'gender' },
+        { action: ACTION_LOG.FACTION, key: 'faction' },
+        { action: ACTION_LOG.HASH_A, key: 'hashA' },
+        { action: ACTION_LOG.HASH_B, key: 'hashB' },
+        { action: ACTION_LOG.MOUNTS_NUMBER, key: 'mountsNumber' },
+        { action: ACTION_LOG.PETS_NUMBER, key: 'petsNumber' },
+      ];
 
-      for (const actionLogField of actionLogFields) {
-        const key = actionLogField.toLowerCase();
-
+      for (const { action, key } of actionLogFields) {
         const hasField = Boolean(original[key]) && Boolean(updated[key]);
         if (!hasField) continue;
 
@@ -132,9 +139,9 @@ export class CharacterLifecycleService {
 
         const logEntity = this.charactersGuildsLogsRepository.create({
           characterGuid: updated.guid,
-          original: original[key],
-          updated: updated[key],
-          action: actionLogField,
+          original: String(original[key]),
+          updated: String(updated[key]),
+          action,
           scannedAt: toDate(original.lastModified || original.updatedAt),
           createdAt: toDate(updated.lastModified || updated.updatedAt),
         });
