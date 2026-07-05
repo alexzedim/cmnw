@@ -280,13 +280,20 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
 
                 professionRecords.push(record);
                 let expansionTicker = EXPANSION_TICKER.CLSC;
+                let tierMatched = false;
                 Array.from(EXPANSION_TICKER_MAP.entries()).some(([key, ticker]) => {
                   if (tierName.includes(key)) {
                     expansionTicker = ticker;
+                    tierMatched = true;
                     return true;
                   }
                   return false;
                 });
+                if (!tierMatched) {
+                  this.logger.warn(
+                    `syncCharacterProfessions: tier "${tierName}" matched no EXPANSION_TICKER_MAP key; falling back to CLSC`,
+                  );
+                }
                 const specializationSuffix = profSpecialization?.name ? ` (${profSpecialization.name})` : '';
                 professionsSummary.push(
                   `${expansionTicker} ${professionName}${specializationSuffix} ${skill_points}/${max_skill_points}`,
