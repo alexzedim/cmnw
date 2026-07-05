@@ -1,8 +1,16 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { Repository, IsNull, Not } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
+import { DataSource, IsNull, Not, Repository } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 
-import { ACTION_LOG, IGuildRoster, OSINT_GM_RANK, GuildStatusState, setGuildStatusString } from '@app/resources';
+import {
+  ACTION_LOG,
+  GuildStatusState,
+  IGuildMember,
+  IGuildRoster,
+  OSINT_GM_RANK,
+  OSINT_SOURCE,
+  setGuildStatusString,
+} from '@app/resources';
 import { CharactersEntity, CharactersGuildsMembersEntity, CharactersGuildsLogsEntity, GuildsEntity } from '@app/pg';
 
 @Injectable()
@@ -12,6 +20,8 @@ export class GuildMasterService {
   });
 
   constructor(
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
     @InjectRepository(CharactersGuildsMembersEntity)
@@ -45,7 +55,10 @@ export class GuildMasterService {
         return setGuildStatusString('-----', 'MASTER', GuildStatusState.SUCCESS);
       }
 
-      await this.logGuildMasterTransition(guildEntity, originalGM.characterGuid, newGM.guid, updatedRoster.updatedAt);
+      const previousGMInRoster = updatedRoster.members.find((member) => member.id === Number(originalGM.characterId));
+      const previousGMNewRank = previousGMInRoster ? previousGMInRoster.rank : null;
+
+      await this.applyGuildMasterTransition(guildEntity, originalGM, newGM, previousGMNewRank, updatedRoster.updatedAt);
 
       return setGuildStatusString('-----', 'MASTER', GuildStatusState.SUCCESS);
     } catch (errorOrException) {
@@ -58,49 +71,91 @@ export class GuildMasterService {
     }
   }
 
-  private async logGuildMasterTransition(
+  private async applyGuildMasterTransition(
     guildEntity: GuildsEntity,
-    originalGMGuid: string,
-    newGMGuid: string,
-    timestamp: Date,
+    originalGM: CharactersGuildsMembersEntity,
+    newGM: IGuildMember,
+    previousGMNewRank: number | null,
+    timestamp: Date | undefined,
   ): Promise<void> {
     const [originalGMChar, newGMChar] = await Promise.all([
       this.charactersRepository.findOneBy({
-        guid: originalGMGuid,
+        guid: originalGM.characterGuid,
         hashA: Not(IsNull()),
       }),
       this.charactersRepository.findOneBy({
-        guid: newGMGuid,
+        guid: newGM.guid,
         hashA: Not(IsNull()),
       }),
     ]);
 
     const action = this.determineGMTransitionAction(originalGMChar, newGMChar);
 
+    const scannedAt = guildEntity.updatedAt;
+    const createdAt = timestamp;
+
     const logEntities = [
-      this.logsRepository.create({
+      {
         guildGuid: guildEntity.guid,
-        characterGuid: originalGMGuid,
-        original: originalGMGuid,
-        updated: newGMGuid,
+        characterGuid: originalGM.characterGuid,
+        original: originalGM.characterGuid,
+        updated: newGM.guid,
         action,
-        scannedAt: guildEntity.updatedAt,
-        createdAt: timestamp,
-      }),
-      this.logsRepository.create({
+        scannedAt,
+        createdAt,
+      },
+      {
         guildGuid: guildEntity.guid,
-        characterGuid: newGMGuid,
-        original: originalGMGuid,
-        updated: newGMGuid,
+        characterGuid: newGM.guid,
+        original: originalGM.characterGuid,
+        updated: newGM.guid,
         action,
-        scannedAt: guildEntity.updatedAt,
-        createdAt: timestamp,
-      }),
+        scannedAt,
+        createdAt,
+      },
     ];
 
-    await this.logsRepository.save(logEntities);
+    await this.dataSource.transaction(async (manager) => {
+      await manager
+        .createQueryBuilder()
+        .update(CharactersGuildsMembersEntity)
+        .set({ rank: newGM.rank, updatedBy: OSINT_SOURCE.GUILD_ROSTER })
+        .where('guild_guid = :guildGuid AND character_id = :characterId', {
+          guildGuid: guildEntity.guid,
+          characterId: newGM.id,
+        })
+        .execute();
 
-    this.logger.debug(`Guild ${guildEntity.guid} GM transition logged: ${action} (${originalGMGuid} → ${newGMGuid})`);
+      if (previousGMNewRank !== null) {
+        await manager
+          .createQueryBuilder()
+          .update(CharactersGuildsMembersEntity)
+          .set({ rank: previousGMNewRank, updatedBy: OSINT_SOURCE.GUILD_ROSTER })
+          .where('guild_guid = :guildGuid AND character_id = :characterId', {
+            guildGuid: guildEntity.guid,
+            characterId: Number(originalGM.characterId),
+          })
+          .execute();
+
+        await manager.update(
+          CharactersEntity,
+          { guid: originalGM.characterGuid },
+          { guildRank: previousGMNewRank, updatedBy: OSINT_SOURCE.GUILD_ROSTER },
+        );
+      }
+
+      await manager.update(
+        CharactersEntity,
+        { guid: newGM.guid },
+        { guildRank: newGM.rank, updatedBy: OSINT_SOURCE.GUILD_ROSTER },
+      );
+
+      await manager.insert(CharactersGuildsLogsEntity, logEntities);
+    });
+
+    this.logger.debug(
+      `Guild ${guildEntity.guid} GM transition applied: ${action} (${originalGM.characterGuid} → ${newGM.guid})`,
+    );
   }
 
   private determineGMTransitionAction(originalGM: CharactersEntity | null, newGM: CharactersEntity | null): ACTION_LOG {
