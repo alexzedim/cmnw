@@ -21,6 +21,7 @@ import { ContractEntity, ItemsEntity, KeysEntity, MarketEntity } from '@app/pg';
 import { Repository } from 'typeorm';
 import Redis from 'ioredis';
 import { formatServiceErrorLog } from '@app/logger';
+import { assignPriceBucket, buildHybridPriceBins, DEFAULT_BLOCKS } from './price-binning';
 
 @Injectable()
 export class DmaService {
@@ -98,28 +99,47 @@ export class DmaService {
 
     const { timestamps, key } = await this.getLatestTimestampCommodity(item.id);
 
-    // --- return cached chart from redis on exist -- //
-    /*    const getCacheItemChart = await this.redisService.get(key);
-    if (getCacheItemChart) {
-      console.log('from cache');
-      return JSON.parse(getCacheItemChart) as ItemChartDto;
-    }*/
+    // --- read-through cache: serve the precomputed chart if present --- //
+    // The key embeds the latest commodity timestamp, so a new snapshot
+    // naturally invalidates it. TTL is a 1h safety net in case the snapshot
+    // pipeline stalls. Failures here must NOT break the request — fall through
+    // to a fresh build.
+    try {
+      const cached = await this.redisService.get(key);
+      if (cached) {
+        return JSON.parse(cached) as ItemChartDto;
+      }
+    } catch (errorOrException) {
+      this.logger.warn(
+        `chart cache read failed for item ${item.id}: ${
+          errorOrException instanceof Error ? errorOrException.message : String(errorOrException)
+        }`,
+      );
+    }
 
     const yPriceAxis = await this.priceAxisCommodity({
       itemId: item.id,
     });
 
-    const { dataset } = await this.buildChartDataset(yPriceAxis, timestamps, item.id);
+    const { dataset, xAxis } = await this.buildChartDataset(yPriceAxis, timestamps, item.id);
 
     const chart = JSON.stringify({
       yAxis: yPriceAxis,
-      xAxis: timestamps,
+      xAxis,
       dataset,
     });
 
-    await this.redisService.set(key, chart, 'EX', 3600);
+    try {
+      await this.redisService.set(key, chart, 'EX', 3600);
+    } catch (errorOrException) {
+      this.logger.warn(
+        `chart cache write failed for item ${item.id}: ${
+          errorOrException instanceof Error ? errorOrException.message : String(errorOrException)
+        }`,
+      );
+    }
 
-    return { yAxis: yPriceAxis, xAxis: timestamps, dataset };
+    return { yAxis: yPriceAxis, xAxis, dataset };
   }
 
   async getGoldChart(_input: ReqGetItemDto): Promise<ItemChartDto> {
@@ -141,9 +161,9 @@ export class DmaService {
       itemId: goldItemId,
     });
 
-    const { dataset } = await this.buildChartDataset(yPriceAxis, timestampValues, goldItemId);
+    const { dataset, xAxis } = await this.buildChartDataset(yPriceAxis, timestampValues, goldItemId);
 
-    return { yAxis: yPriceAxis, xAxis: timestampValues, dataset };
+    return { yAxis: yPriceAxis, xAxis, dataset };
   }
 
   /**
@@ -186,207 +206,41 @@ export class DmaService {
   }
 
   /**
-   * Calculate price range based on quantity distribution using percentile filtering
-   * Filters out price tails with minimal liquidity to create representative bins
-   * @param prices sorted array of unique prices
-   * @param marketData market orders with price and quantity
-   * @param lowerPercentile lower quantile threshold (default 0.05 = 5%)
-   * @param upperPercentile upper quantile threshold (default 0.95 = 95%)
-   * @returns { floor, cap } representing the quantity-filtered price range
+   * Build the Y-axis price edges for an item.
+   *
+   * Delegates to the pure helpers in `price-binning.ts`:
+   *   - filters outliers (order-count-weighted IQR on log10 price),
+   *   - picks log vs linear bins based on the cleaned range,
+   *   - snaps edges to nice 1-2-5 steps and dedupes them.
+   *
+   * The same edges are used for both the axis labels AND cell assignment, so
+   * what the user reads on the axis always matches where orders were bucketed.
+   * Returns an empty array if there is no usable market data.
    */
-  private calculateQuantileFilteredRange(
-    prices: number[],
-    marketData: { price: number; quantity?: number }[],
-    lowerPercentile: number = 0.05,
-    upperPercentile: number = 0.85,
-  ): { floor: number; cap: number } {
-    // Aggregate quantity by price
-    const quantityByPrice = new Map<number, number>();
-    for (const order of marketData) {
-      const currentQty = quantityByPrice.get(order.price) ?? 0;
-      quantityByPrice.set(order.price, currentQty + (order.quantity ?? 1));
-    }
-
-    // Calculate total quantity
-    const totalQuantity = Array.from(quantityByPrice.values()).reduce((sum, qty) => sum + qty, 0);
-
-    if (totalQuantity === 0) {
-      // Fallback to price-based filtering if no quantity data
-      return {
-        floor: prices[0],
-        cap: prices[Math.floor(prices.length * 0.9)],
-      };
-    }
-
-    // Build cumulative quantity distribution
-    let cumulativeQty = 0;
-    let lowerBoundPrice = prices[0];
-    let upperBoundPrice = prices[prices.length - 1];
-
-    for (const price of prices) {
-      const qtyAtPrice = quantityByPrice.get(price) ?? 0;
-      cumulativeQty += qtyAtPrice;
-      const percentile = cumulativeQty / totalQuantity;
-
-      // Set lower bound at lower percentile threshold
-      if (percentile >= lowerPercentile && lowerBoundPrice === prices[0]) {
-        lowerBoundPrice = price;
-      }
-
-      // Set upper bound at upper percentile threshold
-      if (percentile >= upperPercentile) {
-        upperBoundPrice = price;
-        break; // Found our upper bound
-      }
-    }
-
-    return {
-      floor: lowerBoundPrice,
-      cap: upperBoundPrice,
-    };
-  }
-
-  /**
-   * Build decimal bins for accurate price assignment
-   * Uses quantity-weighted distribution to create representative bins
-   * Filters out price tails with minimal liquidity (default 5%-95% percentile)
-   */
-  private async buildDecimalPriceBins(itemId: number, blocks: number): Promise<number[]> {
-    // Fetch price and quantity data (not just distinct prices)
+  private async getPriceEdges(itemId: number, blocks = DEFAULT_BLOCKS): Promise<number[]> {
     const marketData = await this.marketRepository.find({
-      where: {
-        itemId,
-      },
+      where: { itemId },
       select: ['price', 'quantity'],
     });
 
-    if (!marketData.length) return [];
-
-    // Get unique sorted prices
-    const uniquePrices = Array.from(new Set(marketData.map((m) => m.price))).sort((a, b) => a - b);
-
-    if (uniquePrices.length === 0) return [];
-
-    // Calculate quantity-filtered range
-    const { floor, cap } = this.calculateQuantileFilteredRange(
-      uniquePrices,
-      marketData,
-      0.05, // lower percentile (5%)
-      0.9, // upper percentile (85%)
-    );
-
-    const priceRange = cap - floor;
-    // --- Step represents equal division for each cluster --- //
-    const tick = priceRange / blocks;
-
-    return Array(Math.ceil((cap + tick - floor) / tick))
-      .fill(floor)
-      .map((x, y) => parseFloat((x + y * tick).toFixed(4)));
-  }
-
-  /**
-   * Rebuild decimal bins for use in processTimestampData
-   * Used internally for accurate price binning
-   */
-  private async rebuildDecimalBins(itemId: number): Promise<number[]> {
-    return this.buildDecimalPriceBins(itemId, 20);
-  }
-
-  /**
-   * Detect the appropriate price rounding increment based on price intervals
-   * Finds the best-fit increment that is a multiple of 5
-   * Examples: 0.05, 0.5, 5, 50, 500, etc.
-   */
-  private detectPriceRoundingIncrement(prices: number[]): number {
-    if (prices.length < 2) return 0.05; // default to smallest increment
-
-    // Calculate intervals between consecutive prices
-    const intervals: number[] = [];
-    for (let i = 1; i < prices.length; i++) {
-      const interval = prices[i] - prices[i - 1];
-      if (interval > 0) {
-        intervals.push(interval);
-      }
-    }
-
-    if (intervals.length === 0) return 0.05;
-
-    // Calculate median interval to handle outliers
-    const sortedIntervals = [...intervals].sort((a, b) => a - b);
-    const medianInterval = sortedIntervals[Math.floor(sortedIntervals.length / 2)];
-
-    // Find appropriate power of 10 scale based on interval magnitude
-    const magnitude = Math.floor(Math.log10(medianInterval));
-    const scale = Math.pow(10, magnitude);
-
-    // Try multiples of 5 at different scales: 0.5x, 5x of the base scale
-    // E.g., if scale=1: try 0.5, 5; if scale=0.1: try 0.05, 0.5; if scale=10: try 5, 50
-    const candidateIncrements = [scale * 0.5, scale * 5];
-
-    // Find the first increment where median fits within 1-4 increments
-    for (const increment of candidateIncrements) {
-      if (medianInterval >= increment * 0.8 && medianInterval <= increment * 4) {
-        return increment;
-      }
-    }
-
-    // Fallback: use 5x of scale
-    return scale * 5;
-  }
-
-  /**
-   * Round a price to the nearest increment (0.05, 0.25, 0.5, or 5)
-   */
-  private roundToIncrement(price: number, increment: number): number {
-    return Math.round(price / increment) * increment;
-  }
-
-  private async getPriceRangeByItem(itemId: number, blocks: number) {
-    const decimalBins = await this.buildDecimalPriceBins(itemId, blocks);
-
-    // Detect appropriate rounding increment based on price intervals
-    const roundingIncrement = this.detectPriceRoundingIncrement(decimalBins);
-
-    // Round the bins using the detected increment
-    return decimalBins.map((price) => parseFloat(this.roundToIncrement(price, roundingIncrement).toFixed(2)));
+    return buildHybridPriceBins(marketData, blocks);
   }
 
   async priceAxisCommodity(args: IBuildYAxis): Promise<number[]> {
-    const { itemId } = args;
-
-    const blocks = 20;
-
-    return this.getPriceRangeByItem(itemId, blocks);
+    return this.getPriceEdges(args.itemId);
   }
 
   /**
-   * Helper method to find the correct bucket index for a given price
-   * Uses decimal bins for accurate price assignment
-   */
-  private findPriceBucketIndex(price: number, decimalBins: number[]): number {
-    // For each price, find the bucket where: bucketFloor <= price < bucketCeiling
-    for (let i = 0; i < decimalBins.length; i++) {
-      const bucketFloor = decimalBins[i];
-      const bucketCeiling = decimalBins[i + 1] ?? Infinity;
-
-      // Price belongs to this bucket if it's >= floor and < ceiling
-      if (price >= bucketFloor && price < bucketCeiling) {
-        return i;
-      }
-    }
-
-    // Fallback: if price is above all buckets, return last index
-    return decimalBins.length - 1;
-  }
-
-  /**
-   * Processes market orders for a single timestamp and creates price level dataset
+   * Processes market orders for a single timestamp and creates price level dataset.
+   *
+   * `yPriceAxis` is BOTH the displayed axis labels AND the bucket edges — they
+   * are the same array now, so an order lands in exactly the row whose label
+   * the user sees.
    */
   private async processTimestampData(
     timestamp: number,
     itx: number,
     yPriceAxis: number[],
-    decimalBins: number[],
     itemId: number,
   ): Promise<IChartOrder[]> {
     try {
@@ -410,10 +264,10 @@ export class DmaService {
         value: 0,
       }));
 
-      // Process market orders for this timestamp
-      // Find the correct bucket for each order based on its actual price using decimal bins
+      // Assign each order to its bucket using the same edges that produced the
+      // axis labels. Binary search, O(log n) per order.
       for (const order of marketOrders) {
-        const bucketIndex = this.findPriceBucketIndex(order.price, decimalBins);
+        const bucketIndex = assignPriceBucket(order.price, yPriceAxis);
 
         priceLevelDataset[bucketIndex].orders = priceLevelDataset[bucketIndex].orders + 1;
         priceLevelDataset[bucketIndex].oi = priceLevelDataset[bucketIndex].oi + (order.value ?? 0);
@@ -448,26 +302,31 @@ export class DmaService {
     }
   }
 
-  async buildChartDataset(yPriceAxis: number[], xTimestampAxis: number[], itemId: number) {
-    if (!yPriceAxis.length) return { dataset: [] };
+  /**
+   * Build the full dataset by processing each timestamp in parallel (RxJS),
+   * then trim leading/trailing X-buckets that contain no market activity at
+   * all, so the chart doesn't render long empty margins (e.g. a multi-month
+   * gap between snapshot batches). Interior gaps are preserved — those carry
+   * information about when the market was offline.
+   */
+  async buildChartDataset(
+    yPriceAxis: number[],
+    xTimestampAxis: number[],
+    itemId: number,
+  ): Promise<{ dataset: IChartOrder[]; xAxis: number[] }> {
+    if (!yPriceAxis.length) return { dataset: [], xAxis: xTimestampAxis };
 
     try {
-      // yPriceAxis contains rounded values for display
-      // We need decimal precision for binning, so reconstruct them
-      const decimalBins = await this.rebuildDecimalBins(itemId);
-
-      // Process each timestamp and return the aggregated results
       const dataset = await lastValueFrom(
         from(xTimestampAxis).pipe(
           mergeMap(async (timestamp, itx) => {
-            return await this.processTimestampData(timestamp, itx, yPriceAxis, decimalBins, itemId);
+            return await this.processTimestampData(timestamp, itx, yPriceAxis, itemId);
           }),
-          // Collect all arrays and flatten them
           reduce((acc: IChartOrder[], curr: IChartOrder[]) => [...acc, ...curr], [] as IChartOrder[]),
         ),
       );
 
-      return { dataset };
+      return this.trimEmptyXMargins(dataset, xTimestampAxis);
     } catch (errorOrException) {
       this.logger.error(
         formatServiceErrorLog(
@@ -477,19 +336,56 @@ export class DmaService {
           errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
         ),
       );
-      return { dataset: [] };
+      return { dataset: [], xAxis: xTimestampAxis };
     }
+  }
+
+  /**
+   * Drop leading/trailing X indices whose column is entirely empty (every
+   * price bucket has value 0). Returns the trimmed dataset and a parallel
+   * `xAxis` whose entries match the surviving column indices. The x-indices
+   * in the returned dataset are remapped to be 0-based contiguous so the
+   * frontend's `dataMap.get(`${xIndex}-${yIndex}`)` lookup still works.
+   */
+  private trimEmptyXMargins(dataset: IChartOrder[], xAxis: number[]): { dataset: IChartOrder[]; xAxis: number[] } {
+    if (!dataset.length || !xAxis.length) {
+      return { dataset, xAxis };
+    }
+
+    const populatedX = new Set<number>();
+    for (const point of dataset) {
+      if (point.value > 0) populatedX.add(point.x);
+    }
+
+    if (populatedX.size === 0) return { dataset, xAxis };
+
+    const minPopulated = Math.min(...populatedX);
+    const maxPopulated = Math.max(...populatedX);
+
+    // No trimming possible — keep as-is to preserve identity with xAxis.
+    if (minPopulated === 0 && maxPopulated === xAxis.length - 1) {
+      return { dataset, xAxis };
+    }
+
+    const keptXIndices: number[] = [];
+    for (let x = minPopulated; x <= maxPopulated; x++) {
+      keptXIndices.push(x);
+    }
+
+    const oldToNew = new Map<number, number>();
+    keptXIndices.forEach((oldX, newX) => oldToNew.set(oldX, newX));
+
+    const trimmedDataset = dataset
+      .filter((p) => p.x >= minPopulated && p.x <= maxPopulated)
+      .map((p) => ({ ...p, x: oldToNew.get(p.x)! }));
+
+    const trimmedXAxis = keptXIndices.map((x) => xAxis[x]);
+
+    return { dataset: trimmedDataset, xAxis: trimmedXAxis };
   }
 
   async getItemFeed(input: ItemRealmDto): Promise<ItemFeedDto> {
     const item = await this.queryItem(input.id);
-
-    // Parse realm from id format: "itemId@realmSlug"
-    const [_itemIdStr, realmSlug] = input.id.split('@');
-
-    if (!realmSlug) {
-      throw new BadRequestException('Realm information required for item feed. Use format: itemId@realmSlug');
-    }
 
     // Find recent market data for this item
     const feed = await this.marketRepository.find({
