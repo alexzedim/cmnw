@@ -1,17 +1,15 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
-import { Repository, In } from 'typeorm';
+import { Repository } from 'typeorm';
 import Redis from 'ioredis';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
-import { difference } from 'lodash';
 import { hash32 } from 'farmhash';
 import {
   BlizzardApiCharacterProfessions,
   BlizzardApiPetsCollection,
   IMounts,
   IPets,
-  IPetType,
   toGuid,
   setStatusString,
   CharacterStatusState,
@@ -29,7 +27,7 @@ import { formatServiceErrorLog } from '@app/logger';
 import { CharacterEntityIndexingService } from './character-entity-indexing.service';
 
 @Injectable()
-export class CharacterCollectionService {
+export class CharacterCollectionService implements OnApplicationBootstrap {
   private readonly logger = new Logger(CharacterCollectionService.name, {
     timestamp: true,
   });
@@ -50,6 +48,35 @@ export class CharacterCollectionService {
     private readonly entityIndexingService: CharacterEntityIndexingService,
   ) {}
 
+  async onApplicationBootstrap(): Promise<void> {
+    await this.truncateCollectionsTables();
+  }
+
+  private async truncateCollectionsTables(): Promise<void> {
+    try {
+      const mountsCount = await this.charactersMountsRepository.count();
+      if (mountsCount > 0) {
+        await this.charactersMountsRepository.clear();
+        this.logger.log(`Truncated characters_mounts (${mountsCount} rows removed)`);
+      }
+
+      const petsCount = await this.charactersPetsRepository.count();
+      if (petsCount > 0) {
+        await this.charactersPetsRepository.clear();
+        this.logger.log(`Truncated characters_pets (${petsCount} rows removed)`);
+      }
+    } catch (errorOrException) {
+      this.logger.error(
+        formatServiceErrorLog(
+          'truncateCollectionsTables',
+          'bootstrap',
+          0,
+          errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
+        ),
+      );
+    }
+  }
+
   async syncCharacterMounts(
     nameSlug: string,
     realmSlug: string,
@@ -60,71 +87,30 @@ export class CharacterCollectionService {
 
     try {
       const mountEntities: Array<MountsEntity> = [];
-      const characterMountsEntities: Array<CharactersMountsEntity> = [];
 
       const { mounts } = mountsResponse;
-      const characterGuid = toGuid(nameSlug, realmSlug);
 
-      const charactersMountEntities = await this.charactersMountsRepository.findBy({
-        characterGuid,
-      });
+      if (mounts.length > 0 && isIndex) {
+        for (const mount of mounts) {
+          const isMountExists = await this.mountsRepository.existsBy({
+            id: mount.mount.id,
+          });
 
-      const updatedMountIds = new Set<number>();
-      const originalMountIds = new Set(charactersMountEntities.map((charactersMount) => charactersMount.mountId));
+          const isNewMount = !isMountExists;
+          if (isNewMount) {
+            const mountEntity = this.mountsRepository.create({
+              id: mount.mount.id,
+              name: mount.mount.name,
+            });
 
-      if (mounts.length > 0) {
-        await lastValueFrom(
-          from(mounts).pipe(
-            mergeMap(async (mount: any) => {
-              const isAddedToCollection = originalMountIds.has(mount.mount.id);
-              updatedMountIds.add(mount.mount.id);
-
-              const shouldIndexMount = isIndex;
-              if (shouldIndexMount) {
-                const isMountExists = await this.mountsRepository.existsBy({
-                  id: mount.mount.id,
-                });
-
-                const isNewMount = !isMountExists;
-                if (isNewMount) {
-                  const mountEntity = this.mountsRepository.create({
-                    id: mount.mount.id,
-                    name: mount.mount.name,
-                  });
-
-                  mountEntities.push(mountEntity);
-                }
-              }
-
-              const isNewMountForCharacter = !isAddedToCollection;
-              if (isNewMountForCharacter) {
-                const characterMountEntity = this.charactersMountsRepository.create({
-                  mountId: mount.mount.id,
-                  characterGuid,
-                });
-
-                characterMountsEntities.push(characterMountEntity);
-              }
-            }, 5),
-          ),
-        );
+            mountEntities.push(mountEntity);
+          }
+        }
       }
 
       const hasNewMountEntities = Boolean(isIndex && mountEntities.length);
       if (hasNewMountEntities) {
         await this.entityIndexingService.indexMounts(mountEntities);
-      }
-
-      const removeMountIds = difference(Array.from(originalMountIds), Array.from(updatedMountIds));
-
-      await this.charactersMountsRepository.save(characterMountsEntities);
-
-      const hasMountsToRemove = Boolean(removeMountIds.length);
-      if (hasMountsToRemove) {
-        await this.charactersMountsRepository.delete({
-          characterGuid: characterGuid,
-          mountId: In(removeMountIds),
-        });
       }
 
       mountsCollection.mountsNumber = mounts.length;
@@ -165,110 +151,59 @@ export class CharacterCollectionService {
     try {
       const hashB: Array<string | number> = [];
       const hashA: Array<string | number> = [];
-      const characterPetsEntities: Array<CharactersPetsEntity> = [];
       const petsEntities = new Map<number, PetsEntity>([]);
 
       const { pets } = petsResponse;
-      const characterGuid = toGuid(nameSlug, realmSlug);
-
-      const charactersPetsEntities = await this.charactersPetsRepository.findBy({
-        characterGuid,
-      });
-
-      const updatedPetIds = new Set<number>();
-      const originalPetIds = new Set(charactersPetsEntities.map((charactersPet) => charactersPet.petId));
 
       if (pets.length > 0) {
-        await lastValueFrom(
-          from(pets).pipe(
-            mergeMap(async (pet: IPetType) => {
-              try {
-                const isAddedToCollection = originalPetIds.has(pet.id);
-                const isNamed = 'name' in pet;
+        for (const pet of pets) {
+          try {
+            const isNamed = 'name' in pet;
 
-                const creatureId = 'creature_display' in pet ? pet.creature_display.id : null;
-                const characterPetId = pet.id;
-                const petId = pet.species.id;
-                const petName = isNamed ? pet.name : pet.species.name;
-                const petLevel = Number(pet.level) || 1;
-                const isActive = 'is_active' in pet;
-                const petQuality = 'quality' in pet ? pet.quality.name : null;
-                const breedId = 'stats' in pet ? pet.stats.breed_id : null;
+            const creatureId = 'creature_display' in pet ? pet.creature_display.id : null;
+            const petId = pet.species.id;
 
-                const shouldIndexPet = isIndex && creatureId && !petsEntities.has(creatureId);
+            const isActive = 'is_active' in pet;
+            if (isActive) {
+              const petIdentifier = isNamed ? `${pet.name}.${pet.species.name}` : `${pet.species.name}`;
+              hashA.push(petIdentifier, pet.level);
+            }
 
-                updatedPetIds.add(pet.id);
+            const petIdentifier = isNamed ? `${pet.name}.${pet.species.name}` : `${pet.species.name}`;
+            hashB.push(petIdentifier, pet.level);
 
-                if (isActive) {
-                  const petIdentifier = isNamed ? `${pet.name}.${pet.species.name}` : `${pet.species.name}`;
-                  hashA.push(petIdentifier, pet.level);
-                }
+            const shouldIndexPet = isIndex && creatureId && !petsEntities.has(creatureId);
+            if (shouldIndexPet) {
+              const isPetExists = Boolean(await this.redisService.exists(`PETS:${petId}`));
 
-                const petIdentifier = isNamed ? `${pet.name}.${pet.species.name}` : `${pet.species.name}`;
-                hashB.push(petIdentifier, pet.level);
+              const isNewPetType = !isPetExists;
+              if (isNewPetType) {
+                const petEntity = this.petsRepository.create({
+                  id: petId,
+                  creatureId: creatureId,
+                  name: pet.species.name,
+                });
 
-                if (shouldIndexPet) {
-                  const isPetExists = Boolean(await this.redisService.exists(`PETS:${petId}`));
-
-                  const isNewPetType = !isPetExists;
-                  if (isNewPetType) {
-                    const petEntity = this.petsRepository.create({
-                      id: petId,
-                      creatureId: creatureId,
-                      name: pet.species.name,
-                    });
-
-                    petsEntities.set(creatureId, petEntity);
-                  }
-                }
-
-                const isNewPetForCharacter = !isAddedToCollection;
-                if (isNewPetForCharacter) {
-                  const characterPetEntity = this.charactersPetsRepository.create({
-                    petId,
-                    characterPetId,
-                    creatureId,
-                    petQuality,
-                    breedId,
-                    characterGuid,
-                    petName,
-                    petLevel,
-                    isActive,
-                  });
-
-                  characterPetsEntities.push(characterPetEntity);
-                }
-              } catch (error) {
-                this.logger.error(
-                  formatServiceErrorLog(
-                    'syncCharacterPets',
-                    `${nameSlug}@${realmSlug}`,
-                    0,
-                    error instanceof Error ? error.message : String(error),
-                    'processPet',
-                  ),
-                );
+                petsEntities.set(creatureId, petEntity);
               }
-            }, 5),
-          ),
-        );
+            }
+          } catch (error) {
+            this.logger.error(
+              formatServiceErrorLog(
+                'syncCharacterPets',
+                `${nameSlug}@${realmSlug}`,
+                0,
+                error instanceof Error ? error.message : String(error),
+                'processPet',
+              ),
+            );
+          }
+        }
       }
 
       const hasNewPetEntities = Boolean(isIndex && petsEntities.size);
       if (hasNewPetEntities) {
         await this.entityIndexingService.indexPets(petsEntities);
-      }
-
-      const removePetIds = difference(Array.from(originalPetIds), Array.from(updatedPetIds));
-
-      await this.charactersPetsRepository.save(characterPetsEntities);
-
-      const hasPetsToRemove = Boolean(removePetIds.length);
-      if (hasPetsToRemove) {
-        await this.charactersPetsRepository.delete({
-          characterGuid: characterGuid,
-          petId: In(removePetIds),
-        });
       }
 
       petsCollection.petsNumber = pets.length;
