@@ -183,8 +183,24 @@ export class AppService {
     const value = entity.value;
     if (!value || typeof value !== 'object') return;
 
+    const record = value as Record<string, unknown>;
+
+    // Case 1: value itself is a single record with itemId at top level
+    if (typeof record.itemId === 'number') {
+      const item = await this.itemsRepository.findOne({
+        where: { id: record.itemId },
+        select: ['id', 'name', 'names'],
+      });
+      if (item) {
+        if (item.name) record.name = item.name;
+        if (item.names) record.names = item.names;
+      }
+      return;
+    }
+
+    // Case 2: value is a map of records (some entries have itemId)
     const itemIds: number[] = [];
-    for (const entry of Object.values(value)) {
+    for (const entry of Object.values(record)) {
       if (entry && typeof entry === 'object' && 'itemId' in entry) {
         const itemId = (entry as Record<string, unknown>).itemId;
         if (typeof itemId === 'number') itemIds.push(itemId);
@@ -200,8 +216,8 @@ export class AppService {
 
     const itemMap = new Map(items.map((item) => [item.id, item]));
 
-    for (const key of Object.keys(value)) {
-      const entry = value[key];
+    for (const key of Object.keys(record)) {
+      const entry = record[key];
       if (entry && typeof entry === 'object' && 'itemId' in entry) {
         const itemId = (entry as Record<string, unknown>).itemId;
         if (typeof itemId !== 'number') continue;
