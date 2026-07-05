@@ -2,7 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { DateTime } from 'luxon';
-import { AnalyticsMetricCategory, AnalyticsMetricType, MARKET_TYPE } from '@app/resources';
+import { AnalyticsMetricCategory, AnalyticsMetricType, MARKET_TYPE, WOW_TOKEN_ITEM_ID } from '@app/resources';
+
+const PET_CAGE_ITEM_ID = 82800;
+const EXCLUDED_ITEM_IDS = [WOW_TOKEN_ITEM_ID, PET_CAGE_ITEM_ID];
 import { analyticsMetricExists } from '@app/resources/dao';
 import {
   MarketTotalMetrics,
@@ -281,6 +284,7 @@ export class MarketMetricsService {
       .addSelect('SUM(m.value)', 'volume')
       .addSelect('COUNT(*)', 'auctions')
       .where('m.timestamp > :threshold', { threshold: threshold24h })
+      .andWhere('m.item_id NOT IN (:...excludedIds)', { excludedIds: EXCLUDED_ITEM_IDS })
       .groupBy('m.item_id')
       .orderBy('volume', 'DESC')
       .limit(10)
@@ -324,6 +328,7 @@ export class MarketMetricsService {
       .addSelect('COUNT(*)', 'auctions')
       .where('m.timestamp > :threshold', { threshold: threshold24h })
       .groupBy('m.item_id')
+      .andWhere('m.item_id NOT IN (:...excludedIds)', { excludedIds: EXCLUDED_ITEM_IDS })
       .orderBy('auctions', 'DESC')
       .limit(10)
       .getRawMany<MarketTopByAuctions>();
