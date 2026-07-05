@@ -55,6 +55,10 @@ export interface ICharacterMessageBase {
   updatedBy: OSINT_SOURCE;
   createdBy?: OSINT_SOURCE;
 
+  // Client-driven refresh routing (present only for interactive force-refresh)
+  sessionId?: string;
+  requestId?: string;
+
   // BattleNetOptions (legacy - credentials are managed internally by BattleNetService)
   clientId?: string;
   clientSecret?: string;
@@ -596,6 +600,47 @@ export class CharacterMessageDto {
 
     const dto = new CharacterMessageDto(charactersQueue.name, characterData, opts);
     dto.validate(false, 'CharacterMessageDto.fromCharacterRequest');
+    return dto;
+  }
+
+  /**
+   * Create from interactive client force-refresh request
+   *
+   * Like fromCharacterRequest, but forceUpdate is set so the worker always
+   * re-fetches from Blizzard regardless of updatedAt staleness.
+   * sessionId/requestId are threaded into job.data so the worker can emit
+   * progress events routed back to the originating browser session.
+   *
+   * Priority: 0 (Very High - user-initiated)
+   */
+  static fromCharacterForceRefresh(params: {
+    name: string;
+    realm: string;
+    sessionId: string;
+    requestId: string;
+  }): CharacterMessageDto {
+    const guid = toGuid(params.name, params.realm);
+    const characterData: ICharacterMessageBase = {
+      guid,
+      name: params.name,
+      realm: params.realm,
+      forceUpdate: TIME_MS.FORCE,
+      createOnlyUnique: false,
+      region: 'eu',
+      createdBy: OSINT_SOURCE.CHARACTER_REQUEST,
+      updatedBy: OSINT_SOURCE.CHARACTER_REQUEST,
+      sessionId: params.sessionId,
+      requestId: params.requestId,
+    };
+
+    const opts: JobsOptions = {
+      jobId: characterData.guid,
+      ...charactersQueue.defaultJobOptions,
+      priority: 0,
+    };
+
+    const dto = new CharacterMessageDto(charactersQueue.name, characterData, opts);
+    dto.validate(false, 'CharacterMessageDto.fromCharacterForceRefresh');
     return dto;
   }
 

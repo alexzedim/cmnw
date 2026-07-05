@@ -46,4 +46,6 @@ export enum TIME_MS {
   TWENTY_FOUR_HOURS = 86400000,
   /** 1 week in milliseconds */
   ONE_WEEK = 604800000,
+  /** Always update regardless of updatedAt (manual force-refresh) */
+  FORCE = Number.MAX_SAFE_INTEGER,
 }
