@@ -29,6 +29,14 @@ import { CharacterService, CharacterLifecycleService, CharacterCollectionService
 import { FeedService } from '@app/resources/services/feed.service';
 import { FeedEventCategory, FeedStatus } from '@app/resources';
 
+type RefreshEndpoint = 'STATUS' | 'SUMMARY' | 'MEDIA' | 'PETS' | 'MOUNTS' | 'PROFESSIONS';
+
+interface IRefreshContext {
+  sessionId: string;
+  requestId?: string;
+  guid?: string;
+}
+
 @Injectable()
 @Processor(charactersQueue.name, charactersQueue.workerOptions)
 export class CharactersWorker extends WorkerHost {
@@ -60,7 +68,15 @@ export class CharactersWorker extends WorkerHost {
     this.stats.total++;
     const message = job.data;
 
+    const refreshCtx = message.sessionId
+      ? { sessionId: message.sessionId, requestId: message.requestId, guid: message.guid }
+      : null;
+
     try {
+      if (refreshCtx) {
+        await this.emitRefresh(refreshCtx, FeedStatus.INFO, `refresh started`, { phase: 'started' });
+      }
+
       const { characterEntity, isNew, isCreateOnlyUnique, isNotReadyToUpdate } =
         await this.lifecycleService.findOrCreateCharacter(message);
 
@@ -70,15 +86,23 @@ export class CharactersWorker extends WorkerHost {
       if (shouldSkipUpdate) {
         this.stats.skipped++;
         const duration = Date.now() - startTime;
+        const reason = isCreateOnlyUnique ? 'createOnly' : 'notReady';
         this.logger.warn(
           formatWorkerLog(
             WorkerLogStatus.SKIPPED,
             this.stats.total,
             characterEntity.guid,
             duration,
-            'createOnly or notReady',
+            reason,
           ),
         );
+        if (refreshCtx) {
+          await this.emitRefresh(refreshCtx, FeedStatus.SKIPPED, `refresh skipped: ${reason}`, {
+            phase: 'skipped',
+            durationMs: duration,
+            reason,
+          });
+        }
         return;
       }
 
@@ -87,13 +111,17 @@ export class CharactersWorker extends WorkerHost {
       const nameSlug = toSlug(characterEntity.name);
       this.characterService.inheritSafeValuesFromArgs(characterEntity, message);
 
-      const status = await this.characterService.getStatus(nameSlug, characterEntity.realm, config);
+      const status = await this.tapRefresh(
+        refreshCtx,
+        'STATUS',
+        this.characterService.getStatus(nameSlug, characterEntity.realm, config),
+      );
 
       const isValidCharacter = status?.isValid;
       if (status) Object.assign(characterEntity, status);
 
       if (isValidCharacter) {
-        await this.fetchAndUpdateCharacterData(characterEntity, nameSlug, config);
+        await this.fetchAndUpdateCharacterData(characterEntity, nameSlug, config, refreshCtx);
       }
 
       if (!isNew) {
@@ -116,7 +144,7 @@ export class CharactersWorker extends WorkerHost {
       await this.characterService.save(characterEntity);
 
       const duration = Date.now() - startTime;
-      this.logCharacterResult(characterEntity, duration);
+      this.logCharacterResult(characterEntity, duration, refreshCtx);
 
       if (this.stats.total % 50 === 0) {
         this.logProgress();
@@ -128,6 +156,13 @@ export class CharactersWorker extends WorkerHost {
       const error = errorOrException instanceof Error ? errorOrException.message : String(errorOrException);
 
       this.logger.error(formatWorkerErrorLog(this.stats.total, guid, duration, error, 'SYNC'));
+      if (refreshCtx) {
+        await this.emitRefresh(refreshCtx, FeedStatus.ERROR, `refresh error`, {
+          phase: 'error',
+          durationMs: duration,
+          error,
+        });
+      }
       throw errorOrException;
     }
   }
@@ -136,15 +171,16 @@ export class CharactersWorker extends WorkerHost {
     characterEntity: CharactersEntity,
     nameSlug: string,
     config: IBattleNetClientConfig,
+    refreshCtx: IRefreshContext | null,
   ): Promise<void> {
     const realmSlug = characterEntity.realm;
 
-    const [summaryResult, petsResult, mountsResult, mediaResult, professionsResult] = await Promise.allSettled([
-      this.characterService.getSummary(nameSlug, realmSlug, config),
-      this.characterService.getPetsCollection(nameSlug, realmSlug, config),
-      this.characterService.getMountsCollection(nameSlug, realmSlug, config),
-      this.characterService.getMedia(nameSlug, realmSlug, config),
-      this.characterService.getProfessions(nameSlug, realmSlug, config),
+    const [summaryResult, mediaResult, petsResult, mountsResult, professionsResult] = await Promise.allSettled([
+      this.tapRefresh(refreshCtx, 'SUMMARY', this.characterService.getSummary(nameSlug, realmSlug, config)),
+      this.tapRefresh(refreshCtx, 'MEDIA', this.characterService.getMedia(nameSlug, realmSlug, config)),
+      this.tapRefresh(refreshCtx, 'PETS', this.characterService.getPetsCollection(nameSlug, realmSlug, config)),
+      this.tapRefresh(refreshCtx, 'MOUNTS', this.characterService.getMountsCollection(nameSlug, realmSlug, config)),
+      this.tapRefresh(refreshCtx, 'PROFESSIONS', this.characterService.getProfessions(nameSlug, realmSlug, config)),
     ]);
 
     let status = characterEntity.status || '------';
@@ -228,22 +264,39 @@ export class CharactersWorker extends WorkerHost {
     return setStatusString(currentStatus, 'PROFESSIONS', CharacterStatusState.ERROR);
   }
 
-  private logCharacterResult(character: CharactersEntity, duration: number): void {
+  private logCharacterResult(character: CharactersEntity, duration: number, refreshCtx: IRefreshContext | null): void {
     const status = character.status || '------';
     const guid = character.guid;
     const isAllSuccess = isEndpointSuccessInString(status, 'STATUS') && isEndpointSuccessInString(status, 'SUMMARY');
     const hasAnyError = /[a-z]/.test(status);
 
+    let feedStatus: FeedStatus;
+    let logStatus: WorkerLogStatus;
+
     if (isAllSuccess) {
+      feedStatus = FeedStatus.SUCCESS;
+      logStatus = WorkerLogStatus.SUCCESS;
       this.stats.success++;
-      this.logger.log(formatWorkerLog(WorkerLogStatus.SUCCESS, this.stats.total, guid, duration, status));
-      this.feedService.emitWorker(FeedStatus.SUCCESS, this.stats.total, `character ${guid}`, duration, 'osint.characters', FeedEventCategory.CHARACTER, { guid, status });
     } else if (hasAnyError) {
-      this.logger.warn(formatWorkerLog(WorkerLogStatus.PARTIAL, this.stats.total, guid, duration, status));
-      this.feedService.emitWorker(FeedStatus.PARTIAL, this.stats.total, `character ${guid}`, duration, 'osint.characters', FeedEventCategory.CHARACTER, { guid, status });
+      feedStatus = FeedStatus.PARTIAL;
+      logStatus = WorkerLogStatus.PARTIAL;
     } else {
-      this.logger.log(formatWorkerLog(WorkerLogStatus.INFO, this.stats.total, guid, duration, status));
-      this.feedService.emitWorker(FeedStatus.INFO, this.stats.total, `character ${guid}`, duration, 'osint.characters', FeedEventCategory.CHARACTER, { guid, status });
+      feedStatus = FeedStatus.INFO;
+      logStatus = WorkerLogStatus.INFO;
+    }
+
+    this.logger.log(formatWorkerLog(logStatus, this.stats.total, guid, duration, status));
+
+    if (refreshCtx) {
+      // Client-driven refresh: route terminal event only to the originating session.
+      void this.emitRefresh(refreshCtx, feedStatus, `refresh finished`, {
+        phase: 'finished',
+        durationMs: duration,
+        status,
+      });
+    } else {
+      // Background indexing: broadcast to everyone (unchanged behavior).
+      this.feedService.emitWorker(feedStatus, this.stats.total, `character ${guid}`, duration, 'osint.characters', FeedEventCategory.CHARACTER, { guid, status });
     }
   }
 
@@ -253,5 +306,53 @@ export class CharactersWorker extends WorkerHost {
 
   public logFinalSummary(): void {
     this.logger.log(formatFinalSummary('CharactersWorker', this.stats, 'characters'));
+  }
+
+  /**
+   * Wraps a single Blizzard endpoint promise so that, when this is an interactive
+   * client refresh, progress is emitted the moment that endpoint resolves —
+   * without altering the promise's own resolution value or rejection.
+   */
+  private tapRefresh<T>(
+    refreshCtx: IRefreshContext | null,
+    endpoint: RefreshEndpoint,
+    promise: Promise<T>,
+  ): Promise<T> {
+    if (!refreshCtx) return promise;
+    const startedAt = Date.now();
+    return promise.then(
+      (value) => {
+        void this.emitRefresh(refreshCtx, FeedStatus.SUCCESS, `${endpoint} done`, {
+          phase: 'endpoint',
+          endpoint,
+          durationMs: Date.now() - startedAt,
+        });
+        return value;
+      },
+      (error) => {
+        void this.emitRefresh(refreshCtx, FeedStatus.ERROR, `${endpoint} failed`, {
+          phase: 'endpoint',
+          endpoint,
+          durationMs: Date.now() - startedAt,
+          error: error instanceof Error ? error.message : String(error),
+        });
+        throw error;
+      },
+    );
+  }
+
+  private emitRefresh(
+    ctx: IRefreshContext,
+    status: FeedStatus,
+    message: string,
+    meta: Record<string, unknown>,
+  ): Promise<void> {
+    return this.feedService.emit({
+      category: FeedEventCategory.CHARACTER,
+      status,
+      message,
+      source: 'osint.characters.refresh',
+      meta: { ...ctx, ...meta },
+    });
   }
 }
