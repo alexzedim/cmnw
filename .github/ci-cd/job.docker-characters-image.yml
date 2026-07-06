@@ -26,7 +26,7 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            ghcr.io/alexzedim/characters
+            ghcr.io/${{ github.repository_owner }}/characters
           tags: |
             type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }}
           labels: |
@@ -48,7 +48,7 @@ jobs:
           file: ./apps/characters/arm64.Dockerfile
           platforms: linux/arm64
           push: true
-          tags: ghcr.io/alexzedim/characters:latest
+          tags: ghcr.io/${{ github.repository_owner }}/characters:latest
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
 

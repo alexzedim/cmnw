@@ -29,7 +29,7 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            ghcr.io/alexzedim/gold
+            ghcr.io/${{ github.repository_owner }}/gold
           tags: |
             type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }}
           labels: |
@@ -53,7 +53,7 @@ jobs:
           file: ./apps/gold/arm64.Dockerfile
           platforms: linux/arm64
           push: true
-          tags: ghcr.io/alexzedim/gold:latest
+          tags: ghcr.io/${{ github.repository_owner }}/gold:latest
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
 

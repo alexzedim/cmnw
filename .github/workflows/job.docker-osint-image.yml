@@ -51,7 +51,7 @@ jobs:
         uses: docker/metadata-action@v5.7.0
         with:
           images: |
-            ghcr.io/alexzedim/osint
+            ghcr.io/${{ github.repository_owner }}/osint
           tags: |
             type=ref,event=tag,value=${{ env.TAG_NAME }}
             type=raw,value=latest

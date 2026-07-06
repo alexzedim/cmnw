@@ -29,7 +29,7 @@ jobs:
         uses: docker/metadata-action@v4
         with:
           images: |
-            ghcr.io/alexzedim/realms
+            ghcr.io/${{ github.repository_owner }}/realms
           tags: |
             type=semver,pattern={{major}}.{{minor}},value=${{ inputs.version }}
           labels: |
@@ -51,7 +51,7 @@ jobs:
           file: ./apps/realms/arm64.Dockerfile
           platforms: linux/arm64
           push: true
-          tags: ghcr.io/alexzedim/realms:latest
+          tags: ghcr.io/${{ github.repository_owner }}/realms:latest
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
 
