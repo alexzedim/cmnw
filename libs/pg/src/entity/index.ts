@@ -12,6 +12,10 @@ export * from './characters-guilds-logs.entity';
 
 export * from './guilds.entity';
 
+export * from './hash-blocks.entity';
+export * from './hash-block-logs.entity';
+export * from './hash-block-members.entity';
+
 export * from './pets.entity';
 export * from './mounts.entity';
 export * from './professions.entity';

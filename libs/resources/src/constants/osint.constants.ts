@@ -19,6 +19,17 @@ export const OSINT_GUILD_LIMIT = 500;
 
 export const OSINT_TIMEOUT_TOLERANCE = 50 * 1_000;
 
+export const MAX_CHARACTERS_PER_ACCOUNT = 70;
+
+export enum HASH_BLOCK_ACTION {
+  GENESIS = 'GENESIS',
+  JOIN = 'JOIN',
+  LEAVE = 'LEAVE',
+  MIGRATE = 'MIGRATE',
+  HASH_A_CHANGE = 'HASH_A_CHANGE',
+  HASH_B_CHANGE = 'HASH_B_CHANGE',
+}
+
 export const OSINT_SOURCE_WCL = 'https://www.warcraftlogs.com/character/eu';
 
 export const OSINT_SOURCE_WOW_PROGRESS_RANKS = 'https://www.wowprogress.com/export/ranks/';

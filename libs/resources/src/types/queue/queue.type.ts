@@ -88,6 +88,7 @@ export interface IQueueConfig {
   /** Job data type for this queue */
   jobType:
     | 'ICharacterMessageBase'
+    | 'IHashMessageBase'
     | 'ProfileJobQueue'
     | 'RealmJobQueue'
     | 'GuildJobQueue'

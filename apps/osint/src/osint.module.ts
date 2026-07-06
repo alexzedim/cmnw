@@ -3,7 +3,7 @@ import { BullModule } from '@nestjs/bullmq';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { postgresConfig, redisConfig } from '@app/configuration';
 import { HttpModule } from '@nestjs/axios';
-import { CharactersWorker, GuildsWorker, ProfileWorker } from './workers';
+import { CharactersWorker, GuildsWorker, HashWorker, ProfileWorker } from './workers';
 import { WorkerStatsListener } from './listeners';
 import {
   CharacterService,
@@ -16,6 +16,7 @@ import {
   GuildMemberService,
   GuildLogService,
   GuildMasterService,
+  HashBlockService,
 } from './services';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
@@ -26,6 +27,9 @@ import {
   CharactersProfessionsEntity,
   CharactersProfileEntity,
   GuildsEntity,
+  HashBlockLogsEntity,
+  HashBlockMembersEntity,
+  HashBlocksEntity,
   KeysEntity,
   CharactersGuildsLogsEntity,
   MountsEntity,
@@ -34,7 +38,7 @@ import {
   RealmsEntity,
 } from '@app/pg';
 import { REDIS_CONNECTION } from '@app/configuration';
-import { charactersQueue, guildsQueue, profileQueue } from '@app/resources';
+import { charactersQueue, guildsQueue, hashQueue, profileQueue } from '@app/resources';
 import { BattleNetModule } from '@app/battle-net';
 import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
 import { FeedService } from '@app/resources/services/feed.service';
@@ -53,6 +57,9 @@ import { FeedService } from '@app/resources/services/feed.service';
       CharactersProfessionsEntity,
       CharactersProfileEntity,
       GuildsEntity,
+      HashBlockLogsEntity,
+      HashBlockMembersEntity,
+      HashBlocksEntity,
       KeysEntity,
       MountsEntity,
       PetsEntity,
@@ -69,6 +76,11 @@ import { FeedService } from '@app/resources/services/feed.service';
       name: guildsQueue.name,
       connection: guildsQueue.connection,
       defaultJobOptions: guildsQueue.defaultJobOptions,
+    }),
+    BullModule.registerQueue({
+      name: hashQueue.name,
+      connection: hashQueue.connection,
+      defaultJobOptions: hashQueue.defaultJobOptions,
     }),
     BullModule.registerQueue({
       name: profileQueue.name,
@@ -88,6 +100,7 @@ import { FeedService } from '@app/resources/services/feed.service';
   providers: [
     CharactersWorker,
     GuildsWorker,
+    HashWorker,
     ProfileWorker,
     WorkerStatsListener,
     GuildService,
@@ -100,6 +113,7 @@ import { FeedService } from '@app/resources/services/feed.service';
     CharacterLifecycleService,
     CharacterCollectionService,
     CharacterEntityIndexingService,
+    HashBlockService,
     RealmsCacheService,
     FeedService,
   ],

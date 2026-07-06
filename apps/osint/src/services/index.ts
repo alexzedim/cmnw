@@ -8,3 +8,4 @@ export * from './guild-roster.service';
 export * from './guild-member.service';
 export * from './guild-log.service';
 export * from './guild-master.service';
+export * from './hash-block.service';

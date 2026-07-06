@@ -11,6 +11,9 @@ export { charactersQueue } from './characters.queue';
 // Guild queues
 export { guildsQueue } from './guilds.queue';
 
+// Hash queues
+export { hashQueue } from './hash.queue';
+
 // Profile queues
 export { profileQueue } from './profile.queue';
 

@@ -25,7 +25,7 @@ import {
 } from '@app/logger';
 
 import { CharactersEntity } from '@app/pg';
-import { CharacterService, CharacterLifecycleService, CharacterCollectionService } from '../services';
+import { CharacterService, CharacterLifecycleService, CharacterCollectionService, HashBlockService } from '../services';
 import { FeedService } from '@app/resources/services/feed.service';
 import { FeedEventCategory, FeedStatus } from '@app/resources';
 
@@ -59,6 +59,7 @@ export class CharactersWorker extends WorkerHost {
     private readonly collectionSyncService: CharacterCollectionService,
     private readonly battleNetService: BattleNetService,
     private readonly feedService: FeedService,
+    private readonly hashBlockService: HashBlockService,
   ) {
     super();
   }
@@ -118,8 +119,9 @@ export class CharactersWorker extends WorkerHost {
         await this.fetchAndUpdateCharacterData(characterEntity, nameSlug, config, refreshCtx);
       }
 
+      let original: CharactersEntity | null = null;
       if (!isNew) {
-        const original = await this.lifecycleService.findByGuid(characterEntity.guid);
+        original = await this.lifecycleService.findByGuid(characterEntity.guid);
         if (original) {
           await this.lifecycleService.handleExistingCharacterUpdates(original, characterEntity);
         }
@@ -136,6 +138,12 @@ export class CharactersWorker extends WorkerHost {
       }
 
       await this.characterService.save(characterEntity);
+
+      const hasHashBNow = Boolean(characterEntity.hashB);
+      const hadHashB = !isNew && Boolean(original?.hashB);
+      if (hasHashBNow || hadHashB) {
+        await this.hashBlockService.enqueueHashUpdate(characterEntity.guid);
+      }
 
       const duration = Date.now() - startTime;
       this.logCharacterResult(characterEntity, duration, refreshCtx);

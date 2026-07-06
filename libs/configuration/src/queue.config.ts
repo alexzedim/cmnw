@@ -89,6 +89,19 @@ export const BULLMQ_QUEUES: Record<string, IQueueConfig> = {
       },
     },
   },
+  HASH: {
+    name: 'osint.hash',
+    domain: 'osint',
+    jobType: 'IHashMessageBase',
+    options: {
+      name: 'osint.hash',
+      connection: REDIS_CONNECTION,
+      defaultJobOptions: {
+        ...DEFAULT_JOB_OPTIONS,
+        priority: 5,
+      },
+    },
+  },
 
   // DMA Queues
   AUCTIONS: {

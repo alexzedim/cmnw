@@ -2,6 +2,7 @@ export * from './queue-message.dto';
 export * from './auction-message.dto';
 export * from './character-message.dto';
 export * from './guild-message.dto';
+export * from './hash-message.dto';
 export * from './item-message.dto';
 export * from './realm-message.dto';
 export * from './profile-message.dto';

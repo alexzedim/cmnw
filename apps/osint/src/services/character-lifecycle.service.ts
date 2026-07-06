@@ -124,8 +124,6 @@ export class CharacterLifecycleService {
         { action: ACTION_LOG.RACE, key: 'race' },
         { action: ACTION_LOG.GENDER, key: 'gender' },
         { action: ACTION_LOG.FACTION, key: 'faction' },
-        { action: ACTION_LOG.HASH_A, key: 'hashA' },
-        { action: ACTION_LOG.HASH_B, key: 'hashB' },
         { action: ACTION_LOG.MOUNTS_NUMBER, key: 'mountsNumber' },
         { action: ACTION_LOG.PETS_NUMBER, key: 'petsNumber' },
       ];

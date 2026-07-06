@@ -5,6 +5,7 @@ import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import {
   charactersQueue,
   guildsQueue,
+  hashQueue,
   profileQueue,
   auctionsQueue,
   itemsQueue,
@@ -12,7 +13,16 @@ import {
   realmsQueue,
 } from '@app/resources';
 
-const QUEUES = [charactersQueue, guildsQueue, profileQueue, auctionsQueue, itemsQueue, valuationsQueue, realmsQueue];
+const QUEUES = [
+  charactersQueue,
+  guildsQueue,
+  hashQueue,
+  profileQueue,
+  auctionsQueue,
+  itemsQueue,
+  valuationsQueue,
+  realmsQueue,
+];
 
 @Module({
   imports: [
