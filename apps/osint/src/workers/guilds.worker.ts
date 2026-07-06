@@ -213,13 +213,37 @@ export class GuildsWorker extends WorkerHost {
 
     if (isSuccess) {
       this.logger.log(formatWorkerLog(WorkerLogStatus.SUCCESS, this.stats.total, guid, duration, `status: ${status}`));
-      this.feedService.emitWorker(FeedStatus.SUCCESS, this.stats.total, `guild ${guid}`, duration, 'osint.guilds', FeedEventCategory.GUILD, { guid, status });
+      this.feedService.emitWorker(
+        FeedStatus.SUCCESS,
+        this.stats.total,
+        `guild ${guid}`,
+        duration,
+        'osint.guilds',
+        FeedEventCategory.GUILD,
+        { guid, status },
+      );
     } else if (hasErrors) {
       this.logger.warn(formatWorkerLog(WorkerLogStatus.PARTIAL, this.stats.total, guid, duration, `status: ${status}`));
-      this.feedService.emitWorker(FeedStatus.PARTIAL, this.stats.total, `guild ${guid}`, duration, 'osint.guilds', FeedEventCategory.GUILD, { guid, status });
+      this.feedService.emitWorker(
+        FeedStatus.PARTIAL,
+        this.stats.total,
+        `guild ${guid}`,
+        duration,
+        'osint.guilds',
+        FeedEventCategory.GUILD,
+        { guid, status },
+      );
     } else {
       this.logger.log(formatWorkerLog(WorkerLogStatus.INFO, this.stats.total, guid, duration, `status: ${status}`));
-      this.feedService.emitWorker(FeedStatus.INFO, this.stats.total, `guild ${guid}`, duration, 'osint.guilds', FeedEventCategory.GUILD, { guid, status });
+      this.feedService.emitWorker(
+        FeedStatus.INFO,
+        this.stats.total,
+        `guild ${guid}`,
+        duration,
+        'osint.guilds',
+        FeedEventCategory.GUILD,
+        { guid, status },
+      );
     }
   }
 

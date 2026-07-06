@@ -88,13 +88,7 @@ export class CharactersWorker extends WorkerHost {
         const duration = Date.now() - startTime;
         const reason = isCreateOnlyUnique ? 'createOnly' : 'notReady';
         this.logger.warn(
-          formatWorkerLog(
-            WorkerLogStatus.SKIPPED,
-            this.stats.total,
-            characterEntity.guid,
-            duration,
-            reason,
-          ),
+          formatWorkerLog(WorkerLogStatus.SKIPPED, this.stats.total, characterEntity.guid, duration, reason),
         );
         if (refreshCtx) {
           await this.emitRefresh(refreshCtx, FeedStatus.SKIPPED, `refresh skipped: ${reason}`, {
@@ -296,7 +290,15 @@ export class CharactersWorker extends WorkerHost {
       });
     } else {
       // Background indexing: broadcast to everyone (unchanged behavior).
-      this.feedService.emitWorker(feedStatus, this.stats.total, `character ${guid}`, duration, 'osint.characters', FeedEventCategory.CHARACTER, { guid, status });
+      this.feedService.emitWorker(
+        feedStatus,
+        this.stats.total,
+        `character ${guid}`,
+        duration,
+        'osint.characters',
+        FeedEventCategory.CHARACTER,
+        { guid, status },
+      );
     }
   }
 
