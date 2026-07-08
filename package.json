@@ -116,9 +116,6 @@
     "webpack": "5.105.4"
   },
   "pnpm": {
-    "overrides": {
-      "reflect-metadata": "0.2.2"
-    },
     "ignoredBuiltDependencies": [
       "@nestjs/core",
       "@scarf/scarf",
