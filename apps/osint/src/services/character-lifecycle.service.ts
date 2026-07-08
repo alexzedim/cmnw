@@ -9,6 +9,7 @@ import {
   OSINT_SOURCE,
   TIME_MS,
   toDate,
+  toNormalizedString,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
 import { CharactersEntity, CharactersGuildsLogsEntity, RealmsEntity } from '@app/pg';
@@ -137,8 +138,8 @@ export class CharacterLifecycleService {
 
         const logEntity = this.charactersGuildsLogsRepository.create({
           characterGuid: updated.guid,
-          original: String(original[key]),
-          updated: String(updated[key]),
+          original: toNormalizedString(original[key]) ?? '',
+          updated: toNormalizedString(updated[key]) ?? '',
           action,
           scannedAt: toDate(original.lastModified || original.updatedAt),
           createdAt: toDate(updated.lastModified || updated.updatedAt),
