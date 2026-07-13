@@ -50,6 +50,20 @@ class CharacterPercentiles {
   readonly realm: PercentileStats;
 }
 
+export class CharacterHashBlockRef {
+  @ApiProperty({
+    description: 'Block anchor hashB value',
+    example: 'a99becec',
+  })
+  readonly hashValue: string;
+
+  @ApiProperty({
+    type: 'boolean',
+    description: 'Whether the character hashA is corroborated by another member',
+  })
+  readonly isConfirmed: boolean;
+}
+
 export class CharacterResponseDto extends CharactersEntity {
   @ApiProperty({
     description: 'Character unique identifier (UUID)',
@@ -316,10 +330,18 @@ export class CharacterResponseDto extends CharactersEntity {
   })
   readonly percentiles: CharacterPercentiles;
 
+  @ApiProperty({
+    type: CharacterHashBlockRef,
+    nullable: true,
+    description: 'Block reference if the character is a member of a hash block',
+  })
+  readonly hashBlock?: CharacterHashBlockRef | null;
+
   static fromCharacter(
     character: CharactersEntity,
     globalAnalytics?: AnalyticsEntity,
     realmAnalytics?: AnalyticsEntity,
+    hashBlock?: CharacterHashBlockRef | null,
   ): CharacterResponseDto {
     const percentiles = calculateCharacterPercentiles(
       {
@@ -335,6 +357,7 @@ export class CharacterResponseDto extends CharactersEntity {
     return {
       ...character,
       percentiles,
+      hashBlock: hashBlock ?? null,
     } as CharacterResponseDto;
   }
 }

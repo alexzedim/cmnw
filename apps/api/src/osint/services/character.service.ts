@@ -13,6 +13,8 @@ import {
   CharactersGuildsLogsEntity,
   CharactersProfileEntity,
   GuildsEntity,
+  HashBlockMembersEntity,
+  HashBlocksEntity,
   RealmsEntity,
 } from '@app/pg';
 
@@ -37,7 +39,7 @@ import {
   toGuid,
   findRealm,
 } from '@app/resources';
-import { CharacterResponseDto } from '@app/resources/dto/character/character-response.dto';
+import { CharacterResponseDto, CharacterHashBlockRef } from '@app/resources/dto/character/character-response.dto';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue, QueueEvents } from 'bullmq';
 import { REDIS_CONNECTION } from '@app/configuration';
@@ -68,6 +70,10 @@ export class CharacterOsintService {
     private readonly logsRepository: Repository<CharactersGuildsLogsEntity>,
     @InjectRepository(GuildsEntity)
     private readonly guildsRepository: Repository<GuildsEntity>,
+    @InjectRepository(HashBlockMembersEntity)
+    private readonly hashBlockMembersRepository: Repository<HashBlockMembersEntity>,
+    @InjectRepository(HashBlocksEntity)
+    private readonly hashBlocksRepository: Repository<HashBlocksEntity>,
     @InjectQueue(charactersQueue.name)
     private readonly queueCharacter: Queue<ICharacterMessageBase>,
     @InjectQueue(guildsQueue.name)
@@ -225,7 +231,12 @@ export class CharacterOsintService {
         });
       }
 
-      const characterResponse = CharacterResponseDto.fromCharacter(character, globalAnalytics, realmAnalytics);
+      const characterResponse = CharacterResponseDto.fromCharacter(
+        character,
+        globalAnalytics,
+        realmAnalytics,
+        await this.resolveHashBlockRef(guid),
+      );
 
       this.logger.log({
         logTag,
@@ -587,5 +598,15 @@ export class CharacterOsintService {
 
       throw new ServiceUnavailableException('Error processing OSINT JSON upload');
     }
+  }
+
+  private async resolveHashBlockRef(characterGuid: string): Promise<CharacterHashBlockRef | null> {
+    const member = await this.hashBlockMembersRepository.findOneBy({ characterGuid });
+    if (!member) return null;
+
+    const block = await this.hashBlocksRepository.findOneBy({ id: member.blockId });
+    if (!block) return null;
+
+    return { hashValue: block.hashValue, isConfirmed: member.isConfirmed };
   }
 }
