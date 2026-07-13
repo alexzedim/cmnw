@@ -60,6 +60,10 @@ export interface IGuildMessageBase {
   updatedBy: OSINT_SOURCE;
   /** Source that created this job (optional, defaults to updatedBy) */
   createdBy?: OSINT_SOURCE;
+
+  /** Client-driven refresh routing (present only for interactive force-refresh) */
+  sessionId?: string;
+  requestId?: string;
 }
 
 export class GuildMessageDto {
@@ -313,6 +317,47 @@ export class GuildMessageDto {
 
     const dto = new GuildMessageDto(guildsQueue.name, guildData, opts);
     dto.validate(false, 'GuildMessageDto.fromGuildRequest');
+    return dto;
+  }
+
+  /**
+   * Create from interactive client force-refresh request
+   *
+   * Like fromGuildRequest, but forceUpdate is set so the worker always
+   * re-fetches from Blizzard regardless of updatedAt staleness.
+   * sessionId/requestId are threaded into job.data so the worker can emit
+   * progress events routed back to the originating browser session.
+   *
+   * Priority: 0 (Very High - user-initiated)
+   */
+  static fromGuildForceRefresh(params: {
+    name: string;
+    realm: string;
+    sessionId: string;
+    requestId: string;
+  }): GuildMessageDto {
+    const guid = toGuid(params.name, params.realm);
+    const guildData: IGuildMessageBase = {
+      guid,
+      name: params.name,
+      realm: params.realm,
+      forceUpdate: TIME_MS.FORCE,
+      region: 'eu',
+      createdBy: OSINT_SOURCE.GUILD_REQUEST,
+      updatedBy: OSINT_SOURCE.GUILD_REQUEST,
+      createOnlyUnique: false,
+      sessionId: params.sessionId,
+      requestId: params.requestId,
+    };
+
+    const opts: JobsOptions = {
+      jobId: guid,
+      ...guildsQueue.defaultJobOptions,
+      priority: 0,
+    };
+
+    const dto = new GuildMessageDto(guildsQueue.name, guildData, opts);
+    dto.validate(false, 'GuildMessageDto.fromGuildForceRefresh');
     return dto;
   }
 

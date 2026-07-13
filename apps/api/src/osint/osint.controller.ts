@@ -17,7 +17,6 @@ import {
   CharacterHashDto,
   CharacterIdDto,
   CharacterLfgDto,
-  CharacterRefreshDto,
   GuildIdDto,
   IAddonScanEntryWithStatus,
   IAddonScanGuild,
@@ -51,7 +50,12 @@ export class OsintController {
     return this.characterOsintService.processOsintJsonUpload(body.entries);
   }
 
-  @ApiOperation({ description: 'Returns requested character' })
+  @ApiOperation({
+    description:
+      'Returns requested character. When sessionId/requestId are provided, ' +
+      'the character is force-refreshed from Blizzard and progress is ' +
+      'streamed over the WS feed to the originating session.',
+  })
   @ApiOkResponse({ description: 'Request character with selected guid' })
   @ApiUnauthorizedResponse({
     description: 'You need authenticate yourself before request',
@@ -66,19 +70,6 @@ export class OsintController {
   @Get('/character')
   async getCharacter(@Query() input: CharacterIdDto): Promise<CharactersEntity> {
     return await this.characterOsintService.getCharacter(input);
-  }
-
-  @ApiOperation({
-    description:
-      'Force-refresh a character from Blizzard; progress is streamed over the WS feed to the originating session',
-  })
-  @ApiOkResponse({ description: 'Character refresh job was queued' })
-  @ApiBadRequestResponse({ description: 'Invalid request body or unknown realm' })
-  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
-  @HttpCode(HttpStatus.OK)
-  @Post('/character/refresh')
-  async refreshCharacter(@Body() input: CharacterRefreshDto): Promise<{ queued: true; guid: string }> {
-    return this.characterOsintService.refreshCharacter(input);
   }
 
   @ApiOperation({
@@ -157,7 +148,12 @@ export class OsintController {
     return { logs };
   }
 
-  @ApiOperation({ description: 'Returns requested guild' })
+  @ApiOperation({
+    description:
+      'Returns requested guild. When sessionId/requestId are provided, ' +
+      'the guild is force-refreshed from Blizzard and progress is ' +
+      'streamed over the WS feed to the originating session.',
+  })
   @ApiOkResponse({ description: 'Request guild with requested guid' })
   @ApiUnauthorizedResponse({
     description: 'You need authenticate yourself before request',

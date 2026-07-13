@@ -25,7 +25,6 @@ import {
   CharacterIdDto,
   CharacterMessageDto,
   CharacterLfgDto,
-  CharacterRefreshDto,
   charactersQueue,
   GuildMessageDto,
   guildsQueue,
@@ -83,14 +82,24 @@ export class CharacterOsintService {
     realm: string;
     guid: string;
     logTag: string;
+    sessionId?: string;
+    requestId?: string;
   }): Promise<CharactersEntity | null> {
     let requestedCharacter: CharactersEntity | null = null;
 
     try {
-      const characterMessage = CharacterMessageDto.fromCharacterRequest({
-        name: params.name,
-        realm: params.realm,
-      });
+      const characterMessage =
+        params.sessionId && params.requestId
+          ? CharacterMessageDto.fromCharacterForceRefresh({
+              name: params.name,
+              realm: params.realm,
+              sessionId: params.sessionId,
+              requestId: params.requestId,
+            })
+          : CharacterMessageDto.fromCharacterRequest({
+              name: params.name,
+              realm: params.realm,
+            });
 
       const job = await this.queueCharacter.add(characterMessage.name, characterMessage.data, characterMessage.opts);
 
@@ -154,6 +163,8 @@ export class CharacterOsintService {
           realm: realmEntity.slug,
           guid,
           logTag,
+          sessionId: input.sessionId,
+          requestId: input.requestId,
         });
       }
 
@@ -173,10 +184,18 @@ export class CharacterOsintService {
       if (isStale) {
         await this.battleNetService.getAvailableKey();
 
-        const characterMessage = CharacterMessageDto.fromCharacterRequest({
-          name: nameSlug,
-          realm: realmEntity.slug,
-        });
+        const characterMessage =
+          input.sessionId && input.requestId
+            ? CharacterMessageDto.fromCharacterForceRefresh({
+                name: nameSlug,
+                realm: realmEntity.slug,
+                sessionId: input.sessionId,
+                requestId: input.requestId,
+              })
+            : CharacterMessageDto.fromCharacterRequest({
+                name: nameSlug,
+                realm: realmEntity.slug,
+              });
 
         await this.queueCharacter.add(characterMessage.name, characterMessage.data, characterMessage.opts);
 
@@ -184,6 +203,25 @@ export class CharacterOsintService {
           logTag,
           characterGuid: guid,
           message: `Character is stale; queued for refresh: ${guid}`,
+        });
+      } else if (input.sessionId && input.requestId) {
+        // Character is fresh enough for a normal GET, but the client explicitly
+        // requested a force-refresh (sessionId/requestId present). Re-queue with
+        // FORCE so the worker always re-fetches from Blizzard and emits
+        // session-routed WS progress events.
+        const characterMessage = CharacterMessageDto.fromCharacterForceRefresh({
+          name: nameSlug,
+          realm: realmEntity.slug,
+          sessionId: input.sessionId,
+          requestId: input.requestId,
+        });
+
+        await this.queueCharacter.add(characterMessage.name, characterMessage.data, characterMessage.opts);
+
+        this.logger.log({
+          logTag,
+          characterGuid: guid,
+          message: `Character force-refresh queued via GET: ${guid}`,
         });
       }
 
@@ -208,50 +246,6 @@ export class CharacterOsintService {
       });
 
       throw new ServiceUnavailableException(`Error fetching character data for ${input.guid}`);
-    }
-  }
-
-  async refreshCharacter(input: CharacterRefreshDto): Promise<{ queued: true; guid: string }> {
-    const logTag = 'refreshCharacter';
-    const guid = input.guid;
-
-    try {
-      const [nameSlug, realmSlug] = guid.split('@');
-
-      const realmEntity = await findRealm(this.realmsRepository, realmSlug);
-      if (!realmEntity) {
-        throw new BadRequestException(`Realm: ${realmSlug} for character ${guid} not found!`);
-      }
-
-      const characterMessage = CharacterMessageDto.fromCharacterForceRefresh({
-        name: nameSlug,
-        realm: realmEntity.slug,
-        sessionId: input.sessionId,
-        requestId: input.requestId,
-      });
-
-      await this.queueCharacter.add(characterMessage.name, characterMessage.data, characterMessage.opts);
-
-      this.logger.log({
-        logTag,
-        characterGuid: guid,
-        message: `Character force-refresh queued: ${guid}`,
-      });
-
-      return { queued: true, guid };
-    } catch (errorOrException) {
-      if (errorOrException instanceof BadRequestException) {
-        throw errorOrException;
-      }
-
-      this.logger.error({
-        logTag,
-        characterGuid: guid,
-        errorOrException,
-        message: `Error queueing character refresh: ${guid}`,
-      });
-
-      throw new ServiceUnavailableException(`Error queueing character refresh for ${guid}`);
     }
   }
 

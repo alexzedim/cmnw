@@ -37,6 +37,12 @@ import { FeedEventCategory, FeedStatus } from '@app/resources';
 
 const PROGRESS_LOG_INTERVAL = 50;
 
+interface IRefreshContext {
+  sessionId: string;
+  requestId?: string;
+  guid?: string;
+}
+
 @Injectable()
 @Processor(guildsQueue)
 export class GuildsWorker extends WorkerHost {
@@ -69,19 +75,47 @@ export class GuildsWorker extends WorkerHost {
     const startTime = Date.now();
     this.stats.total++;
 
+    const refreshCtx = message.sessionId
+      ? { sessionId: message.sessionId, requestId: message.requestId, guid: message.guid }
+      : null;
+
     try {
+      if (refreshCtx) {
+        await this.emitRefresh(refreshCtx, FeedStatus.INFO, `refresh started`, { phase: 'started' });
+      }
+
       const { guildEntity, isNew, isNotReadyToUpdate, isCreateOnlyUnique } =
         await this.guildService.findOrCreate(message);
 
       if (isNotReadyToUpdate) {
         this.stats.skipped++;
-        this.logger.log(formatWorkerLog(WorkerLogStatus.SKIPPED, this.stats.total, guildEntity.guid, 0, 'not ready'));
+        const duration = Date.now() - startTime;
+        this.logger.log(
+          formatWorkerLog(WorkerLogStatus.SKIPPED, this.stats.total, guildEntity.guid, duration, 'not ready'),
+        );
+        if (refreshCtx) {
+          await this.emitRefresh(refreshCtx, FeedStatus.SKIPPED, `refresh skipped: notReady`, {
+            phase: 'skipped',
+            durationMs: duration,
+            reason: 'notReady',
+          });
+        }
         return;
       }
 
       if (isCreateOnlyUnique) {
         this.stats.skipped++;
-        this.logger.log(formatWorkerLog(WorkerLogStatus.SKIPPED, this.stats.total, guildEntity.guid, 0, 'createOnly'));
+        const duration = Date.now() - startTime;
+        this.logger.log(
+          formatWorkerLog(WorkerLogStatus.SKIPPED, this.stats.total, guildEntity.guid, duration, 'createOnly'),
+        );
+        if (refreshCtx) {
+          await this.emitRefresh(refreshCtx, FeedStatus.SKIPPED, `refresh skipped: createOnly`, {
+            phase: 'skipped',
+            durationMs: duration,
+            reason: 'createOnly',
+          });
+        }
         return;
       }
 
@@ -134,7 +168,7 @@ export class GuildsWorker extends WorkerHost {
       }
 
       const duration = Date.now() - startTime;
-      this.logGuildResult(guildEntity, duration);
+      this.logGuildResult(guildEntity, duration, refreshCtx);
 
       if (this.stats.total % PROGRESS_LOG_INTERVAL === 0) {
         this.logProgress();
@@ -146,6 +180,13 @@ export class GuildsWorker extends WorkerHost {
       const error = errorOrException instanceof Error ? errorOrException.message : String(errorOrException);
 
       this.logger.error(formatWorkerErrorLog(this.stats.total, guid, duration, error, message.updatedBy));
+      if (refreshCtx) {
+        await this.emitRefresh(refreshCtx, FeedStatus.ERROR, `refresh error`, {
+          phase: 'error',
+          durationMs: duration,
+          error,
+        });
+      }
       throw errorOrException;
     }
   }
@@ -204,39 +245,40 @@ export class GuildsWorker extends WorkerHost {
     return aggregated;
   }
 
-  private logGuildResult(guild: GuildsEntity, duration: number): void {
+  private logGuildResult(guild: GuildsEntity, duration: number, refreshCtx: IRefreshContext | null): void {
     const status = guild.status;
     const guid = guild.guid;
 
     const hasErrors = hasCoreGuildErrorInString(status);
     const isSuccess = isCoreGuildSuccessInString(status);
 
+    let feedStatus: FeedStatus;
+    let logStatus: WorkerLogStatus;
+
     if (isSuccess) {
-      this.logger.log(formatWorkerLog(WorkerLogStatus.SUCCESS, this.stats.total, guid, duration, `status: ${status}`));
-      this.feedService.emitWorker(
-        FeedStatus.SUCCESS,
-        this.stats.total,
-        `guild ${guid}`,
-        duration,
-        'osint.guilds',
-        FeedEventCategory.GUILD,
-        { guid, status },
-      );
+      feedStatus = FeedStatus.SUCCESS;
+      logStatus = WorkerLogStatus.SUCCESS;
     } else if (hasErrors) {
-      this.logger.warn(formatWorkerLog(WorkerLogStatus.PARTIAL, this.stats.total, guid, duration, `status: ${status}`));
-      this.feedService.emitWorker(
-        FeedStatus.PARTIAL,
-        this.stats.total,
-        `guild ${guid}`,
-        duration,
-        'osint.guilds',
-        FeedEventCategory.GUILD,
-        { guid, status },
-      );
+      feedStatus = FeedStatus.PARTIAL;
+      logStatus = WorkerLogStatus.PARTIAL;
     } else {
-      this.logger.log(formatWorkerLog(WorkerLogStatus.INFO, this.stats.total, guid, duration, `status: ${status}`));
+      feedStatus = FeedStatus.INFO;
+      logStatus = WorkerLogStatus.INFO;
+    }
+
+    this.logger.log(formatWorkerLog(logStatus, this.stats.total, guid, duration, `status: ${status}`));
+
+    if (refreshCtx) {
+      // Client-driven refresh: route terminal event only to the originating session.
+      void this.emitRefresh(refreshCtx, feedStatus, `refresh finished`, {
+        phase: 'finished',
+        durationMs: duration,
+        status,
+      });
+    } else {
+      // Background indexing: broadcast to everyone.
       this.feedService.emitWorker(
-        FeedStatus.INFO,
+        feedStatus,
         this.stats.total,
         `guild ${guid}`,
         duration,
@@ -245,6 +287,21 @@ export class GuildsWorker extends WorkerHost {
         { guid, status },
       );
     }
+  }
+
+  private emitRefresh(
+    ctx: IRefreshContext,
+    status: FeedStatus,
+    message: string,
+    meta: Record<string, unknown>,
+  ): Promise<void> {
+    return this.feedService.emit({
+      category: FeedEventCategory.GUILD,
+      status,
+      message,
+      source: 'osint.guilds.refresh',
+      meta: { ...ctx, ...meta },
+    });
   }
 
   private logProgress(): void {

@@ -51,14 +51,24 @@ export class GuildOsintService {
     realm: string;
     guid: string;
     logTag: string;
+    sessionId?: string;
+    requestId?: string;
   }): Promise<GuildsEntity | null> {
     let requestedGuild: GuildsEntity | null = null;
 
     try {
-      const guildMessage = GuildMessageDto.fromGuildRequest({
-        name: params.name,
-        realm: params.realm,
-      });
+      const guildMessage =
+        params.sessionId && params.requestId
+          ? GuildMessageDto.fromGuildForceRefresh({
+              name: params.name,
+              realm: params.realm,
+              sessionId: params.sessionId,
+              requestId: params.requestId,
+            })
+          : GuildMessageDto.fromGuildRequest({
+              name: params.name,
+              realm: params.realm,
+            });
 
       const job = await this.queueGuild.add(guildMessage.name, guildMessage.data, guildMessage.opts);
 
@@ -129,6 +139,8 @@ export class GuildOsintService {
           realm: realmEntity.slug,
           guid,
           logTag,
+          sessionId: input.sessionId,
+          requestId: input.requestId,
         });
       }
 
@@ -146,10 +158,18 @@ export class GuildOsintService {
       const isStale = typeof updatedAt === 'number' ? Date.now() - updatedAt > 1000 * 60 * 60 * 48 : false;
 
       if (isStale) {
-        const dto = GuildMessageDto.fromGuildRequest({
-          name: nameSlug,
-          realm: realmEntity.slug,
-        });
+        const dto =
+          input.sessionId && input.requestId
+            ? GuildMessageDto.fromGuildForceRefresh({
+                name: nameSlug,
+                realm: realmEntity.slug,
+                sessionId: input.sessionId,
+                requestId: input.requestId,
+              })
+            : GuildMessageDto.fromGuildRequest({
+                name: nameSlug,
+                realm: realmEntity.slug,
+              });
 
         await this.queueGuild.add(dto.name, dto.data, dto.opts);
 
@@ -157,6 +177,25 @@ export class GuildOsintService {
           logTag,
           guildGuid: guid,
           message: `Guild is stale; queued for refresh: ${guid}`,
+        });
+      } else if (input.sessionId && input.requestId) {
+        // Guild is fresh enough for a normal GET, but the client explicitly
+        // requested a force-refresh (sessionId/requestId present). Re-queue
+        // with FORCE so the worker always re-fetches from Blizzard and emits
+        // session-routed WS progress events.
+        const dto = GuildMessageDto.fromGuildForceRefresh({
+          name: nameSlug,
+          realm: realmEntity.slug,
+          sessionId: input.sessionId,
+          requestId: input.requestId,
+        });
+
+        await this.queueGuild.add(dto.name, dto.data, dto.opts);
+
+        this.logger.log({
+          logTag,
+          guildGuid: guid,
+          message: `Guild force-refresh queued via GET: ${guid}`,
         });
       }
 
