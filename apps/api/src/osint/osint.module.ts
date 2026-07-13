@@ -11,6 +11,9 @@ import {
   CharactersProfessionsEntity,
   CharactersProfileEntity,
   GuildsEntity,
+  HashBlockLogsEntity,
+  HashBlockMembersEntity,
+  HashBlocksEntity,
   KeysEntity,
   CharactersGuildsLogsEntity,
   MountsEntity,
@@ -18,7 +21,7 @@ import {
   ProfessionsEntity,
   RealmsEntity,
 } from '@app/pg';
-import { CharacterOsintService, GuildOsintService, RealmOsintService } from './services';
+import { BlockOsintService, CharacterOsintService, GuildOsintService, RealmOsintService } from './services';
 import { charactersQueue, guildsQueue } from '@app/resources';
 import { BullModule } from '@nestjs/bullmq';
 import { BattleNetModule } from '@app/battle-net';
@@ -39,6 +42,9 @@ import { RealmsCacheService } from '@app/resources/services/realms-cache.service
       CharactersProfessionsEntity,
       CharactersProfileEntity,
       GuildsEntity,
+      HashBlockLogsEntity,
+      HashBlockMembersEntity,
+      HashBlocksEntity,
       KeysEntity,
       MountsEntity,
       PetsEntity,
@@ -59,6 +65,6 @@ import { RealmsCacheService } from '@app/resources/services/realms-cache.service
     }),
   ],
   controllers: [OsintController],
-  providers: [CharacterOsintService, GuildOsintService, RealmOsintService, RealmsCacheService],
+  providers: [BlockOsintService, CharacterOsintService, GuildOsintService, RealmOsintService, RealmsCacheService],
 })
 export class OsintModule {}

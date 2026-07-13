@@ -1,6 +1,7 @@
 export * from './account';
 export * from './analytics';
 export * from './auth';
+export * from './block';
 export * from './character';
 export * from './contracts';
 export * from './discord';

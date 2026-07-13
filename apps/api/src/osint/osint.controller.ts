@@ -1,4 +1,4 @@
-import { CharacterOsintService, GuildOsintService, RealmOsintService } from './services';
+import { BlockOsintService, CharacterOsintService, GuildOsintService, RealmOsintService } from './services';
 
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query } from '@nestjs/common';
 
@@ -14,6 +14,7 @@ import {
 } from '@nestjs/swagger';
 
 import {
+  BlockIdDto,
   CharacterHashDto,
   CharacterIdDto,
   CharacterLfgDto,
@@ -28,6 +29,9 @@ import {
   CharactersGuildsLogsEntity,
   CharactersProfileEntity,
   GuildsEntity,
+  HashBlockLogsEntity,
+  HashBlockMembersEntity,
+  HashBlocksEntity,
   RealmsEntity,
 } from '@app/pg';
 
@@ -38,6 +42,7 @@ export class OsintController {
     private readonly characterOsintService: CharacterOsintService,
     private readonly guildOsintService: GuildOsintService,
     private readonly realmOsintService: RealmOsintService,
+    private readonly blockOsintService: BlockOsintService,
   ) {}
 
   @ApiOperation({ description: 'Upload CMNW OSINT addon scan entries as JSON' })
@@ -128,6 +133,32 @@ export class OsintController {
   async getCharactersByHash(@Param() input: CharacterHashDto): Promise<{ characters: CharactersEntity[] }> {
     const characters = await this.characterOsintService.getCharactersByHash(input);
     return { characters };
+  }
+
+  @ApiOperation({ description: 'Returns the block and its members for a given hashB anchor value' })
+  @ApiOkResponse({ description: 'Block with members for selected hashValue' })
+  @ApiUnauthorizedResponse({ description: 'You need authenticate yourself before request' })
+  @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
+  @ApiBadRequestResponse({ description: 'Invalid request body' })
+  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
+  @HttpCode(HttpStatus.OK)
+  @Get('/block/:hashValue')
+  async getBlock(@Param() input: BlockIdDto): Promise<{ block: HashBlocksEntity; members: HashBlockMembersEntity[] } | null> {
+    return this.blockOsintService.getBlockWithMembers(input.hashValue);
+  }
+
+  @ApiOperation({ description: 'Returns the audit logs for a block anchored on the given hashB value' })
+  @ApiOkResponse({ description: 'Logs for selected block' })
+  @ApiUnauthorizedResponse({ description: 'You need authenticate yourself before request' })
+  @ApiForbiddenResponse({ description: 'You don`t have clearance for that' })
+  @ApiBadRequestResponse({ description: 'Invalid request body' })
+  @ApiInternalServerErrorResponse({ description: 'Internal server error' })
+  @HttpCode(HttpStatus.OK)
+  @Get('/block/:hashValue/logs')
+  async getBlockLogs(
+    @Param() input: BlockIdDto,
+  ): Promise<{ logs: HashBlockLogsEntity[] } | null> {
+    return this.blockOsintService.getBlockLogs(input.hashValue);
   }
 
   @ApiOperation({ description: 'Returns requested character logs' })
