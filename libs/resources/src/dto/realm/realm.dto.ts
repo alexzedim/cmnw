@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   SWAGGER_REALM_CONNECTED_REALM_ID,
   SWAGGER_REALM_ID,
@@ -6,30 +6,37 @@ import {
   SWAGGER_REALM_REGION,
   SWAGGER_REALM_SLUG,
 } from '@app/resources/swagger/osint.swagger';
-import { Transform } from 'class-transformer';
-import { IsNumber, IsString } from 'class-validator';
+import { Transform, Type } from 'class-transformer';
+import { IsNumber, IsOptional, IsString } from 'class-validator';
 import { capitalize, transformToLowerCase } from '@app/resources/transformers';
 
 export class RealmDto {
+  @IsOptional()
   @IsNumber()
-  @ApiProperty(SWAGGER_REALM_ID)
-  readonly id: number;
+  @Type(() => Number)
+  @ApiPropertyOptional(SWAGGER_REALM_ID)
+  readonly id?: number;
 
-  @ApiProperty(SWAGGER_REALM_REGION)
+  @ApiPropertyOptional(SWAGGER_REALM_REGION)
+  @IsOptional()
   @IsString()
   @Transform(({ value }) => capitalize(value), { toClassOnly: true })
-  readonly region: string;
+  readonly region?: string;
 
-  @ApiProperty(SWAGGER_REALM_SLUG)
+  @ApiPropertyOptional(SWAGGER_REALM_SLUG)
+  @IsOptional()
   @IsString()
   @Transform(transformToLowerCase, { toClassOnly: true })
-  readonly slug: string;
+  readonly slug?: string;
 
+  @IsOptional()
   @IsString()
-  @ApiProperty(SWAGGER_REALM_NAME)
-  readonly name: string;
+  @ApiPropertyOptional(SWAGGER_REALM_NAME)
+  readonly name?: string;
 
+  @IsOptional()
   @IsNumber()
-  @ApiProperty(SWAGGER_REALM_CONNECTED_REALM_ID)
-  readonly connectedRealmId: number;
+  @Type(() => Number)
+  @ApiPropertyOptional(SWAGGER_REALM_CONNECTED_REALM_ID)
+  readonly connectedRealmId?: number;
 }
