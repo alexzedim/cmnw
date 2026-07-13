@@ -3,8 +3,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike, In } from 'typeorm';
-import { AnalyticsEntity, CharactersEntity, GuildsEntity, ItemsEntity, MarketEntity } from '@app/pg';
-import { AnalyticsMetricSnapshotDto, AnalyticsMetricType, AppHealthPayload, SearchQueryDto } from '@app/resources';
+import { AnalyticsEntity, CharactersEntity, GuildsEntity, ItemsEntity, MarketEntity, RealmsEntity } from '@app/pg';
+import { AnalyticsMetricHistoryDto, AnalyticsMetricSnapshotDto, AnalyticsMetricType, AppHealthPayload, SearchQueryDto } from '@app/resources';
 
 @Injectable()
 export class AppService {
@@ -22,6 +22,8 @@ export class AppService {
     private readonly itemsRepository: Repository<ItemsEntity>,
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
+    @InjectRepository(RealmsEntity)
+    private readonly realmsRepository: Repository<RealmsEntity>,
   ) {
     this.version = this.loadVersion();
   }
@@ -55,6 +57,7 @@ export class AppService {
     characters: CharactersEntity[];
     guilds: GuildsEntity[];
     items: ItemsEntity[];
+    realms: RealmsEntity[];
     hashMatches: { count: number };
   }> {
     const logTag = 'indexSearch';
@@ -72,7 +75,7 @@ export class AppService {
       const isNumericQuery = /^\d+$/.test(input.searchQuery);
       const itemIdQuery = isNumericQuery ? parseInt(input.searchQuery, 10) : null;
 
-      const [characters, guilds, items, hashMatches] = await Promise.all([
+      const [characters, guilds, items, realms, hashMatches] = await Promise.all([
         this.charactersRepository.find({
           where: {
             guid: ILike(searchPattern),
@@ -96,6 +99,25 @@ export class AppService {
           .orWhere('items.id = :searchQuery', { searchQuery: itemIdQuery })
           .take(100)
           .getMany(),
+        this.realmsRepository
+          .createQueryBuilder('realms')
+          .where('realms.id != 1')
+          .andWhere(
+            '(LOWER(realms.name) LIKE LOWER(:searchPattern) OR LOWER(realms.slug) LIKE LOWER(:searchPattern) OR realms.id = :itemIdQuery)',
+            { searchPattern, itemIdQuery },
+          )
+          .select([
+            'realms.id',
+            'realms.slug',
+            'realms.name',
+            'realms.region',
+            'realms.category',
+            'realms.populationStatus',
+            'realms.connectedRealmId',
+            'realms.connectedRealms',
+          ])
+          .take(10)
+          .getMany(),
         isHashQuery
           ? this.charactersRepository
               .createQueryBuilder('c')
@@ -113,14 +135,16 @@ export class AppService {
         characterCount: characters.length,
         guildCount: guilds.length,
         itemCount: items.length,
+        realmCount: realms.length,
         hashMatchCount,
-        message: `Search completed: ${characters.length} characters, ${guilds.length} guilds, ${items.length} items, ${hashMatchCount} hash matches`,
+        message: `Search completed: ${characters.length} characters, ${guilds.length} guilds, ${items.length} items, ${realms.length} realms, ${hashMatchCount} hash matches`,
       });
 
       return {
         characters,
         guilds,
         items,
+        realms,
         hashMatches: {
           count: hashMatchCount,
         },
@@ -176,6 +200,53 @@ export class AppService {
       });
 
       throw new ServiceUnavailableException('Unable to load analytics metric snapshot');
+    }
+  }
+
+  async getMetricHistory(historyQuery: AnalyticsMetricHistoryDto): Promise<AnalyticsEntity[]> {
+    const logTag = 'getMetricHistory';
+    const { category, metricType = AnalyticsMetricType.TOTAL, realmId, fromDate, toDate } = historyQuery;
+
+    try {
+      const query = this.analyticsRepository
+        .createQueryBuilder('analytics')
+        .where('analytics.category = :category', { category })
+        .andWhere('analytics.metric_type = :metricType', { metricType });
+
+      if (realmId === undefined) {
+        query.andWhere('analytics.realm_id IS NULL');
+      } else {
+        query.andWhere('analytics.realm_id = :realmId', { realmId });
+      }
+
+      if (fromDate) {
+        query.andWhere('analytics.snapshot_date >= :fromDate', { fromDate });
+      }
+
+      if (toDate) {
+        query.andWhere('analytics.snapshot_date <= :toDate', { toDate });
+      }
+
+      const metrics = await query.orderBy('analytics.snapshot_date', 'ASC').getMany();
+
+      if (metrics.length === 0) return [];
+
+      if (category === 'market' || category === 'contracts') {
+        await Promise.all(metrics.map((metric) => this.enrichWithItemNames(metric)));
+      }
+
+      return metrics;
+    } catch (errorOrException) {
+      this.logger.error({
+        logTag,
+        category,
+        metricType,
+        realmId,
+        message: 'Failed to load analytics metric history',
+        errorOrException,
+      });
+
+      throw new ServiceUnavailableException('Unable to load analytics metric history');
     }
   }
 

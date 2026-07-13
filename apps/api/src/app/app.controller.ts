@@ -10,8 +10,8 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AppService } from './app.service';
-import { AnalyticsMetricSnapshotDto, AppHealthPayload, SearchQueryDto } from '@app/resources';
-import { AnalyticsEntity, CharactersEntity, GuildsEntity, ItemsEntity } from '@app/pg';
+import { AnalyticsMetricHistoryDto, AnalyticsMetricSnapshotDto, AppHealthPayload, SearchQueryDto } from '@app/resources';
+import { AnalyticsEntity, CharactersEntity, GuildsEntity, ItemsEntity, RealmsEntity } from '@app/pg';
 
 @ApiTags('app')
 @Controller('app')
@@ -40,10 +40,27 @@ export class AppController {
   }
 
   @ApiOperation({
-    description: 'Universal search across characters, guilds, and items',
+    description:
+      'Fetch the analytics metric history for a category, metric type, and optional realm ' +
+      'over a date range. Ordered by snapshot date ascending.',
+  })
+  @ApiOkResponse({ description: 'Analytics metric history entries.' })
+  @ApiBadRequestResponse({ description: 'Invalid query parameters.' })
+  @ApiServiceUnavailableResponse({
+    description: 'Analytics data is unavailable.',
+  })
+  @Get('metrics/history')
+  async getAnalyticsMetricHistory(
+    @Query() historyQuery: AnalyticsMetricHistoryDto,
+  ): Promise<AnalyticsEntity[]> {
+    return this.appService.getMetricHistory(historyQuery);
+  }
+
+  @ApiOperation({
+    description: 'Universal search across characters, guilds, items, and realms',
   })
   @ApiOkResponse({
-    description: 'Search results containing matching characters, guilds, and items',
+    description: 'Search results containing matching characters, guilds, items, and realms',
   })
   @ApiUnauthorizedResponse({
     description: 'You need authenticate yourself before request',
@@ -60,6 +77,7 @@ export class AppController {
     characters: CharactersEntity[];
     guilds: GuildsEntity[];
     items: ItemsEntity[];
+    realms: RealmsEntity[];
     hashMatches: { count: number };
   }> {
     return this.appService.indexSearch(input);
