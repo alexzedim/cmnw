@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { HttpModule } from '@nestjs/axios';
 import { WarcraftLogsService } from './warcraft-logs.service';
+import { WarcraftLogsMigrationService } from './warcraft-logs-migration.service';
 
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -47,6 +48,6 @@ import { RealmsCacheService } from '@app/resources/services/realms-cache.service
     BattleNetModule,
   ],
   controllers: [],
-  providers: [WarcraftLogsService, RealmsCacheService],
+  providers: [WarcraftLogsService, WarcraftLogsMigrationService, RealmsCacheService],
 })
 export class WarcraftLogsModule {}

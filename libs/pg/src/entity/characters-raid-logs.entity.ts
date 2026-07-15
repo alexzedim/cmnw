@@ -19,6 +19,14 @@ export class CharactersRaidLogsEntity {
   })
   isIndexed: boolean;
 
+  @Column({
+    default: null,
+    nullable: true,
+    type: 'varchar',
+    name: 'realm_slug',
+  })
+  realmSlug?: string | null;
+
   @CreateDateColumn({
     type: 'timestamp with time zone',
     name: 'indexed_at',

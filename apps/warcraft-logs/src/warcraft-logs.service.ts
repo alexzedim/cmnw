@@ -324,24 +324,32 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         }
 
         for (const { logId, createdAt } of wclLogsFromPage) {
-          const characterRaidLog = await this.charactersRaidLogsRepository.exists({
+          const existingLog = await this.charactersRaidLogsRepository.findOne({
             where: { logId },
+            select: ['logId', 'realmSlug'],
           });
           // --- If exists counter --- //
-          if (characterRaidLog) {
+          if (existingLog) {
             logsAlreadyExists += 1;
             this.stats.logsSkipped++;
+            if (!existingLog.realmSlug && realmEntity.slug) {
+              await this.charactersRaidLogsRepository.update({ logId }, { realmSlug: realmEntity.slug });
+              this.logger.log(
+                `${chalk.magenta('↻')} Backfilled ${chalk.dim(logId)} ${chalk.dim('|')} ${realmEntity.slug}`,
+              );
+            }
             this.logger.log(
               `${chalk.yellow('⊘')} Skipped ${chalk.dim(logId)} ${chalk.dim('|')} ${realmEntity.name} ${chalk.dim(`| exists: ${logsAlreadyExists}`)}`,
             );
             continue;
           }
 
-          if (!characterRaidLog) {
+          if (!existingLog) {
             await this.charactersRaidLogsRepository.save({
               logId,
               isIndexed: false,
               createdAt,
+              realmSlug: realmEntity.slug,
             });
             this.stats.logsCreated++;
             this.logger.log(
