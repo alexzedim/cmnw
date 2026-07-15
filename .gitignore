@@ -70,3 +70,6 @@ WARP.md
 
 # IDE - Zed
 .zed/
+
+# Playwright MCP
+.playwright-mcp/
