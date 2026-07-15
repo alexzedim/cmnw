@@ -10,7 +10,14 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AppService } from './app.service';
-import { AnalyticsMetricHistoryDto, AnalyticsMetricSnapshotDto, AppHealthPayload, SearchQueryDto } from '@app/resources';
+import {
+  AnalyticsMetricHistoryDto,
+  AnalyticsMetricSnapshotDto,
+  AppHealthPayload,
+  IRaidLogsStats,
+  RaidLogsStatsDto,
+  SearchQueryDto,
+} from '@app/resources';
 import { AnalyticsEntity, CharactersEntity, GuildsEntity, ItemsEntity, RealmsEntity } from '@app/pg';
 
 @ApiTags('app')
@@ -50,10 +57,20 @@ export class AppController {
     description: 'Analytics data is unavailable.',
   })
   @Get('metrics/history')
-  async getAnalyticsMetricHistory(
-    @Query() historyQuery: AnalyticsMetricHistoryDto,
-  ): Promise<AnalyticsEntity[]> {
+  async getAnalyticsMetricHistory(@Query() historyQuery: AnalyticsMetricHistoryDto): Promise<AnalyticsEntity[]> {
     return this.appService.getMetricHistory(historyQuery);
+  }
+
+  @ApiOperation({
+    description:
+      'Fetch indexed/not-indexed raid log counts for a realm ' +
+      '(by slug, name, or id). Returns global totals when no realm is specified.',
+  })
+  @ApiOkResponse({ description: 'Raid log statistics.' })
+  @ApiBadRequestResponse({ description: 'Invalid query parameters.' })
+  @Get('raid-logs/stats')
+  async getRaidLogsStats(@Query() query: RaidLogsStatsDto): Promise<IRaidLogsStats> {
+    return this.appService.getRaidLogsStats(query);
   }
 
   @ApiOperation({

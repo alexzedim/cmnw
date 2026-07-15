@@ -12,5 +12,6 @@ export * from './queue';
 export * from './realm';
 export * from './req';
 export * from './search';
+export * from './warcraft-logs';
 export * from './wow';
 export * from './feed';

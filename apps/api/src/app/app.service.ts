@@ -3,8 +3,24 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, ILike, In } from 'typeorm';
-import { AnalyticsEntity, CharactersEntity, GuildsEntity, ItemsEntity, MarketEntity, RealmsEntity } from '@app/pg';
-import { AnalyticsMetricHistoryDto, AnalyticsMetricSnapshotDto, AnalyticsMetricType, AppHealthPayload, SearchQueryDto } from '@app/resources';
+import {
+  AnalyticsEntity,
+  CharactersEntity,
+  CharactersRaidLogsEntity,
+  GuildsEntity,
+  ItemsEntity,
+  MarketEntity,
+  RealmsEntity,
+} from '@app/pg';
+import {
+  AnalyticsMetricHistoryDto,
+  AnalyticsMetricSnapshotDto,
+  AnalyticsMetricType,
+  AppHealthPayload,
+  IRaidLogsStats,
+  RaidLogsStatsDto,
+  SearchQueryDto,
+} from '@app/resources';
 
 @Injectable()
 export class AppService {
@@ -16,6 +32,8 @@ export class AppService {
     private readonly analyticsRepository: Repository<AnalyticsEntity>,
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
+    @InjectRepository(CharactersRaidLogsEntity)
+    private readonly charactersRaidLogsRepository: Repository<CharactersRaidLogsEntity>,
     @InjectRepository(GuildsEntity)
     private readonly guildsRepository: Repository<GuildsEntity>,
     @InjectRepository(ItemsEntity)
@@ -50,6 +68,47 @@ export class AppService {
       });
 
       throw new ServiceUnavailableException('Unable to load application metrics');
+    }
+  }
+
+  async getRaidLogsStats(input: RaidLogsStatsDto): Promise<IRaidLogsStats> {
+    const logTag = 'getRaidLogsStats';
+
+    try {
+      let realmSlug = input.realmSlug ?? null;
+
+      if (!realmSlug && (input.realmName || input.realmId !== undefined)) {
+        const realm = await this.realmsRepository.findOne({
+          where: [
+            ...(input.realmName ? [{ name: input.realmName }] : []),
+            ...(input.realmId !== undefined ? [{ id: input.realmId }] : []),
+          ],
+          select: ['slug'],
+        });
+        realmSlug = realm?.slug ?? null;
+      }
+
+      const query = this.charactersRaidLogsRepository
+        .createQueryBuilder('logs')
+        .select('COUNT(*)', 'total')
+        .addSelect("COUNT(*) FILTER (WHERE logs.is_indexed = true)", 'indexed')
+        .addSelect("COUNT(*) FILTER (WHERE logs.is_indexed = false)", 'notIndexed');
+
+      if (realmSlug) {
+        query.andWhere('logs.realm_slug = :realmSlug', { realmSlug });
+      }
+
+      const result = await query.getRawOne<{ total: string; indexed: string; notIndexed: string }>();
+
+      return {
+        realmSlug,
+        total: Number(result?.total ?? 0),
+        indexed: Number(result?.indexed ?? 0),
+        notIndexed: Number(result?.notIndexed ?? 0),
+      };
+    } catch (errorOrException) {
+      this.logger.error({ logTag, errorOrException });
+      throw new ServiceUnavailableException('Unable to load raid logs statistics');
     }
   }
 
