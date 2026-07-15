@@ -2,8 +2,9 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Queue } from 'bullmq';
-import { CharactersEntity, GuildsEntity } from '@app/pg';
+import { CharactersEntity, GuildHallOfFameEntity, GuildsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
+import { HttpService } from '@nestjs/axios';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import {
   delay,
@@ -11,17 +12,20 @@ import {
   GuildMessageDto,
   guildsQueue,
   HALL_OF_FAME_RAIDS,
+  ICommunityHallOfFameEntry,
+  ICommunityHallOfFameResponse,
   IGuildMessageBase,
-  IHallOfFame,
+  isCommunityHallOfFame,
   isEuRegion,
-  isHallOfFame,
   notNull,
   OSINT_GUILD_LIMIT,
-  RAID_FACTIONS,
+  toGuid,
+  WOW_COMMUNITY_GRAPHQL_URL,
+  WOW_COMMUNITY_HOF_QUERY_HASH,
 } from '@app/resources';
 import { osintConfig } from '@app/configuration';
 import { InjectQueue } from '@nestjs/bullmq';
-import { BattleNetService, BattleNetNamespace, BATTLE_NET_KEY_TAG_BLIZZARD } from '@app/battle-net';
+import { BattleNetService, BATTLE_NET_KEY_TAG_BLIZZARD } from '@app/battle-net';
 
 @Injectable()
 export class GuildsService implements OnApplicationBootstrap {
@@ -33,9 +37,12 @@ export class GuildsService implements OnApplicationBootstrap {
     private readonly guildsRepository: Repository<GuildsEntity>,
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
+    @InjectRepository(GuildHallOfFameEntity)
+    private readonly guildHallOfFameRepository: Repository<GuildHallOfFameEntity>,
     @InjectQueue(guildsQueue.name)
     private readonly queueGuilds: Queue<IGuildMessageBase>,
     private readonly battleNetService: BattleNetService,
+    private readonly httpService: HttpService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
@@ -182,48 +189,147 @@ export class GuildsService implements OnApplicationBootstrap {
 
         await delay(2);
 
-        for (const raidFaction of RAID_FACTIONS) {
-          const response = await this.battleNetService.query<IHallOfFame>(
-            `/data/wow/leaderboard/hall-of-fame/${raid}/${raidFaction}`,
-            this.battleNetService.createQueryOptions(BattleNetNamespace.DYNAMIC, 50_000),
-            config,
-          );
+        const { raidName, entries } = await this.fetchHallOfFame(raid);
+        if (entries.length === 0) continue;
 
-          const isEntries = isHallOfFame(response);
-          if (!isEntries) continue;
+        await this.saveHallOfFameEntries(raid, raidName, entries);
 
-          const guildJobs = response.entries
-            .map((guildEntry) => {
-              const faction = raidFaction === 'HORDE' ? FACTION.H : FACTION.A;
+        const guildJobs = entries
+          .map((entry) => {
+            const isNotEuRegion = !isEuRegion(entry.region.slug);
+            if (isNotEuRegion) {
+              return null;
+            }
 
-              const isNotEuRegion = !isEuRegion(guildEntry.region);
-              if (isNotEuRegion) {
-                return null;
-              }
+            const realmSlug = this.extractRealmSlug(entry.guild.url);
+            if (!realmSlug) {
+              return null;
+            }
 
-              return GuildMessageDto.fromHallOfFame({
-                id: guildEntry.guild.id,
-                name: guildEntry.guild.name,
-                realm: guildEntry.guild.realm.slug,
-                realmId: guildEntry.guild.realm.id,
-                realmName: guildEntry.guild.realm.name,
-                faction: faction,
-                rank: guildEntry.rank,
-                region: 'eu',
-              });
-            })
-            .filter(notNull);
+            return GuildMessageDto.fromHallOfFame({
+              name: entry.guild.name,
+              realm: realmSlug,
+              realmId: 0,
+              realmName: entry.guild.realm.name,
+              faction: entry.faction,
+              rank: entry.rank,
+              region: 'eu',
+              accessToken: config.accessToken,
+            });
+          })
+          .filter(notNull);
 
-          await this.queueGuilds.addBulk(guildJobs);
+        await this.queueGuilds.addBulk(guildJobs);
 
-          this.logger.log(`${logTag}: Raid ${raid} | Faction ${raidFaction} | Guilds ${guildJobs.length}`);
-        }
+        this.logger.log(`${logTag}: Raid ${raid} | Guilds ${guildJobs.length}`);
       }
     } catch (errorOrException) {
       this.logger.error({
         logTag: logTag,
         error: JSON.stringify(errorOrException),
       });
+    }
+  }
+
+  private async fetchHallOfFame(
+    raidSlug: string,
+  ): Promise<{ raidName: string; entries: Array<ICommunityHallOfFameEntry & { faction: string }> }> {
+    const logTag = this.fetchHallOfFame.name;
+
+    try {
+      const { data } = await this.httpService.axiosRef.post<ICommunityHallOfFameResponse>(
+        WOW_COMMUNITY_GRAPHQL_URL,
+        {
+          operationName: 'GetMythicRaidLeaderboard',
+          variables: { leaderboard: { zoneSlug: raidSlug } },
+          extensions: {
+            persistedQuery: {
+              version: 1,
+              sha256Hash: WOW_COMMUNITY_HOF_QUERY_HASH,
+            },
+          },
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'accept-language': 'en-US',
+          },
+        },
+      );
+
+      if (!isCommunityHallOfFame(data)) {
+        this.logger.warn(`${logTag}: Raid ${raidSlug} | Invalid response`);
+        return { raidName: '', entries: [] };
+      }
+
+      const lb = data.data.MythicRaidLeaderboard;
+      const entries = lb.leaderboards.flatMap((board) =>
+        board.entries.map((entry) => ({
+          ...entry,
+          faction: board.factionEnum === 'HORDE' ? FACTION.H : FACTION.A,
+        })),
+      );
+
+      return { raidName: lb.raid.name, entries };
+    } catch (errorOrException) {
+      this.logger.error({
+        logTag,
+        raidSlug,
+        error: JSON.stringify(errorOrException),
+      });
+      return { raidName: '', entries: [] };
+    }
+  }
+
+  private extractRealmSlug(guildUrl: string): string | null {
+    const match = guildUrl.match(/\/guild\/[^/]+\/([^/]+)\//);
+    return match ? match[1] : null;
+  }
+
+  private async saveHallOfFameEntries(
+    raidSlug: string,
+    raidName: string,
+    entries: Array<ICommunityHallOfFameEntry & { faction: string }>,
+  ): Promise<number> {
+    const logTag = this.saveHallOfFameEntries.name;
+
+    const euEntries = entries.filter((entry) => isEuRegion(entry.region.slug));
+
+    if (euEntries.length === 0) return 0;
+
+    const rows = euEntries
+      .map((entry) => {
+        const realmSlug = this.extractRealmSlug(entry.guild.url);
+        if (!realmSlug) return null;
+
+        return {
+          guildGuid: toGuid(entry.guild.name, realmSlug),
+          raidSlug,
+          raidName,
+          rank: entry.rank,
+          faction: entry.faction,
+          region: entry.region.slug,
+          realmSlug,
+          completedAt: new Date(entry.timestamp),
+        };
+      })
+      .filter(notNull);
+
+    if (rows.length === 0) return 0;
+
+    try {
+      await this.guildHallOfFameRepository.upsert(rows, {
+        conflictPaths: ['guildGuid', 'raidSlug'],
+      });
+      this.logger.log(`${logTag}: Raid ${raidSlug} | Saved ${rows.length} entries`);
+      return rows.length;
+    } catch (errorOrException) {
+      this.logger.error({
+        logTag,
+        raidSlug,
+        error: JSON.stringify(errorOrException),
+      });
+      return 0;
     }
   }
 }

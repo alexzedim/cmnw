@@ -1,19 +1,21 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { RedisModule } from '@nestjs-modules/ioredis';
+import { HttpModule } from '@nestjs/axios';
 import { postgresConfig, redisConfig } from '@app/configuration';
 import { GuildsService } from './guilds.service';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CharactersEntity, GuildsEntity, KeysEntity } from '@app/pg';
+import { CharactersEntity, GuildHallOfFameEntity, GuildsEntity, KeysEntity } from '@app/pg';
 import { guildsQueue } from '@app/resources';
 import { BattleNetModule } from '@app/battle-net';
 
 @Module({
   imports: [
     ScheduleModule.forRoot(),
+    HttpModule,
     TypeOrmModule.forRoot(postgresConfig),
-    TypeOrmModule.forFeature([KeysEntity, GuildsEntity, CharactersEntity]),
+    TypeOrmModule.forFeature([KeysEntity, GuildsEntity, GuildHallOfFameEntity, CharactersEntity]),
     BullModule.forRoot({
       connection: guildsQueue.connection,
     }),
