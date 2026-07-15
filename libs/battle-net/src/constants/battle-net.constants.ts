@@ -6,6 +6,7 @@ export const BATTLE_NET_KEY_TAG_BLIZZARD = 'blizzard';
 
 export const BATTLE_NET_KEY_TAG_WCL_V1 = 'v1';
 export const BATTLE_NET_KEY_TAG_WCL_V2 = 'warcraft-logs-v2';
+export const BATTLE_NET_KEY_TAG_WCL_SESSION = 'warcraft-logs-session';
 
 export const BATTLE_NET_BASE_URLS: Record<BattleNetRegion, string> = {
   [BattleNetRegion.EU]: 'https://eu.api.blizzard.com',

@@ -4,7 +4,7 @@ import { WarcraftLogsService } from './warcraft-logs.service';
 
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CharactersRaidLogsEntity, RealmsEntity } from '@app/pg';
+import { CharactersRaidLogsEntity, KeysEntity, RealmsEntity } from '@app/pg';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { REDIS_CONNECTION, postgresConfig, redisConfig } from '@app/configuration';
 import { BullModule } from '@nestjs/bullmq';
@@ -25,7 +25,7 @@ import { RealmsCacheService } from '@app/resources/services/realms-cache.service
       },
     }),
     TypeOrmModule.forRoot(postgresConfig),
-    TypeOrmModule.forFeature([RealmsEntity, CharactersRaidLogsEntity]),
+    TypeOrmModule.forFeature([RealmsEntity, CharactersRaidLogsEntity, KeysEntity]),
     BullModule.forRoot({
       connection: REDIS_CONNECTION,
     }),

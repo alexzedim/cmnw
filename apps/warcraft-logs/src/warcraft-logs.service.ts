@@ -12,7 +12,7 @@ import {
   toGuid,
   toSlug,
 } from '@app/resources';
-import { BATTLE_NET_KEY_TAG_WCL_V2 } from '@app/battle-net';
+import { BATTLE_NET_KEY_TAG_WCL_SESSION, BATTLE_NET_KEY_TAG_WCL_V2 } from '@app/battle-net';
 import { BattleNetService } from '@app/battle-net';
 import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
 
@@ -21,7 +21,7 @@ import { osintConfig } from '@app/configuration';
 import { HttpService } from '@nestjs/axios';
 import { from, lastValueFrom } from 'rxjs';
 import { CharactersRaidLogsEntity, KeysEntity, RealmsEntity } from '@app/pg';
-import { IsNull, Not, Repository } from 'typeorm';
+import { ArrayContains, IsNull, Not, Repository } from 'typeorm';
 import { get } from 'lodash';
 import { mergeMap } from 'rxjs/operators';
 import { DateTime } from 'luxon';
@@ -59,6 +59,8 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
     private readonly charactersRaidLogsRepository: Repository<CharactersRaidLogsEntity>,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
+    @InjectRepository(KeysEntity)
+    private readonly keysRepository: Repository<KeysEntity>,
     @InjectQueue('osint.characters')
     private readonly charactersQueue: Queue<ICharacterMessageBase>,
     private readonly battleNetService: BattleNetService,
@@ -116,6 +118,90 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
     return this.cachedXHRHeaders[cacheKey];
   }
 
+  private async getSessionCookie(): Promise<string | null> {
+    const keyEntity = await this.keysRepository.findOne({
+      where: { tags: ArrayContains([BATTLE_NET_KEY_TAG_WCL_SESSION]) },
+    });
+
+    if (!keyEntity) return null;
+
+    if (keyEntity.accessToken) return keyEntity.accessToken;
+
+    return this.login(keyEntity);
+  }
+
+  private async login(keyEntity: KeysEntity): Promise<string> {
+    const logTag = 'wclLogin';
+    const loginUrl = 'https://www.warcraftlogs.com/login';
+
+    try {
+      const loginPage = await this.httpService.axiosRef.get<string>(loginUrl, {
+        headers: this.getBrowserHeaders(),
+        timeout: 15_000,
+      });
+
+      const $ = cheerio.load(loginPage.data);
+      const csrfToken = $('meta[name="csrf-token"]').attr('content');
+
+      if (!csrfToken) {
+        throw new Error('CSRF token not found on login page');
+      }
+
+      const loginResponse = await this.httpService.axiosRef.request<unknown>({
+        method: 'post',
+        url: loginUrl,
+        headers: {
+          ...this.getBrowserHeaders(),
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Referer: loginUrl,
+          Origin: 'https://www.warcraftlogs.com',
+        },
+        data: new URLSearchParams({
+          _token: csrfToken,
+          email: keyEntity.clientId,
+          password: keyEntity.clientSecret,
+        }).toString(),
+        maxRedirects: 0,
+        validateStatus: (status) => status === 302 || status === 200,
+        timeout: 15_000,
+      });
+
+      const setCookieHeader = loginResponse.headers['set-cookie'];
+      const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader];
+      const sessionCookie = cookies
+        .find((cookie: string) => cookie?.startsWith('wcl_session='))
+        ?.match(/wcl_session=([^;]+)/)?.[1];
+
+      if (!sessionCookie) {
+        throw new Error('wcl_session cookie not found in login response');
+      }
+
+      await this.keysRepository.update({ uuid: keyEntity.uuid }, { accessToken: sessionCookie });
+
+      this.logger.log(chalk.green(`✓ WCL login successful | ${keyEntity.clientId}`));
+
+      return sessionCookie;
+    } catch (errorOrException) {
+      this.logger.error({
+        logTag,
+        errorOrException: errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
+      });
+      throw errorOrException;
+    }
+  }
+
+  private async refreshSession(): Promise<string | null> {
+    const keyEntity = await this.keysRepository.findOne({
+      where: { tags: ArrayContains([BATTLE_NET_KEY_TAG_WCL_SESSION]) },
+    });
+
+    if (!keyEntity) return null;
+
+    await this.keysRepository.update({ uuid: keyEntity.uuid }, { accessToken: null });
+
+    return this.login(keyEntity);
+  }
+
   @Cron(CronExpression.EVERY_DAY_AT_3AM)
   async indexWarcraftLogs(): Promise<void> {
     const startTime = Date.now();
@@ -152,11 +238,31 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
     try {
       const warcraftLogsURI = 'https://www.warcraftlogs.com/zone/reports';
       const params = `server=${realmId}&`;
+      const pageUrl = `${warcraftLogsURI}?${params}page=${page}`;
 
-      const response = await this.httpService.axiosRef.get<string>(`${warcraftLogsURI}?${params}page=${page}`, {
-        headers: this.getBrowserHeaders(),
-        timeout: 10_000,
+      const sessionCookie = await this.getSessionCookie();
+
+      const buildHeaders = (cookie: string | null) => ({
+        ...this.getBrowserHeaders(),
+        ...(cookie ? { Cookie: `wcl_session=${cookie}` } : {}),
       });
+
+      let response = await this.httpService.axiosRef.get<string>(pageUrl, {
+        headers: buildHeaders(sessionCookie),
+        timeout: 10_000,
+        maxRedirects: 0,
+        validateStatus: (status) => status < 400,
+      });
+
+      const isLoginRedirect = response.status === 302;
+      if (isLoginRedirect && sessionCookie) {
+        this.logger.warn(chalk.yellow('🔄 Session expired, refreshing WCL login'));
+        const freshCookie = await this.refreshSession();
+        response = await this.httpService.axiosRef.get<string>(pageUrl, {
+          headers: buildHeaders(freshCookie),
+          timeout: 10_000,
+        });
+      }
 
       const wclHTML = cheerio.load(response.data);
       const wclTable = wclHTML.html('tbody > tr');
