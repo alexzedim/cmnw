@@ -8,7 +8,6 @@ import {
   IWowToken,
   IItem,
   IItemMedia,
-  IHallOfFame,
   ProfessionIndex,
   ProfessionDetail,
   SkillTierDetail,
@@ -45,8 +44,6 @@ export type BlizzardApiCharacterMedia = Readonly<ICharacterMedia>;
 export type BlizzardApiWowToken = Readonly<IWowToken>;
 
 export type BlizzardApiAuctions = Readonly<IAuctions>;
-
-export type BlizzardApiHallOfFame = Readonly<IHallOfFame>;
 
 export type GoldApiListing = Readonly<IGold>;
 

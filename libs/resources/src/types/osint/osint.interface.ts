@@ -83,35 +83,6 @@ export interface RosterComparisonResult {
   isFirstTimeRosterIndexed: boolean;
 }
 
-export interface IHallOfFameGuild {
-  name: string;
-  id: number;
-  realm: {
-    name: string;
-    id: number;
-    slug: string;
-  };
-}
-
-export interface IHallOfFameEntry {
-  guild: IHallOfFameGuild;
-  faction: INameWithType;
-  timestamp: number;
-  region: string;
-  rank: number;
-}
-
-export interface IHallOfFame {
-  _links: {
-    self: ISelfKeyHref;
-  };
-
-  slug: string;
-  criteria_type: string;
-  entries: Array<IHallOfFameEntry>;
-  lastModified: string;
-}
-
 export interface ICommunityHallOfFameRegion {
   slug: string;
   name: string;
@@ -151,6 +122,15 @@ export interface ICommunityHallOfFameResponse {
   data: {
     MythicRaidLeaderboard: ICommunityHallOfFameData;
   };
+}
+
+export interface IHallOfFameEntry extends ICommunityHallOfFameEntry {
+  faction: string;
+}
+
+export interface IHallOfFameFetchResult {
+  raidName: string;
+  entries: IHallOfFameEntry[];
 }
 
 export interface IRGuildRoster {
