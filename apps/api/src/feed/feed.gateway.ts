@@ -2,11 +2,10 @@ import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import { LoggerService } from '@app/logger';
 import { redisConfig, wsConfig } from '@app/configuration';
+import { SESSION_QUERY_KEY } from '@app/resources';
 import Redis from 'ioredis';
 import { Server, WebSocket } from 'ws';
 import type { Server as HttpServer, IncomingMessage } from 'http';
-
-const SESSION_QUERY_KEY = 'session';
 
 /**
  * Extracts the client session id from the WS upgrade URL (?session=<id>).

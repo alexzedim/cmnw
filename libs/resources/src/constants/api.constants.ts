@@ -8,6 +8,10 @@
  */
 export const TRACKED_ERROR_STATUS_CODES = new Set<number>([403, 429]);
 
+export const HASH_TYPE_REGEX = /^[ab]$/;
+
+export const NUMERIC_ID_REGEX = /^\d+$/;
+
 /**
  * API Key status for key pool management
  *

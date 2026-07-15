@@ -15,10 +15,11 @@ import {
   AnalyticsMetricSnapshotDto,
   AppHealthPayload,
   IRaidLogsStats,
+  ISearchResult,
   RaidLogsStatsDto,
   SearchQueryDto,
 } from '@app/resources';
-import { AnalyticsEntity, CharactersEntity, GuildsEntity, ItemsEntity, RealmsEntity } from '@app/pg';
+import { AnalyticsEntity } from '@app/pg';
 
 @ApiTags('app')
 @Controller('app')
@@ -90,13 +91,7 @@ export class AppController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
   @Get('/search')
-  async indexSearch(@Query() input: SearchQueryDto): Promise<{
-    characters: CharactersEntity[];
-    guilds: GuildsEntity[];
-    items: ItemsEntity[];
-    realms: RealmsEntity[];
-    hashMatches: { count: number };
-  }> {
+  async indexSearch(@Query() input: SearchQueryDto): Promise<ISearchResult> {
     return this.appService.indexSearch(input);
   }
 }

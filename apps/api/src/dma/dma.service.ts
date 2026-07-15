@@ -8,6 +8,7 @@ import {
   ItemQuotesDto,
   ItemQuotesResponseDto,
   MARKET_TYPE,
+  NUMERIC_ID_REGEX,
   REALM_ENTITY_ANY,
   ReqGetItemDto,
   WOW_TOKEN_ITEM_ID,
@@ -643,7 +644,7 @@ export class DmaService {
       const queryBuilder = this.itemsRepository.createQueryBuilder('item');
 
       // Check if query is a numeric ID
-      const isNumericId = /^\d+$/.test(query);
+      const isNumericId = NUMERIC_ID_REGEX.test(query);
 
       const items = await queryBuilder
         .select(['item.id', 'item.name', 'item.quality'])

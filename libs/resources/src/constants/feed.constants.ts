@@ -1,3 +1,5 @@
+export const SESSION_QUERY_KEY = 'session';
+
 export enum FeedEventCategory {
   CHARACTER = 'character',
   GUILD = 'guild',

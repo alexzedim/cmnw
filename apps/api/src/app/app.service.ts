@@ -17,7 +17,10 @@ import {
   AnalyticsMetricSnapshotDto,
   AnalyticsMetricType,
   AppHealthPayload,
+  HASH_TYPE_REGEX,
   IRaidLogsStats,
+  ISearchResult,
+  NUMERIC_ID_REGEX,
   RaidLogsStatsDto,
   SearchQueryDto,
 } from '@app/resources';
@@ -112,13 +115,7 @@ export class AppService {
     }
   }
 
-  async indexSearch(input: SearchQueryDto): Promise<{
-    characters: CharactersEntity[];
-    guilds: GuildsEntity[];
-    items: ItemsEntity[];
-    realms: RealmsEntity[];
-    hashMatches: { count: number };
-  }> {
+  async indexSearch(input: SearchQueryDto): Promise<ISearchResult> {
     const logTag = 'indexSearch';
     try {
       this.logger.log({
@@ -129,9 +126,9 @@ export class AppService {
 
       const searchPattern = `${input.searchQuery}%`;
       const hashTypeChar = input.searchQuery.charAt(0).toLowerCase();
-      const isHashQuery = /^[ab]$/.test(hashTypeChar) && input.searchQuery.length > 1;
+      const isHashQuery = HASH_TYPE_REGEX.test(hashTypeChar) && input.searchQuery.length > 1;
       const hashValue = isHashQuery ? input.searchQuery.slice(1) : null;
-      const isNumericQuery = /^\d+$/.test(input.searchQuery);
+      const isNumericQuery = NUMERIC_ID_REGEX.test(input.searchQuery);
       const itemIdQuery = isNumericQuery ? parseInt(input.searchQuery, 10) : null;
 
       const [characters, guilds, items, realms, hashMatches] = await Promise.all([
