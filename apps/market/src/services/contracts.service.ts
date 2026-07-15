@@ -1,7 +1,7 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ContractEntity, ItemsEntity, MarketEntity, RealmsEntity } from '@app/pg';
+import { ContractEntity, ItemsEntity, MarketEntity } from '@app/pg';
 import { LessThan, MoreThan, Not, Repository } from 'typeorm';
 import { DateTime } from 'luxon';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
@@ -26,8 +26,6 @@ export class ContractsService implements OnApplicationBootstrap {
   constructor(
     @InjectRepository(ItemsEntity)
     private readonly itemsRepository: Repository<ItemsEntity>,
-    @InjectRepository(RealmsEntity)
-    private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
     @InjectRepository(ContractEntity)
@@ -165,6 +163,10 @@ export class ContractsService implements OnApplicationBootstrap {
     }
   }
 
+  // Gold is cross-realm: build a single contract per timestamp across all
+  // realms instead of per-realm. Per-realm builds collapsed to one row each
+  // timestamp via the `ON CONFLICT (id) DO UPDATE` in getItemContractIntradayData
+  // (the contract id has no realm dimension), losing every realm but the last.
   @Cron('00 10,18 * * *')
   private async _buildGoldIntradayContracts() {
     const logTag = this._buildGoldIntradayContracts.name;
@@ -174,28 +176,29 @@ export class ContractsService implements OnApplicationBootstrap {
       const today = DateTime.now();
       const ytd = today.minus({ days: 1 }).toMillis();
 
-      const realmsEntities = await this.realmsRepository.find({});
+      const timestamps = await this.marketRepository
+        .createQueryBuilder('markets')
+        .where({
+          itemId: GOLD_ITEM_ENTITY.id,
+          timestamp: MoreThan(ytd),
+        })
+        .select('markets.timestamp', 'timestamp')
+        .distinct(true)
+        .getRawMany<Pick<MarketEntity, 'timestamp'>>();
 
-      for (const realmEntity of realmsEntities) {
-        const timestamps = await this.marketRepository
-          .createQueryBuilder('markets')
-          .where({
-            itemId: GOLD_ITEM_ENTITY.id,
-            timestamp: MoreThan(ytd),
-            connectedRealmId: realmEntity.connectedRealmId,
-          })
-          .select('markets.timestamp', 'timestamp')
-          .distinct(true)
-          .getRawMany<Pick<MarketEntity, 'timestamp'>>();
+      const goldTimestamps = timestamps.map((t) => t.timestamp);
 
-        const goldTimestamps = timestamps.map((t) => t.timestamp);
+      this.logger.log({
+        logTag,
+        timestampCount: goldTimestamps.length,
+        message: `Processing gold contracts across ${goldTimestamps.length} timestamps (cross-realm)`,
+      });
 
-        await lastValueFrom(
-          from(goldTimestamps).pipe(
-            mergeMap((timestamp) => this.getItemContractIntradayData(GOLD_ITEM_ENTITY.id, timestamp, today), 5),
-          ),
-        );
-      }
+      await lastValueFrom(
+        from(goldTimestamps).pipe(
+          mergeMap((timestamp) => this.getItemContractIntradayData(GOLD_ITEM_ENTITY.id, timestamp, today), 5),
+        ),
+      );
     } catch (errorOrException) {
       this.logger.error({
         logTag: logTag,
@@ -208,7 +211,6 @@ export class ContractsService implements OnApplicationBootstrap {
     itemId: number,
     timestamp: number,
     today: DateTime,
-    connectedRealmId?: number,
   ) {
     const logTag = this.getItemContractIntradayData.name;
     const isGold = itemId === GOLD_ITEM_ENTITY.id;
@@ -227,9 +229,10 @@ export class ContractsService implements OnApplicationBootstrap {
         return;
       }
 
+      // Gold is cross-realm: aggregate across all realms (no connectedRealmId).
+      // Commodities are realm-agnostic by design (REALM_ENTITY_ANY).
       const itemPriceAndQuantityWhere = isGold
         ? {
-            connectedRealmId: connectedRealmId,
             itemId: itemId,
             timestamp: timestamp,
             isOnline: true,
@@ -263,7 +266,6 @@ export class ContractsService implements OnApplicationBootstrap {
           itemId,
           timestamp,
           isGold,
-          connectedRealmId,
         ),
         await getPercentileTypeByItemAndTimestamp(
           this.marketRepository,
@@ -272,13 +274,11 @@ export class ContractsService implements OnApplicationBootstrap {
           itemId,
           timestamp,
           isGold,
-          connectedRealmId,
         ),
       ]);
 
       const itemOpenInterestWhere = isGold
         ? {
-            connectedRealmId: connectedRealmId,
             itemId: itemId,
             timestamp: timestamp,
             isOnline: true,

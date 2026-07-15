@@ -193,14 +193,16 @@ export interface ContractByConnectedRealm {
 
 export interface ContractTopByQuantity {
   item_id: number;
-  quantity: string;
-  open_interest: string;
+  max_quantity: string;
+  min_quantity: string;
+  max_open_interest: string;
 }
 
 export interface ContractTopByOpenInterest {
   item_id: number;
-  open_interest: string;
-  quantity: string;
+  max_open_interest: string;
+  min_open_interest: string;
+  max_quantity: string;
 }
 
 export interface ContractPriceVolatility {

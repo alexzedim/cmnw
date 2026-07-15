@@ -41,8 +41,12 @@ export const getPercentileTypeByItemAndTimestamp = async (
 
   const params = [];
 
+  // Gold percentiles are realm-scoped only when a connectedRealmId is given.
+  // Without one, aggregate across all realms (gold is cross-realm now).
   const addWhere = isGold
-    ? ' WHERE item_id = $1 AND timestamp = $2 AND connected_realm_id = $3 AND is_online = true'
+    ? connectedRealmId
+      ? ' WHERE item_id = $1 AND timestamp = $2 AND connected_realm_id = $3 AND is_online = true'
+      : ' WHERE item_id = $1 AND timestamp = $2 AND is_online = true'
     : ' WHERE item_id = $1 AND timestamp = $2';
 
   query += addWhere;
@@ -50,7 +54,7 @@ export const getPercentileTypeByItemAndTimestamp = async (
   params.push(itemId);
   params.push(timestamp);
 
-  if (connectedRealmId) {
+  if (isGold && connectedRealmId) {
     params.push(connectedRealmId);
   }
 

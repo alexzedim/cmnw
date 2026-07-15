@@ -2,7 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { DateTime } from 'luxon';
-import { AnalyticsMetricCategory, AnalyticsMetricType, analyticsMetricExists } from '@app/resources';
+import {
+  AnalyticsMetricCategory,
+  AnalyticsMetricType,
+  analyticsMetricExists,
+  GOLD_ITEM_ENTITY,
+  WOW_TOKEN_ITEM_ID,
+} from '@app/resources';
 import {
   ContractTotalMetrics,
   ContractCommoditiesData,
@@ -12,6 +18,10 @@ import {
   ContractPriceVolatility,
 } from '@app/resources/types';
 import { AnalyticsEntity, ContractEntity } from '@app/pg';
+
+// Gold is tracked by its own (cross-realm) contracts; the WoW Token is a
+// pricing artifact. Neither belongs in the commodity item rankings/totals.
+const CONTRACTS_EXCLUDED_ITEM_IDS = [GOLD_ITEM_ENTITY.id, WOW_TOKEN_ITEM_ID];
 
 @Injectable()
 export class ContractMetricsService {
@@ -46,6 +56,7 @@ export class ContractMetricsService {
         .addSelect('SUM(c.oi)', 'total_open_interest')
         .addSelect('COUNT(DISTINCT c.item_id)', 'unique_items')
         .where('c.timestamp > :threshold', { threshold: threshold24h })
+        .andWhere('c.item_id NOT IN (:...excluded)', { excluded: CONTRACTS_EXCLUDED_ITEM_IDS })
         .getRawOne<ContractTotalMetrics>();
 
       const existsTotalMetric = await analyticsMetricExists(this.analyticsMetricRepository, {
@@ -121,6 +132,7 @@ export class ContractMetricsService {
       .where('c.timestamp > :threshold AND c.connected_realm_id = 1', {
         threshold: threshold24h,
       })
+      .andWhere('c.item_id NOT IN (:...excluded)', { excluded: CONTRACTS_EXCLUDED_ITEM_IDS })
       .getRawOne<ContractCommoditiesData>();
 
     const contractByCommoditiesMetric = this.analyticsMetricRepository.create({
@@ -143,8 +155,9 @@ export class ContractMetricsService {
       .select('c.connected_realm_id')
       .addSelect('COUNT(*)', 'count')
       .addSelect('SUM(c.quantity)', 'total_quantity')
-      .addSelect('SUM(c.openInterest)', 'total_open_interest')
+      .addSelect('SUM(c.oi)', 'total_open_interest')
       .where('c.timestamp > :threshold', { threshold: threshold24h })
+      .andWhere('c.item_id NOT IN (:...excluded)', { excluded: CONTRACTS_EXCLUDED_ITEM_IDS })
       .groupBy('c.connected_realm_id')
       .getRawMany<ContractByConnectedRealm>();
 
@@ -192,11 +205,13 @@ export class ContractMetricsService {
     const topByQuantity = await this.contractRepository
       .createQueryBuilder('c')
       .select('c.item_id')
-      .addSelect('SUM(c.quantity)', 'quantity')
-      .addSelect('SUM(c.oi)', 'open_interest')
+      .addSelect('MAX(c.quantity)', 'max_quantity')
+      .addSelect('MIN(c.quantity)', 'min_quantity')
+      .addSelect('MAX(c.oi)', 'max_open_interest')
       .where('c.timestamp > :threshold', { threshold: threshold24h })
+      .andWhere('c.item_id NOT IN (:...excluded)', { excluded: CONTRACTS_EXCLUDED_ITEM_IDS })
       .groupBy('c.item_id')
-      .orderBy('quantity', 'DESC')
+      .orderBy('max_quantity', 'DESC')
       .limit(1)
       .getRawOne<ContractTopByQuantity>();
 
@@ -210,8 +225,9 @@ export class ContractMetricsService {
       value: {
         [String(topByQuantity.item_id)]: {
           itemId: topByQuantity.item_id,
-          quantity: parseInt(topByQuantity.quantity || '0', 10),
-          openInterest: parseFloat(topByQuantity.open_interest || '0'),
+          maxQuantity: parseInt(topByQuantity.max_quantity || '0', 10),
+          minQuantity: parseInt(topByQuantity.min_quantity || '0', 10),
+          maxOpenInterest: parseFloat(topByQuantity.max_open_interest || '0'),
         },
       },
       snapshotDate,
@@ -235,11 +251,13 @@ export class ContractMetricsService {
     const topByOpenInterest = await this.contractRepository
       .createQueryBuilder('c')
       .select('c.item_id')
-      .addSelect('SUM(c.oi)', 'open_interest')
-      .addSelect('SUM(c.quantity)', 'quantity')
+      .addSelect('MAX(c.oi)', 'max_open_interest')
+      .addSelect('MIN(c.oi)', 'min_open_interest')
+      .addSelect('MAX(c.quantity)', 'max_quantity')
       .where('c.timestamp > :threshold', { threshold: threshold24h })
+      .andWhere('c.item_id NOT IN (:...excluded)', { excluded: CONTRACTS_EXCLUDED_ITEM_IDS })
       .groupBy('c.item_id')
-      .orderBy('open_interest', 'DESC')
+      .orderBy('max_open_interest', 'DESC')
       .limit(1)
       .getRawOne<ContractTopByOpenInterest>();
 
@@ -253,8 +271,9 @@ export class ContractMetricsService {
       value: {
         [String(topByOpenInterest.item_id)]: {
           itemId: topByOpenInterest.item_id,
-          openInterest: parseFloat(topByOpenInterest.open_interest || '0'),
-          quantity: parseInt(topByOpenInterest.quantity || '0', 10),
+          maxOpenInterest: parseFloat(topByOpenInterest.max_open_interest || '0'),
+          minOpenInterest: parseFloat(topByOpenInterest.min_open_interest || '0'),
+          maxQuantity: parseInt(topByOpenInterest.max_quantity || '0', 10),
         },
       },
       snapshotDate,
@@ -281,6 +300,7 @@ export class ContractMetricsService {
       .addSelect('STDDEV(c.price)', 'std_dev')
       .addSelect('AVG(c.price)', 'avg_price')
       .where('c.timestamp > :threshold', { threshold: threshold24h })
+      .andWhere('c.item_id NOT IN (:...excluded)', { excluded: CONTRACTS_EXCLUDED_ITEM_IDS })
       .groupBy('c.item_id')
       .having('COUNT(*) > :count', { count: 10 })
       .orderBy('std_dev', 'DESC')
