@@ -44,3 +44,12 @@ export const isGuildUpdateMoreRecent = (
   guildLastModified != null &&
   characterLastModified != null &&
   guildLastModified.getTime() > characterLastModified.getTime();
+
+/**
+ * @description Extract realm slug from Blizzard community guild URL.
+ * @param guildUrl {string} e.g. '/guild/eu/some-realm/My Guild/'
+ */
+export const extractRealmSlug = (guildUrl: string): string | null => {
+  const match = guildUrl.match(/\/guild\/[^/]+\/([^/]+)\//);
+  return match ? match[1] : null;
+};

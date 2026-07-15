@@ -31,3 +31,13 @@ export enum AnalyticsMetricType {
   PRICE_VOLATILITY = 'priceVolatility',
   BY_RAID = 'byRaid',
 }
+
+export const ARRAY_METRIC_TYPES = [
+  AnalyticsMetricType.TOP_BY_MEMBERS,
+  AnalyticsMetricType.TOP_BY_ACHIEVEMENTS,
+  AnalyticsMetricType.TOP_BY_VOLUME,
+  AnalyticsMetricType.TOP_BY_AUCTIONS,
+  AnalyticsMetricType.TOP_BY_QUANTITY,
+  AnalyticsMetricType.TOP_BY_OPEN_INTEREST,
+  AnalyticsMetricType.PRICE_VOLATILITY,
+] as const;

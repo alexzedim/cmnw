@@ -208,3 +208,28 @@ export interface ContractPriceVolatility {
   std_dev: string;
   avg_price: string;
 }
+
+export interface HallOfFameRaidAggregation {
+  raid_slug: string;
+  raid_name: string;
+  guild_count: string;
+  realm_count: string;
+}
+
+export interface HallOfFameRealmAggregation {
+  realm_slug: string;
+  guild_count: string;
+  raid_count: string;
+}
+
+export interface HallOfFameRealmMetricRow {
+  realm_id: number;
+  guild_count: string;
+  raid_count: string;
+}
+
+export interface RankRecord {
+  guid?: string;
+  itemId?: number | string;
+  [key: string]: unknown;
+}

@@ -45,6 +45,11 @@ export const OSINT_LFG_WOW_PROGRESS = [
 
 export const WOW_COMMUNITY_GRAPHQL_URL = 'https://worldofwarcraft.blizzard.com/en-us/graphql';
 export const WOW_COMMUNITY_HOF_QUERY_HASH = 'f5e84323b0ee6f94b597ce503c186b07bc8c64303bc07476e058d3fd8a38ece1';
+export const HALL_OF_FAME_GRAPHQL_OPERATION = 'GetMythicRaidLeaderboard';
+export const WOW_COMMUNITY_REQUEST_HEADERS = {
+  'Content-Type': 'application/json',
+  'accept-language': 'en-US',
+} as const;
 
 // Redis key prefixes
 export const M_PLUS_REALM_DUNGEON_PREFIX = 'mplus:realm:dungeon:';
