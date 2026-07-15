@@ -81,6 +81,7 @@ pnpm docker:build
 - Boolean prefixes: `is`, `has`, `should` (e.g., `isValid`, `hasGuild`)
 - No comments unless explicitly requested
 - Early returns over deep nesting
+- No top-level `const`, `interface`, or `type` declarations in service files (`*.service.ts`) — extract them to `@app/resources` (`types`, `constants`, `utils`)
 
 ### Import Order
 
