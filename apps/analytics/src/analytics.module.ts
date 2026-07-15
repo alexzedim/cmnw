@@ -3,13 +3,22 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RedisModule } from '@nestjs-modules/ioredis';
 import { postgresConfig, redisConfig } from '@app/configuration';
-import { AnalyticsEntity, CharactersEntity, GuildsEntity, MarketEntity, ContractEntity, RealmsEntity } from '@app/pg';
+import {
+  AnalyticsEntity,
+  CharactersEntity,
+  GuildHallOfFameEntity,
+  GuildsEntity,
+  MarketEntity,
+  ContractEntity,
+  RealmsEntity,
+} from '@app/pg';
 
 import { AnalyticsService } from './analytics.service';
 import { CharacterMetricsService } from './services';
 import { GuildMetricsService } from './services';
 import { MarketMetricsService } from './services';
 import { ContractMetricsService } from './services';
+import { HallOfFameMetricsService } from './services';
 import { AnalyticsMigrationService } from './services/analytics-migration.service';
 
 @Module({
@@ -20,6 +29,7 @@ import { AnalyticsMigrationService } from './services/analytics-migration.servic
       AnalyticsEntity,
       CharactersEntity,
       GuildsEntity,
+      GuildHallOfFameEntity,
       MarketEntity,
       ContractEntity,
       RealmsEntity,
@@ -41,6 +51,7 @@ import { AnalyticsMigrationService } from './services/analytics-migration.servic
     GuildMetricsService,
     MarketMetricsService,
     ContractMetricsService,
+    HallOfFameMetricsService,
   ],
 })
 export class AnalyticsModule {}

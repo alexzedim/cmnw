@@ -3,6 +3,7 @@ export enum AnalyticsMetricCategory {
   GUILDS = 'guilds',
   MARKET = 'market',
   CONTRACTS = 'contracts',
+  HALL_OF_FAME = 'hallOfFame',
 }
 
 export enum AnalyticsMetricType {
@@ -28,4 +29,5 @@ export enum AnalyticsMetricType {
   TOP_BY_QUANTITY = 'topByQuantity',
   TOP_BY_OPEN_INTEREST = 'topByOpenInterest',
   PRICE_VOLATILITY = 'priceVolatility',
+  BY_RAID = 'byRaid',
 }

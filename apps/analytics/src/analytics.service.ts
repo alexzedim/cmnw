@@ -2,7 +2,13 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { Repository, MoreThan } from 'typeorm';
 import { DateTime } from 'luxon';
-import { CharacterMetricsService, ContractMetricsService, GuildMetricsService, MarketMetricsService } from './services';
+import {
+  CharacterMetricsService,
+  ContractMetricsService,
+  GuildMetricsService,
+  HallOfFameMetricsService,
+  MarketMetricsService,
+} from './services';
 import { AnalyticsMigrationService } from './services/analytics-migration.service';
 import { AnalyticsEntity } from '@app/pg';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -20,6 +26,7 @@ export class AnalyticsService implements OnApplicationBootstrap {
     private readonly guildMetricsService: GuildMetricsService,
     private readonly marketMetricsService: MarketMetricsService,
     private readonly contractMetricsService: ContractMetricsService,
+    private readonly hallOfFameMetricsService: HallOfFameMetricsService,
     private readonly analyticsMigrationService: AnalyticsMigrationService,
   ) {}
 
@@ -79,14 +86,15 @@ export class AnalyticsService implements OnApplicationBootstrap {
       });
 
       // Compute all metrics in parallel
-      const [charCount, guildCount, marketCount, contractCount] = await Promise.all([
+      const [charCount, guildCount, marketCount, contractCount, hofCount] = await Promise.all([
         this.characterMetricsService.computeCharacterMetrics(snapshotDate),
         this.guildMetricsService.computeGuildMetrics(snapshotDate),
         this.marketMetricsService.computeMarketMetrics(snapshotDate),
         this.contractMetricsService.computeContractMetrics(snapshotDate),
+        this.hallOfFameMetricsService.computeHallOfFameMetrics(snapshotDate),
       ]);
 
-      const totalMetrics = charCount + guildCount + marketCount + contractCount;
+      const totalMetrics = charCount + guildCount + marketCount + contractCount + hofCount;
 
       const duration = Date.now() - startTime;
       this.logger.log(`Daily analytics computation completed - metricsCount: ${totalMetrics}, durationMs: ${duration}`);
