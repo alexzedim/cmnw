@@ -197,7 +197,14 @@ export class OsintController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
   @Get('/guild')
-  async getGuild(@Query() input: GuildIdDto): Promise<{ guild: GuildsEntity; members: any[]; memberCount: number }> {
+  async getGuild(
+    @Query() input: GuildIdDto,
+  ): Promise<{
+    guild: GuildsEntity;
+    hallOfFame: Record<string, unknown> | null;
+    members: unknown[];
+    memberCount: number;
+  }> {
     return this.guildOsintService.getGuild(input);
   }
 

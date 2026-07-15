@@ -11,6 +11,7 @@ import {
   CharactersEntity,
   CharactersGuildsLogsEntity,
   CharactersGuildsMembersEntity,
+  GuildHallOfFameEntity,
   GuildsEntity,
   RealmsEntity,
 } from '@app/pg';
@@ -42,6 +43,8 @@ export class GuildOsintService {
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(CharactersGuildsLogsEntity)
     private readonly logsRepository: Repository<CharactersGuildsLogsEntity>,
+    @InjectRepository(GuildHallOfFameEntity)
+    private readonly guildHallOfFameRepository: Repository<GuildHallOfFameEntity>,
     @InjectQueue(guildsQueue.name)
     private readonly queueGuild: Queue<IGuildMessageBase>,
   ) {}
@@ -106,6 +109,41 @@ export class GuildOsintService {
         guildGuid: membership.guildGuid,
       };
     });
+  }
+
+  private async resolveHallOfFame(guildGuid: string): Promise<{
+    isHallOfFame: boolean;
+    bestRank: number;
+    raidCount: number;
+    achievements: Array<{
+      raid: { slug: string; name: string };
+      rank: number;
+      faction: string;
+      completedAt: string;
+    }>;
+  } | null> {
+    const entries = await this.guildHallOfFameRepository.find({
+      where: { guildGuid },
+      order: { completedAt: 'DESC' },
+    });
+
+    if (!entries.length) return null;
+
+    const achievements = entries.map((e) => ({
+      raid: { slug: e.raidSlug, name: e.raidName },
+      rank: e.rank,
+      faction: e.faction,
+      completedAt: e.completedAt?.toISOString() ?? null,
+    }));
+
+    const bestRank = entries.reduce((min, e) => (e.rank < min ? e.rank : min), entries[0].rank);
+
+    return {
+      isHallOfFame: true,
+      bestRank,
+      raidCount: entries.length,
+      achievements,
+    };
   }
 
   async getGuild(input: GuildIdDto) {
@@ -224,6 +262,7 @@ export class GuildOsintService {
 
       return {
         guild,
+        hallOfFame: await this.resolveHallOfFame(guid),
         members,
         memberCount: members.length,
       };
