@@ -11,6 +11,7 @@ export * from './characters-raid-logs.entity';
 export * from './characters-guilds-logs.entity';
 
 export * from './guilds.entity';
+export * from './guild-hall-of-fame.entity';
 
 export * from './hash-blocks.entity';
 export * from './hash-block-logs.entity';
