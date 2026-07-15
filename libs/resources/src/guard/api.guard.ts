@@ -14,6 +14,7 @@ import {
   BlizzardApiWowToken,
   GoldApiListing,
   ICharacterRaiderIo,
+  ICommunityHallOfFameResponse,
   IHallOfFame,
   IMythicKeystoneDungeonResponse,
   IMythicKeystoneSeasonResponse,
@@ -144,6 +145,16 @@ export const isRaiderIoProfile = (response: unknown): response is ICharacterRaid
 
 export const isHallOfFame = (response: unknown): response is IHallOfFame =>
   typeof response === 'object' && 'entries' in response && Array.isArray(response.entries);
+
+export const isCommunityHallOfFame = (response: unknown): response is ICommunityHallOfFameResponse => {
+  if (typeof response !== 'object' || response === null) return false;
+  const data = (response as { data?: unknown }).data;
+  if (typeof data !== 'object' || data === null) return false;
+  const lb = (data as { MythicRaidLeaderboard?: unknown }).MythicRaidLeaderboard;
+  if (typeof lb !== 'object' || lb === null) return false;
+  const leaderboards = (lb as { leaderboards?: unknown }).leaderboards;
+  return Array.isArray(leaderboards) && leaderboards.length > 0;
+};
 
 export const isCharacterProfessions = (response: unknown): response is BlizzardApiCharacterProfessions =>
   typeof response === 'object' &&

@@ -112,6 +112,47 @@ export interface IHallOfFame {
   lastModified: string;
 }
 
+export interface ICommunityHallOfFameRegion {
+  slug: string;
+  name: string;
+}
+
+export interface ICommunityHallOfFameRealm {
+  name: string;
+}
+
+export interface ICommunityHallOfFameGuild {
+  name: string;
+  realm: ICommunityHallOfFameRealm;
+  url: string;
+}
+
+export interface ICommunityHallOfFameEntry {
+  rank: number;
+  guild: ICommunityHallOfFameGuild;
+  region: ICommunityHallOfFameRegion;
+  timestamp: number;
+}
+
+export interface ICommunityHallOfFameBoard {
+  factionEnum: string;
+  entries: ICommunityHallOfFameEntry[];
+}
+
+export interface ICommunityHallOfFameData {
+  raid: {
+    name: string;
+    slug: string;
+  };
+  leaderboards: ICommunityHallOfFameBoard[];
+}
+
+export interface ICommunityHallOfFameResponse {
+  data: {
+    MythicRaidLeaderboard: ICommunityHallOfFameData;
+  };
+}
+
 export interface IRGuildRoster {
   _links: {
     self: ISelfKeyHref;

@@ -43,6 +43,9 @@ export const OSINT_LFG_WOW_PROGRESS = [
   'https://www.wowprogress.com/gearscore/char_rating/next/0/lfg.1/sortby.ts',
 ];
 
+export const WOW_COMMUNITY_GRAPHQL_URL = 'https://worldofwarcraft.blizzard.com/en-us/graphql';
+export const WOW_COMMUNITY_HOF_QUERY_HASH = 'f5e84323b0ee6f94b597ce503c186b07bc8c64303bc07476e058d3fd8a38ece1';
+
 // Redis key prefixes
 export const M_PLUS_REALM_DUNGEON_PREFIX = 'mplus:realm:dungeon:';
 
@@ -60,11 +63,14 @@ export const HALL_OF_FAME_RAIDS = [
   'nyalotha-the-waking-city',
   'castle-nathria',
   'sanctum-of-domination',
+  'sepulcher-of-the-first-ones',
   'vault-of-the-incarnates',
   'aberrus-the-shadowed-crucible',
   'amirdrassil-the-dreams-hope',
   'nerubar-palace',
   'liberation-of-undermine',
+  'manaforge-omega',
+  'march-on-queldanas',
 ];
 
 export const RAID_FACTIONS = ['alliance', 'horde'];
