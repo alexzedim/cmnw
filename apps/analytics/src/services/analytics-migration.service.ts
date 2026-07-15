@@ -2,13 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { AnalyticsEntity } from '@app/pg';
-import { AnalyticsMetricCategory, AnalyticsMetricType } from '@app/resources';
-
-interface RankRecord {
-  guid?: string;
-  itemId?: number | string;
-  [key: string]: unknown;
-}
+import { AnalyticsMetricCategory, AnalyticsMetricType, ARRAY_METRIC_TYPES } from '@app/resources';
+import { RankRecord } from '@app/resources/types';
 
 /**
  * One-off, idempotent normalizer that converts legacy `analytics.value`
@@ -30,16 +25,6 @@ export class AnalyticsMigrationService {
     timestamp: true,
   });
 
-  private static readonly ARRAY_METRIC_TYPES = [
-    AnalyticsMetricType.TOP_BY_MEMBERS,
-    AnalyticsMetricType.TOP_BY_ACHIEVEMENTS,
-    AnalyticsMetricType.TOP_BY_VOLUME,
-    AnalyticsMetricType.TOP_BY_AUCTIONS,
-    AnalyticsMetricType.TOP_BY_QUANTITY,
-    AnalyticsMetricType.TOP_BY_OPEN_INTEREST,
-    AnalyticsMetricType.PRICE_VOLATILITY,
-  ] as const;
-
   constructor(
     @InjectRepository(AnalyticsEntity)
     private readonly analyticsRepository: Repository<AnalyticsEntity>,
@@ -52,7 +37,7 @@ export class AnalyticsMigrationService {
 
     const legacyRows = await this.analyticsRepository.find({
       where: {
-        metricType: In([...AnalyticsMigrationService.ARRAY_METRIC_TYPES]),
+        metricType: In([...ARRAY_METRIC_TYPES]),
       },
     });
 

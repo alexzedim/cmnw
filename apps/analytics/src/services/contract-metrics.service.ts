@@ -26,20 +26,6 @@ export class ContractMetricsService {
     private readonly contractRepository: Repository<ContractEntity>,
   ) {}
 
-  private metricExists(
-    category: AnalyticsMetricCategory,
-    metricType: AnalyticsMetricType,
-    snapshotDate: Date,
-    realmId?: number | null,
-  ): Promise<boolean> {
-    return analyticsMetricExists(this.analyticsMetricRepository, {
-      category,
-      metricType,
-      snapshotDate,
-      realmId: realmId ?? undefined,
-    });
-  }
-
   async computeContractMetrics(snapshotDate: Date): Promise<number> {
     const logTag = 'computeContractMetrics';
     let savedCount = 0;
@@ -62,11 +48,11 @@ export class ContractMetricsService {
         .where('c.timestamp > :threshold', { threshold: threshold24h })
         .getRawOne<ContractTotalMetrics>();
 
-      const existsTotalMetric = await this.metricExists(
-        AnalyticsMetricCategory.CONTRACTS,
-        AnalyticsMetricType.TOTAL,
+      const existsTotalMetric = await analyticsMetricExists(this.analyticsMetricRepository, {
+        category: AnalyticsMetricCategory.CONTRACTS,
+        metricType: AnalyticsMetricType.TOTAL,
         snapshotDate,
-      );
+      });
 
       if (!existsTotalMetric) {
         const contractTotalMetric = this.analyticsMetricRepository.create({
@@ -117,11 +103,11 @@ export class ContractMetricsService {
 
   private async computeContractByCommodities(snapshotDate: Date, threshold24h: number): Promise<number> {
     // Check if metric exists
-    const existsByCommodities = await this.metricExists(
-      AnalyticsMetricCategory.CONTRACTS,
-      AnalyticsMetricType.BY_COMMODITIES,
+    const existsByCommodities = await analyticsMetricExists(this.analyticsMetricRepository, {
+      category: AnalyticsMetricCategory.CONTRACTS,
+      metricType: AnalyticsMetricType.BY_COMMODITIES,
       snapshotDate,
-    );
+    });
 
     if (existsByCommodities) {
       return 0;
@@ -165,12 +151,12 @@ export class ContractMetricsService {
     let savedCount = 0;
     for (const realm of byConnectedRealm) {
       // Check if metric exists
-      const existsByConnectedRealm = await this.metricExists(
-        AnalyticsMetricCategory.CONTRACTS,
-        AnalyticsMetricType.BY_CONNECTED_REALM,
+      const existsByConnectedRealm = await analyticsMetricExists(this.analyticsMetricRepository, {
+        category: AnalyticsMetricCategory.CONTRACTS,
+        metricType: AnalyticsMetricType.BY_CONNECTED_REALM,
         snapshotDate,
-        realm.connected_realm_id,
-      );
+        realmId: realm.connected_realm_id,
+      });
 
       if (!existsByConnectedRealm) {
         const contractByConnectedRealmMetric = this.analyticsMetricRepository.create({
@@ -193,11 +179,11 @@ export class ContractMetricsService {
 
   private async computeContractTopByQuantity(snapshotDate: Date, threshold24h: number): Promise<number> {
     // Check if metric exists
-    const existsTopByQuantity = await this.metricExists(
-      AnalyticsMetricCategory.CONTRACTS,
-      AnalyticsMetricType.TOP_BY_QUANTITY,
+    const existsTopByQuantity = await analyticsMetricExists(this.analyticsMetricRepository, {
+      category: AnalyticsMetricCategory.CONTRACTS,
+      metricType: AnalyticsMetricType.TOP_BY_QUANTITY,
       snapshotDate,
-    );
+    });
 
     if (existsTopByQuantity) {
       return 0;
@@ -236,11 +222,11 @@ export class ContractMetricsService {
 
   private async computeContractTopByOpenInterest(snapshotDate: Date, threshold24h: number): Promise<number> {
     // Check if metric exists
-    const existsTopByOpenInterest = await this.metricExists(
-      AnalyticsMetricCategory.CONTRACTS,
-      AnalyticsMetricType.TOP_BY_OPEN_INTEREST,
+    const existsTopByOpenInterest = await analyticsMetricExists(this.analyticsMetricRepository, {
+      category: AnalyticsMetricCategory.CONTRACTS,
+      metricType: AnalyticsMetricType.TOP_BY_OPEN_INTEREST,
       snapshotDate,
-    );
+    });
 
     if (existsTopByOpenInterest) {
       return 0;
@@ -279,11 +265,11 @@ export class ContractMetricsService {
 
   private async computeContractPriceVolatility(snapshotDate: Date, threshold24h: number): Promise<number> {
     // Check if metric exists
-    const existsPriceVolatility = await this.metricExists(
-      AnalyticsMetricCategory.CONTRACTS,
-      AnalyticsMetricType.PRICE_VOLATILITY,
+    const existsPriceVolatility = await analyticsMetricExists(this.analyticsMetricRepository, {
+      category: AnalyticsMetricCategory.CONTRACTS,
+      metricType: AnalyticsMetricType.PRICE_VOLATILITY,
       snapshotDate,
-    );
+    });
 
     if (existsPriceVolatility) {
       return 0;

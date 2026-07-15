@@ -2,11 +2,13 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, MoreThan } from 'typeorm';
 import { DateTime } from 'luxon';
-import { AnalyticsMetricCategory, AnalyticsMetricType, MARKET_TYPE, WOW_TOKEN_ITEM_ID } from '@app/resources';
-
-const PET_CAGE_ITEM_ID = 82800;
-const EXCLUDED_ITEM_IDS = [WOW_TOKEN_ITEM_ID, PET_CAGE_ITEM_ID];
-import { analyticsMetricExists } from '@app/resources/dao';
+import {
+  AnalyticsMetricCategory,
+  AnalyticsMetricType,
+  analyticsMetricExists,
+  EXCLUDED_ITEM_IDS,
+  MARKET_TYPE,
+} from '@app/resources';
 import {
   MarketTotalMetrics,
   MarketAggregateCount,
@@ -30,20 +32,6 @@ export class MarketMetricsService {
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
   ) {}
-
-  private metricExists(
-    category: AnalyticsMetricCategory,
-    metricType: AnalyticsMetricType,
-    snapshotDate: Date,
-    realmId?: number | null,
-  ): Promise<boolean> {
-    return analyticsMetricExists(this.analyticsMetricRepository, {
-      category,
-      metricType,
-      snapshotDate,
-      realmId: realmId ?? undefined,
-    });
-  }
 
   async computeMarketMetrics(snapshotDate: Date): Promise<number> {
     const logTag = 'computeMarketMetrics';
@@ -85,11 +73,11 @@ export class MarketMetricsService {
         .getRawOne<MarketAggregateCount>();
 
       // Check if total metric exists
-      const isTotalExists = await this.metricExists(
-        AnalyticsMetricCategory.MARKET,
-        AnalyticsMetricType.TOTAL,
+      const isTotalExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+        category: AnalyticsMetricCategory.MARKET,
+        metricType: AnalyticsMetricType.TOTAL,
         snapshotDate,
-      );
+      });
 
       if (!isTotalExists) {
         const marketTotalMetric = this.analyticsMetricRepository.create({
@@ -148,8 +136,8 @@ export class MarketMetricsService {
       .addSelect('COUNT(DISTINCT CASE WHEN m.type = :commdtyType THEN m.item_id END)', 'unique_items_commdty')
       .where('m.timestamp > :threshold', {
         threshold: threshold24h,
-        auctionsType: 'AUCTIONS',
-        commdtyType: 'COMMDTY',
+        auctionsType: MARKET_TYPE.A,
+        commdtyType: MARKET_TYPE.C,
       })
       .groupBy('m.connected_realm_id')
       .getRawMany<MarketByConnectedRealm>();
@@ -157,12 +145,12 @@ export class MarketMetricsService {
     let savedCount = 0;
     for (const realm of byConnectedRealm) {
       // Check if metric exists
-      const isByConnectedRealmExists = await this.metricExists(
-        AnalyticsMetricCategory.MARKET,
-        AnalyticsMetricType.BY_CONNECTED_REALM,
+      const isByConnectedRealmExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+        category: AnalyticsMetricCategory.MARKET,
+        metricType: AnalyticsMetricType.BY_CONNECTED_REALM,
         snapshotDate,
-        realm.connected_realm_id,
-      );
+        realmId: realm.connected_realm_id,
+      });
 
       if (!isByConnectedRealmExists) {
         const marketByConnectedRealmMetric = this.analyticsMetricRepository.create({
@@ -186,11 +174,11 @@ export class MarketMetricsService {
 
   private async computeMarketByFaction(snapshotDate: Date, threshold24h: number): Promise<number> {
     // Check if metric exists
-    const isByFactionExists = await this.metricExists(
-      AnalyticsMetricCategory.MARKET,
-      AnalyticsMetricType.BY_FACTION,
+    const isByFactionExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+      category: AnalyticsMetricCategory.MARKET,
+      metricType: AnalyticsMetricType.BY_FACTION,
       snapshotDate,
-    );
+    });
 
     if (isByFactionExists) {
       return 0;
@@ -230,11 +218,11 @@ export class MarketMetricsService {
 
   private async computeMarketPriceRanges(snapshotDate: Date, threshold24h: number): Promise<number> {
     // Check if metric exists
-    const isPriceRangesExists = await this.metricExists(
-      AnalyticsMetricCategory.MARKET,
-      AnalyticsMetricType.PRICE_RANGES,
+    const isPriceRangesExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+      category: AnalyticsMetricCategory.MARKET,
+      metricType: AnalyticsMetricType.PRICE_RANGES,
       snapshotDate,
-    );
+    });
 
     if (isPriceRangesExists) {
       return 0;
@@ -268,11 +256,11 @@ export class MarketMetricsService {
 
   private async computeMarketTopByVolume(snapshotDate: Date, threshold24h: number): Promise<number> {
     // Check if metric exists
-    const isTopByVolumeExists = await this.metricExists(
-      AnalyticsMetricCategory.MARKET,
-      AnalyticsMetricType.TOP_BY_VOLUME,
+    const isTopByVolumeExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+      category: AnalyticsMetricCategory.MARKET,
+      metricType: AnalyticsMetricType.TOP_BY_VOLUME,
       snapshotDate,
-    );
+    });
 
     if (isTopByVolumeExists) {
       return 0;
@@ -312,11 +300,11 @@ export class MarketMetricsService {
 
   private async computeMarketTopByAuctions(snapshotDate: Date, threshold24h: number): Promise<number> {
     // Check if metric exists
-    const isTopByAuctionsExists = await this.metricExists(
-      AnalyticsMetricCategory.MARKET,
-      AnalyticsMetricType.TOP_BY_AUCTIONS,
+    const isTopByAuctionsExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+      category: AnalyticsMetricCategory.MARKET,
+      metricType: AnalyticsMetricType.TOP_BY_AUCTIONS,
       snapshotDate,
-    );
+    });
 
     if (isTopByAuctionsExists) {
       return 0;

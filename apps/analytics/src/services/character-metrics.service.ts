@@ -32,20 +32,6 @@ export class CharacterMetricsService {
     private readonly charactersRepository: Repository<CharactersEntity>,
   ) {}
 
-  private metricExists(
-    category: AnalyticsMetricCategory,
-    metricType: AnalyticsMetricType,
-    snapshotDate: Date,
-    realmId?: number | null,
-  ): Promise<boolean> {
-    return analyticsMetricExists(this.analyticsMetricRepository, {
-      category,
-      metricType,
-      snapshotDate,
-      realmId: realmId ?? undefined,
-    });
-  }
-
   private getRaceKey(value: string | null | undefined): string | null {
     if (!value || value.toLowerCase() === 'unknown') {
       return 'unknown';
@@ -76,11 +62,11 @@ export class CharacterMetricsService {
       const notInGuildsCount = totalCount - inGuildsCount;
 
       // Check if total metric exists
-      const isTotalExists = await this.metricExists(
-        AnalyticsMetricCategory.CHARACTERS,
-        AnalyticsMetricType.TOTAL,
+      const isTotalExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+        category: AnalyticsMetricCategory.CHARACTERS,
+        metricType: AnalyticsMetricType.TOTAL,
         snapshotDate,
-      );
+      });
 
       if (!isTotalExists) {
         const characterTotalMetric = this.analyticsMetricRepository.create({
@@ -120,12 +106,12 @@ export class CharacterMetricsService {
 
       for (const realmData of byRealm) {
         // Check if realm total metric exists
-        const isRealmTotalExists = await this.metricExists(
-          AnalyticsMetricCategory.CHARACTERS,
-          AnalyticsMetricType.TOTAL,
+        const isRealmTotalExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+          category: AnalyticsMetricCategory.CHARACTERS,
+          metricType: AnalyticsMetricType.TOTAL,
           snapshotDate,
-          realmData.realm_id,
-        );
+          realmId: realmData.realm_id,
+        });
 
         if (!isRealmTotalExists) {
           const characterRealmTotalMetric = this.analyticsMetricRepository.create({
@@ -188,12 +174,12 @@ export class CharacterMetricsService {
 
   private async computeCharacterByFaction(snapshotDate: Date, realmId: number | null): Promise<number> {
     // Check if metric exists
-    const isByFactionExists = await this.metricExists(
-      AnalyticsMetricCategory.CHARACTERS,
-      AnalyticsMetricType.BY_FACTION,
+    const isByFactionExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+      category: AnalyticsMetricCategory.CHARACTERS,
+      metricType: AnalyticsMetricType.BY_FACTION,
       snapshotDate,
-      realmId || undefined,
-    );
+      realmId: realmId || undefined,
+    });
 
     if (isByFactionExists) {
       return 0;
@@ -238,12 +224,12 @@ export class CharacterMetricsService {
 
   private async computeCharacterByClass(snapshotDate: Date, realmId: number | null): Promise<number> {
     // Check if metric exists
-    const isByClassExists = await this.metricExists(
-      AnalyticsMetricCategory.CHARACTERS,
-      AnalyticsMetricType.BY_CLASS,
+    const isByClassExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+      category: AnalyticsMetricCategory.CHARACTERS,
+      metricType: AnalyticsMetricType.BY_CLASS,
       snapshotDate,
-      realmId || undefined,
-    );
+      realmId: realmId || undefined,
+    });
 
     if (isByClassExists) {
       return 0;
@@ -288,12 +274,12 @@ export class CharacterMetricsService {
 
   private async computeCharacterByRace(snapshotDate: Date, realmId: number | null): Promise<number> {
     // Check if metric exists
-    const isByRaceExists = await this.metricExists(
-      AnalyticsMetricCategory.CHARACTERS,
-      AnalyticsMetricType.BY_RACE,
+    const isByRaceExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+      category: AnalyticsMetricCategory.CHARACTERS,
+      metricType: AnalyticsMetricType.BY_RACE,
       snapshotDate,
-      realmId || undefined,
-    );
+      realmId: realmId || undefined,
+    });
 
     if (isByRaceExists) {
       return 0;
@@ -344,12 +330,12 @@ export class CharacterMetricsService {
 
   private async computeCharacterByLevel(snapshotDate: Date, realmId: number | null): Promise<number> {
     // Check if metric exists
-    const isByLevelExists = await this.metricExists(
-      AnalyticsMetricCategory.CHARACTERS,
-      AnalyticsMetricType.BY_LEVEL,
+    const isByLevelExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+      category: AnalyticsMetricCategory.CHARACTERS,
+      metricType: AnalyticsMetricType.BY_LEVEL,
       snapshotDate,
-      realmId || undefined,
-    );
+      realmId: realmId || undefined,
+    });
 
     if (isByLevelExists) {
       return 0;
@@ -405,12 +391,12 @@ export class CharacterMetricsService {
     let savedCount = 0;
     for (const [realmId, factionCounts] of Object.entries(byRealmFactionMap)) {
       // Check if metric exists
-      const isRealmFactionExists = await this.metricExists(
-        AnalyticsMetricCategory.CHARACTERS,
-        AnalyticsMetricType.BY_FACTION,
+      const isRealmFactionExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+        category: AnalyticsMetricCategory.CHARACTERS,
+        metricType: AnalyticsMetricType.BY_FACTION,
         snapshotDate,
-        parseInt(realmId, 10),
-      );
+        realmId: parseInt(realmId, 10),
+      });
 
       if (!isRealmFactionExists) {
         const characterRealmFactionMetric = this.analyticsMetricRepository.create({
@@ -449,12 +435,12 @@ export class CharacterMetricsService {
     let savedCount = 0;
     for (const [realmId, classCounts] of Object.entries(byRealmClassMap)) {
       // Check if metric exists
-      const isRealmClassExists = await this.metricExists(
-        AnalyticsMetricCategory.CHARACTERS,
-        AnalyticsMetricType.BY_CLASS,
+      const isRealmClassExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+        category: AnalyticsMetricCategory.CHARACTERS,
+        metricType: AnalyticsMetricType.BY_CLASS,
         snapshotDate,
-        parseInt(realmId, 10),
-      );
+        realmId: parseInt(realmId, 10),
+      });
 
       if (!isRealmClassExists) {
         const characterRealmClassMetric = this.analyticsMetricRepository.create({
@@ -477,12 +463,12 @@ export class CharacterMetricsService {
     maxLevel: number,
   ): Promise<number> {
     // Check if metric exists
-    const isByClassMaxLevelExists = await this.metricExists(
-      AnalyticsMetricCategory.CHARACTERS,
-      AnalyticsMetricType.BY_CLASS_MAX_LEVEL,
+    const isByClassMaxLevelExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+      category: AnalyticsMetricCategory.CHARACTERS,
+      metricType: AnalyticsMetricType.BY_CLASS_MAX_LEVEL,
       snapshotDate,
-      realmId || undefined,
-    );
+      realmId: realmId || undefined,
+    });
 
     if (isByClassMaxLevelExists) {
       return 0;
@@ -521,12 +507,12 @@ export class CharacterMetricsService {
     maxLevel: number,
   ): Promise<number> {
     // Check if metric exists
-    const isByFactionMaxLevelExists = await this.metricExists(
-      AnalyticsMetricCategory.CHARACTERS,
-      AnalyticsMetricType.BY_FACTION_MAX_LEVEL,
+    const isByFactionMaxLevelExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+      category: AnalyticsMetricCategory.CHARACTERS,
+      metricType: AnalyticsMetricType.BY_FACTION_MAX_LEVEL,
       snapshotDate,
-      realmId || undefined,
-    );
+      realmId: realmId || undefined,
+    });
 
     if (isByFactionMaxLevelExists) {
       return 0;
@@ -565,12 +551,12 @@ export class CharacterMetricsService {
     maxLevel: number,
   ): Promise<number> {
     // Check if metric exists
-    const isByRaceMaxLevelExists = await this.metricExists(
-      AnalyticsMetricCategory.CHARACTERS,
-      AnalyticsMetricType.BY_RACE_MAX_LEVEL,
+    const isByRaceMaxLevelExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+      category: AnalyticsMetricCategory.CHARACTERS,
+      metricType: AnalyticsMetricType.BY_RACE_MAX_LEVEL,
       snapshotDate,
-      realmId || undefined,
-    );
+      realmId: realmId || undefined,
+    });
 
     if (isByRaceMaxLevelExists) {
       return 0;
@@ -615,12 +601,12 @@ export class CharacterMetricsService {
     maxLevel: number,
   ): Promise<number> {
     // Check if metric exists
-    const isByLevelMaxLevelExists = await this.metricExists(
-      AnalyticsMetricCategory.CHARACTERS,
-      AnalyticsMetricType.BY_LEVEL_MAX_LEVEL,
+    const isByLevelMaxLevelExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+      category: AnalyticsMetricCategory.CHARACTERS,
+      metricType: AnalyticsMetricType.BY_LEVEL_MAX_LEVEL,
       snapshotDate,
-      realmId || undefined,
-    );
+      realmId: realmId || undefined,
+    });
 
     if (isByLevelMaxLevelExists) {
       return 0;
@@ -669,12 +655,12 @@ export class CharacterMetricsService {
     let savedCount = 0;
     for (const [realmId, classCounts] of Object.entries(byRealmClassMap)) {
       // Check if metric exists
-      const isRealmClassMaxLevelExists = await this.metricExists(
-        AnalyticsMetricCategory.CHARACTERS,
-        AnalyticsMetricType.BY_CLASS_MAX_LEVEL,
+      const isRealmClassMaxLevelExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+        category: AnalyticsMetricCategory.CHARACTERS,
+        metricType: AnalyticsMetricType.BY_CLASS_MAX_LEVEL,
         snapshotDate,
-        parseInt(realmId, 10),
-      );
+        realmId: parseInt(realmId, 10),
+      });
 
       if (!isRealmClassMaxLevelExists) {
         const characterRealmClassMaxLevelMetric = this.analyticsMetricRepository.create({
@@ -713,12 +699,12 @@ export class CharacterMetricsService {
     let savedCount = 0;
     for (const [realmId, factionCounts] of Object.entries(byRealmFactionMap)) {
       // Check if metric exists
-      const isRealmFactionMaxLevelExists = await this.metricExists(
-        AnalyticsMetricCategory.CHARACTERS,
-        AnalyticsMetricType.BY_FACTION_MAX_LEVEL,
+      const isRealmFactionMaxLevelExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+        category: AnalyticsMetricCategory.CHARACTERS,
+        metricType: AnalyticsMetricType.BY_FACTION_MAX_LEVEL,
         snapshotDate,
-        parseInt(realmId, 10),
-      );
+        realmId: parseInt(realmId, 10),
+      });
 
       if (!isRealmFactionMaxLevelExists) {
         const characterRealmFactionMaxLevelMetric = this.analyticsMetricRepository.create({
@@ -737,11 +723,11 @@ export class CharacterMetricsService {
 
   private async computeCharacterExtremes(snapshotDate: Date, maxLevel: number): Promise<number> {
     // Check if metric exists
-    const isExtremesExists = await this.metricExists(
-      AnalyticsMetricCategory.CHARACTERS,
-      AnalyticsMetricType.EXTREMES,
+    const isExtremesExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+      category: AnalyticsMetricCategory.CHARACTERS,
+      metricType: AnalyticsMetricType.EXTREMES,
       snapshotDate,
-    );
+    });
 
     if (isExtremesExists) {
       return 0;
@@ -831,11 +817,11 @@ export class CharacterMetricsService {
 
   private async computeCharacterAverages(snapshotDate: Date, maxLevel: number): Promise<number> {
     // Check if metric exists
-    const isAveragesExists = await this.metricExists(
-      AnalyticsMetricCategory.CHARACTERS,
-      AnalyticsMetricType.AVERAGES,
+    const isAveragesExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+      category: AnalyticsMetricCategory.CHARACTERS,
+      metricType: AnalyticsMetricType.AVERAGES,
       snapshotDate,
-    );
+    });
 
     if (isAveragesExists) {
       return 0;

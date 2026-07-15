@@ -3,20 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AnalyticsMetricCategory, AnalyticsMetricType } from '@app/resources';
 import { analyticsMetricExists } from '@app/resources/dao';
+import { HallOfFameRaidAggregation, HallOfFameRealmMetricRow } from '@app/resources/types';
 import { AnalyticsEntity, GuildHallOfFameEntity, RealmsEntity } from '@app/pg';
-
-interface HallOfFameRaidAggregation {
-  raid_slug: string;
-  raid_name: string;
-  guild_count: string;
-  realm_count: string;
-}
-
-interface HallOfFameRealmAggregation {
-  realm_slug: string;
-  guild_count: string;
-  raid_count: string;
-}
 
 @Injectable()
 export class HallOfFameMetricsService {
@@ -32,20 +20,6 @@ export class HallOfFameMetricsService {
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
   ) {}
-
-  private metricExists(
-    category: AnalyticsMetricCategory,
-    metricType: AnalyticsMetricType,
-    snapshotDate: Date,
-    realmId?: number | null,
-  ): Promise<boolean> {
-    return analyticsMetricExists(this.analyticsMetricRepository, {
-      category,
-      metricType,
-      snapshotDate,
-      realmId: realmId ?? undefined,
-    });
-  }
 
   async computeHallOfFameMetrics(snapshotDate: Date): Promise<number> {
     const logTag = 'computeHallOfFameMetrics';
@@ -75,7 +49,11 @@ export class HallOfFameMetricsService {
 
   private async computeTotal(snapshotDate: Date): Promise<number> {
     if (
-      await this.metricExists(AnalyticsMetricCategory.HALL_OF_FAME, AnalyticsMetricType.TOTAL, snapshotDate)
+      await analyticsMetricExists(this.analyticsMetricRepository, {
+        category: AnalyticsMetricCategory.HALL_OF_FAME,
+        metricType: AnalyticsMetricType.TOTAL,
+        snapshotDate,
+      })
     ) {
       return 0;
     }
@@ -116,7 +94,11 @@ export class HallOfFameMetricsService {
 
   private async computeByRaid(snapshotDate: Date): Promise<number> {
     if (
-      await this.metricExists(AnalyticsMetricCategory.HALL_OF_FAME, AnalyticsMetricType.BY_RAID, snapshotDate)
+      await analyticsMetricExists(this.analyticsMetricRepository, {
+        category: AnalyticsMetricCategory.HALL_OF_FAME,
+        metricType: AnalyticsMetricType.BY_RAID,
+        snapshotDate,
+      })
     ) {
       return 0;
     }
@@ -162,7 +144,7 @@ export class HallOfFameMetricsService {
       .addSelect('COUNT(DISTINCT h.raid_slug)', 'raid_count')
       .where('r.id IS NOT NULL')
       .groupBy('r.id')
-      .getRawMany<{ realm_id: number; guild_count: string; raid_count: string }>();
+      .getRawMany<HallOfFameRealmMetricRow>();
 
     let savedCount = 0;
     for (const realmData of byRealm) {
@@ -170,12 +152,12 @@ export class HallOfFameMetricsService {
       if (!realmId) continue;
 
       if (
-        await this.metricExists(
-          AnalyticsMetricCategory.HALL_OF_FAME,
-          AnalyticsMetricType.TOTAL,
+        await analyticsMetricExists(this.analyticsMetricRepository, {
+          category: AnalyticsMetricCategory.HALL_OF_FAME,
+          metricType: AnalyticsMetricType.TOTAL,
           snapshotDate,
           realmId,
-        )
+        })
       ) {
         continue;
       }
