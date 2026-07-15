@@ -8,13 +8,16 @@ import { HttpService } from '@nestjs/axios';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import {
   delay,
+  extractRealmSlug,
   FACTION,
   GuildMessageDto,
   guildsQueue,
+  HALL_OF_FAME_GRAPHQL_OPERATION,
   HALL_OF_FAME_RAIDS,
-  ICommunityHallOfFameEntry,
   ICommunityHallOfFameResponse,
   IGuildMessageBase,
+  IHallOfFameEntry,
+  IHallOfFameFetchResult,
   isCommunityHallOfFame,
   isEuRegion,
   notNull,
@@ -22,6 +25,7 @@ import {
   toGuid,
   WOW_COMMUNITY_GRAPHQL_URL,
   WOW_COMMUNITY_HOF_QUERY_HASH,
+  WOW_COMMUNITY_REQUEST_HEADERS,
 } from '@app/resources';
 import { osintConfig } from '@app/configuration';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -201,7 +205,7 @@ export class GuildsService implements OnApplicationBootstrap {
               return null;
             }
 
-            const realmSlug = this.extractRealmSlug(entry.guild.url);
+            const realmSlug = extractRealmSlug(entry.guild.url);
             if (!realmSlug) {
               return null;
             }
@@ -231,16 +235,14 @@ export class GuildsService implements OnApplicationBootstrap {
     }
   }
 
-  private async fetchHallOfFame(
-    raidSlug: string,
-  ): Promise<{ raidName: string; entries: Array<ICommunityHallOfFameEntry & { faction: string }> }> {
+  private async fetchHallOfFame(raidSlug: string): Promise<IHallOfFameFetchResult> {
     const logTag = this.fetchHallOfFame.name;
 
     try {
       const { data } = await this.httpService.axiosRef.post<ICommunityHallOfFameResponse>(
         WOW_COMMUNITY_GRAPHQL_URL,
         {
-          operationName: 'GetMythicRaidLeaderboard',
+          operationName: HALL_OF_FAME_GRAPHQL_OPERATION,
           variables: { leaderboard: { zoneSlug: raidSlug } },
           extensions: {
             persistedQuery: {
@@ -250,10 +252,7 @@ export class GuildsService implements OnApplicationBootstrap {
           },
         },
         {
-          headers: {
-            'Content-Type': 'application/json',
-            'accept-language': 'en-US',
-          },
+          headers: WOW_COMMUNITY_REQUEST_HEADERS,
         },
       );
 
@@ -281,15 +280,10 @@ export class GuildsService implements OnApplicationBootstrap {
     }
   }
 
-  private extractRealmSlug(guildUrl: string): string | null {
-    const match = guildUrl.match(/\/guild\/[^/]+\/([^/]+)\//);
-    return match ? match[1] : null;
-  }
-
   private async saveHallOfFameEntries(
     raidSlug: string,
     raidName: string,
-    entries: Array<ICommunityHallOfFameEntry & { faction: string }>,
+    entries: IHallOfFameEntry[],
   ): Promise<number> {
     const logTag = this.saveHallOfFameEntries.name;
 
@@ -299,7 +293,7 @@ export class GuildsService implements OnApplicationBootstrap {
 
     const rows = euEntries
       .map((entry) => {
-        const realmSlug = this.extractRealmSlug(entry.guild.url);
+        const realmSlug = extractRealmSlug(entry.guild.url);
         if (!realmSlug) return null;
 
         return {
