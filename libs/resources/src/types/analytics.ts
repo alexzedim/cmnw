@@ -147,12 +147,6 @@ export interface MarketByConnectedRealm {
   unique_items_commdty: string;
 }
 
-export interface MarketByFaction {
-  faction: string;
-  auctions: string;
-  volume: string;
-}
-
 export interface MarketPriceRanges {
   under1k: string;
   range1k10k: string;

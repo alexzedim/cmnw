@@ -13,7 +13,6 @@ import {
   MarketTotalMetrics,
   MarketAggregateCount,
   MarketByConnectedRealm,
-  MarketByFaction,
   MarketPriceRanges,
   MarketTopByVolume,
   MarketTopByAuctions,
@@ -98,9 +97,6 @@ export class MarketMetricsService {
       // By Connected Realm
       savedCount += await this.computeMarketByConnectedRealm(snapshotDate, threshold24h);
 
-      // By Faction (global)
-      savedCount += await this.computeMarketByFaction(snapshotDate, threshold24h);
-
       // Price ranges
       savedCount += await this.computeMarketPriceRanges(snapshotDate, threshold24h);
 
@@ -170,50 +166,6 @@ export class MarketMetricsService {
       }
     }
     return savedCount;
-  }
-
-  private async computeMarketByFaction(snapshotDate: Date, threshold24h: number): Promise<number> {
-    // Check if metric exists
-    const isByFactionExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-      category: AnalyticsMetricCategory.MARKET,
-      metricType: AnalyticsMetricType.BY_FACTION,
-      snapshotDate,
-    });
-
-    if (isByFactionExists) {
-      return 0;
-    }
-
-    const byFaction = await this.marketRepository
-      .createQueryBuilder('m')
-      .select('m.faction', 'faction')
-      .addSelect('COUNT(*)', 'auctions')
-      .addSelect('SUM(m.value)', 'volume')
-      .where('m.timestamp > :threshold AND m.faction IS NOT NULL', {
-        threshold: threshold24h,
-      })
-      .groupBy('m.faction')
-      .getRawMany<MarketByFaction>();
-
-    const factionMap = byFaction.reduce(
-      (acc, row) => {
-        acc[row.faction] = {
-          auctions: parseInt(row.auctions, 10),
-          volume: parseFloat(row.volume || '0'),
-        };
-        return acc;
-      },
-      {} as Record<string, { auctions: number; volume: number }>,
-    );
-
-    const marketByFactionMetric = this.analyticsMetricRepository.create({
-      category: AnalyticsMetricCategory.MARKET,
-      metricType: AnalyticsMetricType.BY_FACTION,
-      value: factionMap,
-      snapshotDate,
-    });
-    await this.analyticsMetricRepository.save(marketByFactionMetric);
-    return 1;
   }
 
   private async computeMarketPriceRanges(snapshotDate: Date, threshold24h: number): Promise<number> {
