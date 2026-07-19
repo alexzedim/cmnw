@@ -168,8 +168,8 @@ export class ContractsService implements OnApplicationBootstrap {
   // timestamp via the `ON CONFLICT (id) DO UPDATE` in getItemContractIntradayData
   // (the contract id has no realm dimension), losing every realm but the last.
   @Cron('00 10,18 * * *')
-  private async _buildGoldIntradayContracts() {
-    const logTag = this._buildGoldIntradayContracts.name;
+  private async buildGoldIntradayContracts() {
+    const logTag = this.buildGoldIntradayContracts.name;
     try {
       this.logger.log(`${logTag} started`);
 
