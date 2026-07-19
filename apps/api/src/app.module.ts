@@ -12,6 +12,10 @@ import { BullModule } from '@nestjs/bullmq';
 import { BullBoardModule } from '@bull-board/nestjs';
 import { ExpressAdapter } from '@bull-board/express';
 
+// HoF + analytics snapshots computed on API bootstrap so the snapshot
+// endpoint serves fresh data without requiring a separate analytics process.
+import { AnalyticsModule } from '../../analytics/src/analytics.module';
+
 @Module({
   imports: [
     HttpModule,
@@ -34,6 +38,7 @@ import { ExpressAdapter } from '@bull-board/express';
     QueueModule,
     AppInfoModule,
     FeedModule,
+    AnalyticsModule,
   ],
   controllers: [],
   providers: [],
