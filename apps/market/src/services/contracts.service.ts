@@ -207,11 +207,7 @@ export class ContractsService implements OnApplicationBootstrap {
     }
   }
 
-  private async getItemContractIntradayData(
-    itemId: number,
-    timestamp: number,
-    today: DateTime,
-  ) {
+  private async getItemContractIntradayData(itemId: number, timestamp: number, today: DateTime) {
     const logTag = this.getItemContractIntradayData.name;
     const isGold = itemId === GOLD_ITEM_ENTITY.id;
     const contractId = `${itemId}-${today.day}.${today.month}@${timestamp}`;
@@ -259,22 +255,8 @@ export class ContractsService implements OnApplicationBootstrap {
       }
 
       const [percentile50, percentile98] = await Promise.all([
-        await getPercentileTypeByItemAndTimestamp(
-          this.marketRepository,
-          'DISC',
-          0.5,
-          itemId,
-          timestamp,
-          isGold,
-        ),
-        await getPercentileTypeByItemAndTimestamp(
-          this.marketRepository,
-          'DISC',
-          0.98,
-          itemId,
-          timestamp,
-          isGold,
-        ),
+        await getPercentileTypeByItemAndTimestamp(this.marketRepository, 'DISC', 0.5, itemId, timestamp, isGold),
+        await getPercentileTypeByItemAndTimestamp(this.marketRepository, 'DISC', 0.98, itemId, timestamp, isGold),
       ]);
 
       const itemOpenInterestWhere = isGold

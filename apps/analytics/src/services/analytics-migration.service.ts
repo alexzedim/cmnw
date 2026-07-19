@@ -109,10 +109,7 @@ export class AnalyticsMigrationService {
     const byMetricType: Record<string, number> = {};
     let migratedRows = 0;
 
-    const contractTopTypes = [
-      AnalyticsMetricType.TOP_BY_QUANTITY,
-      AnalyticsMetricType.TOP_BY_OPEN_INTEREST,
-    ];
+    const contractTopTypes = [AnalyticsMetricType.TOP_BY_QUANTITY, AnalyticsMetricType.TOP_BY_OPEN_INTEREST];
 
     const rows = await this.analyticsRepository.find({
       where: { metricType: In(contractTopTypes) },
@@ -164,8 +161,7 @@ export class AnalyticsMigrationService {
 
     // Standardized keyed form: each entry is a record.
     return Object.values(value as Record<string, unknown>).filter(
-      (entry): entry is Record<string, unknown> =>
-        Boolean(entry) && typeof entry === 'object' && !Array.isArray(entry),
+      (entry): entry is Record<string, unknown> => Boolean(entry) && typeof entry === 'object' && !Array.isArray(entry),
     );
   }
 

@@ -15,7 +15,9 @@ export class BlockOsintService {
     private readonly hashBlockLogsRepository: Repository<HashBlockLogsEntity>,
   ) {}
 
-  async getBlockWithMembers(hashValue: string): Promise<{ block: HashBlocksEntity; members: HashBlockMembersEntity[] } | null> {
+  async getBlockWithMembers(
+    hashValue: string,
+  ): Promise<{ block: HashBlocksEntity; members: HashBlockMembersEntity[] } | null> {
     const block = await this.hashBlocksRepository.findOneBy({ hashValue });
     if (!block) return null;
 

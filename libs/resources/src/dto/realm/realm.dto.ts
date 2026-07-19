@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   SWAGGER_REALM_CONNECTED_REALM_ID,
   SWAGGER_REALM_ID,

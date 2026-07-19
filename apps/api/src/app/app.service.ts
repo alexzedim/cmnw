@@ -94,8 +94,8 @@ export class AppService {
       const query = this.charactersRaidLogsRepository
         .createQueryBuilder('logs')
         .select('COUNT(*)', 'total')
-        .addSelect("COUNT(*) FILTER (WHERE logs.is_indexed = true)", 'indexed')
-        .addSelect("COUNT(*) FILTER (WHERE logs.is_indexed = false)", 'notIndexed');
+        .addSelect('COUNT(*) FILTER (WHERE logs.is_indexed = true)', 'indexed')
+        .addSelect('COUNT(*) FILTER (WHERE logs.is_indexed = false)', 'notIndexed');
 
       if (realmSlug) {
         query.andWhere('logs.realm_slug = :realmSlug', { realmSlug });

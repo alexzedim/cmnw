@@ -39,15 +39,11 @@ export class WarcraftLogsMigrationService implements OnApplicationBootstrap {
       return { rowsUpdated: 0, realmsProcessed: 0 };
     }
 
-    this.logger.log(
-      chalk.cyan(`🔄 Backfilling realm_slug for ${chalk.bold(pendingCount)} raid logs`),
-    );
+    this.logger.log(chalk.cyan(`🔄 Backfilling realm_slug for ${chalk.bold(pendingCount)} raid logs`));
 
     const isJobLocked = Boolean(await this.redisService.exists(KEY_LOCK.WARCRAFT_LOGS));
     if (isJobLocked) {
-      this.logger.warn(
-        chalk.yellow('⚠ Skipping backfill - WCL indexing already running, will retry on next boot'),
-      );
+      this.logger.warn(chalk.yellow('⚠ Skipping backfill - WCL indexing already running, will retry on next boot'));
       return { rowsUpdated: 0, realmsProcessed: 0 };
     }
 
@@ -72,9 +68,7 @@ export class WarcraftLogsMigrationService implements OnApplicationBootstrap {
         rowsUpdated += updated;
 
         this.logger.log(
-          chalk.dim(
-            `Progress | ${i + 1}/${realms.length} realms | ${chalk.bold(rowsUpdated)} rows updated`,
-          ),
+          chalk.dim(`Progress | ${i + 1}/${realms.length} realms | ${chalk.bold(rowsUpdated)} rows updated`),
         );
       }
 
@@ -97,8 +91,7 @@ export class WarcraftLogsMigrationService implements OnApplicationBootstrap {
     let realmRowsUpdated = 0;
 
     for (let page = 1; ; page++) {
-      const wclLogsFromPage =
-        (await this.warcraftLogsService.getLogsFromPage(realmEntity.warcraftLogsId, page)) ?? [];
+      const wclLogsFromPage = (await this.warcraftLogsService.getLogsFromPage(realmEntity.warcraftLogsId, page)) ?? [];
 
       if (!wclLogsFromPage.length) break;
 
@@ -111,10 +104,7 @@ export class WarcraftLogsMigrationService implements OnApplicationBootstrap {
       const toUpdate = existingLogs.filter((log) => !log.realmSlug).map((log) => log.logId);
 
       if (toUpdate.length > 0) {
-        await this.charactersRaidLogsRepository.update(
-          { logId: In(toUpdate) },
-          { realmSlug: realmEntity.slug },
-        );
+        await this.charactersRaidLogsRepository.update({ logId: In(toUpdate) }, { realmSlug: realmEntity.slug });
         realmRowsUpdated += toUpdate.length;
       }
 

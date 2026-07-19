@@ -143,7 +143,9 @@ export class OsintController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
   @Get('/block/:hashValue')
-  async getBlock(@Param() input: BlockIdDto): Promise<{ block: HashBlocksEntity; members: HashBlockMembersEntity[] } | null> {
+  async getBlock(
+    @Param() input: BlockIdDto,
+  ): Promise<{ block: HashBlocksEntity; members: HashBlockMembersEntity[] } | null> {
     return this.blockOsintService.getBlockWithMembers(input.hashValue);
   }
 
@@ -155,9 +157,7 @@ export class OsintController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
   @Get('/block/:hashValue/logs')
-  async getBlockLogs(
-    @Param() input: BlockIdDto,
-  ): Promise<{ logs: HashBlockLogsEntity[] } | null> {
+  async getBlockLogs(@Param() input: BlockIdDto): Promise<{ logs: HashBlockLogsEntity[] } | null> {
     return this.blockOsintService.getBlockLogs(input.hashValue);
   }
 
@@ -197,9 +197,7 @@ export class OsintController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
   @Get('/guild')
-  async getGuild(
-    @Query() input: GuildIdDto,
-  ): Promise<{
+  async getGuild(@Query() input: GuildIdDto): Promise<{
     guild: GuildsEntity;
     hallOfFame: Record<string, unknown> | null;
     members: unknown[];
