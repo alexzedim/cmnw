@@ -11,7 +11,7 @@ export enum CMNW_ENTITY_ENUM {
   CONTRACTS = 'contracts',
   EVALUATIONS = 'evaluations',
   GUILDS = 'guilds',
-  GUILD_HALL_OF_FAME = 'guild_hall_of_fame',
+  GUILD_HALL_OF_FAME = 'guilds_hall_of_fame',
   HASH_BLOCKS = 'hash_blocks',
   HASH_BLOCK_LOGS = 'hash_block_logs',
   HASH_BLOCK_MEMBERS = 'hash_block_members',
