@@ -1,10 +1,19 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+import { isEqual } from 'lodash';
 import { AnalyticsMetricCategory, AnalyticsMetricType } from '@app/resources';
-import { analyticsMetricExists } from '@app/resources/dao';
+import { analyticsMetricLatest } from '@app/resources/dao';
 import { HallOfFameRaidAggregation, HallOfFameRealmMetricRow } from '@app/resources/types';
 import { AnalyticsEntity, GuildHallOfFameEntity, RealmsEntity } from '@app/pg';
+
+/**
+ * Deep-equality check for analytics values, order-independent. Required because
+ * Postgres JSONB may persist keys in a different order than the JS literal we
+ * build when computing the value, so JSON.stringify-based comparison would
+ * false-negative on semantically-equal payloads.
+ */
+const isUnchanged = (a: unknown, b: unknown): boolean => isEqual(a, b);
 
 @Injectable()
 export class HallOfFameMetricsService {
@@ -48,16 +57,6 @@ export class HallOfFameMetricsService {
   }
 
   private async computeTotal(snapshotDate: Date): Promise<number> {
-    if (
-      await analyticsMetricExists(this.analyticsMetricRepository, {
-        category: AnalyticsMetricCategory.HALL_OF_FAME,
-        metricType: AnalyticsMetricType.TOTAL,
-        snapshotDate,
-      })
-    ) {
-      return 0;
-    }
-
     const totalAchievements = await this.guildHallOfFameRepository.count();
     const totalGuilds = await this.guildHallOfFameRepository
       .createQueryBuilder('h')
@@ -76,16 +75,26 @@ export class HallOfFameMetricsService {
     const realmsCount = parseInt(realmsWithHof?.count || '0', 10);
     const coveragePercent = totalEuRealms > 0 ? (realmsCount / totalEuRealms) * 100 : 0;
 
+    const value = {
+      totalGuilds: parseInt(totalGuilds?.count || '0', 10),
+      totalAchievements,
+      realmsWithHof: realmsCount,
+      totalEuRealms,
+      coveragePercent: Math.round(coveragePercent * 10) / 10,
+    };
+
+    const latest = await analyticsMetricLatest(this.analyticsMetricRepository, {
+      category: AnalyticsMetricCategory.HALL_OF_FAME,
+      metricType: AnalyticsMetricType.TOTAL,
+    });
+    if (latest && isUnchanged(latest.value, value)) {
+      return 0;
+    }
+
     const metric = this.analyticsMetricRepository.create({
       category: AnalyticsMetricCategory.HALL_OF_FAME,
       metricType: AnalyticsMetricType.TOTAL,
-      value: {
-        totalGuilds: parseInt(totalGuilds?.count || '0', 10),
-        totalAchievements,
-        realmsWithHof: realmsCount,
-        totalEuRealms,
-        coveragePercent: Math.round(coveragePercent * 10) / 10,
-      },
+      value,
       snapshotDate,
     });
     await this.analyticsMetricRepository.save(metric);
@@ -93,16 +102,6 @@ export class HallOfFameMetricsService {
   }
 
   private async computeByRaid(snapshotDate: Date): Promise<number> {
-    if (
-      await analyticsMetricExists(this.analyticsMetricRepository, {
-        category: AnalyticsMetricCategory.HALL_OF_FAME,
-        metricType: AnalyticsMetricType.BY_RAID,
-        snapshotDate,
-      })
-    ) {
-      return 0;
-    }
-
     const byRaid = await this.guildHallOfFameRepository
       .createQueryBuilder('h')
       .select('h.raid_slug', 'raid_slug')
@@ -124,6 +123,14 @@ export class HallOfFameMetricsService {
       },
       {} as Record<string, { raidName: string; guildCount: number; realmCount: number }>,
     );
+
+    const latest = await analyticsMetricLatest(this.analyticsMetricRepository, {
+      category: AnalyticsMetricCategory.HALL_OF_FAME,
+      metricType: AnalyticsMetricType.BY_RAID,
+    });
+    if (latest && isUnchanged(latest.value, value)) {
+      return 0;
+    }
 
     const metric = this.analyticsMetricRepository.create({
       category: AnalyticsMetricCategory.HALL_OF_FAME,
@@ -151,14 +158,17 @@ export class HallOfFameMetricsService {
       const realmId = realmData.realm_id;
       if (!realmId) continue;
 
-      if (
-        await analyticsMetricExists(this.analyticsMetricRepository, {
-          category: AnalyticsMetricCategory.HALL_OF_FAME,
-          metricType: AnalyticsMetricType.TOTAL,
-          snapshotDate,
-          realmId,
-        })
-      ) {
+      const value = {
+        guildCount: parseInt(realmData.guild_count, 10),
+        raidCount: parseInt(realmData.raid_count, 10),
+      };
+
+      const latest = await analyticsMetricLatest(this.analyticsMetricRepository, {
+        category: AnalyticsMetricCategory.HALL_OF_FAME,
+        metricType: AnalyticsMetricType.TOTAL,
+        realmId,
+      });
+      if (latest && isUnchanged(latest.value, value)) {
         continue;
       }
 
@@ -166,10 +176,7 @@ export class HallOfFameMetricsService {
         category: AnalyticsMetricCategory.HALL_OF_FAME,
         metricType: AnalyticsMetricType.TOTAL,
         realmId,
-        value: {
-          guildCount: parseInt(realmData.guild_count, 10),
-          raidCount: parseInt(realmData.raid_count, 10),
-        },
+        value,
         snapshotDate,
       });
       await this.analyticsMetricRepository.save(metric);
