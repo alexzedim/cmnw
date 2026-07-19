@@ -54,14 +54,17 @@ export class AnalyticsService implements OnApplicationBootstrap {
         todaySnapshotExists: !!todaySnapshot,
       });
 
-      // If table is empty (first launch) or no snapshot for today, run immediately
+      // If table is empty (first launch) or no snapshot for today, run immediately.
+      // Fire-and-forget so we don't block HTTP serving in co-hosted apps
+      // (e.g. the API process). The computation is idempotent and wrapped in
+      // its own try/catch, so any failure only logs — it cannot crash boot.
       if (tableRowCount === 0 || !todaySnapshot) {
         this.logger.log({
           logTag,
-          message: 'No snapshot for today detected, running computation immediately',
+          message: 'No snapshot for today detected, running computation in background',
           tableRowCount,
         });
-        await this.computeDailySnapshot();
+        void this.computeDailySnapshot();
       }
     } catch (errorOrException) {
       this.logger.error({
