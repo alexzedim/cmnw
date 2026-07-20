@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
-import { REDIS_CONNECTION, postgresConfig, s3Config } from '@app/configuration';
+import { REDIS_CONNECTION, postgresConfig, redisConfig, s3Config } from '@app/configuration';
 import { OsintController } from './osint.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { RedisModule } from '@nestjs-modules/ioredis';
 import {
   AnalyticsEntity,
   CharactersEntity,
@@ -64,6 +65,14 @@ import { RealmsCacheService } from '@app/resources/services/realms-cache.service
     BullModule.registerQueue({
       name: guildsQueue.name,
       defaultJobOptions: guildsQueue.defaultJobOptions,
+    }),
+    RedisModule.forRoot({
+      type: 'single',
+      options: {
+        host: redisConfig.host,
+        port: redisConfig.port,
+        password: redisConfig.password,
+      },
     }),
   ],
   controllers: [OsintController],

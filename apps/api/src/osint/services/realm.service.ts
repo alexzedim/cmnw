@@ -1,10 +1,12 @@
 import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 
+import { InjectRedis } from '@nestjs-modules/ioredis';
 import { InjectRepository } from '@nestjs/typeorm';
 import { RealmsEntity } from '@app/pg';
 import { Repository } from 'typeorm';
+import Redis from 'ioredis';
 
-import { RealmDto } from '@app/resources';
+import { RealmDto, readThroughCache, realmsCacheKey, secondsUntilNextSnapshot } from '@app/resources';
 
 @Injectable()
 export class RealmOsintService {
@@ -13,6 +15,8 @@ export class RealmOsintService {
   });
 
   constructor(
+    @InjectRedis()
+    private readonly redis: Redis,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
   ) {}
@@ -55,7 +59,13 @@ export class RealmOsintService {
         message: 'Fetching realms with filters',
       });
 
-      const realms = await this.realmsRepository.findBy(input);
+      const realms = await readThroughCache(
+        this.redis,
+        realmsCacheKey(input),
+        { ttlSeconds: secondsUntilNextSnapshot() },
+        () => this.realmsRepository.findBy(input),
+        (message) => this.logger.warn({ logTag, filters: input, message }),
+      );
 
       this.logger.log({
         logTag,
