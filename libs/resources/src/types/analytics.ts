@@ -32,6 +32,11 @@ export interface CharacterRealmAggregation {
   in_guilds: string;
 }
 
+export interface CharacterRealmUniquePlayersAggregation {
+  realm_id: number;
+  unique_players: string;
+}
+
 export interface CharacterRealmFactionAggregation {
   realm_id: number;
   faction: string;

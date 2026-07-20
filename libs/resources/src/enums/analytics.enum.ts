@@ -18,6 +18,7 @@ export enum AnalyticsMetricType {
   BY_LEVEL_MAX_LEVEL = 'byLevelMaxLevel',
   EXTREMES = 'extremes',
   AVERAGES = 'averages',
+  UNIQUE_PLAYERS = 'uniquePlayers',
   BY_CONNECTED_REALM = 'byConnectedRealm',
   SIZE_DISTRIBUTION = 'sizeDistribution',
   TOP_BY_MEMBERS = 'topByMembers',

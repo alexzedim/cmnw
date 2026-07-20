@@ -9,6 +9,7 @@ import {
   CharacterRaceAggregation,
   CharacterLevelAggregation,
   CharacterRealmAggregation,
+  CharacterRealmUniquePlayersAggregation,
   CharacterRealmFactionAggregation,
   CharacterRealmClassAggregation,
   CharacterExtreme,
@@ -129,6 +130,9 @@ export class CharacterMetricsService {
           savedCount++;
         }
       }
+
+      // Unique players (distinct hash_a) — global + per-realm
+      savedCount += await this.computeCharacterUniquePlayers(snapshotDate);
 
       // By Realm + Faction
       savedCount += await this.computeCharacterByRealmFaction(snapshotDate);
@@ -367,6 +371,66 @@ export class CharacterMetricsService {
     });
     await this.analyticsMetricRepository.save(characterByLevelMetric);
     return 1;
+  }
+
+  private async computeCharacterUniquePlayers(snapshotDate: Date): Promise<number> {
+    let savedCount = 0;
+
+    // Global distinct count
+    const isGlobalExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+      category: AnalyticsMetricCategory.CHARACTERS,
+      metricType: AnalyticsMetricType.UNIQUE_PLAYERS,
+      snapshotDate,
+    });
+
+    if (!isGlobalExists) {
+      const global = await this.charactersRepository
+        .createQueryBuilder('c')
+        .select('COUNT(DISTINCT c.hash_a)', 'unique_players')
+        .where('c.hash_a IS NOT NULL')
+        .getRawOne<{ unique_players: string }>();
+
+      const globalMetric = this.analyticsMetricRepository.create({
+        category: AnalyticsMetricCategory.CHARACTERS,
+        metricType: AnalyticsMetricType.UNIQUE_PLAYERS,
+        value: { count: parseInt(global?.unique_players || '0', 10) },
+        snapshotDate,
+      });
+      await this.analyticsMetricRepository.save(globalMetric);
+      savedCount++;
+    }
+
+    // Per-realm distinct counts (single grouped query)
+    const byRealm = await this.charactersRepository
+      .createQueryBuilder('c')
+      .select('c.realm_id')
+      .addSelect('COUNT(DISTINCT c.hash_a)', 'unique_players')
+      .where('c.hash_a IS NOT NULL')
+      .groupBy('c.realm_id')
+      .getRawMany<CharacterRealmUniquePlayersAggregation>();
+
+    for (const realmData of byRealm) {
+      const isRealmExists = await analyticsMetricExists(this.analyticsMetricRepository, {
+        category: AnalyticsMetricCategory.CHARACTERS,
+        metricType: AnalyticsMetricType.UNIQUE_PLAYERS,
+        snapshotDate,
+        realmId: realmData.realm_id,
+      });
+
+      if (!isRealmExists) {
+        const realmMetric = this.analyticsMetricRepository.create({
+          category: AnalyticsMetricCategory.CHARACTERS,
+          metricType: AnalyticsMetricType.UNIQUE_PLAYERS,
+          realmId: realmData.realm_id,
+          value: { count: parseInt(realmData.unique_players, 10) },
+          snapshotDate,
+        });
+        await this.analyticsMetricRepository.save(realmMetric);
+        savedCount++;
+      }
+    }
+
+    return savedCount;
   }
 
   private async computeCharacterByRealmFaction(snapshotDate: Date): Promise<number> {
