@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
-import { Repository, MoreThan } from 'typeorm';
+import { Repository, MoreThanOrEqual } from 'typeorm';
 import { DateTime } from 'luxon';
 import {
   CharacterMetricsService,
@@ -37,10 +37,11 @@ export class AnalyticsService implements OnApplicationBootstrap {
 
       const today = DateTime.now().startOf('day').toJSDate();
 
-      // Check if today's snapshot already exists
+      // Check if today's snapshot already exists. Snapshots are stored with
+      // snapshotDate = start-of-day, so use MoreThanOrEqual to match exactly.
       const todaySnapshot = await this.analyticsMetricRepository.findOne({
         where: {
-          snapshotDate: MoreThan(today),
+          snapshotDate: MoreThanOrEqual(today),
         },
       });
 
@@ -78,8 +79,25 @@ export class AnalyticsService implements OnApplicationBootstrap {
   @Cron('0 2 * * *')
   private async snapshotDaily(): Promise<void> {
     const logTag = 'snapshotDaily';
-    const startTime = Date.now();
     const snapshotDate = DateTime.now().startOf('day').toJSDate();
+
+    // Skip if any metric for today already exists — prevents re-running
+    // every aggregation query when the bootstrap path already created the
+    // snapshot (e.g. app restarted shortly before the cron tick).
+    const todaySnapshot = await this.analyticsMetricRepository.findOne({
+      where: { snapshotDate: MoreThanOrEqual(snapshotDate) },
+    });
+
+    if (todaySnapshot) {
+      this.logger.log({
+        logTag,
+        message: 'Snapshot for today already exists, skipping',
+        snapshotDate: snapshotDate.toISOString(),
+      });
+      return;
+    }
+
+    const startTime = Date.now();
 
     try {
       this.logger.log({
