@@ -67,9 +67,9 @@ export const postgresConfig: TypeOrmModuleOptions = {
     SpellReagentsEntity,
   ],
   synchronize: true,
-  poolSize: 10,
+  poolSize: 20,
   extra: {
-    max: 10,
+    max: 20,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000,
   },
