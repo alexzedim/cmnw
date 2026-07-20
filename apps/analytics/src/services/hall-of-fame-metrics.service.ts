@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { AnalyticsMetricCategory, AnalyticsMetricType, isUnchanged } from '@app/resources';
 import { analyticsMetricLatest } from '@app/resources/dao';
 import { HallOfFameRaidAggregation, HallOfFameRealmMetricRow } from '@app/resources/types';
@@ -13,6 +13,8 @@ export class HallOfFameMetricsService {
   });
 
   constructor(
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
     @InjectRepository(AnalyticsEntity)
     private readonly analyticsMetricRepository: Repository<AnalyticsEntity>,
     @InjectRepository(GuildHallOfFameEntity)
@@ -23,16 +25,25 @@ export class HallOfFameMetricsService {
 
   async snapshotHallOfFameMetrics(snapshotDate: Date): Promise<number> {
     const logTag = 'snapshotHallOfFameMetrics';
-    let savedCount = 0;
     const startTime = Date.now();
 
     try {
-      savedCount += await this.snapshotTotal(snapshotDate);
-      savedCount += await this.snapshotByRaid(snapshotDate);
-      savedCount += await this.snapshotPerRealm(snapshotDate);
+      const savedCount = await this.dataSource.transaction(async (manager) => {
+        const rows: AnalyticsEntity[] = [];
+
+        await this.collectHallOfFameTotal(manager, rows, snapshotDate);
+        await this.collectHallOfFameByRaid(manager, rows, snapshotDate);
+        await this.collectHallOfFamePerRealm(manager, rows, snapshotDate);
+
+        if (rows.length > 0) {
+          await manager.save(AnalyticsEntity, rows);
+        }
+        return rows.length;
+      });
 
       const duration = Date.now() - startTime;
       this.logger.log(`Hall of Fame metrics snapshotted - metricsCount: ${savedCount}, durationMs: ${duration}`);
+      return savedCount;
     } catch (errorOrException) {
       const duration = Date.now() - startTime;
       this.logger.error({
@@ -43,29 +54,26 @@ export class HallOfFameMetricsService {
       });
       throw errorOrException;
     }
-
-    return savedCount;
   }
 
-  private async getHallOfFameDistinctGuildCount(): Promise<{ count: string } | null> {
-    return this.guildHallOfFameRepository
+  private async collectHallOfFameTotal(
+    manager: EntityManager,
+    rows: AnalyticsEntity[],
+    snapshotDate: Date,
+  ): Promise<void> {
+    const hofRepo = manager.getRepository(GuildHallOfFameEntity);
+    const realmsRepo = manager.getRepository(RealmsEntity);
+
+    const totalAchievements = await hofRepo.count();
+    const totalGuilds = await hofRepo
       .createQueryBuilder('h')
       .select('COUNT(DISTINCT h.guild_guid)', 'count')
       .getRawOne<{ count: string }>();
-  }
-
-  private async getHallOfFameDistinctRealmCount(): Promise<{ count: string } | null> {
-    return this.guildHallOfFameRepository
+    const realmsWithHof = await hofRepo
       .createQueryBuilder('h')
       .select('COUNT(DISTINCT h.realm_slug)', 'count')
       .getRawOne<{ count: string }>();
-  }
-
-  private async snapshotTotal(snapshotDate: Date): Promise<number> {
-    const totalAchievements = await this.guildHallOfFameRepository.count();
-    const totalGuilds = await this.getHallOfFameDistinctGuildCount();
-    const realmsWithHof = await this.getHallOfFameDistinctRealmCount();
-    const totalEuRealms = await this.realmsRepository.count({
+    const totalEuRealms = await realmsRepo.count({
       where: { region: 'Europe' },
     });
 
@@ -80,26 +88,29 @@ export class HallOfFameMetricsService {
       coveragePercent: Math.round(coveragePercent * 10) / 10,
     };
 
-    const latest = await analyticsMetricLatest(this.analyticsMetricRepository, {
+    const latest = await analyticsMetricLatest(manager, {
       category: AnalyticsMetricCategory.HALL_OF_FAME,
       metricType: AnalyticsMetricType.TOTAL,
     });
-    if (latest && isUnchanged(latest.value, value)) {
-      return 0;
-    }
+    if (latest && isUnchanged(latest.value, value)) return;
 
-    const metric = this.analyticsMetricRepository.create({
-      category: AnalyticsMetricCategory.HALL_OF_FAME,
-      metricType: AnalyticsMetricType.TOTAL,
-      value,
-      snapshotDate,
-    });
-    await this.analyticsMetricRepository.save(metric);
-    return 1;
+    rows.push(
+      manager.create(AnalyticsEntity, {
+        category: AnalyticsMetricCategory.HALL_OF_FAME,
+        metricType: AnalyticsMetricType.TOTAL,
+        value,
+        snapshotDate,
+      }),
+    );
   }
 
-  private async snapshotByRaid(snapshotDate: Date): Promise<number> {
-    const byRaid = await this.guildHallOfFameRepository
+  private async collectHallOfFameByRaid(
+    manager: EntityManager,
+    rows: AnalyticsEntity[],
+    snapshotDate: Date,
+  ): Promise<void> {
+    const byRaid = await manager
+      .getRepository(GuildHallOfFameEntity)
       .createQueryBuilder('h')
       .select('h.raid_slug', 'raid_slug')
       .addSelect('MAX(h.raid_name)', 'raid_name')
@@ -121,26 +132,29 @@ export class HallOfFameMetricsService {
       {} as Record<string, { raidName: string; guildCount: number; realmCount: number }>,
     );
 
-    const latest = await analyticsMetricLatest(this.analyticsMetricRepository, {
+    const latest = await analyticsMetricLatest(manager, {
       category: AnalyticsMetricCategory.HALL_OF_FAME,
       metricType: AnalyticsMetricType.BY_RAID,
     });
-    if (latest && isUnchanged(latest.value, value)) {
-      return 0;
-    }
+    if (latest && isUnchanged(latest.value, value)) return;
 
-    const metric = this.analyticsMetricRepository.create({
-      category: AnalyticsMetricCategory.HALL_OF_FAME,
-      metricType: AnalyticsMetricType.BY_RAID,
-      value,
-      snapshotDate,
-    });
-    await this.analyticsMetricRepository.save(metric);
-    return 1;
+    rows.push(
+      manager.create(AnalyticsEntity, {
+        category: AnalyticsMetricCategory.HALL_OF_FAME,
+        metricType: AnalyticsMetricType.BY_RAID,
+        value,
+        snapshotDate,
+      }),
+    );
   }
 
-  private async snapshotPerRealm(snapshotDate: Date): Promise<number> {
-    const byRealm = await this.guildHallOfFameRepository
+  private async collectHallOfFamePerRealm(
+    manager: EntityManager,
+    rows: AnalyticsEntity[],
+    snapshotDate: Date,
+  ): Promise<void> {
+    const byRealm = await manager
+      .getRepository(GuildHallOfFameEntity)
       .createQueryBuilder('h')
       .leftJoin('realms', 'r', 'r.slug = h.realm_slug')
       .select('r.id', 'realm_id')
@@ -150,7 +164,6 @@ export class HallOfFameMetricsService {
       .groupBy('r.id')
       .getRawMany<HallOfFameRealmMetricRow>();
 
-    let savedCount = 0;
     for (const realmData of byRealm) {
       const realmId = realmData.realm_id;
       if (!realmId) continue;
@@ -160,25 +173,22 @@ export class HallOfFameMetricsService {
         raidCount: parseInt(realmData.raid_count, 10),
       };
 
-      const latest = await analyticsMetricLatest(this.analyticsMetricRepository, {
+      const latest = await analyticsMetricLatest(manager, {
         category: AnalyticsMetricCategory.HALL_OF_FAME,
         metricType: AnalyticsMetricType.TOTAL,
         realmId,
       });
-      if (latest && isUnchanged(latest.value, value)) {
-        continue;
-      }
+      if (latest && isUnchanged(latest.value, value)) continue;
 
-      const metric = this.analyticsMetricRepository.create({
-        category: AnalyticsMetricCategory.HALL_OF_FAME,
-        metricType: AnalyticsMetricType.TOTAL,
-        realmId,
-        value,
-        snapshotDate,
-      });
-      await this.analyticsMetricRepository.save(metric);
-      savedCount++;
+      rows.push(
+        manager.create(AnalyticsEntity, {
+          category: AnalyticsMetricCategory.HALL_OF_FAME,
+          metricType: AnalyticsMetricType.TOTAL,
+          realmId,
+          value,
+          snapshotDate,
+        }),
+      );
     }
-    return savedCount;
   }
 }

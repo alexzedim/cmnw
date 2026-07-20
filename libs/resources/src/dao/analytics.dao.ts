@@ -1,32 +1,10 @@
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { AnalyticsEntity } from '@app/pg';
 
-export interface AnalyticsMetricExistsInput {
-  category: string;
-  metricType: string;
-  snapshotDate: Date;
-  realmId?: number;
-}
+export const NULL_REALM = 'NULL';
 
-export const analyticsMetricExists = async (
-  analyticsRepository: Repository<AnalyticsEntity>,
-  { category, metricType, snapshotDate, realmId }: AnalyticsMetricExistsInput,
-): Promise<boolean> => {
-  const query = analyticsRepository
-    .createQueryBuilder()
-    .where('category = :category', { category })
-    .andWhere('metric_type = :metricType', { metricType })
-    .andWhere('snapshot_date = :snapshotDate', { snapshotDate });
-
-  if (realmId === undefined) {
-    query.andWhere('realm_id IS NULL');
-  } else {
-    query.andWhere('realm_id = :realmId', { realmId });
-  }
-
-  const result = await query.getOne();
-  return !!result;
-};
+export const analyticsKeyOf = (category: string, metricType: string, realmId?: number): string =>
+  `${category}|${metricType}|${realmId ?? NULL_REALM}`;
 
 export interface AnalyticsMetricLatestInput {
   category: string;
@@ -42,10 +20,11 @@ export interface AnalyticsMetricLatestInput {
  * instead of bloating the table with daily duplicates.
  */
 export const analyticsMetricLatest = async (
-  analyticsRepository: Repository<AnalyticsEntity>,
+  source: EntityManager | Repository<AnalyticsEntity>,
   { category, metricType, realmId }: AnalyticsMetricLatestInput,
 ): Promise<AnalyticsEntity | null> => {
-  const query = analyticsRepository
+  const repository = source instanceof EntityManager ? source.getRepository(AnalyticsEntity) : source;
+  const query = repository
     .createQueryBuilder()
     .where('category = :category', { category })
     .andWhere('metric_type = :metricType', { metricType })
@@ -60,4 +39,26 @@ export const analyticsMetricLatest = async (
   }
 
   return query.getOne();
+};
+
+/**
+ * Returns the set of "category|metricType|realmId" keys already present for the
+ * given snapshot date, so a metrics service can decide in memory which rows it
+ * still needs to insert. Replaces N per-row `analyticsMetricExists` round-trips
+ * with a single SELECT scoped to the snapshot date.
+ *
+ * Accepts either a Repository (default injection) or an EntityManager (inside a
+ * transaction) — the manager path keeps the read inside the same tx as the
+ * subsequent batched save.
+ */
+export const findExistingAnalyticsKeys = async (
+  source: EntityManager | Repository<AnalyticsEntity>,
+  snapshotDate: Date,
+): Promise<Set<string>> => {
+  const repository = source instanceof EntityManager ? source.getRepository(AnalyticsEntity) : source;
+  const rows = await repository.find({
+    where: { snapshotDate },
+    select: ['category', 'metricType', 'realmId'],
+  });
+  return new Set(rows.map((row) => analyticsKeyOf(row.category, row.metricType, row.realmId)));
 };

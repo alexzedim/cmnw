@@ -106,14 +106,14 @@ export class AnalyticsService implements OnApplicationBootstrap {
         snapshotDate: snapshotDate.toISOString(),
       });
 
-      // Snapshot all metrics in parallel
-      const [charCount, guildCount, marketCount, contractCount, hofCount] = await Promise.all([
-        this.characterMetricsService.snapshotCharacterMetrics(snapshotDate),
-        this.guildMetricsService.snapshotGuildMetrics(snapshotDate),
-        this.marketMetricsService.snapshotMarketMetrics(snapshotDate),
-        this.contractMetricsService.snapshotContractMetrics(snapshotDate),
-        this.hallOfFameMetricsService.snapshotHallOfFameMetrics(snapshotDate),
-      ]);
+      // Run metrics services sequentially — each holds a single transaction
+      // connection, so serialization avoids pool contention and gives clean
+      // per-service failure isolation.
+      const charCount = await this.characterMetricsService.snapshotCharacterMetrics(snapshotDate);
+      const guildCount = await this.guildMetricsService.snapshotGuildMetrics(snapshotDate);
+      const marketCount = await this.marketMetricsService.snapshotMarketMetrics(snapshotDate);
+      const contractCount = await this.contractMetricsService.snapshotContractMetrics(snapshotDate);
+      const hofCount = await this.hallOfFameMetricsService.snapshotHallOfFameMetrics(snapshotDate);
 
       const totalMetrics = charCount + guildCount + marketCount + contractCount + hofCount;
 

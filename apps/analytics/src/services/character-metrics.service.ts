@@ -1,24 +1,22 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Not, Repository } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { AnalyticsMetricCategory, AnalyticsMetricType } from '@app/resources';
-import { analyticsMetricExists } from '@app/resources/dao';
+import { analyticsKeyOf, findExistingAnalyticsKeys } from '@app/resources/dao';
 import {
-  CharacterFactionAggregation,
-  CharacterClassAggregation,
-  CharacterRaceAggregation,
-  CharacterLevelAggregation,
-  CharacterRealmAggregation,
-  CharacterRealmUniquePlayersAggregation,
-  CharacterRealmFactionAggregation,
-  CharacterRealmClassAggregation,
-  CharacterExtreme,
   CharacterAverages,
-  CharacterClassMaxLevelAggregation,
-  CharacterFactionMaxLevelAggregation,
-  CharacterRaceMaxLevelAggregation,
+  CharacterExtreme,
+  CharacterRealmClassAggregation,
+  CharacterRealmFactionAggregation,
+  CharacterRealmUniquePlayersAggregation,
 } from '@app/resources/types';
 import { AnalyticsEntity, CharactersEntity } from '@app/pg';
+
+interface CharacterGlobalAggregationRow {
+  dimension: 'faction' | 'class' | 'race' | 'level';
+  value: string;
+  count: string;
+}
 
 @Injectable()
 export class CharacterMetricsService {
@@ -27,6 +25,8 @@ export class CharacterMetricsService {
   });
 
   constructor(
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
     @InjectRepository(AnalyticsEntity)
     private readonly analyticsMetricRepository: Repository<AnalyticsEntity>,
     @InjectRepository(CharactersEntity)
@@ -37,119 +37,50 @@ export class CharacterMetricsService {
     if (!value || value.toLowerCase() === 'unknown') {
       return 'unknown';
     }
-
     return value;
   }
 
   async snapshotCharacterMetrics(snapshotDate: Date): Promise<number> {
     const logTag = 'snapshotCharacterMetrics';
-    let savedCount = 0;
     const startTime = Date.now();
 
     try {
-      const maxLevel = await this.getCharacterMaxLevel();
+      const savedCount = await this.dataSource.transaction(async (manager) => {
+        const existingKeys = await findExistingAnalyticsKeys(manager, snapshotDate);
+        const rows: AnalyticsEntity[] = [];
 
-      // Total count
-      const totalCount = await this.charactersRepository.count();
-      const inGuildsCount = await this.charactersRepository.count({
-        where: { guildGuid: Not(IsNull()) },
-      });
-      const notInGuildsCount = totalCount - inGuildsCount;
+        const maxLevel = await this.getCharacterMaxLevel(manager);
 
-      // Check if total metric exists
-      const isTotalExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-        category: AnalyticsMetricCategory.CHARACTERS,
-        metricType: AnalyticsMetricType.TOTAL,
-        snapshotDate,
-      });
+        await this.collectCharacterTotal(manager, rows, existingKeys, snapshotDate);
 
-      if (!isTotalExists) {
-        const characterTotalMetric = this.analyticsMetricRepository.create({
-          category: AnalyticsMetricCategory.CHARACTERS,
-          metricType: AnalyticsMetricType.TOTAL,
-          value: {
-            count: totalCount,
-            inGuilds: inGuildsCount,
-            notInGuilds: notInGuildsCount,
-          },
-          snapshotDate,
-        });
-        await this.analyticsMetricRepository.save(characterTotalMetric);
-        savedCount++;
-      }
+        // Global dimension aggregations: faction / class / race / level in one UNION ALL query.
+        const globalAggregations = await this.getGlobalAggregations(manager);
+        this.pushGlobalDimensionRows(rows, manager, existingKeys, snapshotDate, globalAggregations);
 
-      // By Faction (global)
-      savedCount += await this.snapshotCharacterByFaction(snapshotDate, null);
+        // Realm totals + unique players + realm/faction + realm/class.
+        await this.collectRealmAggregations(manager, rows, existingKeys, snapshotDate);
 
-      // By Class (global)
-      savedCount += await this.snapshotCharacterByClass(snapshotDate, null);
+        if (maxLevel > 0) {
+          // Max-level dimension aggregations: faction / class / race / level in one UNION ALL query.
+          const maxLevelAggregations = await this.getGlobalAggregations(manager, maxLevel);
+          this.pushMaxLevelDimensionRows(rows, manager, existingKeys, snapshotDate, maxLevelAggregations, maxLevel);
 
-      // By Race (global)
-      savedCount += await this.snapshotCharacterByRace(snapshotDate, null);
-
-      // By Level (global)
-      savedCount += await this.snapshotCharacterByLevel(snapshotDate, null);
-
-      // By Realm (with guild counts)
-      const byRealm = await this.getCharacterRealmAggregations();
-
-      for (const realmData of byRealm) {
-        // Check if realm total metric exists
-        const isRealmTotalExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-          category: AnalyticsMetricCategory.CHARACTERS,
-          metricType: AnalyticsMetricType.TOTAL,
-          snapshotDate,
-          realmId: realmData.realm_id,
-        });
-
-        if (!isRealmTotalExists) {
-          const characterRealmTotalMetric = this.analyticsMetricRepository.create({
-            category: AnalyticsMetricCategory.CHARACTERS,
-            metricType: AnalyticsMetricType.TOTAL,
-            realmId: realmData.realm_id,
-            value: {
-              count: parseInt(realmData.total, 10),
-              inGuilds: parseInt(realmData.in_guilds || '0', 10),
-              notInGuilds: parseInt(realmData.total, 10) - parseInt(realmData.in_guilds || '0', 10),
-            },
-            snapshotDate,
-          });
-          await this.analyticsMetricRepository.save(characterRealmTotalMetric);
-          savedCount++;
+          // Realm + faction max-level and realm + class max-level.
+          await this.collectRealmMaxLevelAggregations(manager, rows, existingKeys, snapshotDate, maxLevel);
         }
-      }
 
-      // Unique players (distinct hash_a) — global + per-realm
-      savedCount += await this.snapshotCharacterUniquePlayers(snapshotDate);
+        await this.collectCharacterExtremes(manager, rows, existingKeys, snapshotDate, maxLevel);
+        await this.collectCharacterAverages(manager, rows, existingKeys, snapshotDate, maxLevel);
 
-      // By Realm + Faction
-      savedCount += await this.snapshotCharacterByRealmFaction(snapshotDate);
-
-      // By Realm + Class
-      savedCount += await this.snapshotCharacterByRealmClass(snapshotDate);
-
-      // Max Level Metrics (global)
-      if (maxLevel > 0) {
-        savedCount += await this.snapshotCharacterByClassMaxLevel(snapshotDate, null, maxLevel);
-        savedCount += await this.snapshotCharacterByFactionMaxLevel(snapshotDate, null, maxLevel);
-        savedCount += await this.snapshotCharacterByRaceMaxLevel(snapshotDate, null, maxLevel);
-        savedCount += await this.snapshotCharacterByLevelMaxLevel(snapshotDate, null, maxLevel);
-
-        // By Realm + Class Max Level
-        savedCount += await this.snapshotCharacterByRealmClassMaxLevel(snapshotDate, maxLevel);
-
-        // By Realm + Faction Max Level
-        savedCount += await this.snapshotCharacterByRealmFactionMaxLevel(snapshotDate, maxLevel);
-      }
-
-      // Extremes (global)
-      savedCount += await this.snapshotCharacterExtremes(snapshotDate, maxLevel);
-
-      // Averages (global)
-      savedCount += await this.snapshotCharacterAverages(snapshotDate, maxLevel);
+        if (rows.length > 0) {
+          await manager.save(AnalyticsEntity, rows);
+        }
+        return rows.length;
+      });
 
       const duration = Date.now() - startTime;
       this.logger.log(`Character metrics snapshotted - metricsCount: ${savedCount}, durationMs: ${duration}`);
+      return savedCount;
     } catch (errorOrException) {
       const duration = Date.now() - startTime;
       this.logger.error({
@@ -160,651 +91,421 @@ export class CharacterMetricsService {
       });
       throw errorOrException;
     }
-
-    return savedCount;
   }
 
-  private async getCharacterMaxLevel(): Promise<number> {
-    const result = await this.charactersRepository
+  private async getCharacterMaxLevel(manager: EntityManager): Promise<number> {
+    const result = await manager
+      .getRepository(CharactersEntity)
       .createQueryBuilder('c')
       .select('MAX(c.level)', 'max_level')
       .getRawOne<{ max_level: number }>();
-
     return result?.max_level || 0;
   }
 
-  private async getCharacterRealmAggregations(): Promise<CharacterRealmAggregation[]> {
-    return this.charactersRepository
+  private async collectCharacterTotal(
+    manager: EntityManager,
+    rows: AnalyticsEntity[],
+    existingKeys: Set<string>,
+    snapshotDate: Date,
+  ): Promise<void> {
+    const key = analyticsKeyOf(AnalyticsMetricCategory.CHARACTERS, AnalyticsMetricType.TOTAL);
+    if (existingKeys.has(key)) return;
+
+    const result = await manager
+      .getRepository(CharactersEntity)
       .createQueryBuilder('c')
-      .select('c.realm_id')
+      .select('COUNT(*)', 'total')
+      .addSelect(`SUM(CASE WHEN c.guild_guid IS NOT NULL THEN 1 ELSE 0 END)`, 'in_guilds')
+      .getRawOne<{ total: string; in_guilds: string }>();
+
+    const totalCount = parseInt(result?.total || '0', 10);
+    const inGuildsCount = parseInt(result?.in_guilds || '0', 10);
+
+    rows.push(
+      manager.create(AnalyticsEntity, {
+        category: AnalyticsMetricCategory.CHARACTERS,
+        metricType: AnalyticsMetricType.TOTAL,
+        value: {
+          count: totalCount,
+          inGuilds: inGuildsCount,
+          notInGuilds: totalCount - inGuildsCount,
+        },
+        snapshotDate,
+      }),
+    );
+  }
+
+  /**
+   * Collapses 4 separate GROUP BY queries (faction / class / race / level) into a
+   * single UNION ALL round-trip. Each row is tagged with its dimension so the
+   * caller can split the result back into 4 metric payloads.
+   */
+  private async getGlobalAggregations(
+    manager: EntityManager,
+    maxLevel?: number,
+  ): Promise<CharacterGlobalAggregationRow[]> {
+    const levelClause = maxLevel !== undefined ? 'AND c.level = $1' : '';
+    const params = maxLevel !== undefined ? [maxLevel] : [];
+
+    const sql = `
+      SELECT 'faction' AS dimension, c.faction AS value, COUNT(*) AS count
+      FROM characters c
+      WHERE c.faction IS NOT NULL ${levelClause}
+      GROUP BY c.faction
+      UNION ALL
+      SELECT 'class' AS dimension, c.class AS value, COUNT(*) AS count
+      FROM characters c
+      WHERE c.class IS NOT NULL ${levelClause}
+      GROUP BY c.class
+      UNION ALL
+      SELECT 'race' AS dimension, c.race AS value, COUNT(*) AS count
+      FROM characters c
+      WHERE c.race IS NOT NULL ${levelClause}
+      GROUP BY c.race
+      UNION ALL
+      SELECT 'level' AS dimension, CAST(c.level AS VARCHAR) AS value, COUNT(*) AS count
+      FROM characters c
+      WHERE c.level IS NOT NULL ${levelClause}
+      GROUP BY c.level
+    `;
+
+    return manager.query(sql, params);
+  }
+
+  private buildDimensionValueMap(
+    aggregations: CharacterGlobalAggregationRow[],
+    dimension: string,
+  ): Record<string, number> {
+    const map: Record<string, number> = {};
+    for (const row of aggregations) {
+      if (row.dimension !== dimension || !row.value) continue;
+      map[row.value] = (map[row.value] || 0) + parseInt(row.count, 10);
+    }
+    return map;
+  }
+
+  private collapseRaceMap(source: Record<string, number>): Record<string, number> {
+    const collapsed: Record<string, number> = {};
+    for (const [raceValue, count] of Object.entries(source)) {
+      const raceKey = this.getRaceKey(raceValue);
+      if (!raceKey) continue;
+      collapsed[raceKey] = (collapsed[raceKey] || 0) + count;
+    }
+    return collapsed;
+  }
+
+  private pushGlobalDimensionRows(
+    rows: AnalyticsEntity[],
+    manager: EntityManager,
+    existingKeys: Set<string>,
+    snapshotDate: Date,
+    aggregations: CharacterGlobalAggregationRow[],
+  ): void {
+    const dimensionMetricTypes: Array<[string, AnalyticsMetricType]> = [
+      ['faction', AnalyticsMetricType.BY_FACTION],
+      ['class', AnalyticsMetricType.BY_CLASS],
+      ['race', AnalyticsMetricType.BY_RACE],
+      ['level', AnalyticsMetricType.BY_LEVEL],
+    ];
+
+    for (const [dimension, metricType] of dimensionMetricTypes) {
+      const key = analyticsKeyOf(AnalyticsMetricCategory.CHARACTERS, metricType);
+      if (existingKeys.has(key)) continue;
+
+      const valueMap = this.buildDimensionValueMap(aggregations, dimension);
+      const value = dimension === 'race' ? this.collapseRaceMap(valueMap) : valueMap;
+
+      rows.push(
+        manager.create(AnalyticsEntity, {
+          category: AnalyticsMetricCategory.CHARACTERS,
+          metricType,
+          value,
+          snapshotDate,
+        }),
+      );
+    }
+  }
+
+  private pushMaxLevelDimensionRows(
+    rows: AnalyticsEntity[],
+    manager: EntityManager,
+    existingKeys: Set<string>,
+    snapshotDate: Date,
+    aggregations: CharacterGlobalAggregationRow[],
+    maxLevel: number,
+  ): void {
+    const dimensionMetricTypes: Array<[string, AnalyticsMetricType]> = [
+      ['faction', AnalyticsMetricType.BY_FACTION_MAX_LEVEL],
+      ['class', AnalyticsMetricType.BY_CLASS_MAX_LEVEL],
+      ['race', AnalyticsMetricType.BY_RACE_MAX_LEVEL],
+      ['level', AnalyticsMetricType.BY_LEVEL_MAX_LEVEL],
+    ];
+
+    for (const [dimension, metricType] of dimensionMetricTypes) {
+      const key = analyticsKeyOf(AnalyticsMetricCategory.CHARACTERS, metricType);
+      if (existingKeys.has(key)) continue;
+
+      const valueMap = this.buildDimensionValueMap(aggregations, dimension);
+      let value: Record<string, number> = valueMap;
+      if (dimension === 'race') {
+        value = this.collapseRaceMap(valueMap);
+      } else if (dimension === 'level') {
+        value = { [String(maxLevel)]: valueMap[String(maxLevel)] || 0 };
+      }
+
+      rows.push(
+        manager.create(AnalyticsEntity, {
+          category: AnalyticsMetricCategory.CHARACTERS,
+          metricType,
+          value,
+          snapshotDate,
+        }),
+      );
+    }
+  }
+
+  /**
+   * Emits per-realm TOTAL + UNIQUE_PLAYERS + BY_FACTION + BY_CLASS metric rows.
+   * Realm totals are aggregated in JS from a single GROUP BY realm_id query (with
+   * a SUM(CASE WHEN guild_guid ...) for in-guild counts). UNIQUE_PLAYERS uses a
+   * separate per-realm COUNT(DISTINCT hash_a) query (cannot be summed from the
+   * grouped rows). Realm/faction and realm/class are each a single grouped query.
+   */
+  private async collectRealmAggregations(
+    manager: EntityManager,
+    rows: AnalyticsEntity[],
+    existingKeys: Set<string>,
+    snapshotDate: Date,
+  ): Promise<void> {
+    // Per-realm totals (count + in-guilds)
+    const byRealm = await manager
+      .getRepository(CharactersEntity)
+      .createQueryBuilder('c')
+      .select('c.realm_id', 'realm_id')
       .addSelect('COUNT(*)', 'total')
       .addSelect(`SUM(CASE WHEN c.guild_guid IS NOT NULL THEN 1 ELSE 0 END)`, 'in_guilds')
       .groupBy('c.realm_id')
-      .getRawMany<CharacterRealmAggregation>();
-  }
+      .getRawMany<{ realm_id: number; total: string; in_guilds: string }>();
 
-  private async snapshotCharacterByFaction(snapshotDate: Date, realmId: number | null): Promise<number> {
-    // Check if metric exists
-    const isByFactionExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-      category: AnalyticsMetricCategory.CHARACTERS,
-      metricType: AnalyticsMetricType.BY_FACTION,
-      snapshotDate,
-      realmId: realmId || undefined,
-    });
+    for (const realmData of byRealm) {
+      const key = analyticsKeyOf(AnalyticsMetricCategory.CHARACTERS, AnalyticsMetricType.TOTAL, realmData.realm_id);
+      if (existingKeys.has(key)) continue;
 
-    if (isByFactionExists) {
-      return 0;
+      const total = parseInt(realmData.total, 10);
+      const inGuilds = parseInt(realmData.in_guilds || '0', 10);
+      rows.push(
+        manager.create(AnalyticsEntity, {
+          category: AnalyticsMetricCategory.CHARACTERS,
+          metricType: AnalyticsMetricType.TOTAL,
+          realmId: realmData.realm_id,
+          value: { count: total, inGuilds, notInGuilds: total - inGuilds },
+          snapshotDate,
+        }),
+      );
     }
 
-    const byFaction = await this.charactersRepository
-      .createQueryBuilder('c')
-      .select('c.faction', 'faction')
-      .addSelect('COUNT(*)', 'count')
-      .where('c.faction IS NOT NULL')
-      .groupBy('c.faction')
-      .getRawMany<CharacterFactionAggregation>();
-
-    const factionMap = byFaction.reduce(
-      (acc, row) => {
-        acc[row.faction] = parseInt(row.count, 10);
-        return acc;
-      },
-      {} as Record<string, number>,
-    );
-
-    const characterByFactionMetric = this.analyticsMetricRepository.create({
-      category: AnalyticsMetricCategory.CHARACTERS,
-      metricType: AnalyticsMetricType.BY_FACTION,
-      realmId: realmId || undefined,
-      value: factionMap,
-      snapshotDate,
-    });
-    await this.analyticsMetricRepository.save(characterByFactionMetric);
-    this.logger.debug({
-      logTag: 'snapshotCharacterByFaction',
-      message: 'Inserted metric',
-      metric: {
-        category: characterByFactionMetric.category,
-        metricType: characterByFactionMetric.metricType,
-        realmId: characterByFactionMetric.realmId,
-        value: characterByFactionMetric.value,
-      },
-    });
-    return 1;
-  }
-
-  private async snapshotCharacterByClass(snapshotDate: Date, realmId: number | null): Promise<number> {
-    // Check if metric exists
-    const isByClassExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-      category: AnalyticsMetricCategory.CHARACTERS,
-      metricType: AnalyticsMetricType.BY_CLASS,
-      snapshotDate,
-      realmId: realmId || undefined,
-    });
-
-    if (isByClassExists) {
-      return 0;
-    }
-
-    const byClass = await this.charactersRepository
-      .createQueryBuilder('c')
-      .select('c.class', 'character_class')
-      .addSelect('COUNT(*)', 'count')
-      .where('c.class IS NOT NULL')
-      .groupBy('c.class')
-      .getRawMany<CharacterClassAggregation>();
-
-    const classMap = byClass.reduce(
-      (acc, row) => {
-        acc[row.character_class] = parseInt(row.count, 10);
-        return acc;
-      },
-      {} as Record<string, number>,
-    );
-
-    const characterByClassMetric = this.analyticsMetricRepository.create({
-      category: AnalyticsMetricCategory.CHARACTERS,
-      metricType: AnalyticsMetricType.BY_CLASS,
-      realmId: realmId || undefined,
-      value: classMap,
-      snapshotDate,
-    });
-    await this.analyticsMetricRepository.save(characterByClassMetric);
-    this.logger.debug({
-      logTag: 'snapshotCharacterByClass',
-      message: 'Inserted metric',
-      metric: {
-        category: characterByClassMetric.category,
-        metricType: characterByClassMetric.metricType,
-        realmId: characterByClassMetric.realmId,
-        value: characterByClassMetric.value,
-      },
-    });
-    return 1;
-  }
-
-  private async snapshotCharacterByRace(snapshotDate: Date, realmId: number | null): Promise<number> {
-    // Check if metric exists
-    const isByRaceExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-      category: AnalyticsMetricCategory.CHARACTERS,
-      metricType: AnalyticsMetricType.BY_RACE,
-      snapshotDate,
-      realmId: realmId || undefined,
-    });
-
-    if (isByRaceExists) {
-      return 0;
-    }
-
-    const byRace = await this.charactersRepository
-      .createQueryBuilder('c')
-      .select('c.race')
-      .addSelect('COUNT(*)', 'count')
-      .where('c.race IS NOT NULL')
-      .groupBy('c.race')
-      .getRawMany<CharacterRaceAggregation>();
-
-    const raceMap = byRace.reduce(
-      (acc, row) => {
-        const raceKey = this.getRaceKey(row.race);
-
-        if (!raceKey) {
-          return acc;
-        }
-
-        acc[raceKey] = parseInt(row.count, 10);
-        return acc;
-      },
-      {} as Record<string, number>,
-    );
-
-    const characterByRaceMetric = this.analyticsMetricRepository.create({
-      category: AnalyticsMetricCategory.CHARACTERS,
-      metricType: AnalyticsMetricType.BY_RACE,
-      realmId: realmId || undefined,
-      value: raceMap,
-      snapshotDate,
-    });
-    await this.analyticsMetricRepository.save(characterByRaceMetric);
-    this.logger.debug({
-      logTag: 'snapshotCharacterByRace',
-      message: 'Inserted metric',
-      metric: {
-        category: characterByRaceMetric.category,
-        metricType: characterByRaceMetric.metricType,
-        realmId: characterByRaceMetric.realmId,
-        value: characterByRaceMetric.value,
-      },
-    });
-    return 1;
-  }
-
-  private async snapshotCharacterByLevel(snapshotDate: Date, realmId: number | null): Promise<number> {
-    // Check if metric exists
-    const isByLevelExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-      category: AnalyticsMetricCategory.CHARACTERS,
-      metricType: AnalyticsMetricType.BY_LEVEL,
-      snapshotDate,
-      realmId: realmId || undefined,
-    });
-
-    if (isByLevelExists) {
-      return 0;
-    }
-
-    const byLevel = await this.charactersRepository
-      .createQueryBuilder('c')
-      .select('c.level', 'level')
-      .addSelect('COUNT(*)', 'count')
-      .where('c.level IS NOT NULL')
-      .groupBy('c.level')
-      .getRawMany<CharacterLevelAggregation>();
-
-    const levelMap = byLevel.reduce(
-      (acc, row) => {
-        acc[String(row.level)] =
-          parseInt(<string>(<unknown>acc[String(row.level)]) || '0', 10) + parseInt(row.count, 10);
-        return acc;
-      },
-      {} as Record<string, number>,
-    );
-
-    const characterByLevelMetric = this.analyticsMetricRepository.create({
-      category: AnalyticsMetricCategory.CHARACTERS,
-      metricType: AnalyticsMetricType.BY_LEVEL,
-      realmId: realmId || undefined,
-      value: levelMap,
-      snapshotDate,
-    });
-    await this.analyticsMetricRepository.save(characterByLevelMetric);
-    return 1;
-  }
-
-  private async snapshotCharacterUniquePlayers(snapshotDate: Date): Promise<number> {
-    let savedCount = 0;
-
-    // Global distinct count
-    const isGlobalExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-      category: AnalyticsMetricCategory.CHARACTERS,
-      metricType: AnalyticsMetricType.UNIQUE_PLAYERS,
-      snapshotDate,
-    });
-
-    if (!isGlobalExists) {
-      const global = await this.charactersRepository
+    // Global + per-realm unique players (COUNT(DISTINCT hash_a))
+    const globalUniqueKey = analyticsKeyOf(AnalyticsMetricCategory.CHARACTERS, AnalyticsMetricType.UNIQUE_PLAYERS);
+    if (!existingKeys.has(globalUniqueKey)) {
+      const globalRow = await manager
+        .getRepository(CharactersEntity)
         .createQueryBuilder('c')
         .select('COUNT(DISTINCT c.hash_a)', 'unique_players')
         .where('c.hash_a IS NOT NULL')
         .getRawOne<{ unique_players: string }>();
-
-      const globalMetric = this.analyticsMetricRepository.create({
-        category: AnalyticsMetricCategory.CHARACTERS,
-        metricType: AnalyticsMetricType.UNIQUE_PLAYERS,
-        value: { count: parseInt(global?.unique_players || '0', 10) },
-        snapshotDate,
-      });
-      await this.analyticsMetricRepository.save(globalMetric);
-      savedCount++;
+      rows.push(
+        manager.create(AnalyticsEntity, {
+          category: AnalyticsMetricCategory.CHARACTERS,
+          metricType: AnalyticsMetricType.UNIQUE_PLAYERS,
+          value: { count: parseInt(globalRow?.unique_players || '0', 10) },
+          snapshotDate,
+        }),
+      );
     }
 
-    // Per-realm distinct counts (single grouped query)
-    const byRealm = await this.charactersRepository
+    const uniqueByRealm = await manager
+      .getRepository(CharactersEntity)
       .createQueryBuilder('c')
-      .select('c.realm_id')
+      .select('c.realm_id', 'realm_id')
       .addSelect('COUNT(DISTINCT c.hash_a)', 'unique_players')
       .where('c.hash_a IS NOT NULL')
       .groupBy('c.realm_id')
       .getRawMany<CharacterRealmUniquePlayersAggregation>();
 
-    for (const realmData of byRealm) {
-      const isRealmExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-        category: AnalyticsMetricCategory.CHARACTERS,
-        metricType: AnalyticsMetricType.UNIQUE_PLAYERS,
-        snapshotDate,
-        realmId: realmData.realm_id,
-      });
+    for (const realmData of uniqueByRealm) {
+      const key = analyticsKeyOf(
+        AnalyticsMetricCategory.CHARACTERS,
+        AnalyticsMetricType.UNIQUE_PLAYERS,
+        realmData.realm_id,
+      );
+      if (existingKeys.has(key)) continue;
 
-      if (!isRealmExists) {
-        const realmMetric = this.analyticsMetricRepository.create({
+      rows.push(
+        manager.create(AnalyticsEntity, {
           category: AnalyticsMetricCategory.CHARACTERS,
           metricType: AnalyticsMetricType.UNIQUE_PLAYERS,
           realmId: realmData.realm_id,
           value: { count: parseInt(realmData.unique_players, 10) },
           snapshotDate,
-        });
-        await this.analyticsMetricRepository.save(realmMetric);
-        savedCount++;
-      }
+        }),
+      );
     }
 
-    return savedCount;
-  }
-
-  private async snapshotCharacterByRealmFaction(snapshotDate: Date): Promise<number> {
-    const byRealmFaction = await this.charactersRepository
+    // Per-realm faction breakdown
+    const byRealmFaction = await manager
+      .getRepository(CharactersEntity)
       .createQueryBuilder('c')
-      .select('c.realm_id')
+      .select('c.realm_id', 'realm_id')
       .addSelect('c.faction', 'faction')
       .addSelect('COUNT(*)', 'count')
       .where('c.faction IS NOT NULL')
       .groupBy('c.realm_id, c.faction')
       .getRawMany<CharacterRealmFactionAggregation>();
 
-    const byRealmFactionMap = byRealmFaction.reduce(
-      (acc, row) => {
-        if (!acc[row.realm_id]) acc[row.realm_id] = {};
-        acc[row.realm_id][row.faction] = parseInt(row.count, 10);
-        return acc;
-      },
-      {} as Record<number, Record<string, number>>,
-    );
+    const realmFactionMap = this.groupRealmBreakdown(byRealmFaction, 'faction');
+    for (const [realmId, factionCounts] of Object.entries(realmFactionMap)) {
+      const realmIdNum = parseInt(realmId, 10);
+      const key = analyticsKeyOf(AnalyticsMetricCategory.CHARACTERS, AnalyticsMetricType.BY_FACTION, realmIdNum);
+      if (existingKeys.has(key)) continue;
 
-    let savedCount = 0;
-    for (const [realmId, factionCounts] of Object.entries(byRealmFactionMap)) {
-      // Check if metric exists
-      const isRealmFactionExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-        category: AnalyticsMetricCategory.CHARACTERS,
-        metricType: AnalyticsMetricType.BY_FACTION,
-        snapshotDate,
-        realmId: parseInt(realmId, 10),
-      });
-
-      if (!isRealmFactionExists) {
-        const characterRealmFactionMetric = this.analyticsMetricRepository.create({
+      rows.push(
+        manager.create(AnalyticsEntity, {
           category: AnalyticsMetricCategory.CHARACTERS,
           metricType: AnalyticsMetricType.BY_FACTION,
-          realmId: parseInt(realmId, 10),
+          realmId: realmIdNum,
           value: factionCounts,
           snapshotDate,
-        });
-        await this.analyticsMetricRepository.save(characterRealmFactionMetric);
-        savedCount++;
-      }
+        }),
+      );
     }
-    return savedCount;
-  }
 
-  private async snapshotCharacterByRealmClass(snapshotDate: Date): Promise<number> {
-    const byRealmClass = await this.charactersRepository
+    // Per-realm class breakdown
+    const byRealmClass = await manager
+      .getRepository(CharactersEntity)
       .createQueryBuilder('c')
-      .select('c.realm_id')
+      .select('c.realm_id', 'realm_id')
       .addSelect('c.class', 'character_class')
       .addSelect('COUNT(*)', 'count')
       .where('c.class IS NOT NULL')
       .groupBy('c.realm_id, c.class')
       .getRawMany<CharacterRealmClassAggregation>();
 
-    const byRealmClassMap = byRealmClass.reduce(
-      (acc, row) => {
-        if (!acc[row.realm_id]) acc[row.realm_id] = {};
-        acc[row.realm_id][row.character_class] = parseInt(row.count, 10);
-        return acc;
-      },
-      {} as Record<number, Record<string, number>>,
-    );
+    const realmClassMap = this.groupRealmBreakdown(byRealmClass, 'character_class');
+    for (const [realmId, classCounts] of Object.entries(realmClassMap)) {
+      const realmIdNum = parseInt(realmId, 10);
+      const key = analyticsKeyOf(AnalyticsMetricCategory.CHARACTERS, AnalyticsMetricType.BY_CLASS, realmIdNum);
+      if (existingKeys.has(key)) continue;
 
-    let savedCount = 0;
-    for (const [realmId, classCounts] of Object.entries(byRealmClassMap)) {
-      // Check if metric exists
-      const isRealmClassExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-        category: AnalyticsMetricCategory.CHARACTERS,
-        metricType: AnalyticsMetricType.BY_CLASS,
-        snapshotDate,
-        realmId: parseInt(realmId, 10),
-      });
-
-      if (!isRealmClassExists) {
-        const characterRealmClassMetric = this.analyticsMetricRepository.create({
+      rows.push(
+        manager.create(AnalyticsEntity, {
           category: AnalyticsMetricCategory.CHARACTERS,
           metricType: AnalyticsMetricType.BY_CLASS,
-          realmId: parseInt(realmId, 10),
+          realmId: realmIdNum,
           value: classCounts,
           snapshotDate,
-        });
-        await this.analyticsMetricRepository.save(characterRealmClassMetric);
-        savedCount++;
-      }
+        }),
+      );
     }
-    return savedCount;
   }
 
-  private async snapshotCharacterByClassMaxLevel(
-    snapshotDate: Date,
-    realmId: number | null,
-    maxLevel: number,
-  ): Promise<number> {
-    // Check if metric exists
-    const isByClassMaxLevelExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-      category: AnalyticsMetricCategory.CHARACTERS,
-      metricType: AnalyticsMetricType.BY_CLASS_MAX_LEVEL,
-      snapshotDate,
-      realmId: realmId || undefined,
-    });
-
-    if (isByClassMaxLevelExists) {
-      return 0;
-    }
-
-    const byClassMaxLevel = await this.charactersRepository
-      .createQueryBuilder('c')
-      .select('c.class', 'character_class')
-      .addSelect('COUNT(*)', 'count')
-      .where('c.class IS NOT NULL AND c.level = :maxLevel', { maxLevel })
-      .groupBy('c.class')
-      .getRawMany<CharacterClassMaxLevelAggregation>();
-
-    const classMap = byClassMaxLevel.reduce(
+  private groupRealmBreakdown<K extends string>(
+    rows: Array<{ realm_id: number; count: string } & Record<K, string>>,
+    dimensionKey: K,
+  ): Record<number, Record<string, number>> {
+    return rows.reduce(
       (acc, row) => {
-        acc[row.character_class] = parseInt(row.count, 10);
-        return acc;
-      },
-      {} as Record<string, number>,
-    );
-
-    const characterByClassMaxLevelMetric = this.analyticsMetricRepository.create({
-      category: AnalyticsMetricCategory.CHARACTERS,
-      metricType: AnalyticsMetricType.BY_CLASS_MAX_LEVEL,
-      realmId: realmId || undefined,
-      value: classMap,
-      snapshotDate,
-    });
-    await this.analyticsMetricRepository.save(characterByClassMaxLevelMetric);
-    return 1;
-  }
-
-  private async snapshotCharacterByFactionMaxLevel(
-    snapshotDate: Date,
-    realmId: number | null,
-    maxLevel: number,
-  ): Promise<number> {
-    // Check if metric exists
-    const isByFactionMaxLevelExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-      category: AnalyticsMetricCategory.CHARACTERS,
-      metricType: AnalyticsMetricType.BY_FACTION_MAX_LEVEL,
-      snapshotDate,
-      realmId: realmId || undefined,
-    });
-
-    if (isByFactionMaxLevelExists) {
-      return 0;
-    }
-
-    const byFactionMaxLevel = await this.charactersRepository
-      .createQueryBuilder('c')
-      .select('c.faction', 'faction')
-      .addSelect('COUNT(*)', 'count')
-      .where('c.faction IS NOT NULL AND c.level = :maxLevel', { maxLevel })
-      .groupBy('c.faction')
-      .getRawMany<CharacterFactionMaxLevelAggregation>();
-
-    const factionMap = byFactionMaxLevel.reduce(
-      (acc, row) => {
-        acc[row.faction] = parseInt(row.count, 10);
-        return acc;
-      },
-      {} as Record<string, number>,
-    );
-
-    const characterByFactionMaxLevelMetric = this.analyticsMetricRepository.create({
-      category: AnalyticsMetricCategory.CHARACTERS,
-      metricType: AnalyticsMetricType.BY_FACTION_MAX_LEVEL,
-      realmId: realmId || undefined,
-      value: factionMap,
-      snapshotDate,
-    });
-    await this.analyticsMetricRepository.save(characterByFactionMaxLevelMetric);
-    return 1;
-  }
-
-  private async snapshotCharacterByRaceMaxLevel(
-    snapshotDate: Date,
-    realmId: number | null,
-    maxLevel: number,
-  ): Promise<number> {
-    // Check if metric exists
-    const isByRaceMaxLevelExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-      category: AnalyticsMetricCategory.CHARACTERS,
-      metricType: AnalyticsMetricType.BY_RACE_MAX_LEVEL,
-      snapshotDate,
-      realmId: realmId || undefined,
-    });
-
-    if (isByRaceMaxLevelExists) {
-      return 0;
-    }
-
-    const byRaceMaxLevel = await this.charactersRepository
-      .createQueryBuilder('c')
-      .select('c.race')
-      .addSelect('COUNT(*)', 'count')
-      .where('c.race IS NOT NULL AND c.level = :maxLevel', { maxLevel })
-      .groupBy('c.race')
-      .getRawMany<CharacterRaceMaxLevelAggregation>();
-
-    const raceMap = byRaceMaxLevel.reduce(
-      (acc, row) => {
-        const raceKey = this.getRaceKey(row.race);
-
-        if (!raceKey) {
-          return acc;
-        }
-
-        acc[raceKey] = parseInt(row.count, 10);
-        return acc;
-      },
-      {} as Record<string, number>,
-    );
-
-    const characterByRaceMaxLevelMetric = this.analyticsMetricRepository.create({
-      category: AnalyticsMetricCategory.CHARACTERS,
-      metricType: AnalyticsMetricType.BY_RACE_MAX_LEVEL,
-      realmId: realmId || undefined,
-      value: raceMap,
-      snapshotDate,
-    });
-    await this.analyticsMetricRepository.save(characterByRaceMaxLevelMetric);
-    return 1;
-  }
-
-  private async snapshotCharacterByLevelMaxLevel(
-    snapshotDate: Date,
-    realmId: number | null,
-    maxLevel: number,
-  ): Promise<number> {
-    // Check if metric exists
-    const isByLevelMaxLevelExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-      category: AnalyticsMetricCategory.CHARACTERS,
-      metricType: AnalyticsMetricType.BY_LEVEL_MAX_LEVEL,
-      snapshotDate,
-      realmId: realmId || undefined,
-    });
-
-    if (isByLevelMaxLevelExists) {
-      return 0;
-    }
-
-    const byLevelMaxLevel = await this.charactersRepository
-      .createQueryBuilder('c')
-      .select('COUNT(*)', 'count')
-      .where('c.level = :maxLevel', { maxLevel })
-      .getRawOne<{ count: string }>();
-
-    const levelMap = {
-      [String(maxLevel)]: parseInt(byLevelMaxLevel?.count || '0', 10),
-    };
-
-    const characterByLevelMaxLevelMetric = this.analyticsMetricRepository.create({
-      category: AnalyticsMetricCategory.CHARACTERS,
-      metricType: AnalyticsMetricType.BY_LEVEL_MAX_LEVEL,
-      realmId: realmId || undefined,
-      value: levelMap,
-      snapshotDate,
-    });
-    await this.analyticsMetricRepository.save(characterByLevelMaxLevelMetric);
-    return 1;
-  }
-
-  private async snapshotCharacterByRealmClassMaxLevel(snapshotDate: Date, maxLevel: number): Promise<number> {
-    const byRealmClassMaxLevel = await this.charactersRepository
-      .createQueryBuilder('c')
-      .select('c.realm_id')
-      .addSelect('c.class', 'character_class')
-      .addSelect('COUNT(*)', 'count')
-      .where('c.class IS NOT NULL AND c.level = :maxLevel', { maxLevel })
-      .groupBy('c.realm_id, c.class')
-      .getRawMany<CharacterRealmClassAggregation>();
-
-    const byRealmClassMap = byRealmClassMaxLevel.reduce(
-      (acc, row) => {
+        const dimValue = row[dimensionKey];
+        if (!dimValue) return acc;
         if (!acc[row.realm_id]) acc[row.realm_id] = {};
-        acc[row.realm_id][row.character_class] = parseInt(row.count, 10);
+        acc[row.realm_id][dimValue] = parseInt(row.count, 10);
         return acc;
       },
       {} as Record<number, Record<string, number>>,
     );
-
-    let savedCount = 0;
-    for (const [realmId, classCounts] of Object.entries(byRealmClassMap)) {
-      // Check if metric exists
-      const isRealmClassMaxLevelExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-        category: AnalyticsMetricCategory.CHARACTERS,
-        metricType: AnalyticsMetricType.BY_CLASS_MAX_LEVEL,
-        snapshotDate,
-        realmId: parseInt(realmId, 10),
-      });
-
-      if (!isRealmClassMaxLevelExists) {
-        const characterRealmClassMaxLevelMetric = this.analyticsMetricRepository.create({
-          category: AnalyticsMetricCategory.CHARACTERS,
-          metricType: AnalyticsMetricType.BY_CLASS_MAX_LEVEL,
-          realmId: parseInt(realmId, 10),
-          value: classCounts,
-          snapshotDate,
-        });
-        await this.analyticsMetricRepository.save(characterRealmClassMaxLevelMetric);
-        savedCount++;
-      }
-    }
-    return savedCount;
   }
 
-  private async snapshotCharacterByRealmFactionMaxLevel(snapshotDate: Date, maxLevel: number): Promise<number> {
-    const byRealmFactionMaxLevel = await this.charactersRepository
+  private async collectRealmMaxLevelAggregations(
+    manager: EntityManager,
+    rows: AnalyticsEntity[],
+    existingKeys: Set<string>,
+    snapshotDate: Date,
+    maxLevel: number,
+  ): Promise<void> {
+    const byRealmFactionMaxLevel = await manager
+      .getRepository(CharactersEntity)
       .createQueryBuilder('c')
-      .select('c.realm_id')
+      .select('c.realm_id', 'realm_id')
       .addSelect('c.faction', 'faction')
       .addSelect('COUNT(*)', 'count')
       .where('c.faction IS NOT NULL AND c.level = :maxLevel', { maxLevel })
       .groupBy('c.realm_id, c.faction')
       .getRawMany<CharacterRealmFactionAggregation>();
 
-    const byRealmFactionMap = byRealmFactionMaxLevel.reduce(
-      (acc, row) => {
-        if (!acc[row.realm_id]) acc[row.realm_id] = {};
-        acc[row.realm_id][row.faction] = parseInt(row.count, 10);
-        return acc;
-      },
-      {} as Record<number, Record<string, number>>,
-    );
+    const realmFactionMap = this.groupRealmBreakdown(byRealmFactionMaxLevel, 'faction');
+    for (const [realmId, factionCounts] of Object.entries(realmFactionMap)) {
+      const realmIdNum = parseInt(realmId, 10);
+      const key = analyticsKeyOf(
+        AnalyticsMetricCategory.CHARACTERS,
+        AnalyticsMetricType.BY_FACTION_MAX_LEVEL,
+        realmIdNum,
+      );
+      if (existingKeys.has(key)) continue;
 
-    let savedCount = 0;
-    for (const [realmId, factionCounts] of Object.entries(byRealmFactionMap)) {
-      // Check if metric exists
-      const isRealmFactionMaxLevelExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-        category: AnalyticsMetricCategory.CHARACTERS,
-        metricType: AnalyticsMetricType.BY_FACTION_MAX_LEVEL,
-        snapshotDate,
-        realmId: parseInt(realmId, 10),
-      });
-
-      if (!isRealmFactionMaxLevelExists) {
-        const characterRealmFactionMaxLevelMetric = this.analyticsMetricRepository.create({
+      rows.push(
+        manager.create(AnalyticsEntity, {
           category: AnalyticsMetricCategory.CHARACTERS,
           metricType: AnalyticsMetricType.BY_FACTION_MAX_LEVEL,
-          realmId: parseInt(realmId, 10),
+          realmId: realmIdNum,
           value: factionCounts,
           snapshotDate,
-        });
-        await this.analyticsMetricRepository.save(characterRealmFactionMaxLevelMetric);
-        savedCount++;
-      }
+        }),
+      );
     }
-    return savedCount;
+
+    const byRealmClassMaxLevel = await manager
+      .getRepository(CharactersEntity)
+      .createQueryBuilder('c')
+      .select('c.realm_id', 'realm_id')
+      .addSelect('c.class', 'character_class')
+      .addSelect('COUNT(*)', 'count')
+      .where('c.class IS NOT NULL AND c.level = :maxLevel', { maxLevel })
+      .groupBy('c.realm_id, c.class')
+      .getRawMany<CharacterRealmClassAggregation>();
+
+    const realmClassMap = this.groupRealmBreakdown(byRealmClassMaxLevel, 'character_class');
+    for (const [realmId, classCounts] of Object.entries(realmClassMap)) {
+      const realmIdNum = parseInt(realmId, 10);
+      const key = analyticsKeyOf(
+        AnalyticsMetricCategory.CHARACTERS,
+        AnalyticsMetricType.BY_CLASS_MAX_LEVEL,
+        realmIdNum,
+      );
+      if (existingKeys.has(key)) continue;
+
+      rows.push(
+        manager.create(AnalyticsEntity, {
+          category: AnalyticsMetricCategory.CHARACTERS,
+          metricType: AnalyticsMetricType.BY_CLASS_MAX_LEVEL,
+          realmId: realmIdNum,
+          value: classCounts,
+          snapshotDate,
+        }),
+      );
+    }
   }
 
-  private async snapshotCharacterExtremes(snapshotDate: Date, maxLevel: number): Promise<number> {
-    // Check if metric exists
-    const isExtremesExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-      category: AnalyticsMetricCategory.CHARACTERS,
-      metricType: AnalyticsMetricType.EXTREMES,
-      snapshotDate,
-    });
+  private async collectCharacterExtremes(
+    manager: EntityManager,
+    rows: AnalyticsEntity[],
+    existingKeys: Set<string>,
+    snapshotDate: Date,
+    maxLevel: number,
+  ): Promise<void> {
+    const key = analyticsKeyOf(AnalyticsMetricCategory.CHARACTERS, AnalyticsMetricType.EXTREMES);
+    if (existingKeys.has(key)) return;
 
-    if (isExtremesExists) {
-      return 0;
-    }
-
-    const maxAchievement = await this.charactersRepository
+    const repo = manager.getRepository(CharactersEntity);
+    const maxAchievement = await repo
       .createQueryBuilder('c')
       .select('c.guid', 'guid')
       .addSelect('c.name', 'name')
@@ -815,7 +516,7 @@ export class CharacterMetricsService {
       .limit(1)
       .getRawOne<CharacterExtreme>();
 
-    const minAchievement = await this.charactersRepository
+    const minAchievement = await repo
       .createQueryBuilder('c')
       .select('c.guid', 'guid')
       .addSelect('c.name', 'name')
@@ -826,7 +527,7 @@ export class CharacterMetricsService {
       .limit(1)
       .getRawOne<CharacterExtreme>();
 
-    const maxMounts = await this.charactersRepository
+    const maxMounts = await repo
       .createQueryBuilder('c')
       .select('c.guid', 'guid')
       .addSelect('c.name', 'name')
@@ -837,7 +538,7 @@ export class CharacterMetricsService {
       .limit(1)
       .getRawOne<CharacterExtreme>();
 
-    const maxPets = await this.charactersRepository
+    const maxPets = await repo
       .createQueryBuilder('c')
       .select('c.guid', 'guid')
       .addSelect('c.name', 'name')
@@ -848,7 +549,7 @@ export class CharacterMetricsService {
       .limit(1)
       .getRawOne<CharacterExtreme>();
 
-    const maxItemLevel = await this.charactersRepository
+    const maxItemLevel = await repo
       .createQueryBuilder('c')
       .select('c.guid', 'guid')
       .addSelect('c.name', 'name')
@@ -859,46 +560,35 @@ export class CharacterMetricsService {
       .limit(1)
       .getRawOne<CharacterExtreme>();
 
-    const extremesValue: Record<string, any> = {};
-    if (maxAchievement) {
-      extremesValue.maxAchievementPoints = maxAchievement;
-    }
-    if (minAchievement) {
-      extremesValue.minAchievementPoints = minAchievement;
-    }
-    if (maxMounts) {
-      extremesValue.maxMounts = maxMounts;
-    }
-    if (maxPets) {
-      extremesValue.maxPets = maxPets;
-    }
-    if (maxItemLevel) {
-      extremesValue.maxItemLevel = maxItemLevel;
-    }
+    const value: Record<string, CharacterExtreme> = {};
+    if (maxAchievement) value.maxAchievementPoints = maxAchievement;
+    if (minAchievement) value.minAchievementPoints = minAchievement;
+    if (maxMounts) value.maxMounts = maxMounts;
+    if (maxPets) value.maxPets = maxPets;
+    if (maxItemLevel) value.maxItemLevel = maxItemLevel;
 
-    const characterExtremesMetric = this.analyticsMetricRepository.create({
-      category: AnalyticsMetricCategory.CHARACTERS,
-      metricType: AnalyticsMetricType.EXTREMES,
-      value: extremesValue,
-      snapshotDate,
-    });
-    await this.analyticsMetricRepository.save(characterExtremesMetric);
-    return 1;
+    rows.push(
+      manager.create(AnalyticsEntity, {
+        category: AnalyticsMetricCategory.CHARACTERS,
+        metricType: AnalyticsMetricType.EXTREMES,
+        value,
+        snapshotDate,
+      }),
+    );
   }
 
-  private async snapshotCharacterAverages(snapshotDate: Date, maxLevel: number): Promise<number> {
-    // Check if metric exists
-    const isAveragesExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-      category: AnalyticsMetricCategory.CHARACTERS,
-      metricType: AnalyticsMetricType.AVERAGES,
-      snapshotDate,
-    });
+  private async collectCharacterAverages(
+    manager: EntityManager,
+    rows: AnalyticsEntity[],
+    existingKeys: Set<string>,
+    snapshotDate: Date,
+    maxLevel: number,
+  ): Promise<void> {
+    const key = analyticsKeyOf(AnalyticsMetricCategory.CHARACTERS, AnalyticsMetricType.AVERAGES);
+    if (existingKeys.has(key)) return;
 
-    if (isAveragesExists) {
-      return 0;
-    }
-
-    const averages = await this.charactersRepository
+    const averages = await manager
+      .getRepository(CharactersEntity)
       .createQueryBuilder('c')
       .select('AVG(c.achievement_points)', 'avg_achievement')
       .addSelect('AVG(c.mounts_number)', 'avg_mounts')
@@ -907,18 +597,18 @@ export class CharacterMetricsService {
       .where('c.achievement_points > 0 AND c.level = :maxLevel', { maxLevel })
       .getRawOne<CharacterAverages>();
 
-    const characterAveragesMetric = this.analyticsMetricRepository.create({
-      category: AnalyticsMetricCategory.CHARACTERS,
-      metricType: AnalyticsMetricType.AVERAGES,
-      value: {
-        achievementPoints: averages ? Math.floor(parseFloat(averages.avg_achievement || '0')) : 0,
-        mounts: averages ? Math.floor(parseFloat(averages.avg_mounts || '0')) : 0,
-        pets: averages ? Math.floor(parseFloat(averages.avg_pets || '0')) : 0,
-        itemLevel: averages ? Math.floor(parseFloat(averages.avg_item_level || '0')) : 0,
-      },
-      snapshotDate,
-    });
-    await this.analyticsMetricRepository.save(characterAveragesMetric);
-    return 1;
+    rows.push(
+      manager.create(AnalyticsEntity, {
+        category: AnalyticsMetricCategory.CHARACTERS,
+        metricType: AnalyticsMetricType.AVERAGES,
+        value: {
+          achievementPoints: averages ? Math.floor(parseFloat(averages.avg_achievement || '0')) : 0,
+          mounts: averages ? Math.floor(parseFloat(averages.avg_mounts || '0')) : 0,
+          pets: averages ? Math.floor(parseFloat(averages.avg_pets || '0')) : 0,
+          itemLevel: averages ? Math.floor(parseFloat(averages.avg_item_level || '0')) : 0,
+        },
+        snapshotDate,
+      }),
+    );
   }
 }

@@ -1,15 +1,15 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DataSource, EntityManager, Repository } from 'typeorm';
 import { AnalyticsMetricCategory, AnalyticsMetricType } from '@app/resources';
-import { analyticsMetricExists } from '@app/resources/dao';
+import { analyticsKeyOf, findExistingAnalyticsKeys } from '@app/resources/dao';
 import {
-  GuildTotalMetrics,
   GuildCountAggregation,
   GuildRealmAggregation,
   GuildRealmFactionAggregation,
   GuildSizeDistribution,
   GuildTopByMembers,
+  GuildTotalMetrics,
 } from '@app/resources/types';
 import { AnalyticsEntity, GuildsEntity } from '@app/pg';
 
@@ -20,6 +20,8 @@ export class GuildMetricsService {
   });
 
   constructor(
+    @InjectDataSource()
+    private readonly dataSource: DataSource,
     @InjectRepository(AnalyticsEntity)
     private readonly analyticsMetricRepository: Repository<AnalyticsEntity>,
     @InjectRepository(GuildsEntity)
@@ -28,58 +30,30 @@ export class GuildMetricsService {
 
   async snapshotGuildMetrics(snapshotDate: Date): Promise<number> {
     const logTag = 'snapshotGuildMetrics';
-    let savedCount = 0;
     const startTime = Date.now();
 
     try {
-      // Total count
-      const totalCount = await this.guildsRepository.count();
-      const totalMembers = await this.getGuildTotalMembers();
+      const savedCount = await this.dataSource.transaction(async (manager) => {
+        const existingKeys = await findExistingAnalyticsKeys(manager, snapshotDate);
+        const rows: AnalyticsEntity[] = [];
 
-      const avgMembers = totalCount > 0 ? parseInt(totalMembers?.sum || '0', 10) / totalCount : 0;
+        await this.collectGuildTotal(manager, rows, existingKeys, snapshotDate);
+        await this.collectGuildByFaction(manager, rows, existingKeys, snapshotDate);
+        await this.collectGuildByRealm(manager, rows, existingKeys, snapshotDate);
+        await this.collectGuildByRealmFaction(manager, rows, existingKeys, snapshotDate);
+        await this.collectGuildSizeDistribution(manager, rows, existingKeys, snapshotDate);
+        await this.collectGuildTopByMembers(manager, rows, existingKeys, snapshotDate);
+        await this.collectGuildTopByAchievements(manager, rows, existingKeys, snapshotDate);
 
-      // Check if total metric exists
-      if (
-        !(await analyticsMetricExists(this.analyticsMetricRepository, {
-          category: AnalyticsMetricCategory.GUILDS,
-          metricType: AnalyticsMetricType.TOTAL,
-          snapshotDate,
-        }))
-      ) {
-        const guildTotalMetric = this.analyticsMetricRepository.create({
-          category: AnalyticsMetricCategory.GUILDS,
-          metricType: AnalyticsMetricType.TOTAL,
-          value: {
-            count: totalCount,
-            totalMembers: parseInt(totalMembers?.sum || '0', 10),
-            avgMembers: avgMembers,
-          },
-          snapshotDate,
-        });
-        await this.analyticsMetricRepository.save(guildTotalMetric);
-        savedCount++;
-      }
-
-      // By Faction (global)
-      savedCount += await this.snapshotGuildByFaction(snapshotDate);
-
-      // By Realm (with member counts)
-      savedCount += await this.snapshotGuildByRealm(snapshotDate);
-
-      // By Realm + Faction
-      savedCount += await this.snapshotGuildByRealmFaction(snapshotDate);
-
-      // Size distribution
-      savedCount += await this.snapshotGuildSizeDistribution(snapshotDate);
-
-      // Top guilds by members
-      savedCount += await this.snapshotGuildTopByMembers(snapshotDate);
-
-      // Top guilds by achievements
-      savedCount += await this.snapshotGuildTopByAchievements(snapshotDate);
+        if (rows.length > 0) {
+          await manager.save(AnalyticsEntity, rows);
+        }
+        return rows.length;
+      });
 
       const duration = Date.now() - startTime;
       this.logger.log(`Guild metrics snapshotted - metricsCount: ${savedCount}, durationMs: ${duration}`);
+      return savedCount;
     } catch (errorOrException) {
       const duration = Date.now() - startTime;
       this.logger.error({
@@ -90,30 +64,51 @@ export class GuildMetricsService {
       });
       throw errorOrException;
     }
-
-    return savedCount;
   }
 
-  private async getGuildTotalMembers(): Promise<GuildTotalMetrics | null> {
-    return this.guildsRepository
+  private async collectGuildTotal(
+    manager: EntityManager,
+    rows: AnalyticsEntity[],
+    existingKeys: Set<string>,
+    snapshotDate: Date,
+  ): Promise<void> {
+    const key = analyticsKeyOf(AnalyticsMetricCategory.GUILDS, AnalyticsMetricType.TOTAL);
+    if (existingKeys.has(key)) return;
+
+    const guildsRepo = manager.getRepository(GuildsEntity);
+    const totalCount = await guildsRepo.count();
+    const totalMembers = await guildsRepo
       .createQueryBuilder('g')
       .select('SUM(g.members_count)', 'sum')
       .getRawOne<GuildTotalMetrics>();
+
+    const avgMembers = totalCount > 0 ? parseInt(totalMembers?.sum || '0', 10) / totalCount : 0;
+
+    rows.push(
+      manager.create(AnalyticsEntity, {
+        category: AnalyticsMetricCategory.GUILDS,
+        metricType: AnalyticsMetricType.TOTAL,
+        value: {
+          count: totalCount,
+          totalMembers: parseInt(totalMembers?.sum || '0', 10),
+          avgMembers,
+        },
+        snapshotDate,
+      }),
+    );
   }
 
-  private async snapshotGuildByFaction(snapshotDate: Date): Promise<number> {
-    // Check if metric exists
-    const isByFactionExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-      category: AnalyticsMetricCategory.GUILDS,
-      metricType: AnalyticsMetricType.BY_FACTION,
-      snapshotDate,
-    });
+  private async collectGuildByFaction(
+    manager: EntityManager,
+    rows: AnalyticsEntity[],
+    existingKeys: Set<string>,
+    snapshotDate: Date,
+  ): Promise<void> {
+    const key = analyticsKeyOf(AnalyticsMetricCategory.GUILDS, AnalyticsMetricType.BY_FACTION);
+    if (existingKeys.has(key)) return;
 
-    if (isByFactionExists) {
-      return 0;
-    }
-
-    const byFaction = await this.guildsRepository
+    const byFaction = await manager
+      .getRepository(GuildsEntity)
       .createQueryBuilder('g')
       .select('g.faction', 'faction')
       .addSelect('COUNT(*)', 'count')
@@ -129,18 +124,24 @@ export class GuildMetricsService {
       {} as Record<string, number>,
     );
 
-    const guildByFactionMetric = this.analyticsMetricRepository.create({
-      category: AnalyticsMetricCategory.GUILDS,
-      metricType: AnalyticsMetricType.BY_FACTION,
-      value: factionMap,
-      snapshotDate,
-    });
-    await this.analyticsMetricRepository.save(guildByFactionMetric);
-    return 1;
+    rows.push(
+      manager.create(AnalyticsEntity, {
+        category: AnalyticsMetricCategory.GUILDS,
+        metricType: AnalyticsMetricType.BY_FACTION,
+        value: factionMap,
+        snapshotDate,
+      }),
+    );
   }
 
-  private async snapshotGuildByRealm(snapshotDate: Date): Promise<number> {
-    const byRealm = await this.guildsRepository
+  private async collectGuildByRealm(
+    manager: EntityManager,
+    rows: AnalyticsEntity[],
+    existingKeys: Set<string>,
+    snapshotDate: Date,
+  ): Promise<void> {
+    const byRealm = await manager
+      .getRepository(GuildsEntity)
       .createQueryBuilder('g')
       .select('g.realm_id')
       .addSelect('COUNT(*)', 'count')
@@ -148,18 +149,12 @@ export class GuildMetricsService {
       .groupBy('g.realm_id')
       .getRawMany<GuildRealmAggregation>();
 
-    let savedCount = 0;
     for (const realmData of byRealm) {
-      // Check if metric exists
-      const isRealmTotalExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-        category: AnalyticsMetricCategory.GUILDS,
-        metricType: AnalyticsMetricType.TOTAL,
-        snapshotDate,
-        realmId: realmData.realm_id,
-      });
+      const key = analyticsKeyOf(AnalyticsMetricCategory.GUILDS, AnalyticsMetricType.TOTAL, realmData.realm_id);
+      if (existingKeys.has(key)) continue;
 
-      if (!isRealmTotalExists) {
-        const guildRealmTotalMetric = this.analyticsMetricRepository.create({
+      rows.push(
+        manager.create(AnalyticsEntity, {
           category: AnalyticsMetricCategory.GUILDS,
           metricType: AnalyticsMetricType.TOTAL,
           realmId: realmData.realm_id,
@@ -168,16 +163,19 @@ export class GuildMetricsService {
             totalMembers: parseInt(realmData.total_members || '0', 10),
           },
           snapshotDate,
-        });
-        await this.analyticsMetricRepository.save(guildRealmTotalMetric);
-        savedCount++;
-      }
+        }),
+      );
     }
-    return savedCount;
   }
 
-  private async snapshotGuildByRealmFaction(snapshotDate: Date): Promise<number> {
-    const byRealmFaction = await this.guildsRepository
+  private async collectGuildByRealmFaction(
+    manager: EntityManager,
+    rows: AnalyticsEntity[],
+    existingKeys: Set<string>,
+    snapshotDate: Date,
+  ): Promise<void> {
+    const byRealmFaction = await manager
+      .getRepository(GuildsEntity)
       .createQueryBuilder('g')
       .select('g.realm_id')
       .addSelect('g.faction', 'faction')
@@ -195,44 +193,34 @@ export class GuildMetricsService {
       {} as Record<number, Record<string, number>>,
     );
 
-    let savedCount = 0;
     for (const [realmId, factionCounts] of Object.entries(byRealmFactionMap)) {
-      // Check if metric exists
-      const isRealmFactionExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-        category: AnalyticsMetricCategory.GUILDS,
-        metricType: AnalyticsMetricType.BY_FACTION,
-        snapshotDate,
-        realmId: parseInt(realmId, 10),
-      });
+      const realmIdNum = parseInt(realmId, 10);
+      const key = analyticsKeyOf(AnalyticsMetricCategory.GUILDS, AnalyticsMetricType.BY_FACTION, realmIdNum);
+      if (existingKeys.has(key)) continue;
 
-      if (!isRealmFactionExists) {
-        const guildRealmFactionMetric = this.analyticsMetricRepository.create({
+      rows.push(
+        manager.create(AnalyticsEntity, {
           category: AnalyticsMetricCategory.GUILDS,
           metricType: AnalyticsMetricType.BY_FACTION,
-          realmId: parseInt(realmId, 10),
+          realmId: realmIdNum,
           value: factionCounts,
           snapshotDate,
-        });
-        await this.analyticsMetricRepository.save(guildRealmFactionMetric);
-        savedCount++;
-      }
+        }),
+      );
     }
-    return savedCount;
   }
 
-  private async snapshotGuildSizeDistribution(snapshotDate: Date): Promise<number> {
-    // Check if metric exists
-    const isSizeDistributionExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-      category: AnalyticsMetricCategory.GUILDS,
-      metricType: AnalyticsMetricType.SIZE_DISTRIBUTION,
-      snapshotDate,
-    });
+  private async collectGuildSizeDistribution(
+    manager: EntityManager,
+    rows: AnalyticsEntity[],
+    existingKeys: Set<string>,
+    snapshotDate: Date,
+  ): Promise<void> {
+    const key = analyticsKeyOf(AnalyticsMetricCategory.GUILDS, AnalyticsMetricType.SIZE_DISTRIBUTION);
+    if (existingKeys.has(key)) return;
 
-    if (isSizeDistributionExists) {
-      return 0;
-    }
-
-    const sizeDistribution = await this.guildsRepository
+    const sizeDistribution = await manager
+      .getRepository(GuildsEntity)
       .createQueryBuilder('g')
       .select(`SUM(CASE WHEN g.members_count BETWEEN 1 AND 10 THEN 1 ELSE 0 END)`, 'tiny')
       .addSelect(`SUM(CASE WHEN g.members_count BETWEEN 11 AND 30 THEN 1 ELSE 0 END)`, 'small')
@@ -241,35 +229,33 @@ export class GuildMetricsService {
       .addSelect(`SUM(CASE WHEN g.members_count > 300 THEN 1 ELSE 0 END)`, 'massive')
       .getRawOne<GuildSizeDistribution>();
 
-    const guildSizeDistributionMetric = this.analyticsMetricRepository.create({
-      category: AnalyticsMetricCategory.GUILDS,
-      metricType: AnalyticsMetricType.SIZE_DISTRIBUTION,
-      value: {
-        tiny: parseInt(sizeDistribution?.tiny || '0', 10),
-        small: parseInt(sizeDistribution?.small || '0', 10),
-        medium: parseInt(sizeDistribution?.medium || '0', 10),
-        large: parseInt(sizeDistribution?.large || '0', 10),
-        massive: parseInt(sizeDistribution?.massive || '0', 10),
-      },
-      snapshotDate,
-    });
-    await this.analyticsMetricRepository.save(guildSizeDistributionMetric);
-    return 1;
+    rows.push(
+      manager.create(AnalyticsEntity, {
+        category: AnalyticsMetricCategory.GUILDS,
+        metricType: AnalyticsMetricType.SIZE_DISTRIBUTION,
+        value: {
+          tiny: parseInt(sizeDistribution?.tiny || '0', 10),
+          small: parseInt(sizeDistribution?.small || '0', 10),
+          medium: parseInt(sizeDistribution?.medium || '0', 10),
+          large: parseInt(sizeDistribution?.large || '0', 10),
+          massive: parseInt(sizeDistribution?.massive || '0', 10),
+        },
+        snapshotDate,
+      }),
+    );
   }
 
-  private async snapshotGuildTopByMembers(snapshotDate: Date): Promise<number> {
-    // Check if metric exists
-    const isTopByMembersExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-      category: AnalyticsMetricCategory.GUILDS,
-      metricType: AnalyticsMetricType.TOP_BY_MEMBERS,
-      snapshotDate,
-    });
+  private async collectGuildTopByMembers(
+    manager: EntityManager,
+    rows: AnalyticsEntity[],
+    existingKeys: Set<string>,
+    snapshotDate: Date,
+  ): Promise<void> {
+    const key = analyticsKeyOf(AnalyticsMetricCategory.GUILDS, AnalyticsMetricType.TOP_BY_MEMBERS);
+    if (existingKeys.has(key)) return;
 
-    if (isTopByMembersExists) {
-      return 0;
-    }
-
-    const topByMembers = await this.guildsRepository
+    const topByMembers = await manager
+      .getRepository(GuildsEntity)
       .createQueryBuilder('g')
       .select('g.guid', 'guid')
       .addSelect('g.name', 'name')
@@ -279,36 +265,34 @@ export class GuildMetricsService {
       .limit(10)
       .getRawMany<GuildTopByMembers>();
 
-    const topByMembersValue: Record<string, GuildTopByMembers> = {};
+    const value: Record<string, GuildTopByMembers> = {};
     for (const guild of topByMembers) {
       if (guild?.guid) {
-        topByMembersValue[guild.guid] = guild;
+        value[guild.guid] = guild;
       }
     }
 
-    const guildTopByMembersMetric = this.analyticsMetricRepository.create({
-      category: AnalyticsMetricCategory.GUILDS,
-      metricType: AnalyticsMetricType.TOP_BY_MEMBERS,
-      value: topByMembersValue,
-      snapshotDate,
-    });
-    await this.analyticsMetricRepository.save(guildTopByMembersMetric);
-    return 1;
+    rows.push(
+      manager.create(AnalyticsEntity, {
+        category: AnalyticsMetricCategory.GUILDS,
+        metricType: AnalyticsMetricType.TOP_BY_MEMBERS,
+        value,
+        snapshotDate,
+      }),
+    );
   }
 
-  private async snapshotGuildTopByAchievements(snapshotDate: Date): Promise<number> {
-    // Check if metric exists
-    const isTopByAchievementsExists = await analyticsMetricExists(this.analyticsMetricRepository, {
-      category: AnalyticsMetricCategory.GUILDS,
-      metricType: AnalyticsMetricType.TOP_BY_ACHIEVEMENTS,
-      snapshotDate,
-    });
+  private async collectGuildTopByAchievements(
+    manager: EntityManager,
+    rows: AnalyticsEntity[],
+    existingKeys: Set<string>,
+    snapshotDate: Date,
+  ): Promise<void> {
+    const key = analyticsKeyOf(AnalyticsMetricCategory.GUILDS, AnalyticsMetricType.TOP_BY_ACHIEVEMENTS);
+    if (existingKeys.has(key)) return;
 
-    if (isTopByAchievementsExists) {
-      return 0;
-    }
-
-    const topByAchievements = await this.guildsRepository
+    const topByAchievements = await manager
+      .getRepository(GuildsEntity)
       .createQueryBuilder('g')
       .select('g.guid', 'guid')
       .addSelect('g.name', 'name')
@@ -319,20 +303,20 @@ export class GuildMetricsService {
       .limit(10)
       .getRawMany<GuildTopByMembers>();
 
-    const topByAchievementsValue: Record<string, GuildTopByMembers> = {};
+    const value: Record<string, GuildTopByMembers> = {};
     for (const guild of topByAchievements) {
       if (guild?.guid) {
-        topByAchievementsValue[guild.guid] = guild;
+        value[guild.guid] = guild;
       }
     }
 
-    const guildTopByAchievementsMetric = this.analyticsMetricRepository.create({
-      category: AnalyticsMetricCategory.GUILDS,
-      metricType: AnalyticsMetricType.TOP_BY_ACHIEVEMENTS,
-      value: topByAchievementsValue,
-      snapshotDate,
-    });
-    await this.analyticsMetricRepository.save(guildTopByAchievementsMetric);
-    return 1;
+    rows.push(
+      manager.create(AnalyticsEntity, {
+        category: AnalyticsMetricCategory.GUILDS,
+        metricType: AnalyticsMetricType.TOP_BY_ACHIEVEMENTS,
+        value,
+        snapshotDate,
+      }),
+    );
   }
 }
