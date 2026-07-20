@@ -5,6 +5,8 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 
 @Index('ix__market__item_id', ['itemId'], {})
 @Index('ix__market__connected_realm_id', ['connectedRealmId'], {})
 @Index('ix__market__timestamp', ['timestamp'], {})
+@Index('ix__market__timestamp_item', ['timestamp', 'itemId'], {})
+@Index('ix__market__timestamp_realm', ['timestamp', 'connectedRealmId'], {})
 @Entity({ name: CMNW_ENTITY_ENUM.MARKET })
 export class MarketEntity {
   @PrimaryGeneratedColumn('uuid')

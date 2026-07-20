@@ -1,6 +1,8 @@
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
-import { Column, CreateDateColumn, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
+@Index('ix__guilds__realm_id', ['realmId'], {})
+@Index('ix__guilds__members_count', ['membersCount'], {})
 @Entity({ name: CMNW_ENTITY_ENUM.GUILDS })
 export class GuildsEntity {
   @PrimaryColumn({

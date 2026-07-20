@@ -4,6 +4,9 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColum
 @Index('ix__characters__guild_guild', ['guildGuid'], {})
 @Index('ix__characters__hash_a', ['hashA'], {})
 @Index('ix__characters__hash_b', ['hashB'], {})
+@Index('ix__characters__realm_id', ['realmId'], {})
+@Index('ix__characters__level', ['level'], {})
+@Index('ix__characters__realm_level', ['realmId', 'level'], {})
 @Entity({ name: CMNW_ENTITY_ENUM.CHARACTERS })
 export class CharactersEntity {
   @PrimaryColumn({

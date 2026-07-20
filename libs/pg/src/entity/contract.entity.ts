@@ -1,6 +1,9 @@
-import { Column, CreateDateColumn, Entity, PrimaryColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, Index, PrimaryColumn } from 'typeorm';
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
 
+@Index('ix__contract__timestamp', ['timestamp'], {})
+@Index('ix__contract__timestamp_realm', ['timestamp', 'connectedRealmId'], {})
+@Index('ix__contract__timestamp_item', ['timestamp', 'itemId'], {})
 @Entity({ name: CMNW_ENTITY_ENUM.CONTRACTS })
 export class ContractEntity {
   @PrimaryColumn('varchar')
