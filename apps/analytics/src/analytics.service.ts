@@ -2,6 +2,9 @@ import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
 import { Cron } from '@nestjs/schedule';
 import { Repository, MoreThanOrEqual } from 'typeorm';
 import { DateTime } from 'luxon';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import Redis from 'ioredis';
+import { CACHE_PATTERN, invalidateCachePattern } from '@app/resources';
 import {
   CharacterMetricsService,
   ContractMetricsService,
@@ -20,6 +23,8 @@ export class AnalyticsService implements OnApplicationBootstrap {
   });
 
   constructor(
+    @InjectRedis()
+    private readonly redis: Redis,
     @InjectRepository(AnalyticsEntity)
     private readonly analyticsMetricRepository: Repository<AnalyticsEntity>,
     private readonly characterMetricsService: CharacterMetricsService,
@@ -117,8 +122,18 @@ export class AnalyticsService implements OnApplicationBootstrap {
 
       const totalMetrics = charCount + guildCount + marketCount + contractCount + hofCount;
 
+      const invalidated = await invalidateCachePattern(this.redis, CACHE_PATTERN.ANALYTICS, (message) =>
+        this.logger.warn({ logTag, message }),
+      );
+
       const duration = Date.now() - startTime;
-      this.logger.log(`Daily analytics snapshot completed - metricsCount: ${totalMetrics}, durationMs: ${duration}`);
+      this.logger.log({
+        logTag,
+        message: 'Daily analytics snapshot completed',
+        metricsCount: totalMetrics,
+        invalidatedKeys: invalidated,
+        durationMs: duration,
+      });
     } catch (errorOrException) {
       this.logger.error({
         logTag,
