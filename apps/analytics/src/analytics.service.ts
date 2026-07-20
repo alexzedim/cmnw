@@ -56,15 +56,15 @@ export class AnalyticsService implements OnApplicationBootstrap {
 
       // If table is empty (first launch) or no snapshot for today, run immediately.
       // Fire-and-forget so we don't block HTTP serving in co-hosted apps
-      // (e.g. the API process). The computation is idempotent and wrapped in
+      // (e.g. the API process). The snapshot is idempotent and wrapped in
       // its own try/catch, so any failure only logs — it cannot crash boot.
       if (tableRowCount === 0 || !todaySnapshot) {
         this.logger.log({
           logTag,
-          message: 'No snapshot for today detected, running computation in background',
+          message: 'No snapshot for today detected, running snapshot in background',
           tableRowCount,
         });
-        void this.computeDailySnapshot();
+        void this.snapshotDaily();
       }
     } catch (errorOrException) {
       this.logger.error({
@@ -76,35 +76,35 @@ export class AnalyticsService implements OnApplicationBootstrap {
   }
 
   @Cron('0 2 * * *')
-  private async computeDailySnapshot(): Promise<void> {
-    const logTag = 'computeDailySnapshot';
+  private async snapshotDaily(): Promise<void> {
+    const logTag = 'snapshotDaily';
     const startTime = Date.now();
     const snapshotDate = DateTime.now().startOf('day').toJSDate();
 
     try {
       this.logger.log({
         logTag,
-        message: 'Starting daily analytics computation',
+        message: 'Starting daily analytics snapshot',
         snapshotDate: snapshotDate.toISOString(),
       });
 
-      // Compute all metrics in parallel
+      // Snapshot all metrics in parallel
       const [charCount, guildCount, marketCount, contractCount, hofCount] = await Promise.all([
-        this.characterMetricsService.computeCharacterMetrics(snapshotDate),
-        this.guildMetricsService.computeGuildMetrics(snapshotDate),
-        this.marketMetricsService.computeMarketMetrics(snapshotDate),
-        this.contractMetricsService.computeContractMetrics(snapshotDate),
-        this.hallOfFameMetricsService.computeHallOfFameMetrics(snapshotDate),
+        this.characterMetricsService.snapshotCharacterMetrics(snapshotDate),
+        this.guildMetricsService.snapshotGuildMetrics(snapshotDate),
+        this.marketMetricsService.snapshotMarketMetrics(snapshotDate),
+        this.contractMetricsService.snapshotContractMetrics(snapshotDate),
+        this.hallOfFameMetricsService.snapshotHallOfFameMetrics(snapshotDate),
       ]);
 
       const totalMetrics = charCount + guildCount + marketCount + contractCount + hofCount;
 
       const duration = Date.now() - startTime;
-      this.logger.log(`Daily analytics computation completed - metricsCount: ${totalMetrics}, durationMs: ${duration}`);
+      this.logger.log(`Daily analytics snapshot completed - metricsCount: ${totalMetrics}, durationMs: ${duration}`);
     } catch (errorOrException) {
       this.logger.error({
         logTag,
-        message: 'Error during daily analytics computation',
+        message: 'Error during daily analytics snapshot',
         errorOrException,
       });
       throw errorOrException;

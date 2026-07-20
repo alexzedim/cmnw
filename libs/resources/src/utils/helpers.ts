@@ -1,10 +1,19 @@
 import { setTimeout } from 'timers/promises';
+import { isEqual } from 'lodash';
 
 /**
  * @description Delay for the selected amount of time in seconds
  * @param seconds {number}
  */
 export const delay = async (seconds = 5) => await setTimeout(seconds * 1000);
+
+/**
+ * Deep-equality check for analytics values, order-independent. Required because
+ * Postgres JSONB may persist keys in a different order than the JS literal we
+ * build when computing the value, so JSON.stringify-based comparison would
+ * false-negative on semantically-equal payloads.
+ */
+export const isUnchanged = (a: unknown, b: unknown): boolean => isEqual(a, b);
 
 /**
  * @description Return array of unique strings from object keys or enum.

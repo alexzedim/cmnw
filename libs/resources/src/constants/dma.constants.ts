@@ -188,6 +188,8 @@ export const GOLD_ITEM_ENTITY = {
   indexBy: DMA_SOURCE.LAB,
 };
 
+export const CONTRACTS_EXCLUDED_ITEM_IDS = [GOLD_ITEM_ENTITY.id, WOW_TOKEN_ITEM_ID];
+
 export const ITEM_FIELD_MAPPING = new Map<keyof Partial<IItem>, IItemFieldMap>([
   ['name', { key: 'name', path: 'name' }],
   ['quality', { key: 'quality', path: 'quality.name' }],

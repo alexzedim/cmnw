@@ -1,19 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { isEqual } from 'lodash';
-import { AnalyticsMetricCategory, AnalyticsMetricType } from '@app/resources';
+import { AnalyticsMetricCategory, AnalyticsMetricType, isUnchanged } from '@app/resources';
 import { analyticsMetricLatest } from '@app/resources/dao';
 import { HallOfFameRaidAggregation, HallOfFameRealmMetricRow } from '@app/resources/types';
 import { AnalyticsEntity, GuildHallOfFameEntity, RealmsEntity } from '@app/pg';
-
-/**
- * Deep-equality check for analytics values, order-independent. Required because
- * Postgres JSONB may persist keys in a different order than the JS literal we
- * build when computing the value, so JSON.stringify-based comparison would
- * false-negative on semantically-equal payloads.
- */
-const isUnchanged = (a: unknown, b: unknown): boolean => isEqual(a, b);
 
 @Injectable()
 export class HallOfFameMetricsService {
@@ -30,23 +21,23 @@ export class HallOfFameMetricsService {
     private readonly realmsRepository: Repository<RealmsEntity>,
   ) {}
 
-  async computeHallOfFameMetrics(snapshotDate: Date): Promise<number> {
-    const logTag = 'computeHallOfFameMetrics';
+  async snapshotHallOfFameMetrics(snapshotDate: Date): Promise<number> {
+    const logTag = 'snapshotHallOfFameMetrics';
     let savedCount = 0;
     const startTime = Date.now();
 
     try {
-      savedCount += await this.computeTotal(snapshotDate);
-      savedCount += await this.computeByRaid(snapshotDate);
-      savedCount += await this.computePerRealm(snapshotDate);
+      savedCount += await this.snapshotTotal(snapshotDate);
+      savedCount += await this.snapshotByRaid(snapshotDate);
+      savedCount += await this.snapshotPerRealm(snapshotDate);
 
       const duration = Date.now() - startTime;
-      this.logger.log(`Hall of Fame metrics computed - metricsCount: ${savedCount}, durationMs: ${duration}`);
+      this.logger.log(`Hall of Fame metrics snapshotted - metricsCount: ${savedCount}, durationMs: ${duration}`);
     } catch (errorOrException) {
       const duration = Date.now() - startTime;
       this.logger.error({
         logTag,
-        message: 'Error computing Hall of Fame metrics',
+        message: 'Error snapshotting Hall of Fame metrics',
         errorOrException,
         durationMs: duration,
       });
@@ -56,18 +47,24 @@ export class HallOfFameMetricsService {
     return savedCount;
   }
 
-  private async computeTotal(snapshotDate: Date): Promise<number> {
-    const totalAchievements = await this.guildHallOfFameRepository.count();
-    const totalGuilds = await this.guildHallOfFameRepository
+  private async getHallOfFameDistinctGuildCount(): Promise<{ count: string } | null> {
+    return this.guildHallOfFameRepository
       .createQueryBuilder('h')
       .select('COUNT(DISTINCT h.guild_guid)', 'count')
       .getRawOne<{ count: string }>();
+  }
 
-    const realmsWithHof = await this.guildHallOfFameRepository
+  private async getHallOfFameDistinctRealmCount(): Promise<{ count: string } | null> {
+    return this.guildHallOfFameRepository
       .createQueryBuilder('h')
       .select('COUNT(DISTINCT h.realm_slug)', 'count')
       .getRawOne<{ count: string }>();
+  }
 
+  private async snapshotTotal(snapshotDate: Date): Promise<number> {
+    const totalAchievements = await this.guildHallOfFameRepository.count();
+    const totalGuilds = await this.getHallOfFameDistinctGuildCount();
+    const realmsWithHof = await this.getHallOfFameDistinctRealmCount();
     const totalEuRealms = await this.realmsRepository.count({
       where: { region: 'Europe' },
     });
@@ -101,7 +98,7 @@ export class HallOfFameMetricsService {
     return 1;
   }
 
-  private async computeByRaid(snapshotDate: Date): Promise<number> {
+  private async snapshotByRaid(snapshotDate: Date): Promise<number> {
     const byRaid = await this.guildHallOfFameRepository
       .createQueryBuilder('h')
       .select('h.raid_slug', 'raid_slug')
@@ -142,7 +139,7 @@ export class HallOfFameMetricsService {
     return 1;
   }
 
-  private async computePerRealm(snapshotDate: Date): Promise<number> {
+  private async snapshotPerRealm(snapshotDate: Date): Promise<number> {
     const byRealm = await this.guildHallOfFameRepository
       .createQueryBuilder('h')
       .leftJoin('realms', 'r', 'r.slug = h.realm_slug')

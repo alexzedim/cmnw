@@ -61,4 +61,3 @@ export const analyticsMetricLatest = async (
 
   return query.getOne();
 };
-

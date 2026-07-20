@@ -32,8 +32,8 @@ export class MarketMetricsService {
     private readonly marketRepository: Repository<MarketEntity>,
   ) {}
 
-  async computeMarketMetrics(snapshotDate: Date): Promise<number> {
-    const logTag = 'computeMarketMetrics';
+  async snapshotMarketMetrics(snapshotDate: Date): Promise<number> {
+    const logTag = 'snapshotMarketMetrics';
     let savedCount = 0;
     const startTime = Date.now();
 
@@ -46,30 +46,11 @@ export class MarketMetricsService {
         where: { timestamp: MoreThan(threshold24h) },
       });
 
-      const totalVolume = await this.marketRepository
-        .createQueryBuilder('m')
-        .select('SUM(m.value)', 'sum')
-        .where('m.timestamp > :threshold', { threshold: threshold24h })
-        .getRawOne<MarketTotalMetrics>();
+      const totalVolume = await this.getMarketTotalVolume(threshold24h);
 
       // Count unique items by market type
-      const uniqueItemsAuctions = await this.marketRepository
-        .createQueryBuilder('m')
-        .select('COUNT(DISTINCT m.item_id)', 'count')
-        .where('m.timestamp > :threshold AND m.type = :type', {
-          threshold: threshold24h,
-          type: MARKET_TYPE.A,
-        })
-        .getRawOne<MarketAggregateCount>();
-
-      const uniqueItemsCommdty = await this.marketRepository
-        .createQueryBuilder('m')
-        .select('COUNT(DISTINCT m.item_id)', 'count')
-        .where('m.timestamp > :threshold AND m.type = :type', {
-          threshold: threshold24h,
-          type: MARKET_TYPE.C,
-        })
-        .getRawOne<MarketAggregateCount>();
+      const uniqueItemsAuctions = await this.getMarketUniqueItems(threshold24h, MARKET_TYPE.A);
+      const uniqueItemsCommdty = await this.getMarketUniqueItems(threshold24h, MARKET_TYPE.C);
 
       // Check if total metric exists
       const isTotalExists = await analyticsMetricExists(this.analyticsMetricRepository, {
@@ -95,24 +76,24 @@ export class MarketMetricsService {
       }
 
       // By Connected Realm
-      savedCount += await this.computeMarketByConnectedRealm(snapshotDate, threshold24h);
+      savedCount += await this.snapshotMarketByConnectedRealm(snapshotDate, threshold24h);
 
       // Price ranges
-      savedCount += await this.computeMarketPriceRanges(snapshotDate, threshold24h);
+      savedCount += await this.snapshotMarketPriceRanges(snapshotDate, threshold24h);
 
       // Top items by volume
-      savedCount += await this.computeMarketTopByVolume(snapshotDate, threshold24h);
+      savedCount += await this.snapshotMarketTopByVolume(snapshotDate, threshold24h);
 
       // Top items by auction count
-      savedCount += await this.computeMarketTopByAuctions(snapshotDate, threshold24h);
+      savedCount += await this.snapshotMarketTopByAuctions(snapshotDate, threshold24h);
 
       const duration = Date.now() - startTime;
-      this.logger.log(`Market metrics computed - metricsCount: ${savedCount}, durationMs: ${duration}`);
+      this.logger.log(`Market metrics snapshotted - metricsCount: ${savedCount}, durationMs: ${duration}`);
     } catch (errorOrException) {
       const duration = Date.now() - startTime;
       this.logger.error({
         logTag,
-        message: 'Error computing market metrics',
+        message: 'Error snapshotting market metrics',
         errorOrException,
         durationMs: duration,
       });
@@ -122,7 +103,23 @@ export class MarketMetricsService {
     return savedCount;
   }
 
-  private async computeMarketByConnectedRealm(snapshotDate: Date, threshold24h: number): Promise<number> {
+  private async getMarketTotalVolume(threshold24h: number): Promise<MarketTotalMetrics | null> {
+    return this.marketRepository
+      .createQueryBuilder('m')
+      .select('SUM(m.value)', 'sum')
+      .where('m.timestamp > :threshold', { threshold: threshold24h })
+      .getRawOne<MarketTotalMetrics>();
+  }
+
+  private async getMarketUniqueItems(threshold24h: number, type: string): Promise<MarketAggregateCount | null> {
+    return this.marketRepository
+      .createQueryBuilder('m')
+      .select('COUNT(DISTINCT m.item_id)', 'count')
+      .where('m.timestamp > :threshold AND m.type = :type', { threshold: threshold24h, type })
+      .getRawOne<MarketAggregateCount>();
+  }
+
+  private async snapshotMarketByConnectedRealm(snapshotDate: Date, threshold24h: number): Promise<number> {
     const byConnectedRealm = await this.marketRepository
       .createQueryBuilder('m')
       .select('m.connected_realm_id')
@@ -168,7 +165,7 @@ export class MarketMetricsService {
     return savedCount;
   }
 
-  private async computeMarketPriceRanges(snapshotDate: Date, threshold24h: number): Promise<number> {
+  private async snapshotMarketPriceRanges(snapshotDate: Date, threshold24h: number): Promise<number> {
     // Check if metric exists
     const isPriceRangesExists = await analyticsMetricExists(this.analyticsMetricRepository, {
       category: AnalyticsMetricCategory.MARKET,
@@ -206,7 +203,7 @@ export class MarketMetricsService {
     return 1;
   }
 
-  private async computeMarketTopByVolume(snapshotDate: Date, threshold24h: number): Promise<number> {
+  private async snapshotMarketTopByVolume(snapshotDate: Date, threshold24h: number): Promise<number> {
     // Check if metric exists
     const isTopByVolumeExists = await analyticsMetricExists(this.analyticsMetricRepository, {
       category: AnalyticsMetricCategory.MARKET,
@@ -250,7 +247,7 @@ export class MarketMetricsService {
     return 1;
   }
 
-  private async computeMarketTopByAuctions(snapshotDate: Date, threshold24h: number): Promise<number> {
+  private async snapshotMarketTopByAuctions(snapshotDate: Date, threshold24h: number): Promise<number> {
     // Check if metric exists
     const isTopByAuctionsExists = await analyticsMetricExists(this.analyticsMetricRepository, {
       category: AnalyticsMetricCategory.MARKET,
