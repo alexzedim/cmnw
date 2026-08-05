@@ -1,21 +1,18 @@
 # syntax=docker/dockerfile:1.4
-FROM node:lts AS builder
+FROM node:24 AS builder
 
 WORKDIR /usr/src/app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 RUN corepack enable && \
-    corepack pnpm install
-
-RUN npm install -g @nestjs/cli
+    corepack pnpm install --dev
 
 COPY . .
 
-RUN nest build market && \
-    nest build dma
+RUN corepack pnpm run build:all
 
-FROM node:lts
+FROM node:24
 
 ARG OCI_CREATED
 ARG OCI_REVISION
@@ -29,7 +26,7 @@ LABEL org.opencontainers.image.title="CMNW DMA" \
     org.opencontainers.image.documentation="https://github.com/alexzedim/cmnw#readme" \
     org.opencontainers.image.licenses="MPL-2.0" \
     org.opencontainers.image.logo="https://raw.githubusercontent.com/alexzedim/cmnw-next/master/public/static/cmnw.png" \
-    org.opencontainers.image.base.name="node:lts" \
+    org.opencontainers.image.base.name="node:24" \
     org.opencontainers.image.created="${OCI_CREATED}" \
     org.opencontainers.image.revision="${OCI_REVISION}" \
     org.opencontainers.image.version="${OCI_VERSION}"
@@ -50,7 +47,4 @@ RUN chown -R app:app /usr/src/app
 
 USER app
 
-CMD ["node", "dist/apps/dma/main.js"]
-
-
-
+CMD ["node", "dist/apps/dma/src/main.js"]
