@@ -6,7 +6,7 @@
 
 - **Version**: 6.10.13
 - **Framework**: NestJS 11.x with TypeScript 7.0.2 (SWC compiler)
-- **Runtime**: Node.js >=24.0.0, pnpm 10.32.1
+- **Runtime**: Node.js >=24.0.0, pnpm 11.20.0
 - **Databases**: PostgreSQL (TypeORM), Redis
 - **Message Queue**: BullMQ
 
