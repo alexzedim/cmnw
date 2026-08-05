@@ -143,26 +143,27 @@ pnpm install
 cp .env.docker .env        # edit with your values
 docker compose -f docker-compose.db.yml up -d
 pnpm build:all
-nest start core --watch
+pnpm dev
 ```
 
 ---
 
 ## Development Commands
 
-| Script         | Command                       |
-| -------------- | ----------------------------- |
-| `build:all`    | Build all 12 services         |
-| `build`        | `nest build` (single service) |
-| `dev`          | Clean dist + watch mode       |
-| `debug`        | Debug mode + watch            |
-| `lint`         | ESLint with auto-fix          |
-| `format`       | ESLint + Prettier             |
-| `test`         | Jest with `--forceExit`       |
-| `test:watch`   | Jest watch mode               |
-| `test:cov`     | Jest with coverage            |
-| `docker:build` | Build local Docker image      |
-| `prod`         | Run production build          |
+| Script         | Command                                  |
+| -------------- | ---------------------------------------- |
+| `build:all`    | Build all 13 services (SWC, ~350ms)      |
+| `build`        | `swc apps libs -d dist`                  |
+| `typecheck`    | `tsc --noEmit` (TypeScript 7 native)     |
+| `dev`          | SWC watch mode                           |
+| `debug`        | Build + `node --inspect-brk`             |
+| `lint`         | Biome check with auto-fix                |
+| `format`       | Biome format                             |
+| `test`         | Jest with `--forceExit`                  |
+| `test:watch`   | Jest watch mode                          |
+| `test:cov`     | Jest with coverage                       |
+| `docker:build` | Build local Docker image                 |
+| `prod`         | Run production build                     |
 | `version`      | Print current version         |
 
 ---
@@ -195,7 +196,9 @@ cmnw/
 ├── docker/                 # Dockerfiles
 ├── docs/                   # Documentation
 ├── .github/workflows/      # CI/CD pipelines
-├── nest-cli.json           # NestJS monorepo config
+├── types/                  # Ambient module declarations (.d.ts)
+├── .swcrc                  # SWC compiler config
+├── biome.json              # Biome linter/formatter config
 ├── pnpm-workspace.yaml     # pnpm workspace config
 └── package.json            # v6.11.6
 ```

@@ -5,7 +5,7 @@
 ## Project Info
 
 - **Version**: 6.10.13
-- **Framework**: NestJS 11.x with TypeScript 5.9.3
+- **Framework**: NestJS 11.x with TypeScript 7.0.2 (SWC compiler)
 - **Runtime**: Node.js >=24.0.0, pnpm 10.32.1
 - **Databases**: PostgreSQL (TypeORM), Redis
 - **Message Queue**: BullMQ
@@ -16,9 +16,9 @@
 
 ```bash
 pnpm install
-pnpm build:all
-nest build {service}
-nest start {service} --watch
+pnpm build:all                            # build all apps + libs (SWC, ~350ms)
+pnpm dev                                  # watch mode (SWC --watch)
+pnpm typecheck
 pnpm lint
 pnpm format
 pnpm test
@@ -27,6 +27,9 @@ pnpm test:cov
 jest --forceExit -- test/path/to/file.spec.ts
 pnpm docker:build
 ```
+
+> **Note**: Builds use `@swc/cli` directly (`swc apps libs -d dist --config-file .swcrc`).
+> TypeScript 7's native compiler powers `pnpm typecheck`; SWC (Rust) powers the build.
 
 ---
 
