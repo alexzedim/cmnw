@@ -1,12 +1,12 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import chalk from 'chalk';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, IsNull, Not, Repository } from 'typeorm';
 import { CharactersRaidLogsEntity, RealmsEntity } from '@app/pg';
-import { KEY_LOCK, delay } from '@app/resources';
+import { delay, KEY_LOCK } from '@app/resources';
+import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
-import Redis from 'ioredis';
-import { WarcraftLogsService } from './warcraft-logs.service';
+import chalk from 'chalk';
+import type Redis from 'ioredis';
+import { In, IsNull, Not, type Repository } from 'typeorm';
+import type { WarcraftLogsService } from './warcraft-logs.service';
 
 @Injectable()
 export class WarcraftLogsMigrationService implements OnApplicationBootstrap {
@@ -98,7 +98,7 @@ export class WarcraftLogsMigrationService implements OnApplicationBootstrap {
       const logIds = wclLogsFromPage.map((log) => log.logId);
       const existingLogs = await this.charactersRaidLogsRepository.find({
         where: { logId: In(logIds) },
-        select: ['logId', 'realmSlug'],
+        select: { logId: true, realmSlug: true },
       });
 
       const toUpdate = existingLogs.filter((log) => !log.realmSlug).map((log) => log.logId);

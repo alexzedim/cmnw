@@ -1,5 +1,5 @@
-import { EntityManager, Repository } from 'typeorm';
 import { AnalyticsEntity } from '@app/pg';
+import { EntityManager, type Repository } from 'typeorm';
 
 export const NULL_REALM = 'NULL';
 
@@ -58,7 +58,7 @@ export const findExistingAnalyticsKeys = async (
   const repository = source instanceof EntityManager ? source.getRepository(AnalyticsEntity) : source;
   const rows = await repository.find({
     where: { snapshotDate },
-    select: ['category', 'metricType', 'realmId'],
+    select: { category: true, metricType: true, realmId: true },
   });
   return new Set(rows.map((row) => analyticsKeyOf(row.category, row.metricType, row.realmId)));
 };

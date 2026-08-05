@@ -1,10 +1,5 @@
-import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { InjectRedis } from '@nestjs-modules/ioredis';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, ILike, In } from 'typeorm';
-import Redis from 'ioredis';
 import {
   AnalyticsEntity,
   CharactersEntity,
@@ -15,23 +10,28 @@ import {
   RealmsEntity,
 } from '@app/pg';
 import {
-  AnalyticsMetricHistoryDto,
-  AnalyticsMetricSnapshotDto,
+  type AnalyticsMetricHistoryDto,
+  type AnalyticsMetricSnapshotDto,
   AnalyticsMetricType,
-  AppHealthPayload,
+  type AppHealthPayload,
   HASH_TYPE_REGEX,
-  IRaidLogsStats,
-  ISearchResult,
-  NUMERIC_ID_REGEX,
-  RaidLogsStatsDto,
-  readThroughCache,
-  SearchQueryDto,
   historyCacheKey,
+  type IRaidLogsStats,
+  type ISearchResult,
+  NUMERIC_ID_REGEX,
+  type RaidLogsStatsDto,
   raidLogsCacheKey,
+  readThroughCache,
+  type SearchQueryDto,
   searchCacheKey,
   secondsUntilNextSnapshot,
   snapshotCacheKey,
 } from '@app/resources';
+import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import type Redis from 'ioredis';
+import { ILike, In, type Repository } from 'typeorm';
 
 @Injectable()
 export class AppService {
@@ -110,7 +110,7 @@ export class AppService {
           ...(input.realmName ? [{ name: input.realmName }] : []),
           ...(input.realmId !== undefined ? [{ id: input.realmId }] : []),
         ],
-        select: ['slug'],
+        select: { slug: true },
       });
       realmSlug = realm?.slug ?? null;
     }
@@ -370,7 +370,7 @@ export class AppService {
     if (typeof record.itemId === 'number') {
       const item = await this.itemsRepository.findOne({
         where: { id: record.itemId },
-        select: ['id', 'name', 'names'],
+        select: { id: true, name: true, names: true },
       });
       if (item) {
         if (item.name) record.name = item.name;
@@ -392,7 +392,7 @@ export class AppService {
 
     const items = await this.itemsRepository.find({
       where: { id: In(itemIds) },
-      select: ['id', 'name', 'names'],
+      select: { id: true, name: true, names: true },
     });
 
     const itemMap = new Map(items.map((item) => [item.id, item]));

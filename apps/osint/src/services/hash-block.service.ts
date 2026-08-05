@@ -1,17 +1,16 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bullmq';
-import { DataSource, EntityManager, Repository } from 'typeorm';
-import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { Queue } from 'bullmq';
-
+import { CharactersEntity, HashBlockLogsEntity, HashBlockMembersEntity, HashBlocksEntity } from '@app/pg';
 import {
   HASH_BLOCK_ACTION,
   HashMessageDto,
   hashQueue,
-  IHashMessageBase,
+  type IHashMessageBase,
   MAX_CHARACTERS_PER_ACCOUNT,
 } from '@app/resources';
-import { CharactersEntity, HashBlockLogsEntity, HashBlockMembersEntity, HashBlocksEntity } from '@app/pg';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import type { Queue } from 'bullmq';
+import type { DataSource, EntityManager, Repository } from 'typeorm';
 
 interface IMembershipWithContext extends HashBlockMembersEntity {
   blockHashValue: string;
@@ -64,7 +63,7 @@ export class HashBlockService implements OnApplicationBootstrap {
   async reconcileCharacter(characterGuid: string, scannedAt: string): Promise<void> {
     const character = await this.charactersRepository.findOne({
       where: { guid: characterGuid },
-      select: ['guid', 'hashA', 'hashB'],
+      select: { guid: true, hashA: true, hashB: true },
     });
     if (!character) return;
 
@@ -212,7 +211,7 @@ export class HashBlockService implements OnApplicationBootstrap {
 
     const candidates = await manager.find(CharactersEntity, {
       where: { hashB: hashValue },
-      select: ['guid', 'hashA', 'hashB'],
+      select: { guid: true, hashA: true, hashB: true },
     });
 
     const nowDate = new Date();
@@ -411,7 +410,7 @@ export class HashBlockService implements OnApplicationBootstrap {
     for (const group of hashBGroups) {
       const placeholderCharacter = await this.charactersRepository.findOne({
         where: { hashB: group.hashB },
-        select: ['guid', 'hashA', 'hashB'],
+        select: { guid: true, hashA: true, hashB: true },
       });
       if (!placeholderCharacter) continue;
 
@@ -421,7 +420,7 @@ export class HashBlockService implements OnApplicationBootstrap {
       await this.dataSource.transaction(async (manager) => {
         const candidates = await manager.find(CharactersEntity, {
           where: { hashB: group.hashB },
-          select: ['guid', 'hashA', 'hashB'],
+          select: { guid: true, hashA: true, hashB: true },
         });
 
         const scannedDate = new Date(scannedAt);

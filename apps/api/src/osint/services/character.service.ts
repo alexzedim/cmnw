@@ -1,12 +1,5 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-  ServiceUnavailableException,
-} from '@nestjs/common';
-
-import { InjectRepository } from '@nestjs/typeorm';
+import type { BattleNetService } from '@app/battle-net';
+import { REDIS_CONNECTION } from '@app/configuration';
 import {
   AnalyticsEntity,
   CharactersEntity,
@@ -17,35 +10,39 @@ import {
   HashBlocksEntity,
   RealmsEntity,
 } from '@app/pg';
-
-import { FindOptionsWhere, In, MoreThanOrEqual, Repository } from 'typeorm';
-
 import {
   CHARACTER_HASH_FIELDS,
-  CharacterHashDto,
-  CharacterHashFieldType,
-  CharacterIdDto,
+  type CharacterHashDto,
+  type CharacterHashFieldType,
+  type CharacterIdDto,
+  type CharacterLfgDto,
   CharacterMessageDto,
-  CharacterLfgDto,
   charactersQueue,
+  findRealm,
   GuildMessageDto,
   guildsQueue,
-  IAddonScanEntry,
-  IAddonScanEntryWithStatus,
-  IAddonScanGuild,
-  ICharacterMessageBase,
-  IGuildMessageBase,
+  type IAddonScanEntry,
+  type IAddonScanEntryWithStatus,
+  type IAddonScanGuild,
+  type ICharacterMessageBase,
+  type IGuildMessageBase,
   LFG_STATUS,
   toGuid,
-  findRealm,
 } from '@app/resources';
-import { CharacterResponseDto, CharacterHashBlockRef } from '@app/resources/dto/character/character-response.dto';
+import { type CharacterHashBlockRef, CharacterResponseDto } from '@app/resources/dto/character/character-response.dto';
+import type { RealmsCacheService } from '@app/resources/services/realms-cache.service';
+import type { S3Service } from '@app/s3';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue, QueueEvents } from 'bullmq';
-import { REDIS_CONNECTION } from '@app/configuration';
-import { BattleNetService } from '@app/battle-net';
-import { S3Service } from '@app/s3';
-import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { type Queue, QueueEvents } from 'bullmq';
+import { type FindOptionsWhere, In, MoreThanOrEqual, type Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -495,7 +492,7 @@ export class CharacterOsintService {
     const guids = entries.map((e) => e.guid);
     const existing = await this.charactersRepository.find({
       where: { guid: In(guids) },
-      select: ['guid'],
+      select: { guid: true },
     });
     const existingSet = new Set(existing.map((e) => e.guid));
     return entries.map((entry) => ({ ...entry, isNew: !existingSet.has(entry.guid) }));

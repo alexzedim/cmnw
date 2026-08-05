@@ -1,36 +1,34 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import chalk from 'chalk';
-import { AxiosError } from 'axios';
+import { BATTLE_NET_KEY_TAG_WCL_SESSION, BATTLE_NET_KEY_TAG_WCL_V2, type BattleNetService } from '@app/battle-net';
+import { osintConfig } from '@app/configuration';
+import { CharactersRaidLogsEntity, KeysEntity, RealmsEntity } from '@app/pg';
 import {
   CharacterMessageDto,
-  FightsAPIResponse,
+  type FightsAPIResponse,
   getRandomizedHeaders,
-  ICharacterMessageBase,
+  type ICharacterMessageBase,
   isCharacterRaidLogResponse,
   KEY_LOCK,
-  RaidCharacter,
+  type RaidCharacter,
   toGuid,
   toSlug,
 } from '@app/resources';
-import { BATTLE_NET_KEY_TAG_WCL_SESSION, BATTLE_NET_KEY_TAG_WCL_V2 } from '@app/battle-net';
-import { BattleNetService } from '@app/battle-net';
-import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
-
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { osintConfig } from '@app/configuration';
-import { HttpService } from '@nestjs/axios';
-import { from, lastValueFrom } from 'rxjs';
-import { CharactersRaidLogsEntity, KeysEntity, RealmsEntity } from '@app/pg';
-import { ArrayContains, IsNull, Not, Repository } from 'typeorm';
-import { get } from 'lodash';
-import { mergeMap } from 'rxjs/operators';
-import { DateTime } from 'luxon';
-import { InjectRedis } from '@nestjs-modules/ioredis';
-import * as cheerio from 'cheerio';
-import Redis from 'ioredis';
-import { InjectRepository } from '@nestjs/typeorm';
+import type { RealmsCacheService } from '@app/resources/services/realms-cache.service';
+import type { HttpService } from '@nestjs/axios';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import { AxiosError } from 'axios';
+import type { Queue } from 'bullmq';
+import chalk from 'chalk';
+import * as cheerio from 'cheerio';
+import type Redis from 'ioredis';
+import { get } from 'lodash';
+import { DateTime } from 'luxon';
+import { from, lastValueFrom } from 'rxjs';
+import { mergeMap } from 'rxjs/operators';
+import { ArrayContains, IsNull, Not, type Repository } from 'typeorm';
 
 @Injectable()
 export class WarcraftLogsService implements OnApplicationBootstrap {
@@ -326,7 +324,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         for (const { logId, createdAt } of wclLogsFromPage) {
           const existingLog = await this.charactersRaidLogsRepository.findOne({
             where: { logId },
-            select: ['logId', 'realmSlug'],
+            select: { logId: true, realmSlug: true },
           });
           // --- If exists counter --- //
           if (existingLog) {

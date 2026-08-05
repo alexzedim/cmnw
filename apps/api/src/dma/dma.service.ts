@@ -1,27 +1,26 @@
-import { BadRequestException, Injectable, Logger } from '@nestjs/common';
-import { DateTime } from 'luxon';
+import { formatServiceErrorLog } from '@app/logger';
+import { ContractEntity, ItemsEntity, KeysEntity, MarketEntity } from '@app/pg';
 import {
-  IBuildYAxis,
-  IChartOrder,
-  ItemChartDto,
-  ItemFeedDto,
-  ItemQuotesDto,
-  ItemQuotesResponseDto,
+  type IBuildYAxis,
+  type IChartOrder,
+  type ItemChartDto,
+  type ItemFeedDto,
+  type ItemQuotesDto,
+  ItemQuotesResponseDto,type ItemRealmDto, 
   MARKET_TYPE,
   NUMERIC_ID_REGEX,
   REALM_ENTITY_ANY,
-  ReqGetItemDto,
+  type ReqGetItemDto,
   WOW_TOKEN_ITEM_ID,
-  WowTokenDto,
+  type WowTokenDto
 } from '@app/resources';
-import { ItemRealmDto } from '@app/resources';
-import { InjectRedis } from '@nestjs-modules/ioredis';
-import { from, lastValueFrom, mergeMap, reduce } from 'rxjs';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ContractEntity, ItemsEntity, KeysEntity, MarketEntity } from '@app/pg';
-import { Repository } from 'typeorm';
-import Redis from 'ioredis';
-import { formatServiceErrorLog } from '@app/logger';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import type Redis from 'ioredis';
+import { DateTime } from 'luxon';
+import { from, lastValueFrom, mergeMap, reduce } from 'rxjs';
+import type { Repository } from 'typeorm';
 import { assignPriceBucket, buildHybridPriceBins, DEFAULT_BLOCKS } from './price-binning';
 
 @Injectable()
@@ -221,7 +220,7 @@ export class DmaService {
   private async getPriceEdges(itemId: number, blocks = DEFAULT_BLOCKS): Promise<number[]> {
     const marketData = await this.marketRepository.find({
       where: { itemId },
-      select: ['price', 'quantity'],
+      select: { price: true, quantity: true },
     });
 
     return buildHybridPriceBins(marketData, blocks);
