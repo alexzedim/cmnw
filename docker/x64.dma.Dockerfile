@@ -6,7 +6,7 @@ WORKDIR /usr/src/app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 RUN corepack enable && \
-    corepack pnpm install --dev
+    corepack pnpm install
 
 COPY . .
 
