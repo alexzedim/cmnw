@@ -73,3 +73,6 @@ WARP.md
 
 # Playwright MCP
 .playwright-mcp/
+
+# Generated reports
+nestjs-doctor-report.html

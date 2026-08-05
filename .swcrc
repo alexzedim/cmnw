@@ -1,19 +1,16 @@
 {
-  "compilerOptions": {
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "declaration": true,
-    "removeComments": true,
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "lib": ["ES2024"],
+  "$schema": "https://swc.rs/schema.json",
+  "jsc": {
+    "baseUrl": "./",
+    "parser": {
+      "syntax": "typescript",
+      "decorators": true
+    },
+    "transform": {
+      "legacyDecorator": true,
+      "decoratorMetadata": true
+    },
     "target": "es2024",
-    "skipLibCheck": true,
-    "sourceMap": true,
-    "outDir": "./dist",
-    "incremental": true,
     "paths": {
       "@app/battle-net": ["./libs/battle-net/src"],
       "@app/battle-net/*": ["./libs/battle-net/src/*"],
@@ -28,5 +25,8 @@
       "@app/s3": ["./libs/s3/src"],
       "@app/s3/*": ["./libs/s3/src/*"]
     }
+  },
+  "module": {
+    "type": "commonjs"
   }
 }

@@ -2,5 +2,8 @@ packages:
   - 'apps/*'
   - 'libs/*'
 
+onlyBuiltDependencies:
+  - '@swc/core'
+
 overrides:
   reflect-metadata: 0.2.2
