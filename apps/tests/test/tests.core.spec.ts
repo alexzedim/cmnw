@@ -1,9 +1,9 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TestsCore } from '../src/tests.core';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { BattleNetService } from '@app/battle-net';
 import { postgresConfig } from '@app/configuration';
 import { KeysEntity } from '@app/pg';
-import { BattleNetService } from '@app/battle-net';
+import { Test, type TestingModule } from '@nestjs/testing';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { TestsCore } from '../src/tests.core';
 
 describe('CORE', () => {
   let testsService: TestsCore;

@@ -4,12 +4,12 @@ jest.mock('change-case', () => ({
   camelCase: jest.fn((s: string) => s),
 }));
 
-import { Test, TestingModule } from '@nestjs/testing';
+import { BattleNetRegion, BattleNetService, type IBattleNetClientConfig } from '@app/battle-net';
+import { KeysEntity } from '@app/pg';
 import { HttpModule, HttpService } from '@nestjs/axios';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { GuildSummaryService } from './guild-summary.service';
-import { KeysEntity } from '@app/pg';
-import { BattleNetService, BattleNetRegion, IBattleNetClientConfig } from '@app/battle-net';
 
 describe('GuildSummaryService', () => {
   let service: GuildSummaryService;

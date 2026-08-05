@@ -1,5 +1,5 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { AuthProvider } from '@app/pg/enum';
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
 @Index('ix__users__discord_id', ['discordId'], {
   where: 'discord_id IS NOT NULL',

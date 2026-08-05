@@ -1,4 +1,4 @@
-import { S3Config } from '@app/configuration';
+import type { S3Config } from '@app/configuration';
 
 export const s3Config: S3Config = {
   credentials: {

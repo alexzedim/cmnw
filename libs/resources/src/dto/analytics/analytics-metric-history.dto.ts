@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform } from 'class-transformer';
-import { AnalyticsMetricCategory, AnalyticsMetricType } from '../../enums';
 import { IsDate, IsEnum, IsInt, IsOptional, Min } from 'class-validator';
+import { AnalyticsMetricCategory, AnalyticsMetricType } from '../../enums';
 
 export class AnalyticsMetricHistoryDto {
   @ApiProperty({

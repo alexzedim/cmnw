@@ -1,18 +1,5 @@
-import { Module } from '@nestjs/common';
-import { REDIS_CONNECTION, postgresConfig, redisConfig } from '@app/configuration';
-import {
-  AuctionsService,
-  ContractsService,
-  EvaluationService,
-  GoldService,
-  XvaService,
-  ItemsService,
-} from './services';
-
-import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
-import { ScheduleModule } from '@nestjs/schedule';
-import { RedisModule } from '@nestjs-modules/ioredis';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { BattleNetModule } from '@app/battle-net';
+import { postgresConfig, REDIS_CONNECTION, redisConfig, s3Config } from '@app/configuration';
 import {
   ContractEntity,
   EvaluationEntity,
@@ -25,12 +12,23 @@ import {
   SpellReagentsEntity,
   ValuationEntity,
 } from '@app/pg';
-import { HttpModule } from '@nestjs/axios';
-import { BattleNetModule } from '@app/battle-net';
-import { S3Module } from '@app/s3';
-import { s3Config } from '@app/configuration';
 import { auctionsQueue, itemsQueue } from '@app/resources';
+import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
+import { S3Module } from '@app/s3';
+import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
+import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { RedisModule } from '@nestjs-modules/ioredis';
+import {
+  AuctionsService,
+  ContractsService,
+  EvaluationService,
+  GoldService,
+  ItemsService,
+  XvaService,
+} from './services';
 
 @Module({
   imports: [

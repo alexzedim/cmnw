@@ -1,37 +1,36 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
-import { isAxiosError } from 'axios';
-import { from, lastValueFrom } from 'rxjs';
-import { mergeMap } from 'rxjs/operators';
-import { get } from 'lodash';
-
+import { BattleNetNamespace, type BattleNetService, type IBattleNetClientConfig } from '@app/battle-net';
+import { CharactersEntity, type GuildsEntity, RealmsEntity } from '@app/pg';
 import {
+  CharacterMessageDto,
+  characterAsGuildMember,
   charactersQueue,
   FACTION,
   GUILD_WORKER_CONSTANTS,
-  IGuildRoster,
-  IRGuildRoster,
+  GuildStatusState,
+  type ICharacterGuildMember,
+  type ICharacterMessageBase,
+  type IGuildRoster,
+  type IRGuildRoster,
+  type IRGuildRosterMember,
+  isGuildMember,
   isGuildRoster,
   OSINT_GM_RANK,
   PLAYABLE_CLASS,
+  PLAYABLE_RACE,
+  setGuildStatusString,
   toGuid,
   toSlug,
-  CharacterMessageDto,
-  characterAsGuildMember,
-  ICharacterGuildMember,
-  PLAYABLE_RACE,
-  isGuildMember,
-  IRGuildRosterMember,
-  GuildStatusState,
-  setGuildStatusString,
-  ICharacterMessageBase,
 } from '@app/resources';
-import { CharactersEntity, GuildsEntity, RealmsEntity } from '@app/pg';
-import { BattleNetService, BattleNetNamespace, IBattleNetClientConfig } from '@app/battle-net';
+import type { RealmsCacheService } from '@app/resources/services/realms-cache.service';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
-import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { isAxiosError } from 'axios';
+import type { Queue } from 'bullmq';
+import { get } from 'lodash';
+import { from, lastValueFrom } from 'rxjs';
+import { mergeMap } from 'rxjs/operators';
+import type { Repository } from 'typeorm';
 
 @Injectable()
 export class GuildRosterService {

@@ -5,7 +5,7 @@
  * Implements strict output structure: { name: NameType, data: DataType, opts?: JobsOptions }.
  */
 import { Logger } from '@nestjs/common';
-import { JobsOptions } from 'bullmq';
+import type { JobsOptions } from 'bullmq';
 
 /**
  * Base interface for BullMQ job data

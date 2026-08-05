@@ -1,8 +1,8 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { DateTime } from 'luxon';
-import { TestsDma } from '../src/tests.dma';
-import { commodityItem, item, wowTokenItem } from '../mocks';
 import { BattleNetService } from '@app/battle-net';
+import { Test, type TestingModule } from '@nestjs/testing';
+import { DateTime } from 'luxon';
+import { commodityItem, item, wowTokenItem } from '../mocks';
+import { TestsDma } from '../src/tests.dma';
 
 describe('DMA', () => {
   let testsService: TestsDma;

@@ -1,4 +1,4 @@
-import { IBattleNetKeyHealthConfig } from '@app/configuration/interfaces';
+import type { IBattleNetKeyHealthConfig } from '@app/configuration/interfaces';
 
 export const battleNetConfig: IBattleNetKeyHealthConfig = {
   baseDelay: parseInt(process.env.BATTLE_NET_KEY_BASE_DELAY, 10) || 30,

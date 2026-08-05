@@ -1,11 +1,10 @@
+import { Logger } from '@nestjs/common';
 import { randomUUID } from 'crypto';
 
-import { Logger } from '@nestjs/common';
-
 import {
-  FeedEventCategory,
-  FeedStatus,
   FEED_STATUS_META,
+  type FeedEventCategory,
+  type FeedStatus,
   isFeedEventCategory,
   isFeedStatus,
 } from '../../constants/feed.constants';

@@ -1,4 +1,4 @@
-import { ILokiConfig } from '@app/configuration/interfaces';
+import type { ILokiConfig } from '@app/configuration/interfaces';
 
 export const lokiConfig: ILokiConfig = {
   lokiUrl: process.env.LOKI_URL,

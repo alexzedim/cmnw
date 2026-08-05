@@ -1,21 +1,4 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { InjectRedis } from '@nestjs-modules/ioredis';
-import { Repository } from 'typeorm';
-import Redis from 'ioredis';
-import { from, lastValueFrom, mergeMap } from 'rxjs';
-import { hash32 } from 'farmhash';
-import {
-  BlizzardApiCharacterProfessions,
-  BlizzardApiPetsCollection,
-  IMounts,
-  IPets,
-  toGuid,
-  setStatusString,
-  CharacterStatusState,
-  EXPANSION_TICKER,
-  EXPANSION_TICKER_MAP,
-} from '@app/resources';
+import { formatServiceErrorLog } from '@app/logger';
 import {
   CharactersMountsEntity,
   CharactersPetsEntity,
@@ -23,8 +6,25 @@ import {
   MountsEntity,
   PetsEntity,
 } from '@app/pg';
-import { formatServiceErrorLog } from '@app/logger';
-import { CharacterEntityIndexingService } from './character-entity-indexing.service';
+import {
+  type BlizzardApiCharacterProfessions,
+  type BlizzardApiPetsCollection,
+  CharacterStatusState,
+  EXPANSION_TICKER,
+  EXPANSION_TICKER_MAP,
+  type IMounts,
+  type IPets,
+  setStatusString,
+  toGuid,
+} from '@app/resources';
+import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import { hash32 } from 'farmhash';
+import type Redis from 'ioredis';
+import { from, lastValueFrom, mergeMap } from 'rxjs';
+import type { Repository } from 'typeorm';
+import type { CharacterEntityIndexingService } from './character-entity-indexing.service';
 
 @Injectable()
 export class CharacterCollectionService implements OnApplicationBootstrap {

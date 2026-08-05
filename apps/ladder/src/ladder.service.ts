@@ -1,48 +1,47 @@
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { InjectRedis } from '@nestjs-modules/ioredis';
-import { InjectRepository } from '@nestjs/typeorm';
+import {
+  BATTLE_NET_KEY_TAG_BLIZZARD,
+  BattleNetNamespace,
+  type BattleNetService,
+  type IBattleNetClientConfig,
+} from '@app/battle-net';
 import { RealmsEntity } from '@app/pg';
-import Redis from 'ioredis';
-import { Repository } from 'typeorm';
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { from, mergeMap, toArray, catchError, of, lastValueFrom } from 'rxjs';
-
 import {
   BRACKETS,
   CharacterMessageDto,
   charactersQueue,
-  IMythicKeystoneSeasonResponse,
-  IMythicKeystoneSeasonDetail,
-  IMythicKeystoneDungeonResponse,
-  IMythicLeaderboardResponse,
-  MythicLeaderboardGroup,
-  transformFaction,
-  TIME_MS,
-  REALM_ENTITY_ANY,
+  type ICharacterMessageBase,
+  type ILeaderboardRequest,
+  type IMythicKeystoneDungeonResponse,
+  type IMythicKeystoneSeasonDetail,
+  type IMythicKeystoneSeasonResponse,
+  type IMythicLeaderboardResponse,
+  type IPvPLeaderboardResponse,
+  type IPvPSeasonIndexResponse,
   M_PLUS_REALM_DUNGEON_PREFIX,
-  ILeaderboardRequest,
-  IPvPSeasonIndexResponse,
-  IPvPLeaderboardResponse,
-  PvPSeason,
-  ICharacterMessageBase,
+  type MythicLeaderboardGroup,
+  type PvPSeason,
+  REALM_ENTITY_ANY,
+  TIME_MS,
+  transformFaction,
 } from '@app/resources';
 import {
   validateMythicKeystoneDungeonResponse,
-  validateMythicKeystoneSeasonResponse,
   validateMythicKeystoneSeasonDetail,
+  validateMythicKeystoneSeasonResponse,
   validateMythicLeaderboardResponse,
-  validatePvPSeasonIndexResponse,
   validatePvPLeaderboardResponse,
+  validatePvPSeasonIndexResponse,
 } from '@app/resources/guard/ladder.guard';
+import type { RealmsCacheService } from '@app/resources/services/realms-cache.service';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
-import {
-  BattleNetService,
-  BattleNetNamespace,
-  BATTLE_NET_KEY_TAG_BLIZZARD,
-  IBattleNetClientConfig,
-} from '@app/battle-net';
-import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
+import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import type { Queue } from 'bullmq';
+import type Redis from 'ioredis';
+import { catchError, from, lastValueFrom, mergeMap, of, toArray } from 'rxjs';
+import type { Repository } from 'typeorm';
 
 const M_PLUS_PARALLEL_REQUESTS = 3;
 

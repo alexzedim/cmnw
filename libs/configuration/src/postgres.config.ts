@@ -1,9 +1,7 @@
-import { TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { readFileSync } from 'fs';
-import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 import {
   AnalyticsEntity,
   CharactersEntity,
+  CharactersGuildsLogsEntity,
   CharactersGuildsMembersEntity,
   CharactersMountsEntity,
   CharactersPetsEntity,
@@ -11,14 +9,13 @@ import {
   CharactersProfileEntity,
   CharactersRaidLogsEntity,
   ContractEntity,
-  GuildsEntity,
   GuildHallOfFameEntity,
+  GuildsEntity,
   HashBlockLogsEntity,
   HashBlockMembersEntity,
   HashBlocksEntity,
   ItemsEntity,
   KeysEntity,
-  CharactersGuildsLogsEntity,
   MarketEntity,
   MountsEntity,
   PetsEntity,
@@ -29,6 +26,9 @@ import {
   SpellEffectEntity,
   SpellReagentsEntity,
 } from '@app/pg';
+import type { TypeOrmModuleOptions } from '@nestjs/typeorm';
+import { readFileSync } from 'fs';
+import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 
 export const postgresConfig: TypeOrmModuleOptions = {
   type: 'postgres',

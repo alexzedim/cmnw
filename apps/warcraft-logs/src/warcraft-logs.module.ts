@@ -1,17 +1,16 @@
-import { Module } from '@nestjs/common';
+import { BattleNetModule } from '@app/battle-net';
+import { postgresConfig, REDIS_CONNECTION, redisConfig } from '@app/configuration';
+import { CharactersRaidLogsEntity, KeysEntity, RealmsEntity } from '@app/pg';
+import { charactersQueue, guildsQueue, profileQueue } from '@app/resources';
+import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
 import { HttpModule } from '@nestjs/axios';
-import { WarcraftLogsService } from './warcraft-logs.service';
-import { WarcraftLogsMigrationService } from './warcraft-logs-migration.service';
-
+import { BullModule } from '@nestjs/bullmq';
+import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CharactersRaidLogsEntity, KeysEntity, RealmsEntity } from '@app/pg';
 import { RedisModule } from '@nestjs-modules/ioredis';
-import { REDIS_CONNECTION, postgresConfig, redisConfig } from '@app/configuration';
-import { BullModule } from '@nestjs/bullmq';
-import { charactersQueue, guildsQueue, profileQueue } from '@app/resources';
-import { BattleNetModule } from '@app/battle-net';
-import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
+import { WarcraftLogsService } from './warcraft-logs.service';
+import { WarcraftLogsMigrationService } from './warcraft-logs-migration.service';
 
 @Module({
   imports: [

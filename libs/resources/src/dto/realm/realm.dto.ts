@@ -1,4 +1,3 @@
-import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   SWAGGER_REALM_CONNECTED_REALM_ID,
   SWAGGER_REALM_ID,
@@ -6,9 +5,10 @@ import {
   SWAGGER_REALM_REGION,
   SWAGGER_REALM_SLUG,
 } from '@app/resources/swagger/osint.swagger';
+import { capitalize, transformToLowerCase } from '@app/resources/transformers';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, Type } from 'class-transformer';
 import { IsNumber, IsOptional, IsString } from 'class-validator';
-import { capitalize, transformToLowerCase } from '@app/resources/transformers';
 
 export class RealmDto {
   @IsOptional()

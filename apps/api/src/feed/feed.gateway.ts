@@ -1,11 +1,11 @@
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
-import { HttpAdapterHost } from '@nestjs/core';
-import { LoggerService } from '@app/logger';
 import { redisConfig, wsConfig } from '@app/configuration';
+import { LoggerService } from '@app/logger';
 import { SESSION_QUERY_KEY } from '@app/resources';
-import Redis from 'ioredis';
-import { Server, WebSocket } from 'ws';
+import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
+import type { HttpAdapterHost } from '@nestjs/core';
 import type { Server as HttpServer, IncomingMessage } from 'http';
+import Redis from 'ioredis';
+import { Server, type WebSocket } from 'ws';
 
 /**
  * Extracts the client session id from the WS upgrade URL (?session=<id>).
@@ -113,7 +113,7 @@ export class FeedGateway implements OnApplicationBootstrap {
    * Otherwise broadcast to every connected client (legacy global feed behavior).
    */
   private dispatch(raw: string): void {
-    let sessionId: unknown = undefined;
+    let sessionId: unknown;
     try {
       const parsed = JSON.parse(raw) as { meta?: { sessionId?: unknown } };
       sessionId = parsed?.meta?.sessionId;

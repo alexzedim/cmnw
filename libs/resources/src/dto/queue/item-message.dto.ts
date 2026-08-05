@@ -1,5 +1,5 @@
 import { Logger } from '@nestjs/common';
-import { JobsOptions } from 'bullmq';
+import type { JobsOptions } from 'bullmq';
 import { itemsQueue } from '../../queues/items.queue';
 
 /**

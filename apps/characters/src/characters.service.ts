@@ -1,18 +1,17 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { osintConfig } from '@app/configuration';
+import { CharactersEntity } from '@app/pg';
+import { CharacterMessageDto, charactersQueue, type ICharacterMessageBase, OSINT_CHARACTER_LIMIT } from '@app/resources';
+import type { S3Service } from '@app/s3';
 import { InjectQueue } from '@nestjs/bullmq';
+import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { from, lastValueFrom, mergeMap } from 'rxjs';
-import { createHash } from 'crypto';
 import { InjectRedis } from '@nestjs-modules/ioredis';
-import Redis from 'ioredis';
-import { Queue } from 'bullmq';
-
-import { CharactersEntity } from '@app/pg';
-import { S3Service } from '@app/s3';
-import { osintConfig } from '@app/configuration';
-import { charactersQueue, OSINT_CHARACTER_LIMIT, CharacterMessageDto, ICharacterMessageBase } from '@app/resources';
+import type { Queue } from 'bullmq';
+import { createHash } from 'crypto';
+import type Redis from 'ioredis';
+import { from, lastValueFrom, mergeMap } from 'rxjs';
+import type { Repository } from 'typeorm';
 
 @Injectable()
 export class CharactersService implements OnApplicationBootstrap {

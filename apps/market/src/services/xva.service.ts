@@ -1,48 +1,48 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { S3Service } from '@app/s3';
-import csv from 'async-csv';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { get } from 'lodash';
-import { CsvFileName, DISENCHANTING, MILLING, PROSPECTING } from '../libs';
-import { from, lastValueFrom, mergeMap } from 'rxjs';
-import { InjectRepository } from '@nestjs/typeorm';
+import { BATTLE_NET_KEY_TAG_DMA, BattleNetNamespace, type BattleNetService } from '@app/battle-net';
+import { dmaConfig } from '@app/configuration';
 import {
+  ItemsEntity,
+  MarketEntity,
   PricingEntity,
+  RealmsEntity,
   SkillLineEntity,
   SpellEffectEntity,
   SpellReagentsEntity,
-  ItemsEntity,
-  MarketEntity,
   ValuationEntity,
-  RealmsEntity,
 } from '@app/pg';
-import { Repository } from 'typeorm';
-import { dmaConfig } from '@app/configuration';
-import { BattleNetNamespace, BattleNetService, BATTLE_NET_KEY_TAG_DMA } from '@app/battle-net';
 import {
+  BATCH_SIZE,
   DMA_SOURCE,
-  IProfessionResponse,
-  IProfessionDetailResponse,
-  ISkillTieryResponse,
-  isBnetProfessionIndexResponse,
+  EXPANSION_TICKER_MAP,
+  type IAssetClassBuildArgs,
+  type IProfessionDetailResponse,
+  type IProfessionResponse,
+  type ISkillTieryResponse,
+  type ItemPricing,
   isBnetProfessionDetailResponse,
+  isBnetProfessionIndexResponse,
   isBnetSkillTierDetailResponse,
+  type LabPricingMethod,
+  MARKET_TYPE,
   PRICING_TYPE,
-  ItemPricing,
-  toStringOrNumber,
+  REDIS_TTL,
   SKILL_LINE_KEY_MAPPING,
   SPELL_EFFECT_KEY_MAPPING,
-  IAssetClassBuildArgs,
-  MARKET_TYPE,
+  toStringOrNumber,
   VALUATION_TYPE,
-  LabPricingMethod,
-  REDIS_TTL,
-  BATCH_SIZE,
-  EXPANSION_TICKER_MAP,
 } from '@app/resources';
+import type { S3Service } from '@app/s3';
+import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
-import Redis from 'ioredis';
+import csv from 'async-csv';
 import { createHash } from 'crypto';
+import type Redis from 'ioredis';
+import { get } from 'lodash';
+import { from, lastValueFrom, mergeMap } from 'rxjs';
+import type { Repository } from 'typeorm';
+import { CsvFileName, DISENCHANTING, MILLING, PROSPECTING } from '../libs';
 
 @Injectable()
 export class XvaService implements OnApplicationBootstrap {
@@ -641,7 +641,7 @@ export class XvaService implements OnApplicationBootstrap {
       let stateData = '';
 
       switch (stage) {
-        case 'pricing':
+        case 'pricing': {
           const pricingCount = await this.pricingRepository.count();
           const latestPricing = await this.pricingRepository.find({
             order: { updatedAt: 'DESC' },
@@ -649,8 +649,9 @@ export class XvaService implements OnApplicationBootstrap {
           });
           stateData = `${pricingCount}:${latestPricing[0]?.updatedAt || ''}`;
           break;
+        }
 
-        case 'auctions':
+        case 'auctions': {
           const marketCount = await this.marketRepository.count();
           const latestMarket = await this.marketRepository.find({
             order: { createdAt: 'DESC' },
@@ -658,14 +659,16 @@ export class XvaService implements OnApplicationBootstrap {
           });
           stateData = `${marketCount}:${latestMarket[0]?.createdAt || ''}`;
           break;
+        }
 
         case 'premium':
         case 'currency':
         case 'tags':
-        case 'vsp':
+        case 'vsp': {
           const itemsCount = await this.itemsRepository.count();
           stateData = `${itemsCount}:${stage}`;
           break;
+        }
 
         default:
           stateData = `${stage}:${Date.now()}`;

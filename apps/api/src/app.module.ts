@@ -1,20 +1,19 @@
-import { Module } from '@nestjs/common';
 import { REDIS_CONNECTION, redisConfig } from '@app/configuration';
-import { OsintModule } from './osint/osint.module';
-import { DmaModule } from './dma/dma.module';
-import { QueueModule } from './queue/queue.module';
-import { AuthModule } from './auth/auth.module';
-import { FeedModule } from './feed/feed.module';
-import { HttpModule } from '@nestjs/axios';
-import { RedisModule } from '@nestjs-modules/ioredis';
-import { AppInfoModule } from './app/app.module';
-import { BullModule } from '@nestjs/bullmq';
-import { BullBoardModule } from '@bull-board/nestjs';
 import { ExpressAdapter } from '@bull-board/express';
-
+import { BullBoardModule } from '@bull-board/nestjs';
+import { HttpModule } from '@nestjs/axios';
+import { BullModule } from '@nestjs/bullmq';
+import { Module } from '@nestjs/common';
+import { RedisModule } from '@nestjs-modules/ioredis';
 // HoF + analytics snapshots computed on API bootstrap so the snapshot
 // endpoint serves fresh data without requiring a separate analytics process.
 import { AnalyticsModule } from '../../analytics/src/analytics.module';
+import { AppInfoModule } from './app/app.module';
+import { AuthModule } from './auth/auth.module';
+import { DmaModule } from './dma/dma.module';
+import { FeedModule } from './feed/feed.module';
+import { OsintModule } from './osint/osint.module';
+import { QueueModule } from './queue/queue.module';
 
 @Module({
   imports: [

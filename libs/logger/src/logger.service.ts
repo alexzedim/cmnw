@@ -1,8 +1,8 @@
-import { Injectable, ConsoleLogger, Scope } from '@nestjs/common';
 import { lokiConfig } from '@app/configuration';
+import { ConsoleLogger, Injectable, Scope } from '@nestjs/common';
 import axios from 'axios';
-import { StandardizedErrorInfo, LogInput, LogLevel, LokiRequestPayload } from './logger.type';
-import { isAxiosError, isStandardError, isPlainObject } from './logger.guard';
+import { isAxiosError, isPlainObject, isStandardError } from './logger.guard';
+import type { LogInput, LogLevel, LokiRequestPayload, StandardizedErrorInfo } from './logger.type';
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class LoggerService extends ConsoleLogger {
@@ -30,7 +30,7 @@ export class LoggerService extends ConsoleLogger {
 
   private sendLokiRequest = (labels: Record<string, string>, message: string, retryCount: number = 0): void => {
     const maxRetries = 3;
-    const retryDelay = Math.pow(2, retryCount) * 1000; // Exponential backoff: 1s, 2s, 4s
+    const retryDelay = 2 ** retryCount * 1000; // Exponential backoff: 1s, 2s, 4s
 
     const payload: LokiRequestPayload = {
       streams: [

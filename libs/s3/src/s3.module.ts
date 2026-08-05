@@ -1,7 +1,7 @@
-import { Module, DynamicModule } from '@nestjs/common';
+import { type DynamicModule, Module } from '@nestjs/common';
 import { S3Module as NestS3Module } from 'nestjs-s3';
+import type { S3ModuleOptions } from './interfaces/s3.interface';
 import { S3Service } from './s3.service';
-import { S3ModuleOptions } from './interfaces/s3.interface';
 
 @Module({})
 export class S3Module {

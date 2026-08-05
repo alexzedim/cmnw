@@ -1,33 +1,37 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Job } from 'bullmq';
-
-import { BattleNetService, BATTLE_NET_KEY_TAG_OSINT, IBattleNetClientConfig } from '@app/battle-net';
+import { BATTLE_NET_KEY_TAG_OSINT, type BattleNetService, type IBattleNetClientConfig } from '@app/battle-net';
 import {
-  BlizzardApiCharacterProfessions,
-  BlizzardApiMountsCollection,
-  BlizzardApiPetsCollection,
-  charactersQueue,
-  toSlug,
-  ICharacterMessageBase,
-  setStatusString,
-  CharacterStatusState,
-  CHARACTER_STATUS_CODES,
-  isEndpointSuccessInString,
-} from '@app/resources';
-import {
-  WorkerStats,
+  formatFinalSummary,
+  formatProgressReport,
+  formatWorkerErrorLog,
   formatWorkerLog,
   WorkerLogStatus,
-  formatWorkerErrorLog,
-  formatProgressReport,
-  formatFinalSummary,
+  type WorkerStats,
 } from '@app/logger';
-
-import { CharactersEntity } from '@app/pg';
-import { CharacterService, CharacterLifecycleService, CharacterCollectionService, HashBlockService } from '../services';
-import { FeedService } from '@app/resources/services/feed.service';
-import { FeedEventCategory, FeedStatus } from '@app/resources';
+import type { CharactersEntity } from '@app/pg';
+import {
+  type BlizzardApiCharacterProfessions,
+  type BlizzardApiMountsCollection,
+  type BlizzardApiPetsCollection,
+  type CHARACTER_STATUS_CODES,
+  CharacterStatusState,
+  charactersQueue,
+  FeedEventCategory,
+  FeedStatus,
+  type ICharacterMessageBase,
+  isEndpointSuccessInString,
+  setStatusString,
+  toSlug,
+} from '@app/resources';
+import type { FeedService } from '@app/resources/services/feed.service';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Injectable, Logger } from '@nestjs/common';
+import type { Job } from 'bullmq';
+import type {
+  CharacterCollectionService,
+  CharacterLifecycleService,
+  CharacterService,
+  HashBlockService,
+} from '../services';
 
 type RefreshEndpoint = 'STATUS' | 'SUMMARY' | 'MEDIA' | 'PETS' | 'MOUNTS' | 'PROFESSIONS';
 

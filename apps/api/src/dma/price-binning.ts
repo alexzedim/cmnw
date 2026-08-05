@@ -113,8 +113,8 @@ export function filterOutlierPrices(data: ReadonlyArray<PriceQuantity>, k: numbe
     return clean.slice();
   }
 
-  const low = Math.pow(10, logLow);
-  const high = Math.pow(10, logHigh);
+  const low = 10 ** logLow;
+  const high = 10 ** logHigh;
 
   return clean.filter((d) => d.price >= low && d.price <= high);
 }
@@ -127,7 +127,7 @@ function buildLogBins(min: number, max: number, blocks: number): number[] {
 
   const raw: number[] = [];
   for (let i = 0; i <= blocks; i++) {
-    raw.push(Math.pow(10, logMin + i * logStep));
+    raw.push(10 ** (logMin + i * logStep));
   }
 
   return snapAndDedupe(raw);
@@ -215,7 +215,7 @@ export function buildHybridPriceBins(data: ReadonlyArray<PriceQuantity>, blocks:
 
   const prices = cleaned.map((d) => d.price);
   let min = Math.min(...prices);
-  let max = Math.max(...prices);
+  const max = Math.max(...prices);
 
   if (!Number.isFinite(min) || !Number.isFinite(max) || max <= min) {
     return [Math.max(min, MIN_PRICE)];

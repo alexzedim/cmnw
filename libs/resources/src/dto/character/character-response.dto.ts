@@ -1,6 +1,6 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { CharactersEntity, AnalyticsEntity } from '@app/pg/entity';
+import { type AnalyticsEntity, CharactersEntity } from '@app/pg/entity';
 import { calculateCharacterPercentiles } from '@app/resources/utils';
+import { ApiProperty } from '@nestjs/swagger';
 
 class PercentileStats {
   @ApiProperty({

@@ -1,24 +1,24 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { from, lastValueFrom, toArray } from 'rxjs';
-import { mergeMap } from 'rxjs/operators';
-import { HttpService } from '@nestjs/axios';
-import { InjectRepository } from '@nestjs/typeorm';
 import { MarketEntity, RealmsEntity } from '@app/pg';
-import { Repository, In } from 'typeorm';
-import { DateTime } from 'luxon';
-import * as cheerio from 'cheerio';
 import {
   DMA_SOURCE_GOLD,
   FACTION,
   GOLD_ITEM_ENTITY,
-  IGold,
+  type IGold,
   isGold,
   MARKET_TYPE,
   REALM_ENTITY_ANY,
   round,
 } from '@app/resources';
-import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
+import type { RealmsCacheService } from '@app/resources/services/realms-cache.service';
+import type { HttpService } from '@nestjs/axios';
+import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import * as cheerio from 'cheerio';
+import { DateTime } from 'luxon';
+import { from, lastValueFrom, toArray } from 'rxjs';
+import { mergeMap } from 'rxjs/operators';
+import { In, type Repository } from 'typeorm';
 
 // Realm name normalization map for common scraping variations
 const REALM_NAME_NORMALIZATION = new Map<string, string>([

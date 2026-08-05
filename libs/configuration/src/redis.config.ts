@@ -1,4 +1,4 @@
-import { IRedisConfig } from '@app/configuration/interfaces';
+import type { IRedisConfig } from '@app/configuration/interfaces';
 
 export const redisConfig: IRedisConfig = {
   host: process.env.REDIS_HOST || '128.0.0.255',

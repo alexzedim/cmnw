@@ -1,4 +1,4 @@
-import { API_HEADERS_ENUM, TOLERANCE_ENUM } from '@app/resources/constants';
+import type { API_HEADERS_ENUM, TOLERANCE_ENUM } from '@app/resources/constants';
 
 export type LogCharacter = {
   guid: string;

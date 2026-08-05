@@ -1,5 +1,5 @@
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
-import { IActionsModifier, IPetList } from '@app/resources';
+import type { IActionsModifier, IPetList } from '@app/resources';
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 @Index('ix__market__item_id', ['itemId'], {})

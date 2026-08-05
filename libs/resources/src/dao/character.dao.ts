@@ -1,6 +1,6 @@
-import { Repository } from 'typeorm';
-import { CharactersEntity, GuildsEntity, RealmsEntity } from '@app/pg';
-import { OSINT_SOURCE, toGuid, ICharacterGuildMember, findRealm } from '@app/resources';
+import type { CharactersEntity, GuildsEntity, RealmsEntity } from '@app/pg';
+import { findRealm, type ICharacterGuildMember, OSINT_SOURCE, toGuid } from '@app/resources';
+import type { Repository } from 'typeorm';
 import { isGuildUpdateMoreRecent } from '../utils/helpers';
 
 export const characterAsGuildMember = async (

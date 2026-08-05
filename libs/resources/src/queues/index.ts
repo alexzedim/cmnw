@@ -5,26 +5,19 @@
  * Provides a unified export point for queue configurations.
  */
 
-// Character queues
-export { charactersQueue } from './characters.queue';
-
-// Guild queues
-export { guildsQueue } from './guilds.queue';
-
-// Hash queues
-export { hashQueue } from './hash.queue';
-
-// Profile queues
-export { profileQueue } from './profile.queue';
-
 // Auction queues
 export { auctionsQueue } from './auctions.queue';
-
+// Character queues
+export { charactersQueue } from './characters.queue';
+// Guild queues
+export { guildsQueue } from './guilds.queue';
+// Hash queues
+export { hashQueue } from './hash.queue';
 // Item queues
 export { itemsQueue } from './items.queue';
-
-// Valuation queues
-export { valuationsQueue } from './valuations.queue';
-
+// Profile queues
+export { profileQueue } from './profile.queue';
 // Realm queues
 export { realmsQueue } from './realms.queue';
+// Valuation queues
+export { valuationsQueue } from './valuations.queue';

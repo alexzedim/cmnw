@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, IsIn, IsNumber } from 'class-validator';
 import { Transform, Type } from 'class-transformer';
+import { IsIn, IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class ContractsPeriodDto {
   @ApiProperty({

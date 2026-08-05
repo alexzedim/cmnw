@@ -1,16 +1,11 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
+import { BATTLE_NET_KEY_TAG_DMA, BattleNetNamespace, type BattleNetService } from '@app/battle-net';
 import { dmaConfig } from '@app/configuration';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { DateTime } from 'luxon';
-import { InjectRepository } from '@nestjs/typeorm';
 import { MarketEntity, RealmsEntity } from '@app/pg';
-import { LessThan, Not, Repository } from 'typeorm';
-import { from, lastValueFrom, mergeMap } from 'rxjs';
 import {
   AuctionMessageDto,
   auctionsQueue,
-  BlizzardApiWowToken,
-  IAuctionMessageBase,
+  type BlizzardApiWowToken,
+  type IAuctionMessageBase,
   isWowToken,
   MARKET_TYPE,
   REALM_ENTITY_ANY,
@@ -18,8 +13,13 @@ import {
   WOW_TOKEN_ITEM_ID,
 } from '@app/resources';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
-import { BattleNetNamespace, BattleNetService, BATTLE_NET_KEY_TAG_DMA } from '@app/battle-net';
+import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import type { Queue } from 'bullmq';
+import { DateTime } from 'luxon';
+import { from, lastValueFrom, mergeMap } from 'rxjs';
+import { LessThan, Not, type Repository } from 'typeorm';
 
 @Injectable()
 export class AuctionsService implements OnApplicationBootstrap {

@@ -1,5 +1,5 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 @Index('ix__characters_raid__log_id', ['logId'], {})
 @Entity({ name: CMNW_ENTITY_ENUM.CHARACTERS_RAID_LOGS })

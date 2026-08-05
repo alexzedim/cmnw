@@ -1,12 +1,11 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Repository, In } from 'typeorm';
-import { Queue } from 'bullmq';
-import { ItemsEntity, RealmsEntity, PricingEntity, MarketEntity } from '@app/pg';
-import { ASSET_EVALUATION_PRIORITY, IVAAuctions, VALUATION_TYPE } from '@app/resources';
 import { valuationsConfig } from '@app/configuration';
-import { ItemPricing } from '@app/resources';
+import { ItemsEntity, MarketEntity, PricingEntity, RealmsEntity } from '@app/pg';
+import { ASSET_EVALUATION_PRIORITY, type ItemPricing, type IVAAuctions, VALUATION_TYPE } from '@app/resources';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import type { Queue } from 'bullmq';
+import { In, type Repository } from 'typeorm';
 
 @Injectable()
 export class ValuationsService implements OnApplicationBootstrap {

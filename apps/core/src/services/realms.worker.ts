@@ -1,14 +1,9 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import chalk from 'chalk';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-
-import { BattleNetNamespace, BattleNetService, BATTLE_NET_KEY_TAG_BLIZZARD } from '@app/battle-net';
+import { BATTLE_NET_KEY_TAG_BLIZZARD, BattleNetNamespace, type BattleNetService } from '@app/battle-net';
+import { RealmsEntity } from '@app/pg';
 import {
-  BlizzardApiResponse,
-  IConnectedRealm,
-  IRealmMessageBase,
+  type BlizzardApiResponse,
+  type IConnectedRealm,
+  type IRealmMessageBase,
   isFieldNamed,
   normalizeLocaleField,
   OSINT_TIMEOUT_TOLERANCE,
@@ -19,10 +14,13 @@ import {
   transformConnectedRealmId,
   transformNamedField,
 } from '@app/resources';
-import { RealmsEntity } from '@app/pg';
-
-import { Job } from 'bullmq';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import type { Job } from 'bullmq';
+import chalk from 'chalk';
 import { get } from 'lodash';
+import type { Repository } from 'typeorm';
 
 @Injectable()
 @Processor(realmsQueue)

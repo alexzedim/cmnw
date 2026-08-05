@@ -1,38 +1,37 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { BattleNetService, BattleNetNamespace, BATTLE_NET_KEY_TAG_DMA, IBattleNetClientConfig } from '@app/battle-net';
-
+import { BATTLE_NET_KEY_TAG_DMA, BattleNetNamespace, type BattleNetService, type IBattleNetClientConfig } from '@app/battle-net';
 import {
-  BlizzardApiItem,
-  BlizzardApiItemMedia,
+  formatFinalSummary,
+  formatProgressReport,
+  formatWorkerErrorLog,
+  formatWorkerLog,
+  formatWorkerLogWithDetails,
+  WorkerLogStatus,
+  type WorkerStats,
+} from '@app/logger';
+import { ItemsEntity } from '@app/pg';
+import {
+  type BlizzardApiItem,
+  type BlizzardApiItemMedia,
   DMA_SOURCE,
   GOLD_FIELDS,
-  IItem,
-  IItemMessageBase,
+  type IItem,
+  type IItemMessageBase,
+  ITEM_FIELD_MAPPING,
   isItem,
   isItemMedia,
   isNamedField,
-  ITEM_FIELD_MAPPING,
   itemsQueue,
   NAMED_FIELDS,
   toGold,
   VALUATION_TYPE,
 } from '@app/resources';
-import { ItemsEntity } from '@app/pg';
-import {
-  WorkerStats,
-  formatWorkerLog,
-  WorkerLogStatus,
-  formatWorkerLogWithDetails,
-  formatWorkerErrorLog,
-  formatProgressReport,
-  formatFinalSummary,
-} from '@app/logger';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import { isAxiosError } from 'axios';
-import { Job } from 'bullmq';
+import type { Job } from 'bullmq';
 import { get } from 'lodash';
+import type { Repository } from 'typeorm';
 
 @Injectable()
 @Processor(itemsQueue)

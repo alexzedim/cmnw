@@ -1,6 +1,6 @@
-import { ApiProperty, ApiPropertyOptions, getSchemaPath } from '@nestjs/swagger';
 import { MarketEntity } from '@app/pg';
 import { MARKET_TYPE } from '@app/resources/constants';
+import { ApiProperty, type ApiPropertyOptions, getSchemaPath } from '@nestjs/swagger';
 
 export const SWAGGER_ITEM_QUOTES: ApiPropertyOptions = {
   name: 'quotes',

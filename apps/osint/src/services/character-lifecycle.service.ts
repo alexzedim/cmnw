@@ -1,19 +1,19 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { formatServiceErrorLog } from '@app/logger';
+import { CharactersEntity, CharactersGuildsLogsEntity, RealmsEntity } from '@app/pg';
 import {
   ACTION_LOG,
+  type CharacterExistsOrCreate,
   capitalize,
-  CharacterExistsOrCreate,
-  ICharacterMessageBase,
+  type ICharacterMessageBase,
   OSINT_SOURCE,
   TIME_MS,
   toDate,
   toNormalizedString,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
-import { CharactersEntity, CharactersGuildsLogsEntity, RealmsEntity } from '@app/pg';
-import { formatServiceErrorLog } from '@app/logger';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import type { Repository } from 'typeorm';
 
 @Injectable()
 export class CharacterLifecycleService {

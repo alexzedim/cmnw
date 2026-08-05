@@ -1,6 +1,6 @@
-import { Column, Entity, PrimaryColumn } from 'typeorm';
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
-import { ItemPricing } from '@app/resources';
+import type { ItemPricing } from '@app/resources';
+import { Column, Entity, PrimaryColumn } from 'typeorm';
 
 @Entity({ name: CMNW_ENTITY_ENUM.SPELL_REAGENTS })
 export class SpellReagentsEntity {

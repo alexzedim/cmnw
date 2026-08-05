@@ -1,21 +1,21 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
-import { InjectRepository } from '@nestjs/typeorm';
 import { ContractEntity, ItemsEntity, MarketEntity } from '@app/pg';
-import { LessThan, MoreThan, Not, Repository } from 'typeorm';
-import { DateTime } from 'luxon';
-import { from, lastValueFrom, mergeMap } from 'rxjs';
 import {
   CONTRACT_TYPE,
   GOLD_ITEM_ENTITY,
-  REALM_ENTITY_ANY,
   getPercentileTypeByItemAndTimestamp,
-  IItemOpenInterest,
-  IItemPriceAndQuantity,
+  type IItemOpenInterest,
+  type IItemPriceAndQuantity,
   isContractArraysEmpty,
+  REALM_ENTITY_ANY,
   validateContractData,
   WOW_TOKEN_ITEM_ID,
 } from '@app/resources';
+import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import { DateTime } from 'luxon';
+import { from, lastValueFrom, mergeMap } from 'rxjs';
+import { LessThan, MoreThan, Not, type Repository } from 'typeorm';
 
 @Injectable()
 export class ContractsService implements OnApplicationBootstrap {

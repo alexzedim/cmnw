@@ -1,15 +1,18 @@
-import { FACTION, SWAGGER_CHARACTER_REALMS_ID, SWAGGER_HEROIC_LOGS, SWAGGER_MYTHIC_LOGS } from '@app/resources/index';
-import { IsArray, IsNumberString, IsOptional } from 'class-validator';
-import { Transform } from 'class-transformer';
-import { ApiProperty } from '@nestjs/swagger';
 import {
+  type FACTION,
   SWAGGER_CHARACTER_AVG_ILVL,
   SWAGGER_CHARACTER_DAYS_FROM,
   SWAGGER_CHARACTER_DAYS_TO,
   SWAGGER_CHARACTER_FACTION,
   SWAGGER_CHARACTER_LANGUAGES,
+  SWAGGER_CHARACTER_REALMS_ID,
   SWAGGER_CHARACTER_RIO,
+  SWAGGER_HEROIC_LOGS,
+  SWAGGER_MYTHIC_LOGS,
 } from '@app/resources/index';
+import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
+import { IsArray, IsNumberString, IsOptional } from 'class-validator';
 
 export class CharacterLfgDto {
   @ApiProperty(SWAGGER_CHARACTER_REALMS_ID)

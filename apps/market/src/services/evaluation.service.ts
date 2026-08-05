@@ -1,9 +1,5 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
 import { EvaluationEntity, ItemsEntity, MarketEntity, PricingEntity, RealmsEntity, ValuationEntity } from '@app/pg';
-import { In, Repository } from 'typeorm';
-import { Cron } from '@nestjs/schedule';
-import {
+import type {
   CraftingCost,
   EvaluationOptions,
   ItemEvaluation,
@@ -12,7 +8,11 @@ import {
   ProfitableCraftOptions,
   ReversePricingValue,
 } from '@app/resources';
-import { PRICING_TYPE, VALUATION_TYPE } from '@app/resources/constants';
+import { PRICING_TYPE, type VALUATION_TYPE } from '@app/resources/constants';
+import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import { In, type Repository } from 'typeorm';
 
 @Injectable()
 export class EvaluationService implements OnApplicationBootstrap {

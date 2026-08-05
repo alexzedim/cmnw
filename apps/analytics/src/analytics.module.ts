@@ -1,24 +1,26 @@
-import { Module } from '@nestjs/common';
-import { ScheduleModule } from '@nestjs/schedule';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { RedisModule } from '@nestjs-modules/ioredis';
 import { postgresConfig, redisConfig } from '@app/configuration';
 import {
   AnalyticsEntity,
   CharactersEntity,
+  ContractEntity,
   GuildHallOfFameEntity,
   GuildsEntity,
   MarketEntity,
-  ContractEntity,
   RealmsEntity,
 } from '@app/pg';
+import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { RedisModule } from '@nestjs-modules/ioredis';
 
 import { AnalyticsService } from './analytics.service';
-import { CharacterMetricsService } from './services';
-import { GuildMetricsService } from './services';
-import { MarketMetricsService } from './services';
-import { ContractMetricsService } from './services';
-import { HallOfFameMetricsService } from './services';
+import {
+  CharacterMetricsService,
+  ContractMetricsService,
+  GuildMetricsService,
+  HallOfFameMetricsService,
+  MarketMetricsService,
+} from './services';
 import { AnalyticsMigrationService } from './services/analytics-migration.service';
 
 @Module({

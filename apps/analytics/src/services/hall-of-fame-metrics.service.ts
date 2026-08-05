@@ -1,10 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { AnalyticsEntity, GuildHallOfFameEntity, RealmsEntity } from '@app/pg';
 import { AnalyticsMetricCategory, AnalyticsMetricType, isUnchanged } from '@app/resources';
 import { analyticsMetricLatest } from '@app/resources/dao';
-import { HallOfFameRaidAggregation, HallOfFameRealmMetricRow } from '@app/resources/types';
-import { AnalyticsEntity, GuildHallOfFameEntity, RealmsEntity } from '@app/pg';
+import type { HallOfFameRaidAggregation, HallOfFameRealmMetricRow } from '@app/resources/types';
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import type { DataSource, EntityManager, Repository } from 'typeorm';
 
 @Injectable()
 export class HallOfFameMetricsService {

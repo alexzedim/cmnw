@@ -1,7 +1,3 @@
-import { Injectable, Logger, Inject, OnModuleInit } from '@nestjs/common';
-import { InjectS3, S3 } from 'nestjs-s3';
-import { promisify } from 'util';
-import zlib from 'zlib';
 import {
   BucketAlreadyOwnedByYou,
   CreateBucketCommand,
@@ -9,16 +5,20 @@ import {
   HeadBucketCommand,
   HeadObjectCommand,
   ListObjectsV2Command,
-  ListObjectsV2CommandInput,
+  type ListObjectsV2CommandInput,
   PutBucketVersioningCommand,
   PutObjectCommand,
 } from '@aws-sdk/client-s3';
-import {
+import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
+import { InjectS3, type S3 } from 'nestjs-s3';
+import { promisify } from 'util';
+import zlib from 'zlib';
+import type {
+  S3BucketConfig,
   S3FileMetadata,
+  S3ModuleOptions,
   S3WriteFileOptions,
   S3WriteFileResult,
-  S3BucketConfig,
-  S3ModuleOptions,
 } from './interfaces/s3.interface';
 
 @Injectable()

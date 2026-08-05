@@ -1,12 +1,11 @@
+import { wsConfig } from '@app/configuration';
+import { LoggerService } from '@app/logger';
 import { Injectable } from '@nestjs/common';
 import { InjectRedis } from '@nestjs-modules/ioredis';
-import Redis from 'ioredis';
+import type Redis from 'ioredis';
 
-import { LoggerService } from '@app/logger';
-import { wsConfig } from '@app/configuration';
-
-import { FeedEventCategory, FeedStatus } from '../constants/feed.constants';
-import { FeedEventDto, FeedEventInput, IFeedEventBase } from '../dto/feed/feed-event.dto';
+import type { FeedEventCategory, FeedStatus } from '../constants/feed.constants';
+import { FeedEventDto, type FeedEventInput, type IFeedEventBase } from '../dto/feed/feed-event.dto';
 
 @Injectable()
 export class FeedService {

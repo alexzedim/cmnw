@@ -1,23 +1,11 @@
-import {
-  Injectable,
-  Logger,
-  NotFoundException,
-  OnApplicationBootstrap,
-  UnsupportedMediaTypeException,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { ItemsEntity, MarketEntity, RealmsEntity } from '@app/pg';
-import { ArrayContains, In, LessThan, Not, Repository } from 'typeorm';
-import { DateTime } from 'luxon';
-import { from, lastValueFrom } from 'rxjs';
-import { HttpService } from '@nestjs/axios';
 import { pipeline } from 'node:stream/promises';
-import { chromium, devices } from 'playwright';
+import { cmnwConfig } from '@app/configuration';
+import { ItemsEntity, MarketEntity, RealmsEntity } from '@app/pg';
 import {
   FACTION,
-  ICharacterRaiderIo,
-  IChartOrder,
-  IGold,
+  type ICharacterRaiderIo,
+  type IChartOrder,
+  type IGold,
   isRaiderIoProfile,
   MARKET_TYPE,
   OSINT_SOURCE_RAIDER_IO,
@@ -27,12 +15,24 @@ import {
   VALUATION_TYPE,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
-import { mergeMap } from 'rxjs/operators';
+import type { HttpService } from '@nestjs/axios';
+import {
+  Injectable,
+  Logger,
+  NotFoundException,
+  type OnApplicationBootstrap,
+  UnsupportedMediaTypeException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
 import * as cheerio from 'cheerio';
 import fs from 'fs-extra';
+import { DateTime } from 'luxon';
 import path from 'path';
+import { chromium, devices } from 'playwright';
+import { from, lastValueFrom } from 'rxjs';
+import { mergeMap } from 'rxjs/operators';
+import { ArrayContains, In, LessThan, Not, type Repository } from 'typeorm';
 import zlib from 'zlib';
-import { cmnwConfig } from '@app/configuration';
 
 @Injectable()
 export class TestsBench implements OnApplicationBootstrap {

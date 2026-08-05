@@ -1,17 +1,16 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { DataSource, IsNull, Not, Repository } from 'typeorm';
-import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-
+import { CharactersEntity, CharactersGuildsLogsEntity, CharactersGuildsMembersEntity, type GuildsEntity } from '@app/pg';
 import {
   ACTION_LOG,
   GuildStatusState,
-  IGuildMember,
-  IGuildRoster,
+  type IGuildMember,
+  type IGuildRoster,
   OSINT_GM_RANK,
   OSINT_SOURCE,
   setGuildStatusString,
 } from '@app/resources';
-import { CharactersEntity, CharactersGuildsMembersEntity, CharactersGuildsLogsEntity, GuildsEntity } from '@app/pg';
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { type DataSource, IsNull, Not, type Repository } from 'typeorm';
 
 @Injectable()
 export class GuildMasterService {

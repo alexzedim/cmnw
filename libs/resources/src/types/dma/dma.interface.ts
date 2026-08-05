@@ -1,5 +1,5 @@
-import { ItemsEntity } from '@app/pg';
-import { INameWithType, ISelfKeyHref, ISelfWithId, ISelfWithNameAndId } from '@app/resources/types';
+import type { ItemsEntity } from '@app/pg';
+import type { INameWithType, ISelfKeyHref, ISelfWithId, ISelfWithNameAndId } from '@app/resources/types';
 
 export interface IItemFieldMap {
   key: Partial<keyof Omit<ItemsEntity, 'id'>>;

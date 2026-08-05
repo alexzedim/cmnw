@@ -1,13 +1,13 @@
-import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bullmq';
-import { RedisModule } from '@nestjs-modules/ioredis';
-import { postgresConfig, redisConfig, REDIS_CONNECTION } from '@app/configuration';
 import { BattleNetModule } from '@app/battle-net';
-import { AuctionsWorker, ItemsWorker } from './workers';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { postgresConfig, REDIS_CONNECTION, redisConfig } from '@app/configuration';
 import { ItemsEntity, KeysEntity, MarketEntity, RealmsEntity } from '@app/pg';
 import { auctionsQueue, itemsQueue } from '@app/resources';
 import { FeedService } from '@app/resources/services/feed.service';
+import { BullModule } from '@nestjs/bullmq';
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { RedisModule } from '@nestjs-modules/ioredis';
+import { AuctionsWorker, ItemsWorker } from './workers';
 
 @Module({
   imports: [

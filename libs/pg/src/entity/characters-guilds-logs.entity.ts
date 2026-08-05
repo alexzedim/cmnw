@@ -1,5 +1,5 @@
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
-import { ACTION_LOG } from '@app/resources';
+import type { ACTION_LOG } from '@app/resources';
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 @Index('ix__characters_guilds_logs__character_guid', ['characterGuid'], {})

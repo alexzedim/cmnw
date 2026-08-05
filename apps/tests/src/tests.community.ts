@@ -1,10 +1,9 @@
+import type { IOsintConfig } from '@app/configuration';
+import { isCharacterRaidLogResponse, type RaidCharacter, toGuid } from '@app/resources';
+import type { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
-import { get } from 'lodash';
 import cheerio from 'cheerio';
-
-import { isCharacterRaidLogResponse, RaidCharacter, toGuid } from '@app/resources';
-import { IOsintConfig } from '@app/configuration';
+import { get } from 'lodash';
 
 @Injectable()
 export class TestsCommunity {

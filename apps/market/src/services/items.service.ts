@@ -1,23 +1,23 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
 import { dmaConfig } from '@app/configuration';
-import { S3Service } from '@app/s3';
-import csv from 'async-csv';
-import { lastValueFrom, mergeMap, range } from 'rxjs';
-import { InjectRepository } from '@nestjs/typeorm';
 import { ItemsEntity } from '@app/pg';
-import { Repository } from 'typeorm';
 import {
   EXPANSION_TICKER_ID,
   GOLD_ITEM_ENTITY,
-  IItemMessageBase,
-  IItemsParse,
+  type IItemMessageBase,
+  type IItemsParse,
   ItemMessageDto,
   itemsQueue,
   toStringOrNumber,
 } from '@app/resources';
+import type { S3Service } from '@app/s3';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import csv from 'async-csv';
+import type { Queue } from 'bullmq';
+import { lastValueFrom, mergeMap, range } from 'rxjs';
+import type { Repository } from 'typeorm';
 
 @Injectable()
 export class ItemsService implements OnApplicationBootstrap {

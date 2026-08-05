@@ -1,5 +1,5 @@
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
-import { HASH_BLOCK_ACTION } from '@app/resources';
+import type { HASH_BLOCK_ACTION } from '@app/resources';
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
 
 @Index('ix__hash_block_logs__block_id', ['blockId'], {})

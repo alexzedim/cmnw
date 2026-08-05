@@ -1,9 +1,9 @@
+import { MountsEntity, PetsEntity } from '@app/pg';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
-import { Repository } from 'typeorm';
-import Redis from 'ioredis';
-import { MountsEntity, PetsEntity } from '@app/pg';
+import type Redis from 'ioredis';
+import type { Repository } from 'typeorm';
 
 @Injectable()
 export class CharacterEntityIndexingService {

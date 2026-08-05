@@ -1,4 +1,4 @@
-import { IWorkerConfig } from '@app/configuration/interfaces';
+import type { IWorkerConfig } from '@app/configuration/interfaces';
 import { hostname } from 'os';
 
 const getWorkerId = (): string => {

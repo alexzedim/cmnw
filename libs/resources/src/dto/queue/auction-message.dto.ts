@@ -1,6 +1,6 @@
-import { JobsOptions } from 'bullmq';
-import { auctionsQueue } from '../../queues/auctions.queue';
 import { REALM_ENTITY_ANY } from '@app/resources/constants';
+import type { JobsOptions } from 'bullmq';
+import { auctionsQueue } from '../../queues/auctions.queue';
 
 /**
  * Base interface for creating auction job data

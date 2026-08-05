@@ -1,18 +1,18 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TestsOsint } from '../src/tests.osint';
+import { BattleNetModule } from '@app/battle-net';
+import { Test, type TestingModule } from '@nestjs/testing';
 import {
   characterSummary,
-  objectPet,
-  objectMount,
-  statusObj,
   guildMembersRosterObj,
   guildObj,
-  professionObj,
   guildRosterObj,
-  objectRealm,
   objectConnectedRealm,
+  objectMount,
+  objectPet,
+  objectRealm,
+  professionObj,
+  statusObj,
 } from '../mocks';
-import { BattleNetModule } from '@app/battle-net';
+import { TestsOsint } from '../src/tests.osint';
 
 describe('OSINT', () => {
   let testsService: TestsOsint;

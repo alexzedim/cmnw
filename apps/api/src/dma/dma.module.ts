@@ -1,12 +1,12 @@
-import { Module } from '@nestjs/common';
-import { postgresConfig, redisConfig, REDIS_CONNECTION } from '@app/configuration';
+import { postgresConfig, REDIS_CONNECTION, redisConfig } from '@app/configuration';
+import { ContractEntity, ItemsEntity, KeysEntity, MarketEntity } from '@app/pg';
+import { auctionsQueue, itemsQueue, valuationsQueue } from '@app/resources';
 import { BullModule } from '@nestjs/bullmq';
-import { valuationsQueue, itemsQueue, auctionsQueue } from '@app/resources';
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { RedisModule } from '@nestjs-modules/ioredis';
 import { DmaController } from './dma.controller';
 import { DmaService } from './dma.service';
-import { RedisModule } from '@nestjs-modules/ioredis';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { ItemsEntity, KeysEntity, MarketEntity, ContractEntity } from '@app/pg';
 
 @Module({
   imports: [

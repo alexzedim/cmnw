@@ -1,20 +1,20 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { Cron } from '@nestjs/schedule';
-import { Repository, MoreThanOrEqual } from 'typeorm';
-import { DateTime } from 'luxon';
-import { InjectRedis } from '@nestjs-modules/ioredis';
-import Redis from 'ioredis';
+import { AnalyticsEntity } from '@app/pg';
 import { CACHE_PATTERN, invalidateCachePattern } from '@app/resources';
-import {
+import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
+import { Cron } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import type Redis from 'ioredis';
+import { DateTime } from 'luxon';
+import { MoreThanOrEqual, type Repository } from 'typeorm';
+import type {
   CharacterMetricsService,
   ContractMetricsService,
   GuildMetricsService,
   HallOfFameMetricsService,
   MarketMetricsService,
 } from './services';
-import { AnalyticsMigrationService } from './services/analytics-migration.service';
-import { AnalyticsEntity } from '@app/pg';
-import { InjectRepository } from '@nestjs/typeorm';
+import type { AnalyticsMigrationService } from './services/analytics-migration.service';
 
 @Injectable()
 export class AnalyticsService implements OnApplicationBootstrap {

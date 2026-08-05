@@ -1,4 +1,4 @@
-import { IOrderQuotes, SWAGGER_ITEM_QUOTES } from '@app/resources';
+import { type IOrderQuotes, SWAGGER_ITEM_QUOTES } from '@app/resources';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class ItemQuotesDto {

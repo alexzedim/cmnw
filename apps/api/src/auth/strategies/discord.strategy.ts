@@ -1,9 +1,9 @@
+import type { DiscordProfile } from '@app/resources';
 import { Injectable, Logger } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
-import { Strategy } from 'discord-strategy';
 import type { VerifyCallback } from 'discord-strategy';
-import { AuthService } from '../auth.service';
-import { DiscordProfile } from '@app/resources';
+import { Strategy } from 'discord-strategy';
+import type { AuthService } from '../auth.service';
 
 @Injectable()
 export class DiscordStrategy extends PassportStrategy(Strategy, 'discord') {

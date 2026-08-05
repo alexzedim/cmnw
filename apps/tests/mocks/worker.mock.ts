@@ -1,4 +1,4 @@
-import { GuildsEntity, CharactersGuildsMembersEntity } from '@app/pg';
+import type { CharactersGuildsMembersEntity, GuildsEntity } from '@app/pg';
 import { OSINT_GM_RANK, OSINT_SOURCE } from '@app/resources';
 
 /**

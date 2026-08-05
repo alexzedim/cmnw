@@ -1,4 +1,6 @@
+import { AuthResponseDto } from '@app/resources';
 import { Controller, Get, HttpCode, HttpStatus, Logger, Req, Res, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import {
   ApiBadRequestResponse,
   ApiForbiddenResponse,
@@ -9,9 +11,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { AuthGuard } from '@nestjs/passport';
-import { AuthResponseDto } from '@app/resources';
-import { Response } from 'express';
+import type { Response } from 'express';
 
 @ApiTags('auth')
 @Controller('auth')

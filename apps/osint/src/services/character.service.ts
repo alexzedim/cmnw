@@ -1,38 +1,38 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { BattleNetService, BattleNetNamespace, IBattleNetClientConfig } from '@app/battle-net';
-import { isAxiosError } from 'axios';
-import { get, set } from 'lodash';
+import { BattleNetNamespace, type BattleNetService, type IBattleNetClientConfig } from '@app/battle-net';
+import { formatServiceErrorLog, formatServiceLog, WorkerLogStatus } from '@app/logger';
+import { CharactersEntity } from '@app/pg';
 import {
-  BlizzardApiCharacterMedia,
-  BlizzardApiCharacterSummary,
-  BlizzardApiPetsCollection,
+  type BlizzardApiCharacterMedia,
+  type BlizzardApiCharacterProfessions,
+  type BlizzardApiCharacterSummary,
+  type BlizzardApiMountsCollection,
+  type BlizzardApiPetsCollection,
   CHARACTER_ARGS_ENTITY_KEYS,
   CHARACTER_MEDIA_FIELD_MAPPING,
-  GUILD_INHERIT_KEYS,
   CHARACTER_SUMMARY_FIELD_MAPPING,
-  CharacterStatus,
-  CharacterSummary,
+  type CharacterStatus,
+  CharacterStatusState,
+  type CharacterSummary,
+  GUILD_INHERIT_KEYS,
+  type IBlizzardStatusResponse,
+  type ICharacterMessageBase,
   isCharacterMedia,
+  isCharacterProfessions,
   isCharacterSummary,
   isMountCollection,
   isPetsCollection,
-  Media,
+  type Media,
+  normalizeLocaleField,
+  setStatusString,
   toDate,
   toGuid,
-  IBlizzardStatusResponse,
-  ICharacterMessageBase,
-  BlizzardApiMountsCollection,
-  BlizzardApiCharacterProfessions,
-  isCharacterProfessions,
-  setStatusString,
-  CharacterStatusState,
   toPositiveInt,
-  normalizeLocaleField,
 } from '@app/resources';
-import { CharactersEntity } from '@app/pg';
-import { formatServiceLog, formatServiceErrorLog, WorkerLogStatus } from '@app/logger';
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { isAxiosError } from 'axios';
+import { get, set } from 'lodash';
+import type { Repository } from 'typeorm';
 
 @Injectable()
 export class CharacterService {

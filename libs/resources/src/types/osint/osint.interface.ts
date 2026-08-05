@@ -1,4 +1,4 @@
-import { CharactersGuildsMembersEntity, CharactersProfileEntity } from '@app/pg';
+import type { CharactersGuildsMembersEntity, CharactersProfileEntity } from '@app/pg';
 
 /**
  * -----------------------------------------------------------------------------

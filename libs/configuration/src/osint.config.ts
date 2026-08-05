@@ -1,4 +1,4 @@
-import { IOsintConfig } from '@app/configuration/interfaces';
+import type { IOsintConfig } from '@app/configuration/interfaces';
 
 export const osintConfig: IOsintConfig = {
   isIndexCharactersFromFile: process.env.OSINT_INDEX_CHARACTERS_FROM_FILE === 'true',

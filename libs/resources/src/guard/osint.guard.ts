@@ -1,4 +1,4 @@
-import { WowProgressJson } from '@app/resources/types';
+import type { WowProgressJson } from '@app/resources/types';
 
 export const isWowProgressJson = (obj: unknown): obj is WowProgressJson => {
   return (

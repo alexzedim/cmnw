@@ -1,11 +1,9 @@
-import { Module } from '@nestjs/common';
-import { REDIS_CONNECTION, postgresConfig, redisConfig, s3Config } from '@app/configuration';
-import { OsintController } from './osint.controller';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { RedisModule } from '@nestjs-modules/ioredis';
+import { BattleNetModule } from '@app/battle-net';
+import { postgresConfig, REDIS_CONNECTION, redisConfig, s3Config } from '@app/configuration';
 import {
   AnalyticsEntity,
   CharactersEntity,
+  CharactersGuildsLogsEntity,
   CharactersGuildsMembersEntity,
   CharactersMountsEntity,
   CharactersPetsEntity,
@@ -17,18 +15,20 @@ import {
   HashBlockMembersEntity,
   HashBlocksEntity,
   KeysEntity,
-  CharactersGuildsLogsEntity,
   MountsEntity,
   PetsEntity,
   ProfessionsEntity,
   RealmsEntity,
 } from '@app/pg';
-import { BlockOsintService, CharacterOsintService, GuildOsintService, RealmOsintService } from './services';
 import { charactersQueue, guildsQueue } from '@app/resources';
-import { BullModule } from '@nestjs/bullmq';
-import { BattleNetModule } from '@app/battle-net';
-import { S3Module } from '@app/s3';
 import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
+import { S3Module } from '@app/s3';
+import { BullModule } from '@nestjs/bullmq';
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { RedisModule } from '@nestjs-modules/ioredis';
+import { OsintController } from './osint.controller';
+import { BlockOsintService, CharacterOsintService, GuildOsintService, RealmOsintService } from './services';
 
 @Module({
   imports: [

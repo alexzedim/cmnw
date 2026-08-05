@@ -1,5 +1,5 @@
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
-import { ItemNames } from '@app/resources';
+import type { ItemNames } from '@app/resources';
 import { Column, CreateDateColumn, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity({ name: CMNW_ENTITY_ENUM.ITEMS })

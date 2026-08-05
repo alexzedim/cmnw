@@ -2,9 +2,9 @@ import {
   assignPriceBucket,
   buildHybridPriceBins,
   filterOutlierPrices,
+  NICE_STEPS,
   niceStep,
   roundToStep,
-  NICE_STEPS,
 } from './price-binning';
 
 /**

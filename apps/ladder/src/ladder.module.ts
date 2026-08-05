@@ -1,15 +1,15 @@
-import { Module } from '@nestjs/common';
-import { REDIS_CONNECTION, postgresConfig, redisConfig } from '@app/configuration';
-import { LadderService } from './ladder.service';
-import { HttpModule } from '@nestjs/axios';
-import { ScheduleModule } from '@nestjs/schedule';
-import { RedisModule } from '@nestjs-modules/ioredis';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { BattleNetModule } from '@app/battle-net';
+import { postgresConfig, REDIS_CONNECTION, redisConfig } from '@app/configuration';
 import { RealmsEntity } from '@app/pg';
 import { charactersQueue, guildsQueue } from '@app/resources';
-import { BullModule } from '@nestjs/bullmq';
-import { BattleNetModule } from '@app/battle-net';
 import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
+import { HttpModule } from '@nestjs/axios';
+import { BullModule } from '@nestjs/bullmq';
+import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { RedisModule } from '@nestjs-modules/ioredis';
+import { LadderService } from './ladder.service';
 
 @Module({
   imports: [

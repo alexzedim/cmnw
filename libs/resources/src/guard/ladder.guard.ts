@@ -1,20 +1,20 @@
-import { BadGatewayException } from '@nestjs/common';
-import {
-  IMythicKeystoneDungeonResponse,
-  IMythicKeystoneSeasonResponse,
-  IMythicKeystoneSeasonDetail,
-  IMythicLeaderboardResponse,
-  IPvPSeasonIndexResponse,
-  IPvPLeaderboardResponse,
-} from '@app/resources/types';
 import {
   isMythicKeystoneDungeonResponse,
-  isMythicKeystoneSeasonResponse,
   isMythicKeystoneSeasonDetail,
+  isMythicKeystoneSeasonResponse,
   isMythicLeaderboardResponse,
-  isPvPSeasonIndexResponse,
   isPvPLeaderboardResponse,
+  isPvPSeasonIndexResponse,
 } from '@app/resources/guard/api.guard';
+import type {
+  IMythicKeystoneDungeonResponse,
+  IMythicKeystoneSeasonDetail,
+  IMythicKeystoneSeasonResponse,
+  IMythicLeaderboardResponse,
+  IPvPLeaderboardResponse,
+  IPvPSeasonIndexResponse,
+} from '@app/resources/types';
+import { BadGatewayException } from '@nestjs/common';
 
 export function validateMythicKeystoneDungeonResponse(response: unknown): IMythicKeystoneDungeonResponse {
   if (!isMythicKeystoneDungeonResponse(response)) {

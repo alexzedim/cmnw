@@ -1,17 +1,13 @@
 // Enums
-export * from './enums';
-
-// Constants
-export * from './constants';
-
-// Types & Interfaces
-export * from './types';
-
-// Service (HTTP executor)
-export * from './battle-net.service';
-
-// Module
-export * from './battle-net.module';
 
 // Entities
 export { KeysEntity } from '@app/pg';
+// Module
+export * from './battle-net.module';
+// Service (HTTP executor)
+export * from './battle-net.service';
+// Constants
+export * from './constants';
+export * from './enums';
+// Types & Interfaces
+export * from './types';

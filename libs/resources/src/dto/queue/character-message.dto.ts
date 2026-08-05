@@ -1,10 +1,10 @@
-import { Logger } from '@nestjs/common';
-import { OSINT_SOURCE, TIME_MS, PLAYABLE_CLASS, PLAYABLE_RACE } from '@app/resources/constants';
-import { toGuid, toSlug } from '@app/resources/transformers';
-import { charactersQueue } from '@app/resources/queues/characters.queue';
+import { OSINT_SOURCE, PLAYABLE_CLASS, PLAYABLE_RACE, TIME_MS } from '@app/resources/constants';
 import { normalizeRealmName } from '@app/resources/guard';
-import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
-import { JobsOptions } from 'bullmq';
+import { charactersQueue } from '@app/resources/queues/characters.queue';
+import type { RealmsCacheService } from '@app/resources/services/realms-cache.service';
+import { toGuid, toSlug } from '@app/resources/transformers';
+import { Logger } from '@nestjs/common';
+import type { JobsOptions } from 'bullmq';
 
 /**
  * Base interface for character job data payload

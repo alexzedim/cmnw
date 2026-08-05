@@ -1,7 +1,7 @@
-import { Logger } from '@nestjs/common';
-import { JobsOptions } from 'bullmq';
-import { profileQueue } from '../../queues/profile.queue';
 import { toGuid } from '@app/resources/transformers';
+import { Logger } from '@nestjs/common';
+import type { JobsOptions } from 'bullmq';
+import { profileQueue } from '../../queues/profile.queue';
 
 /**
  * Base interface for creating profile job data

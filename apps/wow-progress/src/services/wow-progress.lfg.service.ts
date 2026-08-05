@@ -1,28 +1,28 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { Queue } from 'bullmq';
-import { InjectQueue } from '@nestjs/bullmq';
-import chalk from 'chalk';
-import { difference, union } from 'lodash';
-import { In, Repository } from 'typeorm';
+import { BATTLE_NET_KEY_TAG_OSINT, type BattleNetService } from '@app/battle-net';
 import { CharactersProfileEntity, RealmsEntity } from '@app/pg';
-import { from, lastValueFrom } from 'rxjs';
-import { mergeMap } from 'rxjs/operators';
-import * as cheerio from 'cheerio';
-import { HttpService } from '@nestjs/axios';
-import { InjectRepository } from '@nestjs/typeorm';
 import {
-  ICharacterQueueWP,
+  CharacterMessageDto,
+  type ICharacterMessageBase,
+  type ICharacterQueueWP,
+  type IProfileMessageBase,
   LFG_STATUS,
   OSINT_LFG_WOW_PROGRESS,
-  toGuid,
-  CharacterMessageDto,
   ProfileMessageDto,
-  ICharacterMessageBase,
-  IProfileMessageBase,
+  toGuid,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
-import { BattleNetService, BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
+import type { HttpService } from '@nestjs/axios';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Injectable, Logger } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import type { Queue } from 'bullmq';
+import chalk from 'chalk';
+import * as cheerio from 'cheerio';
+import { difference, union } from 'lodash';
+import { from, lastValueFrom } from 'rxjs';
+import { mergeMap } from 'rxjs/operators';
+import { In, type Repository } from 'typeorm';
 
 @Injectable()
 export class WowProgressLfgService {

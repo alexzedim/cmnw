@@ -1,5 +1,5 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryColumn } from 'typeorm';
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
+import { Column, CreateDateColumn, Entity, Index, PrimaryColumn } from 'typeorm';
 
 @Index('ix__contract__timestamp', ['timestamp'], {})
 @Index('ix__contract__timestamp_realm', ['timestamp', 'connectedRealmId'], {})

@@ -1,4 +1,4 @@
-import { IDmaConfig } from '@app/configuration/interfaces';
+import type { IDmaConfig } from '@app/configuration/interfaces';
 
 export const dmaConfig: IDmaConfig = {
   isIndexAuctions: process.env.DMA_INDEX_AUCTIONS === 'true',

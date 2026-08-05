@@ -1,6 +1,6 @@
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
-import { VALUATION_TYPE } from '@app/resources/constants';
+import type { VALUATION_TYPE } from '@app/resources/constants';
+import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
 @Index('ix__evaluations__item_id', ['itemId'], {})
 @Index('ix__evaluations__connected_realm_id', ['connectedRealmId'], {})

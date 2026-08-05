@@ -4,7 +4,7 @@
  * Defines all queues, their connections, and configuration for the CMNW system.
  * Supports priority queues, retry strategies, and dead letter queue routing.
  */
-import {
+import type {
   IBullMQConnection,
   IBullMQJobOptions,
   IBullMQQueueOptions,

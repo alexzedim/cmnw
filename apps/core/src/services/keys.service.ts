@@ -1,14 +1,14 @@
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
-import { S3Service } from '@app/s3';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { HttpService } from '@nestjs/axios';
-import { from, lastValueFrom, mergeMap } from 'rxjs';
-import { InjectRepository } from '@nestjs/typeorm';
-import { KeysEntity } from '@app/pg';
-import { ArrayContains, Repository } from 'typeorm';
-import { LoggerService } from '@app/logger';
 import { BATTLE_NET_KEY_TAG_BLIZZARD, BATTLE_NET_KEY_TAG_WCL_V2 } from '@app/battle-net';
-import { IKeyConfig, IKeysJson } from '@app/resources';
+import { LoggerService } from '@app/logger';
+import { KeysEntity } from '@app/pg';
+import type { IKeyConfig, IKeysJson } from '@app/resources';
+import type { S3Service } from '@app/s3';
+import type { HttpService } from '@nestjs/axios';
+import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import { from, lastValueFrom, mergeMap } from 'rxjs';
+import { ArrayContains, type Repository } from 'typeorm';
 
 @Injectable()
 export class KeysService implements OnApplicationBootstrap {

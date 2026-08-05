@@ -7,13 +7,16 @@ config({ path: resolve(__dirname, '.env') });
 // Mock chalk for tests (ESM module compatibility)
 jest.mock('chalk', () => ({
   __esModule: true,
-  default: new Proxy({}, {
-    get: (target, prop) => {
-      if (prop === 'default') return target;
-      // Return a function that returns the string unchanged
-      return (str: string) => str;
-    }
-  }),
+  default: new Proxy(
+    {},
+    {
+      get: (target, prop) => {
+        if (prop === 'default') return target;
+        // Return a function that returns the string unchanged
+        return (str: string) => str;
+      },
+    },
+  ),
   bold: (str: string) => str,
   dim: (str: string) => str,
   green: (str: string) => str,

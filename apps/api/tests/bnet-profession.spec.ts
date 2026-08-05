@@ -1,12 +1,12 @@
-import {
-  IProfessionResponse,
-  IProfessionDetailResponse,
-  ISkillTieryResponse,
-  IBlizzardProfession,
-  IBlizzardSkillTier,
+import type {
   IBlizzardCategory,
-  IBlizzardRecipe,
   IBlizzardNameField,
+  IBlizzardProfession,
+  IBlizzardRecipe,
+  IBlizzardSkillTier,
+  IProfessionDetailResponse,
+  IProfessionResponse,
+  ISkillTieryResponse,
 } from '@app/resources';
 
 /**

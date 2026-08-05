@@ -1,11 +1,6 @@
-import { Injectable, Logger, OnApplicationBootstrap } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Queue } from 'bullmq';
+import { BATTLE_NET_KEY_TAG_BLIZZARD, type BattleNetService } from '@app/battle-net';
+import { osintConfig } from '@app/configuration';
 import { CharactersEntity, GuildHallOfFameEntity, GuildsEntity } from '@app/pg';
-import { Repository } from 'typeorm';
-import { HttpService } from '@nestjs/axios';
-import { from, lastValueFrom, mergeMap } from 'rxjs';
 import {
   delay,
   extractRealmSlug,
@@ -14,10 +9,10 @@ import {
   guildsQueue,
   HALL_OF_FAME_GRAPHQL_OPERATION,
   HALL_OF_FAME_RAIDS,
-  ICommunityHallOfFameResponse,
-  IGuildMessageBase,
-  IHallOfFameEntry,
-  IHallOfFameFetchResult,
+  type ICommunityHallOfFameResponse,
+  type IGuildMessageBase,
+  type IHallOfFameEntry,
+  type IHallOfFameFetchResult,
   isCommunityHallOfFame,
   isEuRegion,
   notNull,
@@ -27,9 +22,14 @@ import {
   WOW_COMMUNITY_HOF_QUERY_HASH,
   WOW_COMMUNITY_REQUEST_HEADERS,
 } from '@app/resources';
-import { osintConfig } from '@app/configuration';
+import type { HttpService } from '@nestjs/axios';
 import { InjectQueue } from '@nestjs/bullmq';
-import { BattleNetService, BATTLE_NET_KEY_TAG_BLIZZARD } from '@app/battle-net';
+import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import type { Queue } from 'bullmq';
+import { from, lastValueFrom, mergeMap } from 'rxjs';
+import type { Repository } from 'typeorm';
 
 @Injectable()
 export class GuildsService implements OnApplicationBootstrap {
@@ -60,7 +60,7 @@ export class GuildsService implements OnApplicationBootstrap {
 
     let uniqueGuildGuidsCount = 0;
     let guildJobsItx = 0;
-    let guildJobsSuccessItx = 0;
+    const guildJobsSuccessItx = 0;
 
     try {
       this.logger.log({

@@ -1,25 +1,25 @@
-import { Injectable, NotFoundException, OnApplicationBootstrap } from '@nestjs/common';
-import * as cheerio from 'cheerio';
-import { Cron, CronExpression } from '@nestjs/schedule';
-import { HttpService } from '@nestjs/axios';
-import { InjectRepository } from '@nestjs/typeorm';
-import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq';
+import { BattleNetNamespace, type BattleNetService } from '@app/battle-net';
+import { LoggerService } from '@app/logger';
 import { KeysEntity, RealmsEntity } from '@app/pg';
-import { Repository } from 'typeorm';
-import { lastValueFrom, mergeMap, range } from 'rxjs';
-import { BattleNetNamespace, BattleNetService } from '@app/battle-net';
 import {
-  getRandomizedHeaders,
   delay,
   GLOBAL_KEY,
+  getRandomizedHeaders,
+  type IRealmMessageBase,
   REALM_ENTITY_ANY,
-  realmsQueue,
-  IRealmMessageBase,
   RealmMessageDto,
+  realmsQueue,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
-import { LoggerService } from '@app/logger';
+import type { HttpService } from '@nestjs/axios';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Injectable, NotFoundException, type OnApplicationBootstrap } from '@nestjs/common';
+import { Cron, CronExpression } from '@nestjs/schedule';
+import { InjectRepository } from '@nestjs/typeorm';
+import type { Queue } from 'bullmq';
+import * as cheerio from 'cheerio';
+import { lastValueFrom, mergeMap, range } from 'rxjs';
+import type { Repository } from 'typeorm';
 
 @Injectable()
 export class RealmsService implements OnApplicationBootstrap {

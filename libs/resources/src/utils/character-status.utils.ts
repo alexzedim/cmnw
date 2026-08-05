@@ -6,7 +6,7 @@
  * the status of a specific endpoint (e.g., "SU-MPVR").
  */
 
-import { CharacterStatusState, CHARACTER_STATUS_CODES, STATUS_ENDPOINT_ORDER } from '@app/resources/constants';
+import { CHARACTER_STATUS_CODES, CharacterStatusState, STATUS_ENDPOINT_ORDER } from '@app/resources/constants';
 
 /**
  * Set endpoint status in status string
@@ -302,10 +302,10 @@ export function toLowercaseStatusString(status: string): string {
 // ============================================================================
 
 import {
-  GuildStatusState,
+  GUILD_CORE_OPERATIONS,
   GUILD_STATUS_CODES,
   GUILD_STATUS_OPERATION_ORDER,
-  GUILD_CORE_OPERATIONS,
+  GuildStatusState,
 } from '@app/resources/constants';
 
 /**

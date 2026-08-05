@@ -1,5 +1,4 @@
-import { get } from 'lodash';
-import {
+import type {
   BlizzardApiAuctions,
   BlizzardApiCharacterMedia,
   BlizzardApiCharacterProfessions,
@@ -16,14 +15,15 @@ import {
   ICharacterRaiderIo,
   ICommunityHallOfFameResponse,
   IMythicKeystoneDungeonResponse,
-  IMythicKeystoneSeasonResponse,
   IMythicKeystoneSeasonDetail,
+  IMythicKeystoneSeasonResponse,
   IMythicLeaderboardResponse,
-  IPvPSeasonIndexResponse,
   IPvPLeaderboardResponse,
+  IPvPSeasonIndexResponse,
   IRGuildRoster,
   IRGuildRosterMember,
 } from '@app/resources/types';
+import { get } from 'lodash';
 
 export const isEuRegion = (region: string | number | undefined): boolean =>
   Boolean(region) && (region === 'eu' || region === 2);

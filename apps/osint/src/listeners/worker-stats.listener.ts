@@ -1,10 +1,10 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { InjectRedis } from '@nestjs-modules/ioredis';
 import { InjectQueue } from '@nestjs/bullmq';
-import Redis from 'ioredis';
-import { Queue } from 'bullmq';
-import { CharactersWorker, GuildsWorker, ProfileWorker } from '../workers';
+import { Injectable, Logger, type OnModuleInit } from '@nestjs/common';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import type { Queue } from 'bullmq';
 import chalk from 'chalk';
+import type Redis from 'ioredis';
+import type { CharactersWorker, GuildsWorker, ProfileWorker } from '../workers';
 
 @Injectable()
 export class WorkerStatsListener implements OnModuleInit {

@@ -1,5 +1,5 @@
-import { BlizzardApiNamedField, ConvertPrice, FACTION } from '@app/resources/index';
-import { TransformFnParams } from 'class-transformer';
+import { type BlizzardApiNamedField, type ConvertPrice, FACTION } from '@app/resources/index';
+import type { TransformFnParams } from 'class-transformer';
 import { DateTime } from 'luxon';
 
 const KEBAB_REGEX = /\p{Lu}/gu;

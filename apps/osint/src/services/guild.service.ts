@@ -1,18 +1,17 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
-
+import { GuildsEntity, RealmsEntity } from '@app/pg';
 import {
   capitalize,
-  GuildExistsOrCreate,
-  IGuildMessageBase,
+  type GuildExistsOrCreate,
+  type IGuildMessageBase,
   OSINT_SOURCE,
   TIME_MS,
   toGuid,
   toSlug,
 } from '@app/resources';
-import { GuildsEntity, RealmsEntity } from '@app/pg';
 import { findRealm } from '@app/resources/dao/realms.dao';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import type { Repository } from 'typeorm';
 
 @Injectable()
 export class GuildService {

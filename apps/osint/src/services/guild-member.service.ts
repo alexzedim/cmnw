@@ -1,21 +1,20 @@
+import { CharactersEntity, CharactersGuildsLogsEntity, CharactersGuildsMembersEntity, type GuildsEntity } from '@app/pg';
+import {
+  ACTION_LOG,
+  GuildStatusState,
+  type IGuildMember,
+  type IGuildRoster,
+  OSINT_GM_RANK,
+  OSINT_SOURCE,
+  type RosterComparisonResult,
+  setGuildStatusString,
+} from '@app/resources';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { difference, intersection } from 'lodash';
 import { from, lastValueFrom } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
-
-import {
-  ACTION_LOG,
-  IGuildMember,
-  IGuildRoster,
-  OSINT_GM_RANK,
-  OSINT_SOURCE,
-  RosterComparisonResult,
-  GuildStatusState,
-  setGuildStatusString,
-} from '@app/resources';
-import { CharactersEntity, CharactersGuildsMembersEntity, CharactersGuildsLogsEntity, GuildsEntity } from '@app/pg';
+import type { Repository } from 'typeorm';
 
 @Injectable()
 export class GuildMemberService {

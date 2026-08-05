@@ -1,8 +1,8 @@
+import { CharactersGuildsLogsEntity, CharactersGuildsMembersEntity, type GuildsEntity } from '@app/pg';
+import { ACTION_LOG, OSINT_GM_RANK, OSINT_SOURCE } from '@app/resources';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { GuildsEntity, CharactersGuildsMembersEntity, CharactersGuildsLogsEntity } from '@app/pg';
-import { ACTION_LOG, OSINT_GM_RANK, OSINT_SOURCE } from '@app/resources';
+import type { Repository } from 'typeorm';
 
 @Injectable()
 export class TestsWorker {

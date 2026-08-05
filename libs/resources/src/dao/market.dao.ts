@@ -1,5 +1,5 @@
-import { Repository } from 'typeorm';
-import { MarketEntity } from '@app/pg';
+import type { MarketEntity } from '@app/pg';
+import type { Repository } from 'typeorm';
 
 /**
  * Calculate the 10th percentile using PERCENTILE_CONT

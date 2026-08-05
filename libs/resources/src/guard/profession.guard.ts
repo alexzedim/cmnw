@@ -3,15 +3,15 @@
  * Used to validate response structures and narrow types in the pricing service
  */
 
-import {
-  ProfessionIndex,
-  ProfessionDetail,
-  SkillTierDetail,
-  IBlizzardProfession,
-  IBlizzardSkillTier,
+import type {
   IBlizzardCategory,
-  IBlizzardRecipe,
   IBlizzardNameField,
+  IBlizzardProfession,
+  IBlizzardRecipe,
+  IBlizzardSkillTier,
+  ProfessionDetail,
+  ProfessionIndex,
+  SkillTierDetail,
 } from '@app/resources/types';
 
 /**

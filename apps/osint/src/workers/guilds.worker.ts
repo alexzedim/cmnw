@@ -1,39 +1,38 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Job } from 'bullmq';
-
-import { BattleNetService, BATTLE_NET_KEY_TAG_OSINT, IBattleNetClientConfig } from '@app/battle-net';
+import { BATTLE_NET_KEY_TAG_OSINT, type BattleNetService, type IBattleNetClientConfig } from '@app/battle-net';
 import {
-  formatWorkerLog,
-  formatWorkerErrorLog,
-  formatProgressReport,
   formatFinalSummary,
+  formatProgressReport,
+  formatWorkerErrorLog,
+  formatWorkerLog,
   WorkerLogStatus,
 } from '@app/logger';
-import { GuildsEntity } from '@app/pg';
+import type { GuildsEntity } from '@app/pg';
 import {
-  isEuRegion,
-  toSlug,
-  hasCoreGuildErrorInString,
-  isCoreGuildSuccessInString,
-  setGuildStatusString,
+  FeedEventCategory,
+  FeedStatus,
   GuildStatusState,
   guildsQueue,
-  IGuildMessageBase,
-  IGuildSummary,
-  IGuildRoster,
+  hasCoreGuildErrorInString,
+  type IGuildMessageBase,
+  type IGuildRoster,
+  type IGuildSummary,
+  isCoreGuildSuccessInString,
+  isEuRegion,
+  setGuildStatusString,
+  toSlug,
 } from '@app/resources';
-
-import {
-  GuildService,
-  GuildSummaryService,
-  GuildRosterService,
-  GuildMemberService,
+import type { FeedService } from '@app/resources/services/feed.service';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Injectable, Logger } from '@nestjs/common';
+import type { Job } from 'bullmq';
+import type {
   GuildLogService,
   GuildMasterService,
+  GuildMemberService,
+  GuildRosterService,
+  GuildService,
+  GuildSummaryService,
 } from '../services';
-import { FeedService } from '@app/resources/services/feed.service';
-import { FeedEventCategory, FeedStatus } from '@app/resources';
 
 const PROGRESS_LOG_INTERVAL = 50;
 

@@ -1,16 +1,16 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { AnalyticsEntity, CharactersEntity } from '@app/pg';
 import { AnalyticsMetricCategory, AnalyticsMetricType } from '@app/resources';
 import { analyticsKeyOf, findExistingAnalyticsKeys } from '@app/resources/dao';
-import {
+import type {
   CharacterAverages,
   CharacterExtreme,
   CharacterRealmClassAggregation,
   CharacterRealmFactionAggregation,
   CharacterRealmUniquePlayersAggregation,
 } from '@app/resources/types';
-import { AnalyticsEntity, CharactersEntity } from '@app/pg';
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import type { DataSource, EntityManager, Repository } from 'typeorm';
 
 interface CharacterGlobalAggregationRow {
   dimension: 'faction' | 'class' | 'race' | 'level';

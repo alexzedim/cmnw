@@ -1,11 +1,10 @@
-import { toGuid } from '../../transformers';
-import { OSINT_SOURCE, TIME_MS } from '../../constants';
+import type { RegionIdOrName } from '@app/resources';
 import { Logger } from '@nestjs/common';
-import { JobsOptions } from 'bullmq';
-
-import { guildsQueue } from '../../queues/guilds.queue';
+import type { JobsOptions } from 'bullmq';
+import { OSINT_SOURCE, TIME_MS } from '../../constants';
 import { normalizeRealmName } from '../../guard';
-import { RegionIdOrName } from '@app/resources';
+import { guildsQueue } from '../../queues/guilds.queue';
+import { toGuid } from '../../transformers';
 
 /**
  * Guild Message DTO for BullMQ

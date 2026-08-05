@@ -1,11 +1,10 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { formatFinalSummary, formatWorkerErrorLog, type WorkerStats } from '@app/logger';
+import { hashQueue, type IHashMessageBase } from '@app/resources';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { Job } from 'bullmq';
+import { Injectable, Logger } from '@nestjs/common';
+import type { Job } from 'bullmq';
 
-import { WorkerStats, formatFinalSummary, formatWorkerErrorLog } from '@app/logger';
-import { hashQueue, IHashMessageBase } from '@app/resources';
-
-import { HashBlockService } from '../services';
+import type { HashBlockService } from '../services';
 
 @Injectable()
 @Processor(hashQueue.name, hashQueue.workerOptions)

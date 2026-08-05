@@ -1,9 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, EntityManager, Repository } from 'typeorm';
+import { AnalyticsEntity, GuildsEntity } from '@app/pg';
 import { AnalyticsMetricCategory, AnalyticsMetricType } from '@app/resources';
 import { analyticsKeyOf, findExistingAnalyticsKeys } from '@app/resources/dao';
-import {
+import type {
   GuildCountAggregation,
   GuildRealmAggregation,
   GuildRealmFactionAggregation,
@@ -11,7 +9,9 @@ import {
   GuildTopByMembers,
   GuildTotalMetrics,
 } from '@app/resources/types';
-import { AnalyticsEntity, GuildsEntity } from '@app/pg';
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import type { DataSource, EntityManager, Repository } from 'typeorm';
 
 @Injectable()
 export class GuildMetricsService {

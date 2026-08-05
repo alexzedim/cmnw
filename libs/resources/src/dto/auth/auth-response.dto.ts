@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
 import { AuthProvider } from '@app/pg/enum';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class AuthUserDto {
   @ApiProperty({ description: 'User unique identifier' })

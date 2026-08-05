@@ -1,38 +1,37 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Browser, BrowserContext, chromium, devices } from 'playwright';
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { InjectRepository } from '@nestjs/typeorm';
-import { CharactersProfileEntity, RealmsEntity } from '@app/pg';
-import { Repository } from 'typeorm';
-import { HttpService } from '@nestjs/axios';
-import cheerio from 'cheerio';
-import { forkJoin, lastValueFrom } from 'rxjs';
-
 import {
+  formatFinalSummary,
+  formatProgressReport,
+  formatWorkerErrorLog,
   formatWorkerLog,
   formatWorkerLogWithDetails,
-  formatWorkerErrorLog,
-  formatProgressReport,
-  formatFinalSummary,
   WorkerLogStatus,
-  WorkerStats,
+  type WorkerStats,
 } from '@app/logger';
+import { CharactersProfileEntity, RealmsEntity } from '@app/pg';
 import {
-  CHARACTER_RAID_DIFFICULTY,
-  OSINT_SOURCE_RAIDER_IO,
-  OSINT_SOURCE_WOW_PROGRESS,
-  OSINT_SOURCE_WCL,
   CHARACTER_PROFILE_MAPPING,
-  WowProgressProfile,
-  WarcraftLogsProfile,
-  ICharacterRaiderIo,
-  isRaiderIoProfile,
   CHARACTER_PROFILE_RIO_MAPPING,
-  RaiderIoCharacterMappingKey,
+  CHARACTER_RAID_DIFFICULTY,
   capitalize,
+  type ICharacterRaiderIo,
+  isRaiderIoProfile,
+  OSINT_SOURCE_RAIDER_IO,
+  OSINT_SOURCE_WCL,
+  OSINT_SOURCE_WOW_PROGRESS,
   profileQueue,
+  type RaiderIoCharacterMappingKey,
+  type WarcraftLogsProfile,
+  type WowProgressProfile,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
+import type { HttpService } from '@nestjs/axios';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import cheerio from 'cheerio';
+import { type Browser, type BrowserContext, chromium, devices } from 'playwright';
+import { forkJoin, lastValueFrom } from 'rxjs';
+import type { Repository } from 'typeorm';
 
 @Injectable()
 @Processor(profileQueue.name, profileQueue.workerOptions)

@@ -1,12 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  Logger,
-  NotFoundException,
-  ServiceUnavailableException,
-} from '@nestjs/common';
-
-import { InjectRepository } from '@nestjs/typeorm';
+import { REDIS_CONNECTION } from '@app/configuration';
 import {
   CharactersEntity,
   CharactersGuildsLogsEntity,
@@ -15,13 +7,18 @@ import {
   GuildsEntity,
   RealmsEntity,
 } from '@app/pg';
-
-import { In, Repository } from 'typeorm';
-
-import { GuildIdDto, GuildMessageDto, guildsQueue, toGuid, findRealm, IGuildMessageBase } from '@app/resources';
+import { findRealm, type GuildIdDto, GuildMessageDto, guildsQueue, type IGuildMessageBase, toGuid } from '@app/resources';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue, QueueEvents } from 'bullmq';
-import { REDIS_CONNECTION } from '@app/configuration';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  NotFoundException,
+  ServiceUnavailableException,
+} from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { type Queue, QueueEvents } from 'bullmq';
+import { In, type Repository } from 'typeorm';
 
 @Injectable()
 export class GuildOsintService {

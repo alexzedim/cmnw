@@ -1,10 +1,10 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { TestsWorker } from '../src/tests.worker';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { postgresConfig } from '@app/configuration';
-import { CharactersGuildsMembersEntity, CharactersGuildsLogsEntity, GuildsEntity } from '@app/pg';
-import { guildOriginal, guildUpdated } from '../mocks';
+import { CharactersGuildsLogsEntity, CharactersGuildsMembersEntity, GuildsEntity } from '@app/pg';
 import { ACTION_LOG, OSINT_GM_RANK } from '@app/resources';
+import { Test, type TestingModule } from '@nestjs/testing';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { guildOriginal, guildUpdated } from '../mocks';
+import { TestsWorker } from '../src/tests.worker';
 
 describe('WORKER', () => {
   let testsService: TestsWorker;

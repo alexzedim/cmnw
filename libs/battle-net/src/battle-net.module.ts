@@ -1,8 +1,8 @@
-import { Module, Global } from '@nestjs/common';
+import { KeysEntity } from '@app/pg';
 import { HttpModule } from '@nestjs/axios';
+import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BattleNetService } from './battle-net.service';
-import { KeysEntity } from '@app/pg';
 
 @Global()
 @Module({

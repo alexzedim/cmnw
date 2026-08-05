@@ -1,20 +1,19 @@
+import { BattleNetNamespace, type BattleNetService, type IBattleNetClientConfig } from '@app/battle-net';
+import {
+  type BlizzardApiGuildSummary,
+  GUILD_SUMMARY_KEYS,
+  GuildStatusState,
+  type IGuildSummary,
+  isGuildSummary,
+  normalizeLocaleField,
+  setGuildStatusString,
+  toGuid,
+  transformFaction,
+} from '@app/resources';
 import { Injectable, Logger } from '@nestjs/common';
 import { isAxiosError } from 'axios';
 import * as changeCase from 'change-case';
 import { get } from 'lodash';
-
-import {
-  IGuildSummary,
-  isGuildSummary,
-  BlizzardApiGuildSummary,
-  transformFaction,
-  GuildStatusState,
-  setGuildStatusString,
-  toGuid,
-  normalizeLocaleField,
-} from '@app/resources';
-import { GUILD_SUMMARY_KEYS } from '@app/resources';
-import { BattleNetService, BattleNetNamespace, IBattleNetClientConfig } from '@app/battle-net';
 
 @Injectable()
 export class GuildSummaryService {

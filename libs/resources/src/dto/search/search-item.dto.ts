@@ -1,7 +1,7 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, MinLength, IsOptional, IsNumber, Min, Max } from 'class-validator';
-import { Transform, Type } from 'class-transformer';
 import { transformSearchQuery } from '@app/resources/transformers';
+import { ApiProperty } from '@nestjs/swagger';
+import { Transform, Type } from 'class-transformer';
+import { IsNotEmpty, IsNumber, IsOptional, IsString, Max, Min, MinLength } from 'class-validator';
 
 export class SearchItemDto {
   @ApiProperty({

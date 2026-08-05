@@ -1,5 +1,5 @@
-import { PRICING_TYPE, VALUATION_TYPE } from '@app/resources/constants';
-import { PricingEntity } from '@app/pg';
+import type { PricingEntity } from '@app/pg';
+import type { PRICING_TYPE, VALUATION_TYPE } from '@app/resources/constants';
 
 /**
  * Source of pricing information

@@ -1,5 +1,4 @@
-import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { BattleNetModule } from '@app/battle-net';
 import { postgresConfig } from '@app/configuration';
 import {
   CharactersEntity,
@@ -11,10 +10,11 @@ import {
   RealmsEntity,
 } from '@app/pg';
 import { HttpModule } from '@nestjs/axios';
-import { BattleNetModule } from '@app/battle-net';
-import { TestsOsint } from './tests.osint';
-import { TestsDma } from './tests.dma';
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { TestsCore } from './tests.core';
+import { TestsDma } from './tests.dma';
+import { TestsOsint } from './tests.osint';
 
 @Module({
   imports: [

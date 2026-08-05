@@ -1,5 +1,5 @@
-import { Column, Entity, PrimaryColumn } from 'typeorm';
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
+import { Column, Entity, PrimaryColumn } from 'typeorm';
 
 /**
  *  TODO description

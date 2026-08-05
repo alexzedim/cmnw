@@ -1,9 +1,8 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { Repository } from 'typeorm';
-import { InjectRepository } from '@nestjs/typeorm';
-
+import { CharactersGuildsLogsEntity, type GuildsEntity } from '@app/pg';
 import { ACTION_LOG, GuildStatusState, setGuildStatusString } from '@app/resources';
-import { CharactersGuildsLogsEntity, GuildsEntity } from '@app/pg';
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import type { Repository } from 'typeorm';
 
 @Injectable()
 export class GuildLogService {

@@ -1,8 +1,8 @@
-import { Test } from '@nestjs/testing';
-import { TestsCommunity } from '../src/tests.community';
 import { osintConfig } from '@app/configuration';
 import { HttpModule } from '@nestjs/axios';
+import { Test } from '@nestjs/testing';
 import { raidCharacter } from '../mocks';
+import { TestsCommunity } from '../src/tests.community';
 
 describe.skip('COMMUNITY', () => {
   let testsService: TestsCommunity;

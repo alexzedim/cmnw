@@ -1,4 +1,4 @@
-import { BattleNetRegion } from './enums';
+import type { BattleNetRegion } from './enums';
 
 export interface IBattleNetClientConfig {
   clientId: string;

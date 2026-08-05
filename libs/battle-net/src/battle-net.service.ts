@@ -1,16 +1,16 @@
+import { battleNetConfig, type IBattleNetKeyHealthConfig } from '@app/configuration';
+import { KeysEntity } from '@app/pg';
+import type { HttpService } from '@nestjs/axios';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
-import { HttpService } from '@nestjs/axios';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { AxiosResponse, AxiosHeaders } from 'axios';
+import { AxiosHeaders, type AxiosResponse } from 'axios';
+import chalk from 'chalk';
 import { lastValueFrom } from 'rxjs';
 import { map, timeout } from 'rxjs/operators';
-import chalk from 'chalk';
-import { IBattleNetClientConfig, IBattleNetQueryOptions, DEFAULT_RETRY_CONFIG } from './types';
-import { BattleNetRegion } from './enums';
+import type { Repository } from 'typeorm';
 import { BATTLE_NET_BASE_URLS, BATTLE_NET_OSINT_TIMEOUT } from './constants';
-import { KeysEntity } from '@app/pg';
-import { battleNetConfig, IBattleNetKeyHealthConfig } from '@app/configuration';
+import { BattleNetRegion } from './enums';
+import { DEFAULT_RETRY_CONFIG, type IBattleNetClientConfig, type IBattleNetQueryOptions } from './types';
 
 @Injectable()
 export class BattleNetService {
@@ -56,7 +56,7 @@ export class BattleNetService {
       }
 
       const delayMs = Math.min(
-        this.keyHealth.baseDelay * Math.pow(this.keyHealth.multiplier, attempt - 1),
+        this.keyHealth.baseDelay * this.keyHealth.multiplier ** (attempt - 1),
         this.keyHealth.maxDelay * 1000,
       );
       lastError = new Error(
@@ -352,8 +352,6 @@ export class BattleNetService {
             await this.recordKeyRateLimit(this._currentKeyUuid);
             await this.waitForCooldown(this._currentKeyUuid);
           }
-
-          continue;
         } else if (this.isServerError(error)) {
           if (attempt > maxRetries) {
             this.logger.error(
@@ -369,7 +367,6 @@ export class BattleNetService {
               ` ${chalk.dim(`retrying in ${fixedRetryDelay}ms ${url}`)}`,
           );
           await this.delay(fixedRetryDelay);
-          continue;
         } else {
           throw error;
         }

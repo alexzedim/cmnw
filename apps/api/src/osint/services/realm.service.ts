@@ -1,12 +1,10 @@
-import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
-
-import { InjectRedis } from '@nestjs-modules/ioredis';
-import { InjectRepository } from '@nestjs/typeorm';
 import { RealmsEntity } from '@app/pg';
-import { Repository } from 'typeorm';
-import Redis from 'ioredis';
-
-import { RealmDto, readThroughCache, realmsCacheKey, secondsUntilNextSnapshot } from '@app/resources';
+import { type RealmDto, readThroughCache, realmsCacheKey, secondsUntilNextSnapshot } from '@app/resources';
+import { Injectable, Logger, ServiceUnavailableException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import type Redis from 'ioredis';
+import type { Repository } from 'typeorm';
 
 @Injectable()
 export class RealmOsintService {

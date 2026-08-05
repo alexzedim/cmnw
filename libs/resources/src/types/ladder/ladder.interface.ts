@@ -3,7 +3,7 @@
  * Used for typing responses from /data/wow/mythic-keystone/ endpoints
  */
 
-import { ISelfKeyHref, ISelfWithNameAndId, ISelfWithId } from '../osint';
+import type { ISelfKeyHref, ISelfWithId, ISelfWithNameAndId } from '../osint';
 
 /**
  * Mythic Keystone Dungeon Index Response

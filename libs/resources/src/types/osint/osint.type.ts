@@ -1,5 +1,5 @@
-import { CharactersEntity, CharactersProfileEntity, GuildsEntity } from '@app/pg';
-import { ICharacterRaiderIo } from '@app/resources/types';
+import type { CharactersEntity, CharactersProfileEntity, GuildsEntity } from '@app/pg';
+import type { ICharacterRaiderIo } from '@app/resources/types';
 import type { INameWithType, ISelfKeyHref, ISelfWithId, ISelfWithNameAndId, Locales } from './osint.interface';
 
 export type CharacterStatus = {

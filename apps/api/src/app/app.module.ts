@@ -1,8 +1,3 @@
-import { Module } from '@nestjs/common';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { RedisModule } from '@nestjs-modules/ioredis';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
 import { redisConfig } from '@app/configuration';
 import {
   AnalyticsEntity,
@@ -13,6 +8,11 @@ import {
   MarketEntity,
   RealmsEntity,
 } from '@app/pg';
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { RedisModule } from '@nestjs-modules/ioredis';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
 
 @Module({
   imports: [

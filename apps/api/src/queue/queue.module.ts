@@ -1,17 +1,17 @@
-import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bullmq';
-import { BullBoardModule } from '@bull-board/nestjs';
-import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
 import {
+  auctionsQueue,
   charactersQueue,
   guildsQueue,
   hashQueue,
-  profileQueue,
-  auctionsQueue,
   itemsQueue,
-  valuationsQueue,
+  profileQueue,
   realmsQueue,
+  valuationsQueue,
 } from '@app/resources';
+import { BullMQAdapter } from '@bull-board/api/bullMQAdapter';
+import { BullBoardModule } from '@bull-board/nestjs';
+import { BullModule } from '@nestjs/bullmq';
+import { Module } from '@nestjs/common';
 
 const QUEUES = [
   charactersQueue,

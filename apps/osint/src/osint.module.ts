@@ -1,26 +1,8 @@
-import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bullmq';
-import { RedisModule } from '@nestjs-modules/ioredis';
-import { postgresConfig, redisConfig } from '@app/configuration';
-import { HttpModule } from '@nestjs/axios';
-import { CharactersWorker, GuildsWorker, HashWorker, ProfileWorker } from './workers';
-import { WorkerStatsListener } from './listeners';
-import {
-  CharacterService,
-  CharacterLifecycleService,
-  CharacterCollectionService,
-  CharacterEntityIndexingService,
-  GuildService,
-  GuildSummaryService,
-  GuildRosterService,
-  GuildMemberService,
-  GuildLogService,
-  GuildMasterService,
-  HashBlockService,
-} from './services';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { BattleNetModule } from '@app/battle-net';
+import { postgresConfig, REDIS_CONNECTION, redisConfig } from '@app/configuration';
 import {
   CharactersEntity,
+  CharactersGuildsLogsEntity,
   CharactersGuildsMembersEntity,
   CharactersMountsEntity,
   CharactersPetsEntity,
@@ -31,17 +13,34 @@ import {
   HashBlockMembersEntity,
   HashBlocksEntity,
   KeysEntity,
-  CharactersGuildsLogsEntity,
   MountsEntity,
   PetsEntity,
   ProfessionsEntity,
   RealmsEntity,
 } from '@app/pg';
-import { REDIS_CONNECTION } from '@app/configuration';
 import { charactersQueue, guildsQueue, hashQueue, profileQueue } from '@app/resources';
-import { BattleNetModule } from '@app/battle-net';
-import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
 import { FeedService } from '@app/resources/services/feed.service';
+import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
+import { HttpModule } from '@nestjs/axios';
+import { BullModule } from '@nestjs/bullmq';
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { RedisModule } from '@nestjs-modules/ioredis';
+import { WorkerStatsListener } from './listeners';
+import {
+  CharacterCollectionService,
+  CharacterEntityIndexingService,
+  CharacterLifecycleService,
+  CharacterService,
+  GuildLogService,
+  GuildMasterService,
+  GuildMemberService,
+  GuildRosterService,
+  GuildService,
+  GuildSummaryService,
+  HashBlockService,
+} from './services';
+import { CharactersWorker, GuildsWorker, HashWorker, ProfileWorker } from './workers';
 
 @Module({
   imports: [

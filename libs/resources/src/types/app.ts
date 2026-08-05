@@ -1,4 +1,4 @@
-import { CharactersEntity, GuildsEntity, ItemsEntity, RealmsEntity } from '@app/pg';
+import type { CharactersEntity, GuildsEntity, ItemsEntity, RealmsEntity } from '@app/pg';
 
 export interface AppHealthPayload {
   status: 'ok';

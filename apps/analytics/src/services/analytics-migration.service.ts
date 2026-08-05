@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
 import { AnalyticsEntity } from '@app/pg';
 import { AnalyticsMetricCategory, AnalyticsMetricType, ARRAY_METRIC_TYPES } from '@app/resources';
-import { RankRecord } from '@app/resources/types';
+import type { RankRecord } from '@app/resources/types';
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { In, type Repository } from 'typeorm';
 
 /**
  * One-off, idempotent normalizer that converts legacy `analytics.value`
@@ -155,7 +155,7 @@ export class AnalyticsMigrationService {
     }
 
     // Bare record form: the value itself is the record.
-    if (Object.prototype.hasOwnProperty.call(value, 'itemId')) {
+    if (Object.hasOwn(value, 'itemId')) {
       return [value as Record<string, unknown>];
     }
 
@@ -173,8 +173,8 @@ export class AnalyticsMigrationService {
     let changed = false;
 
     if (
-      Object.prototype.hasOwnProperty.call(record, 'quantity') &&
-      !Object.prototype.hasOwnProperty.call(record, 'maxQuantity')
+      Object.hasOwn(record, 'quantity') &&
+      !Object.hasOwn(record, 'maxQuantity')
     ) {
       const sum = record.quantity;
       record.maxQuantity = sum;
@@ -184,8 +184,8 @@ export class AnalyticsMigrationService {
     }
 
     if (
-      Object.prototype.hasOwnProperty.call(record, 'openInterest') &&
-      !Object.prototype.hasOwnProperty.call(record, 'maxOpenInterest')
+      Object.hasOwn(record, 'openInterest') &&
+      !Object.hasOwn(record, 'maxOpenInterest')
     ) {
       const sum = record.openInterest;
       record.maxOpenInterest = sum;
@@ -222,7 +222,7 @@ export class AnalyticsMigrationService {
       return false;
     }
 
-    return Object.prototype.hasOwnProperty.call(value, 'itemId');
+    return  Object.hasOwn(value, 'itemId');
   }
 
   private normalize(

@@ -1,6 +1,6 @@
-import { createCipheriv, createDecipheriv, randomInt } from 'crypto';
-import { CIPHER_ALGO_AES } from '@app/resources/clearance';
 import process from 'node:process';
+import { CIPHER_ALGO_AES } from '@app/resources/clearance';
+import { createCipheriv, createDecipheriv, randomInt } from 'crypto';
 
 export const encrypt = (sensitive: string) => {
   const key = Buffer.from(process.env.KEY);

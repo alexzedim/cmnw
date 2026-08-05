@@ -1,3 +1,13 @@
+import type { AnalyticsEntity } from '@app/pg';
+import type {
+  AnalyticsMetricHistoryDto,
+  AnalyticsMetricSnapshotDto,
+  AppHealthPayload,
+  IRaidLogsStats,
+  ISearchResult,
+  RaidLogsStatsDto,
+  SearchQueryDto,
+} from '@app/resources';
 import { Controller, Get, HttpCode, HttpStatus, Query } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -9,17 +19,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import { AppService } from './app.service';
-import {
-  AnalyticsMetricHistoryDto,
-  AnalyticsMetricSnapshotDto,
-  AppHealthPayload,
-  IRaidLogsStats,
-  ISearchResult,
-  RaidLogsStatsDto,
-  SearchQueryDto,
-} from '@app/resources';
-import { AnalyticsEntity } from '@app/pg';
+import type { AppService } from './app.service';
 
 @ApiTags('app')
 @Controller('app')

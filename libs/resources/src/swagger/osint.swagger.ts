@@ -1,5 +1,5 @@
-import { ApiPropertyOptions } from '@nestjs/swagger';
 import { FACTION } from '@app/resources/constants';
+import type { ApiPropertyOptions } from '@nestjs/swagger';
 
 export const SWAGGER_CHARACTER_GUID: ApiPropertyOptions = {
   name: 'guid',

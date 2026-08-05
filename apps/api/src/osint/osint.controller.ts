@@ -1,19 +1,14 @@
-import { BlockOsintService, CharacterOsintService, GuildOsintService, RealmOsintService } from './services';
-
-import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query } from '@nestjs/common';
-
-import {
-  ApiOperation,
-  ApiServiceUnavailableResponse,
-  ApiInternalServerErrorResponse,
-  ApiOkResponse,
-  ApiForbiddenResponse,
-  ApiBadRequestResponse,
-  ApiUnauthorizedResponse,
-  ApiTags,
-} from '@nestjs/swagger';
-
-import {
+import type {
+  CharactersEntity,
+  CharactersGuildsLogsEntity,
+  CharactersProfileEntity,
+  GuildsEntity,
+  HashBlockLogsEntity,
+  HashBlockMembersEntity,
+  HashBlocksEntity,
+  RealmsEntity,
+} from '@app/pg';
+import type {
   BlockIdDto,
   CharacterHashDto,
   CharacterIdDto,
@@ -24,16 +19,18 @@ import {
   RealmDto,
   UploadOsintDto,
 } from '@app/resources';
+import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query } from '@nestjs/common';
 import {
-  CharactersEntity,
-  CharactersGuildsLogsEntity,
-  CharactersProfileEntity,
-  GuildsEntity,
-  HashBlockLogsEntity,
-  HashBlockMembersEntity,
-  HashBlocksEntity,
-  RealmsEntity,
-} from '@app/pg';
+  ApiBadRequestResponse,
+  ApiForbiddenResponse,
+  ApiInternalServerErrorResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiServiceUnavailableResponse,
+  ApiTags,
+  ApiUnauthorizedResponse,
+} from '@nestjs/swagger';
+import type { BlockOsintService, CharacterOsintService, GuildOsintService, RealmOsintService } from './services';
 
 @ApiTags('osint')
 @Controller('osint')

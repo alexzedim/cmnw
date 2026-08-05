@@ -1,4 +1,4 @@
-import { IARealm } from '@app/resources';
+import type { IARealm } from '@app/resources';
 
 export class ItemGetDto {
   readonly item: any;

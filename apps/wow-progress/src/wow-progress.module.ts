@@ -1,15 +1,15 @@
-import { Module } from '@nestjs/common';
-import { REDIS_CONNECTION, postgresConfig, redisConfig, s3Config } from '@app/configuration';
-import { WowProgressLfgService, WowProgressRanksService } from './services';
-import { ScheduleModule } from '@nestjs/schedule';
-import { HttpModule } from '@nestjs/axios';
-import { TypeOrmModule } from '@nestjs/typeorm';
-import { CharactersProfileEntity, KeysEntity, RealmsEntity } from '@app/pg';
-import { S3Module } from '@app/s3';
-import { RedisModule } from '@nestjs-modules/ioredis';
-import { guildsQueue, charactersQueue, profileQueue } from '@app/resources';
-import { BullModule } from '@nestjs/bullmq';
 import { BattleNetModule } from '@app/battle-net';
+import { postgresConfig, REDIS_CONNECTION, redisConfig, s3Config } from '@app/configuration';
+import { CharactersProfileEntity, KeysEntity, RealmsEntity } from '@app/pg';
+import { charactersQueue, guildsQueue, profileQueue } from '@app/resources';
+import { S3Module } from '@app/s3';
+import { HttpModule } from '@nestjs/axios';
+import { BullModule } from '@nestjs/bullmq';
+import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { RedisModule } from '@nestjs-modules/ioredis';
+import { WowProgressLfgService, WowProgressRanksService } from './services';
 
 @Module({
   imports: [

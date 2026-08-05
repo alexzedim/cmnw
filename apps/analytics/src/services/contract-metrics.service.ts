@@ -1,10 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, EntityManager, MoreThan, Repository } from 'typeorm';
-import { DateTime } from 'luxon';
+import { AnalyticsEntity, ContractEntity } from '@app/pg';
 import { AnalyticsMetricCategory, AnalyticsMetricType, CONTRACTS_EXCLUDED_ITEM_IDS } from '@app/resources';
 import { analyticsKeyOf, findExistingAnalyticsKeys } from '@app/resources/dao';
-import {
+import type {
   ContractByConnectedRealm,
   ContractCommoditiesData,
   ContractPriceVolatility,
@@ -12,7 +9,10 @@ import {
   ContractTopByQuantity,
   ContractTotalMetrics,
 } from '@app/resources/types';
-import { AnalyticsEntity, ContractEntity } from '@app/pg';
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DateTime } from 'luxon';
+import { type DataSource, type EntityManager, MoreThan, type Repository } from 'typeorm';
 
 @Injectable()
 export class ContractMetricsService {

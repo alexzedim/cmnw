@@ -1,5 +1,5 @@
-import { AuctionItemExtra, IItem, IItemFieldMap, IPetList } from '@app/resources/types';
-import { SkillLineEntity, SpellEffectEntity } from '@app/pg';
+import type { SkillLineEntity, SpellEffectEntity } from '@app/pg';
+import type { AuctionItemExtra, IItem, IItemFieldMap, IPetList } from '@app/resources/types';
 
 export enum TOLERANCE_ENUM {
   DMA = 'DMA',

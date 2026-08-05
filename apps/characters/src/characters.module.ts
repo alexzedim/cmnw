@@ -1,13 +1,13 @@
-import { Module } from '@nestjs/common';
+import { postgresConfig, REDIS_CONNECTION, redisConfig, s3Config } from '@app/configuration';
+import { CharactersEntity, KeysEntity } from '@app/pg';
+import { charactersQueue } from '@app/resources/queues';
+import { S3Module } from '@app/s3';
 import { BullModule } from '@nestjs/bullmq';
-import { CharactersService } from './characters.service';
+import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { CharactersEntity, KeysEntity } from '@app/pg';
-import { postgresConfig, redisConfig, s3Config, REDIS_CONNECTION } from '@app/configuration';
-import { S3Module } from '@app/s3';
 import { RedisModule } from '@nestjs-modules/ioredis';
-import { charactersQueue } from '@app/resources/queues';
+import { CharactersService } from './characters.service';
 
 @Module({
   imports: [

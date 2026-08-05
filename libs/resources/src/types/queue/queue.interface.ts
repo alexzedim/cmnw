@@ -1,5 +1,5 @@
-import { LFG_STATUS, OSINT_SOURCE } from '@app/resources/constants';
-import { GuildJobQueue } from '@app/resources/types';
+import type { LFG_STATUS, OSINT_SOURCE } from '@app/resources/constants';
+import type { GuildJobQueue } from '@app/resources/types';
 
 export interface IQGuildOptions {
   forceUpdate: number;

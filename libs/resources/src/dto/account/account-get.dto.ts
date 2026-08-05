@@ -1,11 +1,11 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
 import {
   SWAGGER_ACCOUNT_BATTLE_TAG,
   SWAGGER_ACCOUNT_CRYPTONYM,
   SWAGGER_ACCOUNT_DISCORD_ID,
   SWAGGER_ACCOUNT_NICKNAME,
 } from '@app/resources';
+import { ApiProperty } from '@nestjs/swagger';
+import { IsOptional, IsString } from 'class-validator';
 
 export class AccountGetDto {
   @IsString()

@@ -1,10 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import { DataSource, EntityManager, MoreThan, Repository } from 'typeorm';
-import { DateTime } from 'luxon';
+import { AnalyticsEntity, MarketEntity } from '@app/pg';
 import { AnalyticsMetricCategory, AnalyticsMetricType, EXCLUDED_ITEM_IDS, MARKET_TYPE } from '@app/resources';
 import { analyticsKeyOf, findExistingAnalyticsKeys } from '@app/resources/dao';
-import {
+import type {
   MarketAggregateCount,
   MarketByConnectedRealm,
   MarketPriceRanges,
@@ -12,7 +9,10 @@ import {
   MarketTopByVolume,
   MarketTotalMetrics,
 } from '@app/resources/types';
-import { AnalyticsEntity, MarketEntity } from '@app/pg';
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
+import { DateTime } from 'luxon';
+import { type DataSource, type EntityManager, MoreThan, type Repository } from 'typeorm';
 
 @Injectable()
 export class MarketMetricsService {

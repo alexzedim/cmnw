@@ -2,12 +2,12 @@ jest.mock('@app/resources/dao/character.dao', () => ({
   characterAsGuildMember: jest.fn(),
 }));
 
-import { Test, TestingModule } from '@nestjs/testing';
+import { BattleNetRegion, BattleNetService, type IBattleNetClientConfig } from '@app/battle-net';
+import { CharactersEntity, type GuildsEntity, KeysEntity, RealmsEntity } from '@app/pg';
 import { HttpModule, HttpService } from '@nestjs/axios';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { GuildRosterService } from './guild-roster.service';
-import { CharactersEntity, GuildsEntity, KeysEntity, RealmsEntity } from '@app/pg';
-import { BattleNetService, BattleNetRegion, IBattleNetClientConfig } from '@app/battle-net';
 
 describe('GuildRosterService', () => {
   let service: GuildRosterService;

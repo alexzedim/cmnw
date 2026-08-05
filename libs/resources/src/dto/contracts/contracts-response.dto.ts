@@ -1,5 +1,5 @@
+import type { ContractEntity } from '@app/pg';
 import { ApiProperty } from '@nestjs/swagger';
-import { ContractEntity } from '@app/pg';
 
 export class ContractDto {
   @ApiProperty()

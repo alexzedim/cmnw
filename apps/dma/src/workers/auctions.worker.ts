@@ -1,44 +1,42 @@
-import Redis from 'ioredis';
-import { Injectable, Logger } from '@nestjs/common';
-import { Processor, WorkerHost } from '@nestjs/bullmq';
-
-import { bufferCount, concatMap } from 'rxjs/operators';
-import { from, lastValueFrom } from 'rxjs';
-import { DateTime } from 'luxon';
-import { InjectRepository } from '@nestjs/typeorm';
+import { BATTLE_NET_KEY_TAG_DMA, BattleNetNamespace, type BattleNetService } from '@app/battle-net';
+import {
+  formatFinalSummary,
+  formatProgressReport,
+  formatWorkerErrorLog,
+  formatWorkerLog,
+  WorkerLogStatus,
+  type WorkerStats,
+} from '@app/logger';
 import { ItemsEntity, MarketEntity, RealmsEntity } from '@app/pg';
-import { Repository } from 'typeorm';
-import { InjectRedis } from '@nestjs-modules/ioredis';
-import { BattleNetService, BattleNetNamespace, BATTLE_NET_KEY_TAG_DMA } from '@app/battle-net';
 import {
   auctionsQueue,
-  BlizzardApiAuctions,
-  IAuctionsOrder,
-  ICommodityOrder,
-  IPetList,
-  isAuctions,
+  type BlizzardApiAuctions,FeedEventCategory, FeedStatus, 
+  formatBytes,
+  type IAuctionMessageBase,
+  type IAuctionsOrder,
+  type ICommodityOrder,
+  type IPetList,
   ITEM_KEY_GUARD,
+  isAuctions,
   MARKET_TYPE,
   PETS_KEY_GUARD,
   REALM_ENTITY_ANY,
   toGold,
-  transformPrice,
-  formatBytes,
-  IAuctionMessageBase,
+  transformPrice
 } from '@app/resources';
-import {
-  formatWorkerLog,
-  formatWorkerErrorLog,
-  formatProgressReport,
-  formatFinalSummary,
-  WorkerLogStatus,
-  WorkerStats,
-} from '@app/logger';
-import { createHash } from 'crypto';
+import type { FeedService } from '@app/resources/services/feed.service';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Injectable, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { InjectRedis } from '@nestjs-modules/ioredis';
 import { isAxiosError } from 'axios';
-import { Job } from 'bullmq';
-import { FeedService } from '@app/resources/services/feed.service';
-import { FeedEventCategory, FeedStatus } from '@app/resources';
+import type { Job } from 'bullmq';
+import { createHash } from 'crypto';
+import type Redis from 'ioredis';
+import { DateTime } from 'luxon';
+import { from, lastValueFrom } from 'rxjs';
+import { bufferCount, concatMap } from 'rxjs/operators';
+import type { Repository } from 'typeorm';
 
 @Injectable()
 @Processor(auctionsQueue)

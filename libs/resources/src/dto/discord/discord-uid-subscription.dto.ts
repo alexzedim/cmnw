@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
 import { SWAGGER_DISCORD_CHANNEL_ID, SWAGGER_DISCORD_SERVER_ID } from '@app/resources';
+import { ApiProperty } from '@nestjs/swagger';
 
 export class DiscordUidSubscriptionDto {
   @ApiProperty(SWAGGER_DISCORD_SERVER_ID)

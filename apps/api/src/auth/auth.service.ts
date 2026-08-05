@@ -1,8 +1,8 @@
-import { Injectable, Logger, InternalServerErrorException } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { AuthProvider, UsersEntity } from '@app/pg';
-import { AuthResponseDto, AuthUserDto, DiscordProfile, BattleNetProfile } from '@app/resources';
+import type { AuthResponseDto, AuthUserDto, BattleNetProfile, DiscordProfile } from '@app/resources';
+import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import type { Repository } from 'typeorm';
 
 @Injectable()
 export class AuthService {

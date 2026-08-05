@@ -1,7 +1,7 @@
-import { ApiProperty } from '@nestjs/swagger';
 import { SWAGGER_ITEM_ID } from '@app/resources';
-import { IsNotEmpty, IsNumber } from 'class-validator';
+import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
+import { IsNotEmpty, IsNumber } from 'class-validator';
 
 export class ReqGetItemDto {
   @ApiProperty(SWAGGER_ITEM_ID)

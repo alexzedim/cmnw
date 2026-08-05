@@ -1,32 +1,31 @@
-import { InjectRepository } from '@nestjs/typeorm';
-import { Queue } from 'bullmq';
-import { InjectQueue } from '@nestjs/bullmq';
+import { BATTLE_NET_KEY_TAG_OSINT, type BattleNetService } from '@app/battle-net';
 import { RealmsEntity } from '@app/pg';
-import { Repository } from 'typeorm';
-import { chromium } from 'playwright-extra';
-import stealth from 'puppeteer-extra-plugin-stealth';
-import { Browser, Page } from 'playwright';
-import { S3Service } from '@app/s3';
-import { InjectRedis } from '@nestjs-modules/ioredis';
-import Redis from 'ioredis';
-import { createHash } from 'crypto';
-import { Injectable, Logger, OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
-import chalk from 'chalk';
-
 import {
+  type DownloadResult,
+  type DownloadSummary,
   delay,
+  extractRealmName,
   GuildMessageDto,
-  IGuildMessageBase,
-  WowProgressLink,
-  DownloadSummary,
-  DownloadResult,
+  type IGuildMessageBase,
   isValidArray,
   isWowProgressJson,
-  extractRealmName,
-  WowProgressJson,
+  type WowProgressJson,
+  type WowProgressLink,
 } from '@app/resources';
-import { BattleNetService, BATTLE_NET_KEY_TAG_OSINT } from '@app/battle-net';
 import { findRealm } from '@app/resources/dao/realms.dao';
+import type { S3Service } from '@app/s3';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Injectable, Logger, type OnApplicationBootstrap, type OnApplicationShutdown } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { InjectRedis } from '@nestjs-modules/ioredis';
+import type { Queue } from 'bullmq';
+import chalk from 'chalk';
+import { createHash } from 'crypto';
+import type Redis from 'ioredis';
+import type { Browser, Page } from 'playwright';
+import { chromium } from 'playwright-extra';
+import stealth from 'puppeteer-extra-plugin-stealth';
+import type { Repository } from 'typeorm';
 
 @Injectable()
 export class WowProgressRanksService implements OnApplicationBootstrap, OnApplicationShutdown {
@@ -246,7 +245,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
               'Cache-Control': 'no-cache',
               Pragma: 'no-cache',
               Referer: 'https://www.wowprogress.com/export/ranks/',
-              // @ts-ignore
+              // @ts-expect-error
               'User-Agent': navigator.userAgent,
             },
           });

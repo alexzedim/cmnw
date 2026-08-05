@@ -1,4 +1,4 @@
-import { IWsConfig } from '@app/configuration/interfaces';
+import type { IWsConfig } from '@app/configuration/interfaces';
 
 export const wsConfig: IWsConfig = {
   path: '/api/ws/feed',

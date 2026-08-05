@@ -1,20 +1,20 @@
-import {
+import type { KeysEntity } from '@app/pg';
+import type {
   IAuctions,
+  ICharacterMedia,
   ICharacterSummary,
   IGold,
-  ICharacterMedia,
+  IItem,
+  IItemMedia,
   IMountsNameWithId,
   IPetType,
   IWowToken,
-  IItem,
-  IItemMedia,
-  ProfessionIndex,
   ProfessionDetail,
+  ProfessionIndex,
   SkillTierDetail,
 } from '@app/resources/types';
-import { IAxiosRetryConfig } from '../../utils/axios-retry.config';
-import { KeysEntity } from '@app/pg';
-import { Repository } from 'typeorm';
+import type { Repository } from 'typeorm';
+import type { IAxiosRetryConfig } from '../../utils/axios-retry.config';
 export type RegionIdOrName = string;
 
 export type BlizzardApiStringNumber = string | number;

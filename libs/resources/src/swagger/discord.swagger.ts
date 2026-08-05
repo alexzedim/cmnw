@@ -1,4 +1,4 @@
-import { ApiPropertyOptions } from '@nestjs/swagger';
+import type { ApiPropertyOptions } from '@nestjs/swagger';
 
 export const SWAGGER_DISCORD_ID: ApiPropertyOptions = {
   name: '_id',
