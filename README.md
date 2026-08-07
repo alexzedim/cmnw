@@ -7,7 +7,7 @@
 <p align="center"><em>Intelligence always wins</em></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-6.12.9-blue" alt="version" />
+  <img src="https://img.shields.io/badge/version-6.13.0-blue" alt="version" />
   <img src="https://img.shields.io/badge/license-MPL%202.0-green" alt="license" />
   <img src="https://img.shields.io/badge/node-%E2%89%A524.0.0-339933" alt="node" />
   <img src="https://img.shields.io/badge/pnpm-%E2%89%A511.0.0-F69220" alt="pnpm" />
@@ -200,7 +200,7 @@ cmnw/
 ├── .swcrc                  # SWC compiler config
 ├── biome.json              # Biome linter/formatter config
 ├── pnpm-workspace.yaml     # pnpm workspace config
-└── package.json            # v6.12.9
+└── package.json            # v6.13.0
 ```
 
 ---
