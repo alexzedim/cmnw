@@ -4,7 +4,7 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import type { Queue } from 'bullmq';
 import chalk from 'chalk';
 import type Redis from 'ioredis';
-import type { CharactersWorker, GuildsWorker, ProfileWorker } from '../workers';
+import { CharactersWorker, GuildsWorker, ProfileWorker } from '../workers';
 
 @Injectable()
 export class WorkerStatsListener implements OnModuleInit {

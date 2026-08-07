@@ -1,4 +1,4 @@
-import { BATTLE_NET_DMA_TIMEOUT, BattleNetNamespace, type BattleNetService } from '@app/battle-net';
+import { BATTLE_NET_DMA_TIMEOUT, BattleNetNamespace, BattleNetService } from '@app/battle-net';
 import { Injectable, Logger } from '@nestjs/common';
 
 @Injectable()

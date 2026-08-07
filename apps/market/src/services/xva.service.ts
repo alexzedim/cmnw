@@ -1,4 +1,4 @@
-import { BATTLE_NET_KEY_TAG_DMA, BattleNetNamespace, type BattleNetService } from '@app/battle-net';
+import { BATTLE_NET_KEY_TAG_DMA, BattleNetNamespace, BattleNetService } from '@app/battle-net';
 import { dmaConfig } from '@app/configuration';
 import {
   ItemsEntity,
@@ -31,7 +31,7 @@ import {
   toStringOrNumber,
   VALUATION_TYPE,
 } from '@app/resources';
-import type { S3Service } from '@app/s3';
+import { S3Service } from '@app/s3';
 import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';

@@ -1,4 +1,4 @@
-import { BATTLE_NET_KEY_TAG_WCL_SESSION, BATTLE_NET_KEY_TAG_WCL_V2, type BattleNetService } from '@app/battle-net';
+import { BATTLE_NET_KEY_TAG_WCL_SESSION, BATTLE_NET_KEY_TAG_WCL_V2, BattleNetService } from '@app/battle-net';
 import { osintConfig } from '@app/configuration';
 import { CharactersRaidLogsEntity, KeysEntity, RealmsEntity } from '@app/pg';
 import {

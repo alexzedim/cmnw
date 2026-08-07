@@ -1,4 +1,4 @@
-import { BATTLE_NET_KEY_TAG_OSINT, type BattleNetService } from '@app/battle-net';
+import { BATTLE_NET_KEY_TAG_OSINT, BattleNetService } from '@app/battle-net';
 import { CharactersProfileEntity, RealmsEntity } from '@app/pg';
 import {
   CharacterMessageDto,
@@ -11,7 +11,7 @@ import {
   toGuid,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
-import type { HttpService } from '@nestjs/axios';
+import { HttpService } from '@nestjs/axios';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';

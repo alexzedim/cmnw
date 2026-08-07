@@ -1,4 +1,4 @@
-import { BATTLE_NET_KEY_TAG_OSINT, type BattleNetService } from '@app/battle-net';
+import { BATTLE_NET_KEY_TAG_OSINT, BattleNetService } from '@app/battle-net';
 import { RealmsEntity } from '@app/pg';
 import {
   type DownloadResult,
@@ -13,7 +13,7 @@ import {
   type WowProgressLink,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
-import type { S3Service } from '@app/s3';
+import { S3Service } from '@app/s3';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger, type OnApplicationBootstrap, type OnApplicationShutdown } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';

@@ -2,8 +2,8 @@ import { BATTLE_NET_KEY_TAG_BLIZZARD, BATTLE_NET_KEY_TAG_WCL_V2 } from '@app/bat
 import { LoggerService } from '@app/logger';
 import { KeysEntity } from '@app/pg';
 import type { IKeyConfig, IKeysJson } from '@app/resources';
-import type { S3Service } from '@app/s3';
-import type { HttpService } from '@nestjs/axios';
+import { S3Service } from '@app/s3';
+import { HttpService } from '@nestjs/axios';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';

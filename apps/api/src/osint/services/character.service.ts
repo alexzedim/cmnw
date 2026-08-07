@@ -31,7 +31,7 @@ import {
 } from '@app/resources';
 import { type CharacterHashBlockRef, CharacterResponseDto } from '@app/resources/dto/character/character-response.dto';
 import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
-import type { S3Service } from '@app/s3';
+import { S3Service } from '@app/s3';
 import { InjectQueue } from '@nestjs/bullmq';
 import {
   BadRequestException,

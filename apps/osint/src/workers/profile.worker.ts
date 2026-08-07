@@ -24,7 +24,7 @@ import {
   type WowProgressProfile,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
-import type { HttpService } from '@nestjs/axios';
+import { HttpService } from '@nestjs/axios';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';

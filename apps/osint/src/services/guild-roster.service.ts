@@ -1,4 +1,4 @@
-import { BattleNetNamespace, type BattleNetService, type IBattleNetClientConfig } from '@app/battle-net';
+import { BattleNetNamespace, BattleNetService, type IBattleNetClientConfig } from '@app/battle-net';
 import { CharactersEntity, type GuildsEntity, RealmsEntity } from '@app/pg';
 import {
   CharacterMessageDto,

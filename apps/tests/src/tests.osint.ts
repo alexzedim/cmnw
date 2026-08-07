@@ -1,4 +1,4 @@
-import { BATTLE_NET_OSINT_TIMEOUT, BattleNetNamespace, type BattleNetService } from '@app/battle-net';
+import { BATTLE_NET_OSINT_TIMEOUT, BattleNetNamespace, BattleNetService } from '@app/battle-net';
 import { type BlizzardApiResponse, GLOBAL_KEY } from '@app/resources';
 import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
 

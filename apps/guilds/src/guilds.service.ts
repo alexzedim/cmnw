@@ -1,4 +1,4 @@
-import { BATTLE_NET_KEY_TAG_BLIZZARD, type BattleNetService } from '@app/battle-net';
+import { BATTLE_NET_KEY_TAG_BLIZZARD, BattleNetService } from '@app/battle-net';
 import { osintConfig } from '@app/configuration';
 import { CharactersEntity, GuildHallOfFameEntity, GuildsEntity } from '@app/pg';
 import {

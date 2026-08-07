@@ -1,4 +1,4 @@
-import { BattleNetNamespace, type BattleNetService, type IBattleNetClientConfig } from '@app/battle-net';
+import { BattleNetNamespace, BattleNetService, type IBattleNetClientConfig } from '@app/battle-net';
 import {
   type BlizzardApiGuildSummary,
   GUILD_SUMMARY_KEYS,

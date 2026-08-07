@@ -1,4 +1,4 @@
-import { BATTLE_NET_KEY_TAG_DMA, BattleNetNamespace, type BattleNetService } from '@app/battle-net';
+import { BATTLE_NET_KEY_TAG_DMA, BattleNetNamespace, BattleNetService } from '@app/battle-net';
 import { dmaConfig } from '@app/configuration';
 import { MarketEntity, RealmsEntity } from '@app/pg';
 import {

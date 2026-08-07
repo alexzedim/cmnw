@@ -2,7 +2,7 @@ import { redisConfig, wsConfig } from '@app/configuration';
 import { LoggerService } from '@app/logger';
 import { SESSION_QUERY_KEY } from '@app/resources';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
-import type { HttpAdapterHost } from '@nestjs/core';
+import { HttpAdapterHost } from '@nestjs/core';
 import type { Server as HttpServer, IncomingMessage } from 'http';
 import Redis from 'ioredis';
 import { Server, type WebSocket } from 'ws';

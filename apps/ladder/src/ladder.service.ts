@@ -1,9 +1,4 @@
-import {
-  BATTLE_NET_KEY_TAG_BLIZZARD,
-  BattleNetNamespace,
-  type BattleNetService,
-  type IBattleNetClientConfig,
-} from '@app/battle-net';
+import { BATTLE_NET_KEY_TAG_BLIZZARD, BattleNetNamespace, BattleNetService, type IBattleNetClientConfig } from '@app/battle-net';
 import { RealmsEntity } from '@app/pg';
 import {
   BRACKETS,

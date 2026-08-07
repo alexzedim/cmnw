@@ -1,4 +1,4 @@
-import { BATTLE_NET_KEY_TAG_BLIZZARD, BattleNetNamespace, type BattleNetService } from '@app/battle-net';
+import { BATTLE_NET_KEY_TAG_BLIZZARD, BattleNetNamespace, BattleNetService } from '@app/battle-net';
 import { RealmsEntity } from '@app/pg';
 import {
   type BlizzardApiResponse,

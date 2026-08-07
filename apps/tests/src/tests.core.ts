@@ -1,4 +1,4 @@
-import { BATTLE_NET_KEY_TAG_WCL_V2, BattleNetNamespace, type BattleNetService } from '@app/battle-net';
+import { BATTLE_NET_KEY_TAG_WCL_V2, BattleNetNamespace, BattleNetService } from '@app/battle-net';
 import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
 import { writeFileSync } from 'fs';
 import { join } from 'path';

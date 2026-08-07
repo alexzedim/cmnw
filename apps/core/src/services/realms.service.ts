@@ -1,4 +1,4 @@
-import { BattleNetNamespace, type BattleNetService } from '@app/battle-net';
+import { BattleNetNamespace, BattleNetService } from '@app/battle-net';
 import { LoggerService } from '@app/logger';
 import { KeysEntity, RealmsEntity } from '@app/pg';
 import {
@@ -11,7 +11,7 @@ import {
   realmsQueue,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
-import type { HttpService } from '@nestjs/axios';
+import { HttpService } from '@nestjs/axios';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, NotFoundException, type OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';

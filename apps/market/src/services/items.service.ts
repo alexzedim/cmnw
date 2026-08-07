@@ -9,7 +9,7 @@ import {
   itemsQueue,
   toStringOrNumber,
 } from '@app/resources';
-import type { S3Service } from '@app/s3';
+import { S3Service } from '@app/s3';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
