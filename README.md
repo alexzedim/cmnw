@@ -21,27 +21,27 @@
 ```mermaid
 flowchart TB
   subgraph Core
-    core[core :3000]
+    core[core]
     api[api :8080]
   end
 
   subgraph OSINT["OSINT Pipeline"]
-    osint[osint :3000]
-    characters[characters :3001]
-    guilds[guilds :3000]
-    wl[warcraft-logs :3000]
-    wp[wow-progress :3000]
-    ladder[ladder :3000]
+    osint[osint]
+    characters[characters]
+    guilds[guilds]
+    wl[warcraft-logs]
+    wp[wow-progress]
+    ladder[ladder]
   end
 
   subgraph Market
-    dma[dma :3004]
-    market[market :3002]
-    valuations[valuations :3000]
+    dma[dma]
+    market[market]
+    valuations[valuations]
   end
 
   subgraph Analytics
-    analytics[analytics :3001]
+    analytics[analytics]
   end
 
   blizzard[Blizzard API] --> osint
@@ -77,23 +77,23 @@ flowchart TB
 
 ## Microservices
 
-| Service           | Port | Purpose                      |
-| ----------------- | ---- | ---------------------------- |
-| **core**          | 3000 | Realms, keys, authentication |
-| **api**           | 8080 | REST gateway + Swagger UI    |
-| **osint**         | 3000 | Character/guild intelligence |
-| **characters**    | 3001 | Player profile processing    |
-| **guilds**        | 3000 | Guild analytics processing   |
-| **dma**           | 3004 | Auction house monitoring     |
-| **market**        | 3002 | XVA calculations & pricing   |
-| **valuations**    | 3000 | Financial modeling           |
-| **analytics**     | 3001 | Metrics aggregation          |
-| **ladder**        | 3000 | Leaderboard rankings         |
-| **warcraft-logs** | 3000 | Raid log intelligence        |
-| **wow-progress**  | 3000 | Progress tracking & scraping |
-| **tests**         | 3010 | E2E tests                    |
+Only `api` exposes an HTTP server (port 8080). All other services are headless workers — they boot via `NestFactory.createApplicationContext()` and run BullMQ processors and cron jobs with no inbound ports.
 
-> Multiple services share port 3000 — they run in isolated containers and do not conflict in production.
+| Service           | Type   | Port | Purpose                      |
+| ----------------- | ------ | ---- | ---------------------------- |
+| **api**           | HTTP   | 8080 | REST gateway + Swagger UI    |
+| **core**          | Worker | -    | Realms, keys, authentication |
+| **osint**         | Worker | -    | Character/guild intelligence |
+| **characters**    | Worker | -    | Player profile processing    |
+| **guilds**        | Worker | -    | Guild analytics processing   |
+| **dma**           | Worker | -    | Auction house monitoring     |
+| **market**        | Worker | -    | XVA calculations & pricing   |
+| **valuations**    | Worker | -    | Financial modeling           |
+| **analytics**     | Worker | -    | Metrics aggregation          |
+| **ladder**        | Worker | -    | Leaderboard rankings         |
+| **warcraft-logs** | Worker | -    | Raid log intelligence        |
+| **wow-progress**  | Worker | -    | Progress tracking & scraping |
+| **tests**         | Worker | -    | E2E tests                    |
 
 ---
 

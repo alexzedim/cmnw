@@ -37,21 +37,23 @@ pnpm docker:build
 
 ### Microservices (13 apps)
 
-| Service       | Port | Purpose                      |
-| ------------- | ---- | ---------------------------- |
-| core          | 3000 | Realms, Keys, Auth           |
-| api           | 8080 | REST Gateway + Swagger       |
-| osint         | 3000 | Character/Guild intelligence |
-| dma           | 3004 | Auction house monitoring     |
-| market        | 3002 | XVA calculations             |
-| characters    | -    | Player profiles              |
-| guilds        | -    | Guild analytics              |
-| analytics     | -    | Metrics aggregation          |
-| ladder        | -    | Leaderboards                 |
-| valuations    | -    | Financial modeling           |
-| warcraft-logs | -    | Raid analytics               |
-| wow-progress  | -    | Progress tracking            |
-| tests         | -    | E2E tests                    |
+Only `api` exposes an HTTP server. Every other app is a headless worker booted via `NestFactory.createApplicationContext()` — they run BullMQ processors and cron jobs, with no inbound ports.
+
+| Service       | Type    | Port | Purpose                      |
+| ------------- | ------- | ---- | ---------------------------- |
+| api           | HTTP    | 8080 | REST Gateway + Swagger       |
+| core          | Worker  | -    | Realms, Keys, Auth           |
+| osint         | Worker  | -    | Character/Guild intelligence |
+| dma           | Worker  | -    | Auction house monitoring     |
+| market        | Worker  | -    | XVA calculations             |
+| characters    | Worker  | -    | Player profiles              |
+| guilds        | Worker  | -    | Guild analytics              |
+| analytics     | Worker  | -    | Metrics aggregation          |
+| ladder        | Worker  | -    | Leaderboards                 |
+| valuations    | Worker  | -    | Financial modeling           |
+| warcraft-logs | Worker  | -    | Raid analytics               |
+| wow-progress  | Worker  | -    | Progress tracking            |
+| tests         | Worker  | -    | E2E tests                    |
 
 ### Shared Libraries (6 libs)
 
@@ -139,6 +141,21 @@ export class CharacterService {
   }
 }
 ```
+
+### Worker Bootstrap (headless apps)
+
+Every app **except `api`** is a headless worker — it boots the DI container with `createApplicationContext` (no HTTP server, no `app.listen()`), so it only runs BullMQ processors and cron jobs. Always pair it with `enableShutdownHooks()` so containers terminate cleanly on `SIGTERM`:
+
+```typescript
+async function bootstrap() {
+  const app = await NestFactory.createApplicationContext(AppModule, { bufferLogs: true });
+  app.useLogger(new LoggerService(APP_LABELS.X));
+  app.enableShutdownHooks();
+  await app.init();
+}
+```
+
+> **Note**: `createApplicationContext` returns `INestApplicationContext`, which still supports `useLogger()` and `enableShutdownHooks()` but has no `listen()`. The full DI graph, `OnApplicationBootstrap`, `@Cron`, and `@Processor` all run as normal.
 
 ### TypeORM Entity (SnakeNamingStrategy)
 
