@@ -19,7 +19,8 @@ LABEL org.opencontainers.image.title="CMNW Core" \
 
 WORKDIR /usr/src/app
 
-RUN corepack enable
+RUN corepack enable && \
+    corepack prepare pnpm@11.20.0 --activate
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 

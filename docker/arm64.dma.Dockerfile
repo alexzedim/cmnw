@@ -6,6 +6,7 @@ WORKDIR /usr/src/app
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 RUN corepack enable && \
+    corepack prepare pnpm@11.20.0 --activate && \
     corepack pnpm install
 
 COPY . .
@@ -39,6 +40,7 @@ RUN addgroup --gid 1001 app && \
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 
 RUN corepack enable && \
+    corepack prepare pnpm@11.20.0 --activate && \
     corepack pnpm install --prod
 
 COPY --from=builder /usr/src/app/dist ./dist
