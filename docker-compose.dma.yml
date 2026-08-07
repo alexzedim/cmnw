@@ -3,7 +3,7 @@ services:
   dma:
     image: ghcr.io/alexzedim/dma:latest
     restart: always
-    command: [ 'node', '--max-old-space-size=4096', 'dist/apps/dma/main.js' ]
+    command: [ 'node', '--max-old-space-size=4096', 'dist/apps/dma/src/main.js' ]
     deploy:
       mode: replicated
       replicas: ${DMA_REPLICAS:-2}
@@ -15,6 +15,6 @@ services:
   market:
     image: ghcr.io/alexzedim/dma:latest
     restart: always
-    command: [ 'node', 'dist/apps/market/main.js' ]
+    command: [ 'node', 'dist/apps/market/src/main.js' ]
     env_file:
       - stack.env

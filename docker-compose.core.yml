@@ -4,7 +4,7 @@ services:
     container_name: core
     image: ghcr.io/alexzedim/core:latest
     restart: always
-    command: [ 'node', 'dist/apps/core/main.js' ]
+    command: [ 'node', 'dist/apps/core/src/main.js' ]
     env_file:
       - stack.env
     networks:
@@ -14,7 +14,7 @@ services:
     container_name: cmnw-api
     image: ghcr.io/alexzedim/core:latest
     restart: always
-    command: [ 'node', 'dist/apps/api/main.js' ]
+    command: [ 'node', 'dist/apps/api/src/main.js' ]
     ports:
       - '8080:8080'
     env_file:
@@ -41,7 +41,7 @@ services:
     container_name: analytics
     image: ghcr.io/alexzedim/core:latest
     restart: always
-    command: [ 'node', 'dist/apps/analytics/main.js' ]
+    command: [ 'node', 'dist/apps/analytics/src/main.js' ]
     env_file:
       - stack.env
 

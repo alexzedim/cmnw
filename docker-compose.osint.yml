@@ -3,7 +3,7 @@ services:
   osint:
     image: ghcr.io/alexzedim/osint:latest
     restart: always
-    command: [ 'node', 'dist/apps/osint/main.js' ]
+    command: [ 'node', 'dist/apps/osint/src/main.js' ]
     deploy:
       replicas: ${OSINT_REPLICAS:-5}
     environment:
@@ -16,27 +16,27 @@ services:
   characters:
     image: ghcr.io/alexzedim/osint:latest
     restart: always
-    command: [ 'node', 'dist/apps/characters/main.js' ]
+    command: [ 'node', 'dist/apps/characters/src/main.js' ]
     env_file:
       - stack.env
 
   guilds:
     image: ghcr.io/alexzedim/osint:latest
     restart: always
-    command: [ 'node', 'dist/apps/guilds/main.js' ]
+    command: [ 'node', 'dist/apps/guilds/src/main.js' ]
     env_file:
       - stack.env
 
   wow-progress:
     image: ghcr.io/alexzedim/osint:latest
     restart: always
-    command: [ 'node', 'dist/apps/wow-progress/main.js' ]
+    command: [ 'node', 'dist/apps/wow-progress/src/main.js' ]
     env_file:
       - stack.env
 
   warcraft-logs:
     image: ghcr.io/alexzedim/osint:latest
     restart: always
-    command: [ 'node', 'dist/apps/warcraft-logs/main.js' ]
+    command: [ 'node', 'dist/apps/warcraft-logs/src/main.js' ]
     env_file:
       - stack.env
