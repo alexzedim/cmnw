@@ -4,9 +4,9 @@
 
 ## Project Info
 
-- **Version**: 6.10.13
+- **Version**: 6.12.8
 - **Framework**: NestJS 11.x with TypeScript 7.0.2 (SWC compiler)
-- **Runtime**: Node.js >=24.0.0, pnpm 11.20.0
+- **Runtime**: Node.js >=24.0.0, pnpm >=11.0.0
 - **Databases**: PostgreSQL (TypeORM), Redis
 - **Message Queue**: BullMQ
 
@@ -53,7 +53,7 @@ pnpm docker:build
 | wow-progress  | -    | Progress tracking            |
 | tests         | -    | E2E tests                    |
 
-### Shared Libraries (5 libs)
+### Shared Libraries (6 libs)
 
 | Library            | Purpose                                |
 | ------------------ | -------------------------------------- |
@@ -62,6 +62,7 @@ pnpm docker:build
 | @app/pg            | PostgreSQL entities and enums          |
 | @app/logger        | Structured logging with Loki           |
 | @app/s3            | AWS S3 storage integration             |
+| @app/battle-net    | Blizzard API client                    |
 
 ---
 
@@ -85,6 +86,7 @@ pnpm docker:build
 - No comments unless explicitly requested
 - Early returns over deep nesting
 - No top-level `const`, `interface`, or `type` declarations in service files (`*.service.ts`) — extract them to `@app/resources` (`types`, `constants`, `utils`)
+- **Never use `import type` for DI-injected providers** — any class resolved by Nest via constructor type reflection (e.g. `HttpService`, `BattleNetService`, `S3Service`, custom `@Injectable()` services) must be a runtime `import`. `import type` is erased by SWC, leaving `emitDecoratorMetadata` to emit `Object`, which crashes DI at boot with `Nest can't resolve dependencies`. Decorator-token injections (`@InjectRepository`, `@InjectDataSource`, `@InjectS3`, `@Inject(...)`) are the exception — those resolve by token, so `import type` is correct for them.
 
 ### Import Order
 
@@ -112,6 +114,7 @@ import { CharacterService } from '../services';
 3. **@app/configuration** - Environment config (postgres, redis, blizzard, etc.)
 4. **@app/logger** - LoggerService with structured logging
 5. **@app/s3** - File storage operations
+6. **@app/battle-net** - Blizzard API client and key management
 
 **Rule**: If something can be reused, put it in `@app/resources` or `@app/pg`.
 

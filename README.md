@@ -7,10 +7,10 @@
 <p align="center"><em>Intelligence always wins</em></p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-6.11.6-blue" alt="version" />
+  <img src="https://img.shields.io/badge/version-6.12.8-blue" alt="version" />
   <img src="https://img.shields.io/badge/license-MPL%202.0-green" alt="license" />
   <img src="https://img.shields.io/badge/node-%E2%89%A524.0.0-339933" alt="node" />
-  <img src="https://img.shields.io/badge/pnpm-%E2%89%A510.0.0-F69220" alt="pnpm" />
+  <img src="https://img.shields.io/badge/pnpm-%E2%89%A511.0.0-F69220" alt="pnpm" />
   <img src="https://img.shields.io/github/issues/alexzedim/cmnw" alt="issues" />
 </p>
 
@@ -115,21 +115,21 @@ flowchart TB
 | Layer         | Technology                  |
 | ------------- | --------------------------- |
 | Framework     | NestJS 11.x                 |
-| Language      | TypeScript 5.9.3            |
-| ORM           | TypeORM 0.3.x               |
-| Message Queue | BullMQ 5.x (Redis-backed)   |
+| Language      | TypeScript 7.0.2            |
+| ORM           | TypeORM 1.1.x               |
+| Message Queue | BullMQ 6.x (Redis-backed)   |
 | Database      | PostgreSQL 17.4             |
 | Cache / Queue | Redis 7.4.3 (2 instances)   |
 | Storage       | AWS S3                      |
 | Monitoring    | Grafana + Prometheus + Loki |
-| Runtime       | Node.js >=24, pnpm >=10     |
+| Runtime       | Node.js >=24, pnpm >=11     |
 
 ---
 
 ## Prerequisites
 
 - **Node.js** >=24.0.0
-- **pnpm** >=10.0.0
+- **pnpm** >=11.0.0
 - **Docker** & Docker Compose
 
 ---
@@ -200,7 +200,7 @@ cmnw/
 ├── .swcrc                  # SWC compiler config
 ├── biome.json              # Biome linter/formatter config
 ├── pnpm-workspace.yaml     # pnpm workspace config
-└── package.json            # v6.11.6
+└── package.json            # v6.12.8
 ```
 
 ---
