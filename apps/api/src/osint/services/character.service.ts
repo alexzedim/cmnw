@@ -42,7 +42,7 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { type Queue, QueueEvents } from 'bullmq';
-import { type FindOptionsWhere, In, MoreThanOrEqual, type Repository } from 'typeorm';
+import { type FindOptionsWhere, In, IsNull, MoreThanOrEqual, type Repository } from 'typeorm';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -146,7 +146,7 @@ export class CharacterOsintService {
           where: {
             category: 'characters',
             metricType: 'extremes',
-            realmId: null,
+            realmId: IsNull(),
           },
           order: { createdAt: 'DESC' },
         }),
@@ -154,7 +154,7 @@ export class CharacterOsintService {
           where: {
             category: 'characters',
             metricType: 'extremes',
-            realmId: character?.realmId,
+            realmId: character?.realmId ?? IsNull(),
           },
           order: { createdAt: 'DESC' },
         }),
