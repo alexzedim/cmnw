@@ -24,7 +24,7 @@ import {
   UnsupportedMediaTypeException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import * as cheerio from 'cheerio';
+import { parse } from 'node-html-parser';
 import fs from 'fs-extra';
 import { DateTime } from 'luxon';
 import path from 'path';
@@ -331,22 +331,21 @@ export class TestsBench implements OnApplicationBootstrap {
   async getGold() {
     const response = await this.httpService.axiosRef.get<string>('https://funpay.ru/chips/2/');
 
-    const exchangeListingPage = cheerio.load(response.data);
-    const goldListingMarkup = exchangeListingPage.html('a.tc-item');
+    const exchangeListingPage = parse(response.data);
 
     const goldOrders: Array<Partial<IGold>> = [];
     const marketOrders: Array<MarketEntity> = [];
     const realmsEntity = new Map<string, RealmsEntity>([]);
     const timestamp = new Date().getTime();
 
-    exchangeListingPage(goldListingMarkup).each((_index, element) => {
-      const orderId = exchangeListingPage(element).attr('href');
-      const realm = exchangeListingPage(element).find('.tc-server').text();
-      const faction = exchangeListingPage(element).find('.tc-side').text();
-      const status = Boolean(exchangeListingPage(element).attr('data-online'));
-      const quantity = exchangeListingPage(element).find('.tc-amount').text();
-      const owner = exchangeListingPage(element).find('.media-user-name').text();
-      const price = exchangeListingPage(element).find('.tc-price div').text();
+    exchangeListingPage.querySelectorAll('a.tc-item').forEach((element) => {
+      const orderId = element.getAttribute('href') ?? '';
+      const realm = element.querySelector('.tc-server')?.text ?? '';
+      const faction = element.querySelector('.tc-side')?.text ?? '';
+      const status = Boolean(element.getAttribute('data-online'));
+      const quantity = element.querySelector('.tc-amount')?.text ?? '';
+      const owner = element.querySelector('.media-user-name')?.text ?? '';
+      const price = element.querySelector('.tc-price div')?.text ?? '';
 
       goldOrders.push({
         orderId,
@@ -428,15 +427,15 @@ export class TestsBench implements OnApplicationBootstrap {
     const dirPath = path.join(__dirname, '..', '..', 'files', 'wow-progress');
     await fs.ensureDir(dirPath);
 
-    const page = cheerio.load(response.data);
-    const wpPage = page.html('body > pre:nth-child(3) > a');
+    const page = parse(response.data, { blockTextElements: { script: true, style: true } });
 
     await Promise.allSettled(
-      page(wpPage).map(async (_x, node) => {
-        const isAttributes = 'attribs' in node && node.attribs.href.includes('eu_');
+      page.querySelectorAll('body > pre > a').map(async (node) => {
+        const href = node.getAttribute('href') ?? '';
+        const isAttributes = href.includes('eu_');
         if (!isAttributes) return;
 
-        const url = node.attribs.href;
+        const url = href;
         console.log(url);
 
         const downloadLink = encodeURI(decodeURI(OSINT_SOURCE_WOW_PROGRESS_RANKS + url));
@@ -565,11 +564,9 @@ export class TestsBench implements OnApplicationBootstrap {
     const response = await this.httpService.axiosRef.get<string>(
       `https://www.warcraftlogs.com/server/id/${warcraftLogsId}`,
     );
-    const wclHTML = cheerio.load(response.data);
+    const wclHTML = parse(response.data);
     console.log(wclHTML);
-    const serverElement = wclHTML.html('.server-name');
-    console.log(serverElement);
-    const realmName = wclHTML(serverElement).text();
+    const realmName = wclHTML.querySelector('.server-name')?.text ?? '';
     console.log(realmName);
 
     const realmEntity = await findRealm(this.realmsRepository, realmName);

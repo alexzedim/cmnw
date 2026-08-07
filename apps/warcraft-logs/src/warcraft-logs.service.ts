@@ -22,7 +22,7 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import { AxiosError } from 'axios';
 import type { Queue } from 'bullmq';
 import chalk from 'chalk';
-import * as cheerio from 'cheerio';
+import { parse } from 'node-html-parser';
 import type Redis from 'ioredis';
 import { get } from 'lodash';
 import { DateTime } from 'luxon';
@@ -138,8 +138,8 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         timeout: 15_000,
       });
 
-      const $ = cheerio.load(loginPage.data);
-      const csrfToken = $('meta[name="csrf-token"]').attr('content');
+      const $ = parse(loginPage.data);
+      const csrfToken = $.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
       if (!csrfToken) {
         throw new Error('CSRF token not found on login page');
@@ -262,13 +262,12 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         });
       }
 
-      const wclHTML = cheerio.load(response.data);
-      const wclTable = wclHTML.html('tbody > tr');
+      const wclHTML = parse(response.data);
       const warcraftLogsMap = new Map<string, Pick<CharactersRaidLogsEntity, 'logId' | 'createdAt'>>();
 
-      wclHTML(wclTable).each((_itx, element) => {
-        const momentFormat = wclHTML(element).children().find('td > span.moment-format').attr('data-timestamp');
-        const hrefString = wclHTML(element).children().find('td.description-cell > a').attr('href');
+      wclHTML.querySelectorAll('tbody > tr').forEach((element) => {
+        const momentFormat = element.querySelector('td > span.moment-format')?.getAttribute('data-timestamp');
+        const hrefString = element.querySelector('td.description-cell > a')?.getAttribute('href');
 
         const isReports = hrefString?.includes('reports');
         if (isReports && momentFormat) {
@@ -629,17 +628,17 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         timeout: 15000,
       });
 
-      const $ = cheerio.load(response.data);
+      const root = parse(response.data);
       const characters = new Map<string, { name: string; realm?: string }>();
 
       // Extract report creator name
-      const creatorName = $('.report-title-details-text .gold.bold').text().trim();
+      const creatorName = (root.querySelector('.report-title-details-text .gold.bold')?.text ?? '').trim();
       if (creatorName) {
         characters.set(creatorName.toLowerCase(), { name: creatorName });
       }
 
       // Try to extract guild/team name if present
-      const guildName = $('.guild-reports-guildName').text().trim();
+      const guildName = (root.querySelector('.guild-reports-guildName')?.text ?? '').trim();
       if (guildName && guildName !== 'Personal Logs' && guildName !== creatorName) {
         characters.set(guildName.toLowerCase(), { name: guildName });
       }

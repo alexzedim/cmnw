@@ -28,7 +28,7 @@ import type { HttpService } from '@nestjs/axios';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import cheerio from 'cheerio';
+import { parse } from 'node-html-parser';
 import { type Browser, type BrowserContext, chromium, devices } from 'playwright';
 import { forkJoin, lastValueFrom } from 'rxjs';
 import type { Repository } from 'typeorm';
@@ -223,12 +223,11 @@ export class ProfileWorker extends WorkerHost {
         return wowProgressProfile;
       }
 
-      const wowProgressProfilePage = cheerio.load(data);
-      const wpHTML = wowProgressProfilePage.html('.language');
+      const wowProgressProfilePage = parse(data);
 
       await Promise.allSettled(
-        wowProgressProfilePage(wpHTML).map((_index, node) => {
-          const characterText = wowProgressProfilePage(node).text();
+        wowProgressProfilePage.querySelectorAll('.language').map((node) => {
+          const characterText = node.text;
           const [key, stringValue] = characterText.split(':');
           const isKeyExists = CHARACTER_PROFILE_MAPPING.has(key);
           if (!isKeyExists) return;

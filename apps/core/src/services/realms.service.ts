@@ -17,7 +17,7 @@ import { Injectable, NotFoundException, type OnApplicationBootstrap } from '@nes
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Queue } from 'bullmq';
-import * as cheerio from 'cheerio';
+import { parse } from 'node-html-parser';
 import { lastValueFrom, mergeMap, range } from 'rxjs';
 import type { Repository } from 'typeorm';
 
@@ -112,9 +112,8 @@ export class RealmsService implements OnApplicationBootstrap {
                 timeout: 10000,
               },
             );
-            const warcraftLogsPage = cheerio.load(response.data);
-            const warcraftLogsRealmElement = warcraftLogsPage.html('.server-name');
-            const realmName = warcraftLogsPage(warcraftLogsRealmElement).text();
+            const warcraftLogsPage = parse(response.data);
+            const realmName = warcraftLogsPage.querySelector('.server-name')?.text ?? '';
             const realmEntity = await findRealm(this.realmsRepository, realmName);
             if (!realmEntity) {
               throw new NotFoundException(`${realmId}:${realmName} not found!`);

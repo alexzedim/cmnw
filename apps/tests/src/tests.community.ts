@@ -2,7 +2,7 @@ import type { IOsintConfig } from '@app/configuration';
 import { isCharacterRaidLogResponse, type RaidCharacter, toGuid } from '@app/resources';
 import type { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
-import cheerio from 'cheerio';
+import { parse } from 'node-html-parser';
 import { get } from 'lodash';
 
 @Injectable()
@@ -24,12 +24,11 @@ export class TestsCommunity {
         `${warcraftLogsURI}?zone=${config.wclCurrentRaidTier}&server=${realmId}&page=${page}`,
       );
 
-      const wclHTML = cheerio.load(response.data);
+      const wclHTML = parse(response.data);
       const wclLogsUnique = new Set<string>();
-      const wclTable = wclHTML.html('td.description-cell > a');
 
-      wclHTML(wclTable).each((_x, node) => {
-        const hrefString = wclHTML(node).attr('href');
+      wclHTML.querySelectorAll('td.description-cell > a').forEach((node) => {
+        const hrefString = node.getAttribute('href') ?? '';
         const isReports = hrefString.includes('reports');
         if (isReports) {
           const [link]: string[] = hrefString.match(/(.{16})\s*$/g);

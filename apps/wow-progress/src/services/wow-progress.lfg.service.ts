@@ -18,7 +18,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Queue } from 'bullmq';
 import chalk from 'chalk';
-import * as cheerio from 'cheerio';
+import { parse } from 'node-html-parser';
 import { difference, union } from 'lodash';
 import { from, lastValueFrom } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
@@ -243,20 +243,18 @@ export class WowProgressLfgService {
     try {
       const response = await this.httpService.axiosRef.get(url);
 
-      const wowProgressHTML = cheerio.load(response.data);
-      const listingLookingForGuild = wowProgressHTML.html('table.rating tbody tr');
+      const wowProgressHTML = parse(response.data);
 
       await Promise.allSettled(
-        wowProgressHTML(listingLookingForGuild).map(async (_x, node) => {
-          const tableRowElement = wowProgressHTML(node).find('td');
-          const [preName, preGuild, preRaid, preRealm, preItemLevel, preTimestamp] = tableRowElement;
+        wowProgressHTML.querySelectorAll('table.rating tbody tr').map(async (node) => {
+          const [preName, preGuild, preRaid, preRealm, preItemLevel, preTimestamp] = node.querySelectorAll('td');
 
-          const name = wowProgressHTML(preName).text().trim();
-          const guild = wowProgressHTML(preGuild).text();
-          const raid = wowProgressHTML(preRaid).text();
-          const [, rawRealm] = wowProgressHTML(preRealm).text().split('-');
-          const itemLevel = wowProgressHTML(preItemLevel).text();
-          const timestamp = wowProgressHTML(preTimestamp).text();
+          const name = (preName?.text ?? '').trim();
+          const guild = preGuild?.text ?? '';
+          const raid = preRaid?.text ?? '';
+          const [, rawRealm] = (preRealm?.text ?? '').split('-');
+          const itemLevel = preItemLevel?.text ?? '';
+          const timestamp = preTimestamp?.text ?? '';
 
           const realm = rawRealm.trim();
           const isCharacterValid = Boolean(name && realm);
