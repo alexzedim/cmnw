@@ -85,6 +85,7 @@ export class AuctionsService implements OnApplicationBootstrap {
             });
           }),
         ),
+        { defaultValue: undefined },
       );
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });

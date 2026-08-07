@@ -292,6 +292,7 @@ export class TestsBench implements OnApplicationBootstrap {
           dataset.push(...plDataset);
         }),
       ),
+      { defaultValue: undefined },
     );
 
     return { dataset };
@@ -415,6 +416,7 @@ export class TestsBench implements OnApplicationBootstrap {
           }
         }, 5),
       ),
+      { defaultValue: undefined },
     );
 
     console.log(marketOrders);
@@ -543,6 +545,7 @@ export class TestsBench implements OnApplicationBootstrap {
           }
         }, 1),
       ),
+      { defaultValue: undefined },
     );
   }
 

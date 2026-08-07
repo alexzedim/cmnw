@@ -81,6 +81,7 @@ export class ItemsService implements OnApplicationBootstrap {
             });
           }),
         ),
+        { defaultValue: undefined },
       );
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });

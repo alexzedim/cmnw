@@ -71,6 +71,7 @@ export class GuildRosterService {
             GUILD_WORKER_CONSTANTS.ROSTER_CONCURRENCY,
           ),
         ),
+        { defaultValue: undefined },
       );
 
       roster.status = setGuildStatusString('-----', 'ROSTER', GuildStatusState.SUCCESS);

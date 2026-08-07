@@ -169,6 +169,7 @@ export class GuildsService implements OnApplicationBootstrap {
             await this.queueGuilds.add(dto.name, dto.data, dto.opts);
           }),
         ),
+        { defaultValue: undefined },
       );
 
       this.logger.log(`${logTag}: offset ${this.offset} | ${guilds.length} characters`);

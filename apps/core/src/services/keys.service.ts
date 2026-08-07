@@ -64,6 +64,7 @@ export class KeysService implements OnApplicationBootstrap {
             }
           }, 5),
         ),
+        { defaultValue: undefined },
       );
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });

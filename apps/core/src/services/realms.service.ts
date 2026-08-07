@@ -142,6 +142,7 @@ export class RealmsService implements OnApplicationBootstrap {
           }
         }, 1),
       ),
+      { defaultValue: undefined },
     );
   }
   // TODO populations & stats

@@ -403,6 +403,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
             2,
           ),
         ),
+        { defaultValue: undefined },
       );
 
       const duration = Date.now() - startTime;

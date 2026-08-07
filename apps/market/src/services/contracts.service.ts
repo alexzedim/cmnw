@@ -153,6 +153,7 @@ export class ContractsService implements OnApplicationBootstrap {
           from(commodityTimestamps).pipe(
             mergeMap((timestamp) => this.getItemContractIntradayData(commodityItemId, timestamp, today), 5),
           ),
+          { defaultValue: undefined },
         );
       }
     } catch (errorOrException) {
@@ -198,6 +199,7 @@ export class ContractsService implements OnApplicationBootstrap {
         from(goldTimestamps).pipe(
           mergeMap((timestamp) => this.getItemContractIntradayData(GOLD_ITEM_ENTITY.id, timestamp, today), 5),
         ),
+        { defaultValue: undefined },
       );
     } catch (errorOrException) {
       this.logger.error({

@@ -104,6 +104,7 @@ export class GuildMemberService {
             this.processIntersectionMember(guildEntity, rosterUpdateAt, guildMemberId, originalRoster, updatedRoster),
           ),
         ),
+        { defaultValue: undefined },
       );
     }
 
@@ -115,6 +116,7 @@ export class GuildMemberService {
             this.processJoinMember(guildEntity, rosterUpdateAt, guildMemberId, updatedRoster, isFirstTimeRosterIndexed),
           ),
         ),
+        { defaultValue: undefined },
       );
     }
 
@@ -125,6 +127,7 @@ export class GuildMemberService {
             this.processLeaveMember(guildEntity, rosterUpdateAt, guildMemberId, originalRoster),
           ),
         ),
+        { defaultValue: undefined },
       );
     }
   }

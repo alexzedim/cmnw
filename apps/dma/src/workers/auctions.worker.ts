@@ -233,6 +233,7 @@ export class AuctionsWorker extends WorkerHost {
               }
             }),
           ),
+          { defaultValue: undefined },
         );
       }
 

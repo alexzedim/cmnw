@@ -250,6 +250,7 @@ export class XvaService implements OnApplicationBootstrap {
             methodCount++;
           }),
         ),
+        { defaultValue: undefined },
       );
 
       this.logger.log({

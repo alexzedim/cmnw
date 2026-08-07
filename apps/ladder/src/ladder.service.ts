@@ -387,6 +387,7 @@ export class LadderService implements OnApplicationBootstrap {
           return of([]);
         }),
       ),
+      { defaultValue: undefined },
     );
   }
 

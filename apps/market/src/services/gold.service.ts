@@ -84,6 +84,7 @@ export class GoldService implements OnApplicationBootstrap {
           mergeMap((order) => this.createMarketEntity(order, realmsEntity, connectedRealmIds, timestamp), 5),
           toArray(),
         ),
+        { defaultValue: undefined },
       );
 
       // Filter out null entities before adding to marketOrders

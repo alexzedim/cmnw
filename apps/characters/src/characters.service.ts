@@ -73,6 +73,7 @@ export class CharactersService implements OnApplicationBootstrap {
             characterIteration = characterIteration + 1;
           }, 10),
         ),
+        { defaultValue: undefined },
       );
 
       this.logger.log({

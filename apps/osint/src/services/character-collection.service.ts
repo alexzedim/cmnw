@@ -301,6 +301,7 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
               });
             }, 5),
           ),
+          { defaultValue: undefined },
         );
       }
 

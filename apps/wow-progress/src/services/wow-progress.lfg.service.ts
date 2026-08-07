@@ -161,6 +161,7 @@ export class WowProgressLfgService {
             this.pushCharacterAndProfileToQueue(characterGuid, charactersLfg, realmsEntity, lookingForGuild),
           ),
         ),
+        { defaultValue: undefined },
       );
       const duration = Date.now() - startTime;
       this.logger.log(chalk.green(`\n✓ LFG indexing completed in ${chalk.bold(Math.round(duration / 1000))}s`));

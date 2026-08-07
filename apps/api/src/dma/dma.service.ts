@@ -324,6 +324,7 @@ export class DmaService {
           }),
           reduce((acc: IChartOrder[], curr: IChartOrder[]) => [...acc, ...curr], [] as IChartOrder[]),
         ),
+        { defaultValue: undefined },
       );
 
       return this.trimEmptyXMargins(dataset, xTimestampAxis);

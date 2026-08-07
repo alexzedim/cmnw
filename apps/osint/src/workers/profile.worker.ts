@@ -120,7 +120,7 @@ export class ProfileWorker extends WorkerHost {
       }
 
       if (profileUpdates.length > 0) {
-        await lastValueFrom(forkJoin(profileUpdates));
+        await lastValueFrom(forkJoin(profileUpdates), { defaultValue: undefined });
       }
 
       await this.charactersProfileRepository.save(profileEntity);
