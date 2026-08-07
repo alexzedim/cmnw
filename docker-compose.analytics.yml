@@ -182,11 +182,3 @@ configs:
           scrape_interval: 15s
           metrics_path: /api/metrics
           scheme: http
-
-        # CMNW Core service
-        - job_name: 'cmnw-core'
-          static_configs:
-            - targets: ['core:3000']
-          scrape_interval: 15s
-          metrics_path: /metrics
-          scheme: http

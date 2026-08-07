@@ -1,6 +1,5 @@
 import dotenv from 'dotenv';
 
-// Load environment variables from .env file
 dotenv.config({ quiet: true });
 
 import { LoggerService } from '@app/logger';
@@ -9,8 +8,9 @@ import { NestFactory } from '@nestjs/core';
 import { WarcraftLogsModule } from './warcraft-logs.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(WarcraftLogsModule);
+  const app = await NestFactory.createApplicationContext(WarcraftLogsModule, { bufferLogs: true });
   app.useLogger(new LoggerService(APP_LABELS.WCL));
-  await app.listen(3000);
+  app.enableShutdownHooks();
+  await app.init();
 }
 bootstrap();

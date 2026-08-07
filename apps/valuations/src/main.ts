@@ -1,13 +1,13 @@
 import dotenv from 'dotenv';
 
-// Load environment variables from .env file
 dotenv.config({ quiet: true });
 
 import { NestFactory } from '@nestjs/core';
 import { ValuationsModule } from './valuations.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(ValuationsModule);
-  await app.listen(3000);
+  const app = await NestFactory.createApplicationContext(ValuationsModule, { bufferLogs: true });
+  app.enableShutdownHooks();
+  await app.init();
 }
 bootstrap();

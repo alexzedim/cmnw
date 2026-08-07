@@ -1,6 +1,5 @@
 import dotenv from 'dotenv';
 
-// Load environment variables from .env file
 dotenv.config({ quiet: true });
 
 import { LoggerService } from '@app/logger';
@@ -9,8 +8,9 @@ import { NestFactory } from '@nestjs/core';
 import { MarketModule } from './market.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(MarketModule);
+  const app = await NestFactory.createApplicationContext(MarketModule, { bufferLogs: true });
   app.useLogger(new LoggerService(APP_LABELS.M));
-  await app.listen(3002);
+  app.enableShutdownHooks();
+  await app.init();
 }
 bootstrap();

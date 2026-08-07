@@ -8,8 +8,9 @@ import { NestFactory } from '@nestjs/core';
 import { AnalyticsModule } from './analytics.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AnalyticsModule);
+  const app = await NestFactory.createApplicationContext(AnalyticsModule, { bufferLogs: true });
   app.useLogger(new LoggerService(APP_LABELS.A));
-  await app.listen(3001);
+  app.enableShutdownHooks();
+  await app.init();
 }
 bootstrap();

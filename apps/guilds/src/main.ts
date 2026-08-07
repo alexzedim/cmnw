@@ -1,6 +1,5 @@
 import dotenv from 'dotenv';
 
-// Load environment variables from .env file
 dotenv.config({ quiet: true });
 
 import { LoggerService } from '@app/logger';
@@ -9,8 +8,9 @@ import { NestFactory } from '@nestjs/core';
 import { GuildsModule } from './guilds.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(GuildsModule);
+  const app = await NestFactory.createApplicationContext(GuildsModule, { bufferLogs: true });
   app.useLogger(new LoggerService(APP_LABELS.G));
-  await app.listen(3000);
+  app.enableShutdownHooks();
+  await app.init();
 }
 bootstrap();
