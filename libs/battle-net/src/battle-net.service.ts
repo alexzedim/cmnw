@@ -1,6 +1,6 @@
 import { battleNetConfig, type IBattleNetKeyHealthConfig } from '@app/configuration';
 import { KeysEntity } from '@app/pg';
-import type { HttpService } from '@nestjs/axios';
+import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { AxiosHeaders, type AxiosResponse } from 'axios';

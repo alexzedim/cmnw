@@ -6,7 +6,7 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import chalk from 'chalk';
 import type Redis from 'ioredis';
 import { In, IsNull, Not, type Repository } from 'typeorm';
-import type { WarcraftLogsService } from './warcraft-logs.service';
+import { WarcraftLogsService } from './warcraft-logs.service';
 
 @Injectable()
 export class WarcraftLogsMigrationService implements OnApplicationBootstrap {

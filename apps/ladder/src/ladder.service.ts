@@ -32,7 +32,7 @@ import {
   validatePvPLeaderboardResponse,
   validatePvPSeasonIndexResponse,
 } from '@app/resources/guard/ladder.guard';
-import type { RealmsCacheService } from '@app/resources/services/realms-cache.service';
+import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';

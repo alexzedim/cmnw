@@ -12,8 +12,8 @@ import {
   toGuid,
   toSlug,
 } from '@app/resources';
-import type { RealmsCacheService } from '@app/resources/services/realms-cache.service';
-import type { HttpService } from '@nestjs/axios';
+import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
+import { HttpService } from '@nestjs/axios';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';

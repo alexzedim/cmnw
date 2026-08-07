@@ -4,7 +4,7 @@ import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import type { Job } from 'bullmq';
 
-import type { HashBlockService } from '../services';
+import { HashBlockService } from '../services';
 
 @Injectable()
 @Processor(hashQueue.name, hashQueue.workerOptions)

@@ -24,7 +24,7 @@ import { hash32 } from 'farmhash';
 import type Redis from 'ioredis';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import type { Repository } from 'typeorm';
-import type { CharacterEntityIndexingService } from './character-entity-indexing.service';
+import { CharacterEntityIndexingService } from './character-entity-indexing.service';
 
 @Injectable()
 export class CharacterCollectionService implements OnApplicationBootstrap {

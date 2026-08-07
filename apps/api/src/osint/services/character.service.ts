@@ -1,4 +1,4 @@
-import type { BattleNetService } from '@app/battle-net';
+import { BattleNetService } from '@app/battle-net';
 import { REDIS_CONNECTION } from '@app/configuration';
 import {
   AnalyticsEntity,
@@ -30,7 +30,7 @@ import {
   toGuid,
 } from '@app/resources';
 import { type CharacterHashBlockRef, CharacterResponseDto } from '@app/resources/dto/character/character-response.dto';
-import type { RealmsCacheService } from '@app/resources/services/realms-cache.service';
+import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
 import type { S3Service } from '@app/s3';
 import { InjectQueue } from '@nestjs/bullmq';
 import {

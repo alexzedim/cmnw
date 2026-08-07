@@ -9,8 +9,8 @@ import {
   REALM_ENTITY_ANY,
   round,
 } from '@app/resources';
-import type { RealmsCacheService } from '@app/resources/services/realms-cache.service';
-import type { HttpService } from '@nestjs/axios';
+import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
+import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';

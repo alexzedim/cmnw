@@ -30,7 +30,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import type { BlockOsintService, CharacterOsintService, GuildOsintService, RealmOsintService } from './services';
+import { BlockOsintService, CharacterOsintService, GuildOsintService, RealmOsintService } from './services';
 
 @ApiTags('osint')
 @Controller('osint')

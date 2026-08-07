@@ -7,14 +7,14 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import type Redis from 'ioredis';
 import { DateTime } from 'luxon';
 import { MoreThanOrEqual, type Repository } from 'typeorm';
-import type {
+import {
   CharacterMetricsService,
   ContractMetricsService,
   GuildMetricsService,
   HallOfFameMetricsService,
   MarketMetricsService,
 } from './services';
-import type { AnalyticsMigrationService } from './services/analytics-migration.service';
+import { AnalyticsMigrationService } from './services/analytics-migration.service';
 
 @Injectable()
 export class AnalyticsService implements OnApplicationBootstrap {

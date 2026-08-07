@@ -21,7 +21,7 @@ import {
   ApiTags,
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
-import type { DmaService } from './dma.service';
+import { DmaService } from './dma.service';
 
 @ApiTags('dma')
 @Controller('dma')

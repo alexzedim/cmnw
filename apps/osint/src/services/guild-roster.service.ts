@@ -21,7 +21,7 @@ import {
   toGuid,
   toSlug,
 } from '@app/resources';
-import type { RealmsCacheService } from '@app/resources/services/realms-cache.service';
+import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';

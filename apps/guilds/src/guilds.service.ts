@@ -22,7 +22,7 @@ import {
   WOW_COMMUNITY_HOF_QUERY_HASH,
   WOW_COMMUNITY_REQUEST_HEADERS,
 } from '@app/resources';
-import type { HttpService } from '@nestjs/axios';
+import { HttpService } from '@nestjs/axios';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';

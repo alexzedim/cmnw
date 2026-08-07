@@ -1,11 +1,11 @@
 import { cmnwConfig } from '@app/configuration';
 import type { AuthResponseDto, BattleNetProfile } from '@app/resources';
-import type { HttpService } from '@nestjs/axios';
+import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-oauth2';
 import { lastValueFrom } from 'rxjs';
-import type { AuthService } from '../auth.service';
+import { AuthService } from '../auth.service';
 
 /**
  * Review full list of available scopes here: https://develop.battle.net/documentation/guides/using-oauth

@@ -22,11 +22,11 @@ import {
   setStatusString,
   toSlug,
 } from '@app/resources';
-import type { FeedService } from '@app/resources/services/feed.service';
+import { FeedService } from '@app/resources/services/feed.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import type { Job } from 'bullmq';
-import type {
+import {
   CharacterCollectionService,
   CharacterLifecycleService,
   CharacterService,
