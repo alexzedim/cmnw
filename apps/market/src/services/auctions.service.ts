@@ -76,7 +76,7 @@ export class AuctionsService implements OnApplicationBootstrap {
 
             await this.queue.add(message.name, message.data, message.opts);
 
-            this.logger.debug({
+            this.logger.verbose({
               logTag,
               connectedRealmId: realmEntity.connectedRealmId,
               auctionsTimestamp: realmEntity.auctionsTimestamp,
@@ -156,7 +156,7 @@ export class AuctionsService implements OnApplicationBootstrap {
       });
 
       if (isWowTokenExists) {
-        this.logger.debug(`Token exists on timestamp ${timestamp}`);
+        this.logger.verbose(`Token exists on timestamp ${timestamp}`);
         return;
       }
 

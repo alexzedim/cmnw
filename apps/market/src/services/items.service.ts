@@ -74,7 +74,7 @@ export class ItemsService implements OnApplicationBootstrap {
 
             await this.queue.add(itemMessage.name, itemMessage.data, itemMessage.opts);
 
-            this.logger.log({
+            this.logger.verbose({
               logTag,
               itemId,
               message: `Item ${itemId} placed in queue`,

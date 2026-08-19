@@ -14,11 +14,11 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
-import { parse } from 'node-html-parser';
 import { DateTime } from 'luxon';
+import { parse } from 'node-html-parser';
 import { from, lastValueFrom, toArray } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
-import { In, type Repository } from 'typeorm';
+import { In, MoreThan, type Repository } from 'typeorm';
 
 // Realm name normalization map for common scraping variations
 const REALM_NAME_NORMALIZATION = new Map<string, string>([
@@ -41,6 +41,20 @@ export class GoldService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap() {
+    const logTag = this.onApplicationBootstrap.name;
+    const cutoff = DateTime.now().minus({ hours: 1 }).toMillis();
+    const isGoldPlaced = await this.marketRepository.exists({
+      where: { itemId: GOLD_ITEM_ENTITY.id, timestamp: MoreThan(cutoff) },
+    });
+
+    if (isGoldPlaced) {
+      this.logger.log({
+        logTag,
+        message: 'Gold orders already placed within the last hour, skipping bootstrap scrape',
+      });
+      return;
+    }
+
     await this.indexGold();
   }
 
@@ -169,7 +183,7 @@ export class GoldService implements OnApplicationBootstrap {
       });
 
       if (!isGoldValid) {
-        this.logger.debug({
+        this.logger.verbose({
           logTag,
           orderId,
           price,

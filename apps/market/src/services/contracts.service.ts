@@ -33,7 +33,22 @@ export class ContractsService implements OnApplicationBootstrap {
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
+    const logTag = this.onApplicationBootstrap.name;
     await this.setCommodityItemsAsContracts();
+
+    const today = DateTime.now();
+    const isContractsPlaced = await this.contractRepository.exists({
+      where: { day: today.day, month: today.month, year: today.year },
+    });
+
+    if (isContractsPlaced) {
+      this.logger.log({
+        logTag,
+        message: 'Contracts for today are already placed, skipping bootstrap build',
+      });
+      return;
+    }
+
     await this.buildCommodityTimestampContracts();
   }
 
@@ -223,7 +238,7 @@ export class ContractsService implements OnApplicationBootstrap {
       });
 
       if (isContractExists) {
-        this.logger.debug(`${logTag}: ${contractId} exists`);
+        this.logger.verbose(`${logTag}: ${contractId} exists`);
         return;
       }
 
@@ -252,7 +267,7 @@ export class ContractsService implements OnApplicationBootstrap {
       const ordersNotEnough = orders < 10;
 
       if (ordersNotEnough) {
-        this.logger.debug(`${logTag}: ${contractId} not enough orders for contract representation`);
+        this.logger.verbose(`${logTag}: ${contractId} not enough orders for contract representation`);
         return;
       }
 
@@ -354,7 +369,7 @@ export class ContractsService implements OnApplicationBootstrap {
           ],
         );
 
-        this.logger.log(`${logTag}: ${contractId} - upserted successfully`);
+        this.logger.verbose(`${logTag}: ${contractId} - upserted successfully`);
       } catch (dbError) {
         // Log the error but don't throw it unless it's something other than a constraint violation
         // that somehow got through
