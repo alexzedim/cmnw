@@ -5,7 +5,7 @@ import {
   NICE_STEPS,
   niceStep,
   roundToStep,
-} from './price-binning';
+} from './price-binning.util';
 
 /**
  * Pure-function unit tests for the heatmap price-axis binning.

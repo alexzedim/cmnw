@@ -1,18 +1,22 @@
 import { formatServiceErrorLog } from '@app/logger';
 import { ContractEntity, ItemsEntity, KeysEntity, MarketEntity } from '@app/pg';
 import {
+  assignPriceBucket,
+  buildHybridPriceBins,
+  DEFAULT_BLOCKS,
   type IBuildYAxis,
   type IChartOrder,
   type ItemChartDto,
   type ItemFeedDto,
   type ItemQuotesDto,
-  ItemQuotesResponseDto,type ItemRealmDto, 
+  ItemQuotesResponseDto,
+  type ItemRealmDto,
   MARKET_TYPE,
   NUMERIC_ID_REGEX,
   REALM_ENTITY_ANY,
   type ReqGetItemDto,
   WOW_TOKEN_ITEM_ID,
-  type WowTokenDto
+  type WowTokenDto,
 } from '@app/resources';
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -21,7 +25,6 @@ import type Redis from 'ioredis';
 import { DateTime } from 'luxon';
 import { from, lastValueFrom, mergeMap, reduce } from 'rxjs';
 import type { Repository } from 'typeorm';
-import { assignPriceBucket, buildHybridPriceBins, DEFAULT_BLOCKS } from './price-binning';
 
 @Injectable()
 export class DmaService {
@@ -208,7 +211,7 @@ export class DmaService {
   /**
    * Build the Y-axis price edges for an item.
    *
-   * Delegates to the pure helpers in `price-binning.ts`:
+   * Delegates to the pure helpers in `@app/resources` (`price-binning.util.ts`):
    *   - filters outliers (order-count-weighted IQR on log10 price),
    *   - picks log vs linear bins based on the cleaned range,
    *   - snaps edges to nice 1-2-5 steps and dedupes them.

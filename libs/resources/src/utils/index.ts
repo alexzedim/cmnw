@@ -8,5 +8,6 @@ export * from './concurrency.util';
 export * from './headers';
 export * from './helpers';
 export * from './percentile';
+export * from './price-binning.util';
 export * from './redis-cache.util';
 export * from './session.util';
