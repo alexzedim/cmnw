@@ -1,25 +1,11 @@
 import { redisConfig, wsConfig } from '@app/configuration';
 import { LoggerService } from '@app/logger';
-import { SESSION_QUERY_KEY } from '@app/resources';
+import { extractSessionId } from '@app/resources';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
 import type { Server as HttpServer, IncomingMessage } from 'http';
 import Redis from 'ioredis';
 import { Server, type WebSocket } from 'ws';
-
-/**
- * Extracts the client session id from the WS upgrade URL (?session=<id>).
- * Returns undefined for clients that did not supply one (legacy/global feed).
- */
-function extractSessionId(request: IncomingMessage): string | undefined {
-  try {
-    const { searchParams } = new URL(request.url || '', `ws://${request.headers.host}`);
-    const sid = searchParams.get(SESSION_QUERY_KEY);
-    return sid || undefined;
-  } catch {
-    return undefined;
-  }
-}
 
 @Injectable()
 export class FeedGateway implements OnApplicationBootstrap {
