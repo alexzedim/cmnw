@@ -12,6 +12,8 @@ import {
 } from '@app/pg';
 import {
   BATCH_SIZE,
+  CsvFileName,
+  DISENCHANTING,
   DMA_SOURCE,
   EXPANSION_TICKER_MAP,
   type IAssetClassBuildArgs,
@@ -24,7 +26,9 @@ import {
   isBnetSkillTierDetailResponse,
   type LabPricingMethod,
   MARKET_TYPE,
+  MILLING,
   PRICING_TYPE,
+  PROSPECTING,
   REDIS_TTL,
   SKILL_LINE_KEY_MAPPING,
   SPELL_EFFECT_KEY_MAPPING,
@@ -42,7 +46,6 @@ import type Redis from 'ioredis';
 import { get } from 'lodash';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import type { Repository } from 'typeorm';
-import { CsvFileName, DISENCHANTING, MILLING, PROSPECTING } from '../libs';
 
 @Injectable()
 export class XvaService implements OnApplicationBootstrap {

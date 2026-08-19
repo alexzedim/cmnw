@@ -17,7 +17,7 @@
  * - targetQuality: Output pigment quality (1=Poor, 2=Common, 3=Rare)
  */
 
-import { DMA_SOURCE, EXPANSION_TICKER, PROFESSION_TICKER } from '@app/resources/constants';
+import { DMA_SOURCE, EXPANSION_TICKER, PROFESSION_TICKER } from '../dma.constants';
 
 // Profession ID for Inscription is 773
 const PROF_INSC = PROFESSION_TICKER.INSC;

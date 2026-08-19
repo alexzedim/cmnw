@@ -4,5 +4,6 @@ export * from './dma.constants';
 export * from './feed.constants';
 export * from './http.constants';
 export * from './ladder.constants';
+export * from './market';
 export * from './osint.constants';
 export * from './status.constants';

@@ -3,7 +3,7 @@
  * Extracted from TradeSkillMaster with comprehensive metadata
  */
 
-import { DMA_SOURCE, EXPANSION_TICKER, PROFESSION_TICKER } from '@app/resources/constants';
+import { DMA_SOURCE, EXPANSION_TICKER, PROFESSION_TICKER } from '../dma.constants';
 
 // Profession ID for Jewelcrafting is 755
 const PROF_JC = PROFESSION_TICKER.JWLC;

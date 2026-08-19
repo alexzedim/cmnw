@@ -4,7 +4,7 @@
  * Items are disenchanted based on item class, quality, and item level
  */
 
-import { DMA_SOURCE, EXPANSION_TICKER, PROFESSION_TICKER } from '@app/resources/constants';
+import { DMA_SOURCE, EXPANSION_TICKER, PROFESSION_TICKER } from '../dma.constants';
 
 const PROF_ENCH = PROFESSION_TICKER.ENCH;
 
