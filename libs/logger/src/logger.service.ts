@@ -3,6 +3,7 @@ import { ConsoleLogger, Injectable, Scope } from '@nestjs/common';
 import axios from 'axios';
 import { isAxiosError, isPlainObject, isStandardError } from './logger.guard';
 import type { LogInput, LogLevel, LokiRequestPayload, StandardizedErrorInfo } from './logger.type';
+import { parseLogLevels } from './logger.type';
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class LoggerService extends ConsoleLogger {
@@ -19,6 +20,7 @@ export class LoggerService extends ConsoleLogger {
 
   constructor(appLabel?: string) {
     super();
+    this.setLogLevels(parseLogLevels(process.env.LOG_LEVEL));
     if (appLabel) {
       this.defaultLabels = {
         app: appLabel,
@@ -337,6 +339,10 @@ export class LoggerService extends ConsoleLogger {
     additionalInfo?: Record<string, any>,
     trace?: string,
   ): void {
+    if (!this.isLevelEnabled(level === 'info' ? 'log' : level)) {
+      return;
+    }
+
     const parsedInfo = this.parseLogInput(input, logTag, level === 'log' ? 'info' : level, additionalInfo);
     const consoleMessage = this.formatForConsole(parsedInfo);
     const lokiMessage = this.formatForLoki(input, parsedInfo, level);

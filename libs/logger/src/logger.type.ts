@@ -41,6 +41,17 @@ export type LogInput = string | Error | AxiosError | Record<string, any> | unkno
  */
 export type LogLevel = 'error' | 'warn' | 'info' | 'log' | 'debug' | 'verbose';
 
+export type EnabledLogLevel = Exclude<LogLevel, 'info'>;
+
+export const LOG_LEVEL_ORDER: readonly EnabledLogLevel[] = ['error', 'warn', 'log', 'debug', 'verbose'];
+
+export const parseLogLevels = (level?: string): EnabledLogLevel[] => {
+  const normalized = level === 'info' ? 'log' : level;
+  const index = LOG_LEVEL_ORDER.indexOf(normalized as EnabledLogLevel);
+  const cutoff = index === -1 ? LOG_LEVEL_ORDER.indexOf('log') : index;
+  return LOG_LEVEL_ORDER.slice(0, cutoff + 1) as EnabledLogLevel[];
+};
+
 /**
  * Type for error types that can be detected by the logger
  */
