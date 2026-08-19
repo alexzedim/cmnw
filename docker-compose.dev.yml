@@ -36,7 +36,7 @@ services:
     links:
       - postgres
       - redis
-    command: [ 'node', 'dist/apps/keys/main.js' ]
+    command: [ 'node', '--max-old-space-size=6144', 'dist/apps/keys/main.js' ]
     environment:
       - NODE_ENV=${NODE_ENV}
     depends_on:
