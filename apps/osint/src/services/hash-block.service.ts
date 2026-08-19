@@ -4,6 +4,7 @@ import {
   HashMessageDto,
   hashQueue,
   type IHashMessageBase,
+  type IMembershipWithContext,
   MAX_CHARACTERS_PER_ACCOUNT,
 } from '@app/resources';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -11,11 +12,6 @@ import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common'
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import type { Queue } from 'bullmq';
 import type { DataSource, EntityManager, Repository } from 'typeorm';
-
-interface IMembershipWithContext extends HashBlockMembersEntity {
-  blockHashValue: string;
-  blockIsCollision: boolean;
-}
 
 @Injectable()
 export class HashBlockService implements OnApplicationBootstrap {

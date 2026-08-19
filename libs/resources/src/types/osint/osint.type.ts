@@ -1,4 +1,4 @@
-import type { CharactersEntity, CharactersProfileEntity, GuildsEntity } from '@app/pg';
+import type { CharactersEntity, CharactersProfileEntity, GuildsEntity, HashBlockMembersEntity } from '@app/pg';
 import type { ICharacterRaiderIo } from '@app/resources/types';
 import type { INameWithType, ISelfKeyHref, ISelfWithId, ISelfWithNameAndId, Locales } from './osint.interface';
 
@@ -48,6 +48,11 @@ export type RaiderIoCharacterMappingField = keyof Pick<
 export type CharactersHashType = keyof Pick<CharactersEntity, 'hashA' | 'hashB'>;
 
 export type CharacterHashFieldType = 'a' | 'b';
+
+export interface IMembershipWithContext extends HashBlockMembersEntity {
+  blockHashValue: string;
+  blockIsCollision: boolean;
+}
 
 /** -----------------------------------------------------------------------------
  * Blizzard API professions
