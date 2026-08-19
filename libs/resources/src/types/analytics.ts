@@ -26,6 +26,12 @@ export interface CharacterLevelAggregation {
   count: string;
 }
 
+export interface CharacterGlobalAggregationRow {
+  dimension: 'faction' | 'class' | 'race' | 'level';
+  value: string;
+  count: string;
+}
+
 export interface CharacterRealmAggregation {
   realm_id: number;
   total: string;

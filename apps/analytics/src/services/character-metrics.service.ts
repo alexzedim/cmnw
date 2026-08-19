@@ -4,6 +4,7 @@ import { analyticsKeyOf, findExistingAnalyticsKeys } from '@app/resources/dao';
 import type {
   CharacterAverages,
   CharacterExtreme,
+  CharacterGlobalAggregationRow,
   CharacterRealmClassAggregation,
   CharacterRealmFactionAggregation,
   CharacterRealmUniquePlayersAggregation,
@@ -11,12 +12,6 @@ import type {
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import type { DataSource, EntityManager, Repository } from 'typeorm';
-
-interface CharacterGlobalAggregationRow {
-  dimension: 'faction' | 'class' | 'race' | 'level';
-  value: string;
-  count: string;
-}
 
 @Injectable()
 export class CharacterMetricsService {
