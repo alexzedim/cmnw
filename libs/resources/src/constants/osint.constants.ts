@@ -666,6 +666,8 @@ export const GUILD_WORKER_CONSTANTS = {
   },
 } as const;
 
+export const PROGRESS_LOG_INTERVAL = 50;
+
 export const GUILD_SUMMARY_KEYS = ['id', 'name', 'achievement_points'] as const;
 
 export const ADDON_SCAN_FIELD_ORDER = [

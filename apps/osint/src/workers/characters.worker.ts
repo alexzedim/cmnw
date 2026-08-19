@@ -18,7 +18,9 @@ import {
   FeedEventCategory,
   FeedStatus,
   type ICharacterMessageBase,
+  type IRefreshContext,
   isEndpointSuccessInString,
+  type RefreshEndpoint,
   setStatusString,
   toSlug,
 } from '@app/resources';
@@ -26,20 +28,7 @@ import { FeedService } from '@app/resources/services/feed.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import type { Job } from 'bullmq';
-import {
-  CharacterCollectionService,
-  CharacterLifecycleService,
-  CharacterService,
-  HashBlockService,
-} from '../services';
-
-type RefreshEndpoint = 'STATUS' | 'SUMMARY' | 'MEDIA' | 'PETS' | 'MOUNTS' | 'PROFESSIONS';
-
-interface IRefreshContext {
-  sessionId: string;
-  requestId?: string;
-  guid?: string;
-}
+import { CharacterCollectionService, CharacterLifecycleService, CharacterService, HashBlockService } from '../services';
 
 @Injectable()
 @Processor(charactersQueue.name, charactersQueue.workerOptions)

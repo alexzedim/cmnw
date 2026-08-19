@@ -16,8 +16,10 @@ import {
   type IGuildMessageBase,
   type IGuildRoster,
   type IGuildSummary,
+  type IRefreshContext,
   isCoreGuildSuccessInString,
   isEuRegion,
+  PROGRESS_LOG_INTERVAL,
   setGuildStatusString,
   toSlug,
 } from '@app/resources';
@@ -33,14 +35,6 @@ import {
   GuildService,
   GuildSummaryService,
 } from '../services';
-
-const PROGRESS_LOG_INTERVAL = 50;
-
-interface IRefreshContext {
-  sessionId: string;
-  requestId?: string;
-  guid?: string;
-}
 
 @Injectable()
 @Processor(guildsQueue)
