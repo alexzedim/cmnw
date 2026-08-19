@@ -7,6 +7,7 @@ import {
   isGold,
   MARKET_TYPE,
   REALM_ENTITY_ANY,
+  REALM_NAME_NORMALIZATION,
   round,
 } from '@app/resources';
 import { RealmsCacheService } from '@app/resources/services/realms-cache.service';
@@ -19,13 +20,6 @@ import { parse } from 'node-html-parser';
 import { from, lastValueFrom, toArray } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
 import { In, MoreThan, type Repository } from 'typeorm';
-
-// Realm name normalization map for common scraping variations
-const REALM_NAME_NORMALIZATION = new Map<string, string>([
-  ['Aggra (Portugues)', 'Aggra (Português)'],
-  ["Pozzo dell'Eternita", "Pozzo dell'Eternità"],
-  ['Marecage de Zangar', 'Marécage de Zangar'],
-]);
 
 @Injectable()
 export class GoldService implements OnApplicationBootstrap {

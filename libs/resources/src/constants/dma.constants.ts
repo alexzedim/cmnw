@@ -10,6 +10,13 @@ export const DMA_TIMEOUT_TOLERANCE = 60 * 1_000;
 
 export const DMA_SOURCE_GOLD = 'https://funpay.ru/chips/2/';
 
+// Realm name normalization map for common scraping variations
+export const REALM_NAME_NORMALIZATION = new Map<string, string>([
+  ['Aggra (Portugues)', 'Aggra (Português)'],
+  ["Pozzo dell'Eternita", "Pozzo dell'Eternità"],
+  ['Marecage de Zangar', 'Marécage de Zangar'],
+]);
+
 export const WOW_TOKEN_ITEM_ID = 122284;
 export const PET_CAGE_ITEM_ID = 82800;
 export const EXCLUDED_ITEM_IDS = [WOW_TOKEN_ITEM_ID, PET_CAGE_ITEM_ID];
