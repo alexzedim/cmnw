@@ -39,7 +39,7 @@
     "rules": {
       "preset": "recommended",
       "style": {
-        "useImportType": "warn"
+        "useImportType": "off"
       },
       "suspicious": {
         "noExplicitAny": "off",

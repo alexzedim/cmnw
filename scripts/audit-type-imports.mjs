@@ -8,7 +8,7 @@ const findings = [];
 
 for (const f of files) {
   let src;
-  try { src = readFileSync(f, 'utf8'); } catch { continue; }
+  try { src = readFileSync(f, 'utf-8'); } catch { continue; }
 
   const typeNames = new Set();
   let m;
@@ -74,4 +74,5 @@ else {
   for (const x of findings.sort((a, b) => a.file.localeCompare(b.file) || a.name.localeCompare(b.name))) {
     console.log('  ' + x.file + ' -> ' + x.name + '   [' + x.why + ']');
   }
+  process.exit(1);
 }
