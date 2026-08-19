@@ -12,6 +12,7 @@ import {
   type IMythicLeaderboardResponse,
   type IPvPLeaderboardResponse,
   type IPvPSeasonIndexResponse,
+  M_PLUS_PARALLEL_REQUESTS,
   M_PLUS_REALM_DUNGEON_PREFIX,
   type MythicLeaderboardGroup,
   type PvPSeason,
@@ -37,8 +38,6 @@ import type { Queue } from 'bullmq';
 import type Redis from 'ioredis';
 import { catchError, from, lastValueFrom, mergeMap, of, toArray } from 'rxjs';
 import type { Repository } from 'typeorm';
-
-const M_PLUS_PARALLEL_REQUESTS = 3;
 
 @Injectable()
 export class LadderService implements OnApplicationBootstrap {
