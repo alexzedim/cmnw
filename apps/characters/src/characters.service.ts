@@ -47,7 +47,7 @@ export class CharactersService implements OnApplicationBootstrap {
       let characterIteration = 0;
 
       const characters = await this.charactersRepository.find({
-        order: { updatedAt: 'ASC' },
+        order: { updatedAt: 'ASC', hashA: 'ASC' },
         take: OSINT_CHARACTER_LIMIT,
         skip: this.offset,
       });
