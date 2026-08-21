@@ -397,17 +397,64 @@ export class CharacterMessageDto {
     name: string;
     realm: string;
     iteration: number;
+    id?: number;
+    realmId?: number;
+    realmName?: string;
+    guild?: string;
+    guildGuid?: string;
+    guildId?: number;
+    guildRank?: number;
+    race?: string;
+    class?: string;
+    specialization?: string;
+    gender?: string;
+    faction?: string;
+    level?: number;
+    achievementPoints?: number;
+    averageItemLevel?: number;
+    equippedItemLevel?: number;
+    covenantId?: number;
+    avatarImage?: string;
+    insetImage?: string;
+    mainImage?: string;
+    mountsNumber?: number;
+    petsNumber?: number;
+    hashA?: string;
+    hashB?: string;
+    lastModified?: Date;
     clientId?: string;
     clientSecret?: string;
     accessToken?: string;
-    [key: string]: any;
   }): CharacterMessageDto {
-    const { guid, ...rest } = params;
     const characterData: ICharacterMessageBase = {
       guid: params.guid,
       name: params.name,
       realm: params.realm,
-      ...rest,
+      id: params.id,
+      realmId: params.realmId,
+      realmName: params.realmName,
+      guild: params.guild,
+      guildGuid: params.guildGuid,
+      guildId: params.guildId,
+      guildRank: params.guildRank,
+      race: params.race,
+      class: params.class,
+      specialization: params.specialization,
+      gender: params.gender,
+      faction: params.faction,
+      level: params.level,
+      achievementPoints: params.achievementPoints,
+      averageItemLevel: params.averageItemLevel,
+      equippedItemLevel: params.equippedItemLevel,
+      covenantId: params.covenantId,
+      avatarImage: params.avatarImage,
+      insetImage: params.insetImage,
+      mainImage: params.mainImage,
+      mountsNumber: params.mountsNumber,
+      petsNumber: params.petsNumber,
+      hashA: params.hashA,
+      hashB: params.hashB,
+      lastModified: params.lastModified,
       forceUpdate: TIME_MS.TWENTY_FOUR_HOURS,
       createOnlyUnique: false,
       region: 'eu',
@@ -425,7 +472,7 @@ export class CharacterMessageDto {
       priority: 5,
     };
 
-    const dto = new CharacterMessageDto(guid, characterData, opts);
+    const dto = new CharacterMessageDto(params.guid, characterData, opts);
     dto.validate(false, 'CharacterMessageDto.fromCharacterIndex');
     return dto;
   }

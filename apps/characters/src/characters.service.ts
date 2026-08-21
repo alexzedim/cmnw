@@ -1,6 +1,11 @@
 import { osintConfig } from '@app/configuration';
 import { CharactersEntity } from '@app/pg';
-import { CharacterMessageDto, charactersQueue, type ICharacterMessageBase, OSINT_CHARACTER_LIMIT } from '@app/resources';
+import {
+  CharacterMessageDto,
+  charactersQueue,
+  type ICharacterMessageBase,
+  OSINT_CHARACTER_LIMIT,
+} from '@app/resources';
 import { S3Service } from '@app/s3';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
@@ -64,8 +69,35 @@ export class CharactersService implements OnApplicationBootstrap {
         from(characters).pipe(
           mergeMap(async (character) => {
             const dto = CharacterMessageDto.fromCharacterIndex({
-              ...character,
+              guid: character.guid,
+              name: character.name,
+              realm: character.realm,
               iteration: characterIteration,
+              id: character.id,
+              realmId: character.realmId,
+              realmName: character.realmName,
+              guild: character.guild,
+              guildGuid: character.guildGuid,
+              guildId: character.guildId,
+              guildRank: character.guildRank,
+              race: character.race,
+              class: character.class,
+              specialization: character.specialization,
+              gender: character.gender,
+              faction: character.faction,
+              level: character.level,
+              achievementPoints: character.achievementPoints,
+              averageItemLevel: character.averageItemLevel,
+              equippedItemLevel: character.equippedItemLevel,
+              covenantId: character.covenantId,
+              avatarImage: character.avatarImage,
+              insetImage: character.insetImage,
+              mainImage: character.mainImage,
+              mountsNumber: character.mountsNumber,
+              petsNumber: character.petsNumber,
+              hashA: character.hashA,
+              hashB: character.hashB,
+              lastModified: character.lastModified,
             });
 
             await this.charactersQueue.add(dto.name, dto.data, dto.opts);
