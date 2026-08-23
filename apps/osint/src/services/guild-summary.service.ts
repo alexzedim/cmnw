@@ -32,7 +32,7 @@ export class GuildSummaryService {
     try {
       const response = await this.battleNetService.query<BlizzardApiGuildSummary>(
         `/data/wow/guild/${realmSlug}/${guildNameSlug}`,
-        this.battleNetService.createQueryOptions(BattleNetNamespace.DYNAMIC),
+        this.battleNetService.createQueryOptions(BattleNetNamespace.PROFILE),
         config,
       );
 
