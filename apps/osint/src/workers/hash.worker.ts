@@ -26,6 +26,7 @@ export class HashWorker extends WorkerHost {
 
   public async process(job: Job<IHashMessageBase>): Promise<void> {
     const { characterGuid, scannedAt } = job.data;
+    const startedAt = Date.now();
     this.stats.total++;
 
     try {
@@ -33,8 +34,9 @@ export class HashWorker extends WorkerHost {
       this.stats.success++;
     } catch (errorOrException) {
       this.stats.errors++;
+      const duration = Date.now() - startedAt;
       const error = errorOrException instanceof Error ? errorOrException.message : String(errorOrException);
-      this.logger.error(formatWorkerErrorLog(this.stats.total, characterGuid, 0, error, 'HASH'));
+      this.logger.error(formatWorkerErrorLog(this.stats.total, characterGuid, duration, error, 'HASH'));
       throw errorOrException;
     }
   }

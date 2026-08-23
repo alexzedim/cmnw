@@ -54,6 +54,15 @@ export interface IMembershipWithContext extends HashBlockMembersEntity {
   blockIsCollision: boolean;
 }
 
+export interface IHashBlockMemberInsert {
+  blockId: string;
+  characterGuid: string;
+  hashA: string | null;
+  hashB: string | null;
+  isConfirmed: boolean;
+  joinedAt: Date;
+}
+
 /** -----------------------------------------------------------------------------
  * Blizzard API professions
  * ----------------------------------------------------------------------------- */

@@ -1,8 +1,11 @@
+import { randomUUID } from 'node:crypto';
+import { formatServiceErrorLog } from '@app/logger';
 import { CharactersEntity, HashBlockLogsEntity, HashBlockMembersEntity, HashBlocksEntity } from '@app/pg';
 import {
   HASH_BLOCK_ACTION,
   HashMessageDto,
   hashQueue,
+  type IHashBlockMemberInsert,
   type IHashMessageBase,
   type IMembershipWithContext,
   MAX_CHARACTERS_PER_ACCOUNT,
@@ -24,10 +27,6 @@ export class HashBlockService implements OnApplicationBootstrap {
     private readonly charactersRepository: Repository<CharactersEntity>,
     @InjectRepository(HashBlocksEntity)
     private readonly hashBlocksRepository: Repository<HashBlocksEntity>,
-    @InjectRepository(HashBlockMembersEntity)
-    private readonly hashBlockMembersRepository: Repository<HashBlockMembersEntity>,
-    @InjectRepository(HashBlockLogsEntity)
-    private readonly hashBlockLogsRepository: Repository<HashBlockLogsEntity>,
     @InjectQueue(hashQueue.name)
     private readonly hashQueue: Queue<IHashMessageBase>,
   ) {}
@@ -40,11 +39,14 @@ export class HashBlockService implements OnApplicationBootstrap {
       this.logger.log('Hash blocks empty — running initial backfill...');
       await this.runBackfill();
     } catch (errorOrException) {
-      this.logger.error({
-        logTag: 'ERROR',
-        message: 'Hash block backfill failed',
-        errorOrException: errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
-      });
+      this.logger.error(
+        formatServiceErrorLog(
+          'onApplicationBootstrap',
+          'hash-backfill',
+          0,
+          errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
+        ),
+      );
     }
   }
 
@@ -63,32 +65,52 @@ export class HashBlockService implements OnApplicationBootstrap {
     });
     if (!character) return;
 
-    const membership = await this.loadMembershipWithContext(characterGuid);
-
-    const hasNoMembership = !membership;
+    const membership = await this.loadMembershipWithContext(this.dataSource.manager, characterGuid);
     const currentHashB = character.hashB ?? null;
+    const lockKeys = this.resolveLockKeys(membership?.blockHashValue ?? null, currentHashB);
 
-    if (hasNoMembership) {
-      await this.handleNoMembership(character, currentHashB, scannedAt);
-      return;
+    await this.dataSource.transaction(async (manager) => {
+      await this.acquireAdvisoryLocks(manager, lockKeys);
+
+      const lockedCharacter = await manager.findOne(CharactersEntity, {
+        where: { guid: characterGuid },
+        select: { guid: true, hashA: true, hashB: true },
+      });
+      if (!lockedCharacter) return;
+
+      const lockedMembership = await this.loadMembershipWithContext(manager, characterGuid);
+      const lockedHashB = lockedCharacter.hashB ?? null;
+
+      if (!lockedMembership) {
+        await this.handleNoMembership(manager, lockedCharacter, lockedHashB, scannedAt);
+        return;
+      }
+
+      const isAccurateBlock = !lockedMembership.blockIsCollision;
+      const stillMatchesAnchor = lockedHashB === lockedMembership.blockHashValue;
+
+      if (isAccurateBlock || stillMatchesAnchor) {
+        await this.handleAccurateBlock(manager, lockedMembership, lockedCharacter, scannedAt);
+        return;
+      }
+
+      await this.handleCollisionDivergence(manager, lockedMembership, lockedCharacter, lockedHashB, scannedAt);
+    });
+  }
+
+  private resolveLockKeys(blockHashValue: string | null, currentHashB: string | null): string[] {
+    const keys = [blockHashValue, currentHashB].filter((value): value is string => Boolean(value));
+    return Array.from(new Set(keys)).sort();
+  }
+
+  private async acquireAdvisoryLocks(manager: EntityManager, hashValues: string[]): Promise<void> {
+    for (const hashValue of hashValues) {
+      await manager.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [`hash:${hashValue}`]);
     }
-
-    const isAccurateBlock = !membership.blockIsCollision;
-    if (isAccurateBlock) {
-      await this.handleAccurateBlock(membership, character, scannedAt);
-      return;
-    }
-
-    const stillMatchesAnchor = currentHashB === membership.blockHashValue;
-    if (stillMatchesAnchor) {
-      await this.handleAccurateBlock(membership, character, scannedAt);
-      return;
-    }
-
-    await this.handleCollisionDivergence(membership, character, currentHashB, scannedAt);
   }
 
   private async handleNoMembership(
+    manager: EntityManager,
     character: Pick<CharactersEntity, 'guid' | 'hashA' | 'hashB'>,
     currentHashB: string | null,
     scannedAt: string,
@@ -96,17 +118,16 @@ export class HashBlockService implements OnApplicationBootstrap {
     const hasNoHashB = currentHashB === null;
     if (hasNoHashB) return;
 
-    await this.dataSource.transaction(async (manager) => {
-      const existingBlock = await this.findAccurateBlockByHashValue(manager, currentHashB);
-      if (existingBlock) {
-        await this.processJoin(manager, existingBlock, character, scannedAt);
-        return;
-      }
-      await this.processGenesis(manager, character, scannedAt);
-    });
+    const existingBlock = await this.findAccurateBlockByHashValue(manager, currentHashB);
+    if (existingBlock) {
+      await this.processJoin(manager, existingBlock, character, scannedAt);
+      return;
+    }
+    await this.processGenesis(manager, character, scannedAt);
   }
 
   private async handleAccurateBlock(
+    manager: EntityManager,
     membership: IMembershipWithContext,
     character: Pick<CharactersEntity, 'guid' | 'hashA' | 'hashB'>,
     scannedAt: string,
@@ -119,72 +140,67 @@ export class HashBlockService implements OnApplicationBootstrap {
     const hasNoChange = !isHashAChanged && !isHashBChanged;
 
     if (hasNoChange) {
-      await this.dataSource.transaction(async (manager) => {
-        await manager.update(HashBlocksEntity, { id: membership.blockId }, { lastSeenAt: scannedDate });
-      });
+      await manager.update(HashBlocksEntity, { id: membership.blockId }, { lastSeenAt: scannedDate });
       return;
     }
 
-    await this.dataSource.transaction(async (manager) => {
-      await manager.update(HashBlockMembersEntity, { id: membership.id }, { hashA: newHashA, hashB: newHashB });
+    await manager.update(HashBlockMembersEntity, { id: membership.id }, { hashA: newHashA, hashB: newHashB });
 
-      if (isHashAChanged) {
-        await this.insertLog(manager, {
-          blockId: membership.blockId,
-          characterGuid: character.guid,
-          hashValue: membership.blockHashValue,
-          hashA: newHashA,
-          hashB: newHashB,
-          action: HASH_BLOCK_ACTION.HASH_A_CHANGE,
-          original: membership.hashA ?? null,
-          updated: newHashA ?? null,
-          scannedAt: scannedDate,
-        });
-      }
+    if (isHashAChanged) {
+      await this.insertLog(manager, {
+        blockId: membership.blockId,
+        characterGuid: character.guid,
+        hashValue: membership.blockHashValue,
+        hashA: newHashA,
+        hashB: newHashB,
+        action: HASH_BLOCK_ACTION.HASH_A_CHANGE,
+        original: membership.hashA ?? null,
+        updated: newHashA ?? null,
+        scannedAt: scannedDate,
+      });
+    }
 
-      if (isHashBChanged) {
-        await this.insertLog(manager, {
-          blockId: membership.blockId,
-          characterGuid: character.guid,
-          hashValue: membership.blockHashValue,
-          hashA: newHashA,
-          hashB: newHashB,
-          action: HASH_BLOCK_ACTION.HASH_B_CHANGE,
-          original: membership.hashB ?? null,
-          updated: newHashB ?? null,
-          scannedAt: scannedDate,
-        });
-      }
+    if (isHashBChanged) {
+      await this.insertLog(manager, {
+        blockId: membership.blockId,
+        characterGuid: character.guid,
+        hashValue: membership.blockHashValue,
+        hashA: newHashA,
+        hashB: newHashB,
+        action: HASH_BLOCK_ACTION.HASH_B_CHANGE,
+        original: membership.hashB ?? null,
+        updated: newHashB ?? null,
+        scannedAt: scannedDate,
+      });
+    }
 
-      await this.recomputeBlockState(manager, membership.blockId, scannedDate);
-    });
+    await this.recomputeBlockState(manager, membership.blockId, scannedDate);
   }
 
   private async handleCollisionDivergence(
+    manager: EntityManager,
     membership: IMembershipWithContext,
     character: Pick<CharactersEntity, 'guid' | 'hashA' | 'hashB'>,
     currentHashB: string | null,
     scannedAt: string,
   ): Promise<void> {
-    await this.dataSource.transaction(async (manager) => {
-      await this.processLeave(
-        manager,
-        membership,
-        scannedAt,
-        HASH_BLOCK_ACTION.MIGRATE,
-        membership.blockHashValue,
-        currentHashB,
-      );
+    await this.processLeave(
+      manager,
+      membership,
+      scannedAt,
+      HASH_BLOCK_ACTION.MIGRATE,
+      membership.blockHashValue,
+      currentHashB,
+    );
 
-      if (currentHashB === null) return;
+    if (currentHashB === null) return;
 
-      const existingBlock = await this.findAccurateBlockByHashValue(manager, currentHashB);
-      if (existingBlock) {
-        await this.processJoin(manager, existingBlock, character, scannedAt);
-        return;
-      }
-      await this.processGenesis(manager, character, scannedAt);
-    });
+    const existingBlock = await this.findAccurateBlockByHashValue(manager, currentHashB);
+    if (existingBlock) {
+      await this.processJoin(manager, existingBlock, character, scannedAt);
+      return;
+    }
+    await this.processGenesis(manager, character, scannedAt);
   }
 
   private async processGenesis(
@@ -195,15 +211,7 @@ export class HashBlockService implements OnApplicationBootstrap {
     const scannedDate = new Date(scannedAt);
     const hashValue = character.hashB as string;
 
-    const block = manager.create(HashBlocksEntity, {
-      hashValue,
-      charactersCount: 0,
-      confirmedCount: 0,
-      isCollision: false,
-      firstSeenAt: scannedDate,
-      lastSeenAt: scannedDate,
-    });
-    const savedBlock = await manager.save(HashBlocksEntity, block);
+    const blockId = await this.insertBlockOrGetExisting(manager, hashValue, scannedDate);
 
     const candidates = await manager.find(CharactersEntity, {
       where: { hashB: hashValue },
@@ -211,20 +219,18 @@ export class HashBlockService implements OnApplicationBootstrap {
     });
 
     const nowDate = new Date();
-    const members = candidates.map((candidate) =>
-      manager.create(HashBlockMembersEntity, {
-        blockId: savedBlock.id,
-        characterGuid: candidate.guid,
-        hashA: candidate.hashA ?? null,
-        hashB: candidate.hashB ?? null,
-        isConfirmed: false,
-        joinedAt: nowDate,
-      }),
-    );
-    await manager.save(HashBlockMembersEntity, members);
+    const members: IHashBlockMemberInsert[] = candidates.map((candidate) => ({
+      blockId,
+      characterGuid: candidate.guid,
+      hashA: candidate.hashA ?? null,
+      hashB: candidate.hashB ?? null,
+      isConfirmed: false,
+      joinedAt: nowDate,
+    }));
+    await this.insertMembersOrIgnore(manager, members);
 
     await this.insertLog(manager, {
-      blockId: savedBlock.id,
+      blockId,
       characterGuid: null,
       hashValue,
       hashA: null,
@@ -234,7 +240,7 @@ export class HashBlockService implements OnApplicationBootstrap {
       scannedAt: scannedDate,
     });
 
-    await this.recomputeBlockState(manager, savedBlock.id, scannedDate);
+    await this.recomputeBlockState(manager, blockId, scannedDate);
   }
 
   private async processJoin(
@@ -244,17 +250,25 @@ export class HashBlockService implements OnApplicationBootstrap {
     scannedAt: string,
   ): Promise<void> {
     const scannedDate = new Date(scannedAt);
-    const nowDate = new Date();
 
-    const member = manager.create(HashBlockMembersEntity, {
-      blockId: block.id,
-      characterGuid: character.guid,
-      hashA: character.hashA ?? null,
-      hashB: character.hashB ?? null,
-      isConfirmed: false,
-      joinedAt: nowDate,
+    const existingMember = await manager.findOne(HashBlockMembersEntity, {
+      where: { characterGuid: character.guid },
+      select: { id: true },
     });
-    await manager.save(HashBlockMembersEntity, member);
+    const isAlreadyMember = Boolean(existingMember);
+    if (isAlreadyMember) return;
+
+    const nowDate = new Date();
+    await this.insertMembersOrIgnore(manager, [
+      {
+        blockId: block.id,
+        characterGuid: character.guid,
+        hashA: character.hashA ?? null,
+        hashB: character.hashB ?? null,
+        isConfirmed: false,
+        joinedAt: nowDate,
+      },
+    ]);
 
     await this.insertLog(manager, {
       blockId: block.id,
@@ -297,39 +311,86 @@ export class HashBlockService implements OnApplicationBootstrap {
   }
 
   private async recomputeBlockState(manager: EntityManager, blockId: string, scannedDate: Date): Promise<void> {
-    const members = await manager.find(HashBlockMembersEntity, {
-      where: { blockId },
-    });
+    await manager.query(
+      `UPDATE hash_block_members AS m
+         SET is_confirmed = sub.is_confirmed
+        FROM (
+          SELECT id,
+                 CASE WHEN hash_a IS NULL THEN false
+                      ELSE COUNT(*) OVER (PARTITION BY hash_a) > 1
+                 END AS is_confirmed
+            FROM hash_block_members
+           WHERE block_id = $1
+        ) AS sub
+       WHERE m.id = sub.id
+         AND m.is_confirmed IS DISTINCT FROM sub.is_confirmed`,
+      [blockId],
+    );
 
-    const count = members.length;
-    const hashAFrequencies = new Map<string, number>();
-    for (const member of members) {
-      const hashA = member.hashA;
-      if (!hashA) continue;
-      hashAFrequencies.set(hashA, (hashAFrequencies.get(hashA) ?? 0) + 1);
-    }
+    const counts: Array<{ characters_count: number; confirmed_count: number }> = await manager.query(
+      `SELECT COUNT(*)::int AS characters_count,
+              COUNT(*) FILTER (WHERE is_confirmed)::int AS confirmed_count
+         FROM hash_block_members
+        WHERE block_id = $1`,
+      [blockId],
+    );
 
-    const updates = members.map((member) => {
-      const isConfirmed = member.hashA ? (hashAFrequencies.get(member.hashA) ?? 0) > 1 : false;
-      return { id: member.id, isConfirmed };
-    });
-    for (const update of updates) {
-      await manager.update(HashBlockMembersEntity, { id: update.id }, { isConfirmed: update.isConfirmed });
-    }
-
-    const confirmedCount = updates.filter((update) => update.isConfirmed).length;
-    const isCollision = count > MAX_CHARACTERS_PER_ACCOUNT;
+    const charactersCount = counts[0]?.characters_count ?? 0;
+    const confirmedCount = counts[0]?.confirmed_count ?? 0;
 
     await manager.update(
       HashBlocksEntity,
       { id: blockId },
       {
-        charactersCount: count,
+        charactersCount,
         confirmedCount,
-        isCollision,
+        isCollision: charactersCount > MAX_CHARACTERS_PER_ACCOUNT,
         lastSeenAt: scannedDate,
       },
     );
+  }
+
+  private async insertMembersOrIgnore(manager: EntityManager, members: IHashBlockMemberInsert[]): Promise<void> {
+    if (members.length === 0) return;
+
+    await manager
+      .createQueryBuilder()
+      .insert()
+      .into(HashBlockMembersEntity)
+      .values(members.map((member) => ({ id: randomUUID(), ...member })))
+      .orIgnore()
+      .execute();
+  }
+
+  private async insertBlockOrGetExisting(
+    manager: EntityManager,
+    hashValue: string,
+    scannedDate: Date,
+  ): Promise<string> {
+    await manager
+      .createQueryBuilder()
+      .insert()
+      .into(HashBlocksEntity)
+      .values({
+        id: randomUUID(),
+        hashValue,
+        charactersCount: 0,
+        confirmedCount: 0,
+        isCollision: false,
+        firstSeenAt: scannedDate,
+        lastSeenAt: scannedDate,
+      })
+      .orIgnore()
+      .execute();
+
+    const block = await manager.findOne(HashBlocksEntity, {
+      where: { hashValue },
+      select: { id: true },
+    });
+    if (!block) {
+      throw new Error(`Hash block not found after insert: ${hashValue}`);
+    }
+    return block.id;
   }
 
   private async insertLog(
@@ -371,11 +432,14 @@ export class HashBlockService implements OnApplicationBootstrap {
     });
   }
 
-  private async loadMembershipWithContext(characterGuid: string): Promise<IMembershipWithContext | null> {
-    const member = await this.hashBlockMembersRepository.findOneBy({ characterGuid });
+  private async loadMembershipWithContext(
+    manager: EntityManager,
+    characterGuid: string,
+  ): Promise<IMembershipWithContext | null> {
+    const member = await manager.findOne(HashBlockMembersEntity, { where: { characterGuid } });
     if (!member) return null;
 
-    const block = await this.hashBlocksRepository.findOneBy({ id: member.blockId });
+    const block = await manager.findOne(HashBlocksEntity, { where: { id: member.blockId } });
     if (!block) return null;
 
     return {
@@ -399,68 +463,90 @@ export class HashBlockService implements OnApplicationBootstrap {
       return;
     }
 
-    let totalBlocks = 0;
-    let totalMembers = 0;
-    const scannedAt = new Date().toISOString();
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
 
-    for (const group of hashBGroups) {
-      const placeholderCharacter = await this.charactersRepository.findOne({
-        where: { hashB: group.hashB },
+    let isBackfillLockHeld = false;
+
+    try {
+      const lockResult: Array<{ acquired: boolean }> = await queryRunner.query(
+        'SELECT pg_try_advisory_lock(hashtextextended($1, 0)) AS acquired',
+        ['hash-backfill'],
+      );
+      isBackfillLockHeld = Boolean(lockResult[0]?.acquired);
+
+      if (!isBackfillLockHeld) {
+        this.logger.log('Backfill: already running on another replica — skipping');
+        return;
+      }
+
+      let totalBlocks = 0;
+      let totalMembers = 0;
+      const scannedAt = new Date().toISOString();
+
+      for (const group of hashBGroups) {
+        const result = await this.backfillGroup(group.hashB, scannedAt);
+        if (!result) continue;
+        totalBlocks += 1;
+        totalMembers += result.membersCount;
+      }
+
+      this.logger.log(`Backfill complete: ${totalBlocks} blocks, ${totalMembers} members`);
+    } finally {
+      if (isBackfillLockHeld) {
+        try {
+          await queryRunner.query('SELECT pg_advisory_unlock(hashtextextended($1, 0))', ['hash-backfill']);
+        } catch {
+          // Connection dropped — the session lock dies with it
+        }
+      }
+      await queryRunner.release();
+    }
+  }
+
+  private async backfillGroup(hashValue: string, scannedAt: string): Promise<{ membersCount: number } | null> {
+    return this.dataSource.transaction(async (manager) => {
+      await this.acquireAdvisoryLocks(manager, [hashValue]);
+
+      const existingBlock = await manager.findOne(HashBlocksEntity, {
+        where: { hashValue },
+        select: { id: true },
+      });
+      if (existingBlock) return null;
+
+      const scannedDate = new Date(scannedAt);
+      const blockId = await this.insertBlockOrGetExisting(manager, hashValue, scannedDate);
+
+      const candidates = await manager.find(CharactersEntity, {
+        where: { hashB: hashValue },
         select: { guid: true, hashA: true, hashB: true },
       });
-      if (!placeholderCharacter) continue;
 
-      const existingBlock = await this.hashBlocksRepository.findOneBy({ hashValue: group.hashB });
-      if (existingBlock) continue;
+      const nowDate = new Date();
+      const members: IHashBlockMemberInsert[] = candidates.map((candidate) => ({
+        blockId,
+        characterGuid: candidate.guid,
+        hashA: candidate.hashA ?? null,
+        hashB: candidate.hashB ?? null,
+        isConfirmed: false,
+        joinedAt: nowDate,
+      }));
+      await this.insertMembersOrIgnore(manager, members);
 
-      await this.dataSource.transaction(async (manager) => {
-        const candidates = await manager.find(CharactersEntity, {
-          where: { hashB: group.hashB },
-          select: { guid: true, hashA: true, hashB: true },
-        });
-
-        const scannedDate = new Date(scannedAt);
-        const block = manager.create(HashBlocksEntity, {
-          hashValue: group.hashB,
-          charactersCount: 0,
-          confirmedCount: 0,
-          isCollision: candidates.length > MAX_CHARACTERS_PER_ACCOUNT,
-          firstSeenAt: scannedDate,
-          lastSeenAt: scannedDate,
-        });
-        const savedBlock = await manager.save(HashBlocksEntity, block);
-
-        const nowDate = new Date();
-        const members = candidates.map((candidate) =>
-          manager.create(HashBlockMembersEntity, {
-            blockId: savedBlock.id,
-            characterGuid: candidate.guid,
-            hashA: candidate.hashA ?? null,
-            hashB: candidate.hashB ?? null,
-            isConfirmed: false,
-            joinedAt: nowDate,
-          }),
-        );
-        await manager.save(HashBlockMembersEntity, members);
-
-        await this.insertLog(manager, {
-          blockId: savedBlock.id,
-          characterGuid: null,
-          hashValue: group.hashB,
-          hashA: null,
-          hashB: group.hashB,
-          action: HASH_BLOCK_ACTION.GENESIS,
-          membersCount: members.length,
-          scannedAt: scannedDate,
-        });
-
-        await this.recomputeBlockState(manager, savedBlock.id, scannedDate);
-
-        totalBlocks += 1;
-        totalMembers += members.length;
+      await this.insertLog(manager, {
+        blockId,
+        characterGuid: null,
+        hashValue,
+        hashA: null,
+        hashB: hashValue,
+        action: HASH_BLOCK_ACTION.GENESIS,
+        membersCount: members.length,
+        scannedAt: scannedDate,
       });
-    }
 
-    this.logger.log(`Backfill complete: ${totalBlocks} blocks, ${totalMembers} members`);
+      await this.recomputeBlockState(manager, blockId, scannedDate);
+
+      return { membersCount: members.length };
+    });
   }
 }
