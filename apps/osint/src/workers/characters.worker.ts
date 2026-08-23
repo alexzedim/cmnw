@@ -229,7 +229,7 @@ export class CharactersWorker extends WorkerHost {
 
   private async processMountsResult(
     currentStatus: string,
-    result: PromiseSettledResult<BlizzardApiMountsCollection>,
+    result: PromiseSettledResult<BlizzardApiMountsCollection | null>,
     nameSlug: string,
     realmSlug: string,
     characterEntity: CharactersEntity,

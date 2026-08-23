@@ -89,12 +89,11 @@ describe('CharacterService', () => {
 
   describe('getMountsCollection', () => {
     it('should return character mounts from Blizzard API', async () => {
-      const result = await service.getMountsCollection('инициатива', 'gordunni', config);
+      const mounts = (await service.getMountsCollection('инициатива', 'gordunni', config))?.mounts ?? [];
 
-      expect(result).toHaveProperty('mounts');
-      expect(Array.isArray(result.mounts)).toBeTruthy();
-      expect(result.mounts.length).toBeGreaterThan(0);
-      result.mounts.forEach((mount) => {
+      expect(Array.isArray(mounts)).toBeTruthy();
+      expect(mounts.length).toBeGreaterThan(0);
+      mounts.forEach((mount) => {
         expect(mount).toHaveProperty('mount');
         expect(mount.mount).toHaveProperty('id');
         expect(mount).toHaveProperty('is_useable');

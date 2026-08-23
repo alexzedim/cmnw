@@ -247,7 +247,7 @@ export class CharacterService {
     nameSlug: string,
     realmSlug: string,
     config?: IBattleNetClientConfig,
-  ): Promise<BlizzardApiMountsCollection> {
+  ): Promise<BlizzardApiMountsCollection | null> {
     const mounts: Partial<BlizzardApiMountsCollection> = {};
 
     try {
@@ -259,8 +259,7 @@ export class CharacterService {
 
       const isValidCollection = isMountCollection(response);
       if (!isValidCollection) {
-        mounts.status = setStatusString(mounts.status || '------', 'MOUNTS', CharacterStatusState.ERROR);
-        return mounts as BlizzardApiMountsCollection;
+        return null;
       }
 
       Object.assign(mounts, response);
@@ -269,8 +268,6 @@ export class CharacterService {
 
       return mounts as BlizzardApiMountsCollection;
     } catch (errorOrException) {
-      mounts.status = setStatusString(mounts.status || '------', 'MOUNTS', CharacterStatusState.ERROR);
-
       const statusCode = isAxiosError(errorOrException)
         ? errorOrException.response?.status
         : get(errorOrException, 'status', 400);
@@ -284,7 +281,7 @@ export class CharacterService {
         ),
       );
 
-      return mounts as BlizzardApiMountsCollection;
+      return null;
     }
   }
 
@@ -304,8 +301,7 @@ export class CharacterService {
 
       const isValidCollection = isPetsCollection(response);
       if (!isValidCollection) {
-        pets.status = setStatusString(pets.status || '------', 'PETS', CharacterStatusState.ERROR);
-        return pets as BlizzardApiPetsCollection;
+        return null;
       }
 
       Object.assign(pets, response);
@@ -314,8 +310,6 @@ export class CharacterService {
 
       return pets as BlizzardApiPetsCollection;
     } catch (errorOrException) {
-      pets.status = setStatusString(pets.status || '------', 'PETS', CharacterStatusState.ERROR);
-
       const statusCode = isAxiosError(errorOrException)
         ? errorOrException.response?.status
         : get(errorOrException, 'status', 400);
@@ -329,7 +323,7 @@ export class CharacterService {
         ),
       );
 
-      return pets as BlizzardApiPetsCollection;
+      return null;
     }
   }
 

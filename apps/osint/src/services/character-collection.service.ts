@@ -88,9 +88,9 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
     try {
       const mountEntities: Array<MountsEntity> = [];
 
-      const { mounts } = mountsResponse;
+      const { mounts } = mountsResponse ?? {};
 
-      if (mounts.length > 0 && isIndex) {
+      if (mounts?.length && isIndex) {
         for (const mount of mounts) {
           const isMountExists = await this.mountsRepository.existsBy({
             id: mount.mount.id,
@@ -113,7 +113,7 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
         await this.entityIndexingService.indexMounts(mountEntities);
       }
 
-      mountsCollection.mountsNumber = mounts.length;
+      mountsCollection.mountsNumber = mounts?.length ?? 0;
 
       mountsCollection.status = setStatusString(
         mountsCollection.status || '------',
@@ -153,9 +153,9 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
       const hashA: Array<string | number> = [];
       const petsEntities = new Map<number, PetsEntity>([]);
 
-      const { pets } = petsResponse;
+      const { pets } = petsResponse ?? {};
 
-      if (pets.length > 0) {
+      if (pets?.length) {
         for (const pet of pets) {
           try {
             const isNamed = 'name' in pet;
@@ -206,7 +206,7 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
         await this.entityIndexingService.indexPets(petsEntities);
       }
 
-      petsCollection.petsNumber = pets.length;
+      petsCollection.petsNumber = pets?.length ?? 0;
       petsCollection.status = setStatusString(petsCollection.status || '------', 'PETS', CharacterStatusState.SUCCESS);
 
       const hasHashB = Boolean(hashB.length);
