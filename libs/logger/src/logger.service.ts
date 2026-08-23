@@ -188,11 +188,14 @@ export class LoggerService extends ConsoleLogger {
 
       // Check if object has logTag and some other content
       if (input.logTag) {
-        const { logTag, ...restOfObject } = input;
+        const { logTag, message: inputMessage, ...restOfObject } = input;
+        const details = this.formatObjectDetails(restOfObject);
+        const messageParts = [inputMessage, details].filter(Boolean);
+
         return {
           ...baseInfo,
           logTag: logTag,
-          message: input.message || `Object with logTag: ${logTag}`,
+          message: messageParts.join(' - ') || 'Object logged',
           errorType: 'object',
           originalError: input,
           ...restOfObject, // Include all other properties
@@ -200,9 +203,10 @@ export class LoggerService extends ConsoleLogger {
       }
 
       // Standard object handling (no special logTag handling)
+      const { message: objectMessage, ...objectRest } = input;
       return {
         ...baseInfo,
-        message: input.message || input.error || 'Object logged',
+        message: objectMessage || input.error || 'Object logged',
         errorType: 'object',
         originalError: input,
         ...input, // Merge all object properties
@@ -228,28 +232,48 @@ export class LoggerService extends ConsoleLogger {
   }
 
   /**
+   * Renders parsed info as a readable single line: `[logTag] message`
+   */
+  private formatReadableLine(errorInfo: StandardizedErrorInfo): string {
+    const parts: string[] = [];
+
+    if (errorInfo.logTag) {
+      parts.push(`[${errorInfo.logTag}]`);
+    }
+
+    parts.push(errorInfo.message);
+
+    return parts.filter(Boolean).join(' ');
+  }
+
+  /**
+   * Serializes object fields into `key=value` pairs for readable log lines
+   */
+  private formatObjectDetails(details: Record<string, any>): string {
+    return Object.entries(details)
+      .filter(([, value]) => value !== undefined)
+      .map(([key, value]) => {
+        if (typeof value === 'object' && value !== null) {
+          try {
+            return `${key}=${JSON.stringify(value)}`;
+          } catch {
+            return `${key}=[unserializable]`;
+          }
+        }
+        return `${key}=${String(value)}`;
+      })
+      .join(' ');
+  }
+
+  /**
    * Format standardized error info for console output
    * @param errorInfo - Standardized error information
    * @returns Formatted string for console
    */
   private formatForConsole(errorInfo: StandardizedErrorInfo): string {
-    // For object types, return the full JSON representation
+    // For object and unknown types, render a readable single line instead of a JSON dump
     if (errorInfo.errorType === 'object' || errorInfo.errorType === 'unknown') {
-      try {
-        // Create a clean copy without internal fields
-        const {
-          errorType: _errorType,
-          originalError: _originalError,
-          originalInput: _originalInput,
-          timestamp: _timestamp,
-          level: _level,
-          ...cleanInfo
-        } = errorInfo;
-        return JSON.stringify(cleanInfo, null, 2);
-      } catch {
-        // Fallback if JSON.stringify fails
-        return `[${errorInfo.logTag}] ${errorInfo.message}`;
-      }
+      return this.formatReadableLine(errorInfo);
     }
 
     // For other types (string, axios, standard errors), use formatted output
@@ -285,6 +309,11 @@ export class LoggerService extends ConsoleLogger {
       return input;
     }
 
+    // For object and unknown types, send the readable single line
+    if (parsedInfo.errorType === 'object' || parsedInfo.errorType === 'unknown') {
+      return this.formatReadableLine(parsedInfo);
+    }
+
     // For everything else, send the structured data
     try {
       // For non-error levels (log, debug, info, verbose, warn), exclude error-specific fields
@@ -295,8 +324,8 @@ export class LoggerService extends ConsoleLogger {
         const {
           originalError: _originalError,
           errorType: _errorType,
-          _stack,
-          _cause,
+          stack: _stack,
+          cause: _cause,
           originalInput: _originalInput,
           ...cleanInfo
         } = parsedInfo;
