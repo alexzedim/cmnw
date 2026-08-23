@@ -19,7 +19,7 @@ import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
-import { AxiosError } from 'axios';
+import { AxiosError, type AxiosProxyConfig } from 'axios';
 import type { Queue } from 'bullmq';
 import chalk from 'chalk';
 import { parse } from 'node-html-parser';
@@ -48,6 +48,9 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
   // Cached headers that rotate via cron task
   private cachedBrowserHeaders: Record<string, string> = {};
   private cachedXHRHeaders: Record<string, Record<string, string>> = {};
+
+  // Cookie jar for human-verification and WCL session cookies
+  private sessionCookies: Record<string, string> = {};
 
   constructor(
     private httpService: HttpService,
@@ -123,9 +126,87 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
 
     if (!keyEntity) return null;
 
-    if (keyEntity.accessToken) return keyEntity.accessToken;
+    if (keyEntity.accessToken) {
+      this.sessionCookies['wcl_session'] = keyEntity.accessToken;
+      return keyEntity.accessToken;
+    }
 
     return this.login(keyEntity);
+  }
+
+  private updateCookies(setCookieHeaders: unknown): void {
+    const cookies = Array.isArray(setCookieHeaders) ? setCookieHeaders : [setCookieHeaders];
+    for (const cookie of cookies) {
+      if (typeof cookie !== 'string') continue;
+      const [pair] = cookie.split(';');
+      const separatorIndex = pair.indexOf('=');
+      if (separatorIndex === -1) continue;
+      const name = pair.slice(0, separatorIndex).trim();
+      const value = pair.slice(separatorIndex + 1);
+      if (!name) continue;
+      if (!value || value === 'deleted') {
+        delete this.sessionCookies[name];
+        continue;
+      }
+      this.sessionCookies[name] = value;
+    }
+  }
+
+  private getCookieHeader(extraCookies: Record<string, string> = {}): string {
+    return Object.entries({ ...this.sessionCookies, ...extraCookies })
+      .map(([name, value]) => `${name}=${value}`)
+      .join('; ');
+  }
+
+  private getProxyConfig(): AxiosProxyConfig | undefined {
+    if (!osintConfig.wclProxyUrl) return undefined;
+    const proxyUrl = new URL(osintConfig.wclProxyUrl);
+    const auth =
+      proxyUrl.username && proxyUrl.password
+        ? {
+            username: decodeURIComponent(proxyUrl.username),
+            password: decodeURIComponent(proxyUrl.password),
+          }
+        : undefined;
+    return {
+      protocol: proxyUrl.protocol.replace(':', ''),
+      host: proxyUrl.hostname,
+      port: Number(proxyUrl.port) || (proxyUrl.protocol === 'https:' ? 443 : 80),
+      auth,
+    };
+  }
+
+  private async passHumanChallenge(): Promise<void> {
+    const challengeUrl = 'https://www.warcraftlogs.com/human-challenge';
+    const challengePage = await this.httpService.axiosRef.get<string>(challengeUrl, {
+      headers: { ...this.getBrowserHeaders(), Cookie: this.getCookieHeader() },
+      timeout: 15_000,
+      proxy: this.getProxyConfig(),
+    });
+
+    this.updateCookies(challengePage.headers['set-cookie']);
+
+    const challengeToken = parse(challengePage.data).querySelector('form input[name="_token"]')?.getAttribute('value');
+    if (!challengeToken) return;
+
+    const challengeResponse = await this.httpService.axiosRef.request<unknown>({
+      method: 'post',
+      url: challengeUrl,
+      headers: {
+        ...this.getBrowserHeaders(),
+        'Content-Type': 'application/x-www-form-urlencoded',
+        Cookie: this.getCookieHeader(),
+        Referer: challengeUrl,
+        Origin: 'https://www.warcraftlogs.com',
+      },
+      data: new URLSearchParams({ _token: challengeToken }).toString(),
+      maxRedirects: 0,
+      validateStatus: (status) => status === 302 || status === 200,
+      timeout: 15_000,
+      proxy: this.getProxyConfig(),
+    });
+
+    this.updateCookies(challengeResponse.headers['set-cookie']);
   }
 
   private async login(keyEntity: KeysEntity): Promise<string> {
@@ -133,13 +214,20 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
     const loginUrl = 'https://www.warcraftlogs.com/login';
 
     try {
+      await this.passHumanChallenge();
+
       const loginPage = await this.httpService.axiosRef.get<string>(loginUrl, {
-        headers: this.getBrowserHeaders(),
+        headers: { ...this.getBrowserHeaders(), Cookie: this.getCookieHeader() },
         timeout: 15_000,
+        proxy: this.getProxyConfig(),
       });
 
+      this.updateCookies(loginPage.headers['set-cookie']);
+
       const $ = parse(loginPage.data);
-      const csrfToken = $.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+      const csrfToken =
+        $.querySelector('form input[name="_token"]')?.getAttribute('value') ??
+        $.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
       if (!csrfToken) {
         throw new Error('CSRF token not found on login page');
@@ -151,6 +239,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         headers: {
           ...this.getBrowserHeaders(),
           'Content-Type': 'application/x-www-form-urlencoded',
+          Cookie: this.getCookieHeader(),
           Referer: loginUrl,
           Origin: 'https://www.warcraftlogs.com',
         },
@@ -158,18 +247,17 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
           _token: csrfToken,
           email: keyEntity.clientId,
           password: keyEntity.clientSecret,
+          remember: '1',
         }).toString(),
         maxRedirects: 0,
         validateStatus: (status) => status === 302 || status === 200,
         timeout: 15_000,
+        proxy: this.getProxyConfig(),
       });
 
-      const setCookieHeader = loginResponse.headers['set-cookie'];
-      const cookies = Array.isArray(setCookieHeader) ? setCookieHeader : [setCookieHeader];
-      const sessionCookie = cookies
-        .find((cookie: string) => cookie?.startsWith('wcl_session='))
-        ?.match(/wcl_session=([^;]+)/)?.[1];
+      this.updateCookies(loginResponse.headers['set-cookie']);
 
+      const sessionCookie = this.sessionCookies['wcl_session'];
       if (!sessionCookie) {
         throw new Error('wcl_session cookie not found in login response');
       }
@@ -195,6 +283,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
 
     if (!keyEntity) return null;
 
+    this.sessionCookies = {};
     await this.keysRepository.update({ uuid: keyEntity.uuid }, { accessToken: null });
 
     return this.login(keyEntity);
@@ -242,7 +331,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
 
       const buildHeaders = (cookie: string | null) => ({
         ...this.getBrowserHeaders(),
-        ...(cookie ? { Cookie: `wcl_session=${cookie}` } : {}),
+        ...(cookie ? { Cookie: this.getCookieHeader({ wcl_session: cookie }) } : {}),
       });
 
       let response = await this.httpService.axiosRef.get<string>(pageUrl, {
@@ -250,7 +339,10 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         timeout: 10_000,
         maxRedirects: 0,
         validateStatus: (status) => status < 400,
+        proxy: this.getProxyConfig(),
       });
+
+      this.updateCookies(response.headers['set-cookie']);
 
       const isLoginRedirect = response.status === 302;
       if (isLoginRedirect && sessionCookie) {
@@ -259,7 +351,9 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         response = await this.httpService.axiosRef.get<string>(pageUrl, {
           headers: buildHeaders(freshCookie),
           timeout: 10_000,
+          proxy: this.getProxyConfig(),
         });
+        this.updateCookies(response.headers['set-cookie']);
       }
 
       const wclHTML = parse(response.data);

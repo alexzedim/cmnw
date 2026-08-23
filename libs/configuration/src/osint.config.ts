@@ -8,4 +8,5 @@ export const osintConfig: IOsintConfig = {
   wclToPage: Number(process.env.OSINT_WCL_TO_PAGE) || 1,
   wclLogs: Number(process.env.OSINT_WCL_LOGS) || 50,
   wclCurrentRaidTier: Number(process.env.OSINT_WCL_CURRENT_RAID_TIER) || 0,
+  wclProxyUrl: process.env.OSINT_WCL_PROXY_URL || null,
 };
