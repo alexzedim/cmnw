@@ -1,6 +1,7 @@
 import type { RegionIdOrName } from '@app/resources';
 import { Logger } from '@nestjs/common';
 import type { JobsOptions } from 'bullmq';
+import { omit } from 'lodash';
 import { OSINT_SOURCE, TIME_MS } from '../../constants';
 import { normalizeRealmName } from '../../guard';
 import { guildsQueue } from '../../queues/guilds.queue';
@@ -166,8 +167,12 @@ export class GuildMessageDto {
     // All other GuildsEntity fields
     [key: string]: any;
   }): GuildMessageDto {
+    const guildEntityArgs = omit(params, ['updatedAt', 'createdAt']);
     const guildData: IGuildMessageBase = {
-      ...params,
+      ...guildEntityArgs,
+      guid: params.guid,
+      name: params.name,
+      realm: params.realm,
       region: 'eu',
       forceUpdate: TIME_MS.FOUR_HOURS,
       createdBy: OSINT_SOURCE.GUILD_INDEX,
