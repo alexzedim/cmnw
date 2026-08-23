@@ -16,11 +16,11 @@ export class HallOfFameMetricsService {
     @InjectDataSource()
     private readonly dataSource: DataSource,
     @InjectRepository(AnalyticsEntity)
-    private readonly analyticsMetricRepository: Repository<AnalyticsEntity>,
+    _analyticsMetricRepository: Repository<AnalyticsEntity>,
     @InjectRepository(GuildHallOfFameEntity)
-    private readonly guildHallOfFameRepository: Repository<GuildHallOfFameEntity>,
+    _guildHallOfFameRepository: Repository<GuildHallOfFameEntity>,
     @InjectRepository(RealmsEntity)
-    private readonly realmsRepository: Repository<RealmsEntity>,
+    _realmsRepository: Repository<RealmsEntity>,
   ) {}
 
   async snapshotHallOfFameMetrics(snapshotDate: Date): Promise<number> {

@@ -1,11 +1,9 @@
 import { BATTLE_NET_OSINT_TIMEOUT, BattleNetNamespace, BattleNetService } from '@app/battle-net';
 import { type BlizzardApiResponse, GLOBAL_KEY } from '@app/resources';
-import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 
 @Injectable()
 export class TestsOsint implements OnApplicationBootstrap {
-  private readonly logger = new Logger(TestsOsint.name, { timestamp: true });
-
   constructor(private readonly battleNetService: BattleNetService) {}
 
   async onApplicationBootstrap() {

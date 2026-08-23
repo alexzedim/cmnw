@@ -1,4 +1,9 @@
-import { BATTLE_NET_KEY_TAG_BLIZZARD, BattleNetNamespace, BattleNetService, type IBattleNetClientConfig } from '@app/battle-net';
+import {
+  BATTLE_NET_KEY_TAG_BLIZZARD,
+  BattleNetNamespace,
+  BattleNetService,
+  type IBattleNetClientConfig,
+} from '@app/battle-net';
 import { RealmsEntity } from '@app/pg';
 import {
   BRACKETS,
@@ -312,7 +317,9 @@ export class LadderService implements OnApplicationBootstrap {
 
   private buildDungeonMap(dungeons: Array<{ id: number; name: string }>): Map<number, string> {
     const dungeonMap = new Map<number, string>();
-    dungeons.forEach((dungeon) => dungeonMap.set(dungeon.id, dungeon.name));
+    dungeons.forEach((dungeon) => {
+      dungeonMap.set(dungeon.id, dungeon.name);
+    });
     return dungeonMap;
   }
 
@@ -332,7 +339,9 @@ export class LadderService implements OnApplicationBootstrap {
 
         validateMythicKeystoneSeasonDetail(seasonDetailResponse);
 
-        seasonDetailResponse.periods.forEach((period) => expansionWeeks.add(period.id));
+        seasonDetailResponse.periods.forEach((period) => {
+          expansionWeeks.add(period.id);
+        });
       } catch (error) {
         this.logger.warn({
           message: `Failed to fetch season details for season ${season.id}`,

@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 
 // Strategy: find `where: {` (object-literal where clauses only — not raw SQL .where()).
 // For each, walk forward tracking brace depth; every `prop: value` at depth 1 is a where condition.
@@ -8,7 +8,10 @@ import { execSync } from 'node:child_process';
 const files = execSync(
   'find apps libs -name "*.ts" -not -path "*/node_modules/*" -not -name "*.spec.ts" -not -name "*.entity.ts" -not -name "*.mock.ts"',
   { encoding: 'utf8' },
-).trim().split('\n').filter(Boolean);
+)
+  .trim()
+  .split('\n')
+  .filter(Boolean);
 
 const findings = [];
 
@@ -42,8 +45,12 @@ for (const f of files) {
     for (let j = startLine; j < lines.length; j++) {
       const cur = j === startLine ? lines[j].slice(braceIdx) : lines[j];
       for (const ch of cur) {
-        if (ch === '{') { depth++; started = true; }
-        else if (ch === '}') { depth--; }
+        if (ch === '{') {
+          depth++;
+          started = true;
+        } else if (ch === '}') {
+          depth--;
+        }
         if (started && depth === 0) break;
       }
       if (started && depth === 0) {
@@ -57,16 +64,10 @@ for (const f of files) {
 }
 
 function scanWhereBlock(file, blockLines, startLineNo) {
-  let depth = 0;
   for (let k = 0; k < blockLines.length; k++) {
     const raw = blockLines[k];
     const trimmed = raw.trim();
-    for (const ch of raw) {
-      if (ch === '{') depth++;
-      else if (ch === '}') depth--;
-    }
-    // properties at depth 1 (immediately inside the where object)
-    // We approximate by checking the trimmed line is `prop: value,` and depth was 1 before this line's own braces.
+    // We approximate by checking the trimmed line is `prop: value,`.
     const m = trimmed.match(/^([a-zA-Z][\w]*)\s*:\s*(.+?)\s*,?\s*$/);
     if (!m) continue;
     const [, prop, valRaw] = m;
@@ -76,7 +77,8 @@ function scanWhereBlock(file, blockLines, startLineNo) {
     let kind = null;
     if (val === 'null') kind = 'null literal';
     else if (val === 'undefined') kind = 'undefined literal';
-    else if (/\?\.[a-zA-Z]/.test(val) && !/\?\?/.test(val) && !/IsNull/.test(val)) kind = 'optional-chain (may be undefined)';
+    else if (/\?\.[a-zA-Z]/.test(val) && !/\?\?/.test(val) && !/IsNull/.test(val))
+      kind = 'optional-chain (may be undefined)';
     else if (/\?\s*[^?]/.test(val) && /\bnull\b/.test(val)) kind = 'ternary with null branch';
 
     if (kind) {

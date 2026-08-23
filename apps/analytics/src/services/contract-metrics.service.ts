@@ -24,9 +24,9 @@ export class ContractMetricsService {
     @InjectDataSource()
     private readonly dataSource: DataSource,
     @InjectRepository(AnalyticsEntity)
-    private readonly analyticsMetricRepository: Repository<AnalyticsEntity>,
+    _analyticsMetricRepository: Repository<AnalyticsEntity>,
     @InjectRepository(ContractEntity)
-    private readonly contractRepository: Repository<ContractEntity>,
+    _contractRepository: Repository<ContractEntity>,
   ) {}
 
   async snapshotContractMetrics(snapshotDate: Date): Promise<number> {

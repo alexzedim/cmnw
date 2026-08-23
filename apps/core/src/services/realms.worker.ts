@@ -99,7 +99,7 @@ export class RealmsWorker extends WorkerHost implements OnModuleInit {
 
       realmEntity.locale = response.locale ? response.locale : null;
 
-      if (realmEntity.locale != 'enGB') {
+      if (realmEntity.locale !== 'enGB') {
         const realmLocale = await this.battleNetService.query<BlizzardApiResponse>(
           `/data/wow/realm/${message.slug}`,
           { namespace: BattleNetNamespace.DYNAMIC, timeout: OSINT_TIMEOUT_TOLERANCE },

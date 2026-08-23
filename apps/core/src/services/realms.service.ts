@@ -8,6 +8,7 @@ import {
   type IRealmMessageBase,
   REALM_ENTITY_ANY,
   RealmMessageDto,
+  // biome-ignore lint/correctness/noUnusedImports: used in the @InjectQueue parameter decorator below
   realmsQueue,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
@@ -28,9 +29,10 @@ export class RealmsService implements OnApplicationBootstrap {
   constructor(
     private httpService: HttpService,
     @InjectRepository(KeysEntity)
-    private readonly keysRepository: Repository<KeysEntity>,
+    _keysRepository: Repository<KeysEntity>,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
+    // biome-ignore lint/correctness/noInvalidUseBeforeDeclaration: references the imported queue constant, not the class member
     @InjectQueue(realmsQueue.name)
     private readonly realmsQueue: Queue<IRealmMessageBase>,
     private readonly battleNetService: BattleNetService,

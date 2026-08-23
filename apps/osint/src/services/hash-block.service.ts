@@ -4,6 +4,7 @@ import { CharactersEntity, HashBlockLogsEntity, HashBlockMembersEntity, HashBloc
 import {
   HASH_BLOCK_ACTION,
   HashMessageDto,
+  // biome-ignore lint/correctness/noUnusedImports: used in the @InjectQueue parameter decorator below
   hashQueue,
   type IHashBlockMemberInsert,
   type IHashMessageBase,
@@ -27,6 +28,7 @@ export class HashBlockService implements OnApplicationBootstrap {
     private readonly charactersRepository: Repository<CharactersEntity>,
     @InjectRepository(HashBlocksEntity)
     private readonly hashBlocksRepository: Repository<HashBlocksEntity>,
+    // biome-ignore lint/correctness/noInvalidUseBeforeDeclaration: references the imported queue constant, not the class member
     @InjectQueue(hashQueue.name)
     private readonly hashQueue: Queue<IHashMessageBase>,
   ) {}

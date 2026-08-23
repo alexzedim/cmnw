@@ -202,7 +202,7 @@ export function formatProgressReport(workerName: string, stats: WorkerStats, ent
   const lines: string[] = [
     '',
     chalk.magenta.bold('━'.repeat(60)),
-    `${chalk.magenta('📊 ' + workerName.toUpperCase().replace('WORKER', '') + ' PROGRESS REPORT')}`,
+    `${chalk.magenta(`📊 ${workerName.toUpperCase().replace('WORKER', '')} PROGRESS REPORT`)}`,
     `${chalk.dim('  Total:')} ${chalk.bold(stats.total)} ${entityName} processed`,
     `${chalk.green('  ✓ Success:')} ${chalk.green.bold(stats.success)} ${chalk.dim(`(${successRate}%)`)}`,
   ];
@@ -249,7 +249,7 @@ export function formatFinalSummary(workerName: string, stats: WorkerStats, entit
     chalk.magenta.bold(`📊 ${workerName.toUpperCase().replace('WORKER', '')} FINAL SUMMARY`),
     chalk.magenta.bold('═'.repeat(60)),
     `${chalk.dim('  Total Time:')} ${chalk.bold(totalTime.toFixed(1))} seconds`,
-    `${chalk.dim('  Total ${entityName}:')} ${chalk.bold(stats.total)}`,
+    `${chalk.dim(`  Total ${entityName}:`)} ${chalk.bold(stats.total)}`,
     `${chalk.green('  ✓ Success:')} ${chalk.green.bold(stats.success)} ${chalk.dim(`(${successRate}%)`)}`,
   ];
 

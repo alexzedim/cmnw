@@ -104,8 +104,9 @@ export class EvaluationService implements OnApplicationBootstrap {
       }
 
       // Filter by confidence if specified
+      const minConfidence = options.minConfidence;
       const filteredMethods =
-        options.minConfidence !== undefined ? methods.filter((m) => m.confidence >= options.minConfidence!) : methods;
+        minConfidence !== undefined ? methods.filter((m) => m.confidence >= minConfidence) : methods;
 
       // Rank methods
       const rankedMethods = this.rankPricingMethods(filteredMethods);
@@ -169,7 +170,7 @@ export class EvaluationService implements OnApplicationBootstrap {
       for (const pricing of pricings) {
         const craftingCost = await this.calculateCraftingCost(pricing, connectedRealmId);
 
-        if (craftingCost && craftingCost.costPerUnit[itemId]) {
+        if (craftingCost?.costPerUnit[itemId]) {
           methods.push({
             source: 'crafting',
             type: PRICING_TYPE.PRIMARY,
@@ -710,7 +711,8 @@ export class EvaluationService implements OnApplicationBootstrap {
       // Group by itemId and take most recent
       const valuationMap = new Map<number, ValuationEntity>();
       for (const val of valuations) {
-        if (!valuationMap.has(val.itemId) || val.timestamp > valuationMap.get(val.itemId)!.timestamp) {
+        const existing = valuationMap.get(val.itemId);
+        if (!existing || val.timestamp > existing.timestamp) {
           valuationMap.set(val.itemId, val);
         }
       }
@@ -738,10 +740,12 @@ export class EvaluationService implements OnApplicationBootstrap {
         // Group by itemId
         const marketsByItem = new Map<number, MarketEntity[]>();
         for (const market of markets) {
-          if (!marketsByItem.has(market.itemId)) {
-            marketsByItem.set(market.itemId, []);
+          let itemMarkets = marketsByItem.get(market.itemId);
+          if (!itemMarkets) {
+            itemMarkets = [];
+            marketsByItem.set(market.itemId, itemMarkets);
           }
-          marketsByItem.get(market.itemId)!.push(market);
+          itemMarkets.push(market);
         }
 
         // Calculate weighted average for each item

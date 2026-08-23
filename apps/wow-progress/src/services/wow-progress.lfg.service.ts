@@ -18,8 +18,8 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Queue } from 'bullmq';
 import chalk from 'chalk';
-import { parse } from 'node-html-parser';
 import { difference, union } from 'lodash';
+import { parse } from 'node-html-parser';
 import { from, lastValueFrom } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
 import { In, type Repository } from 'typeorm';
@@ -40,7 +40,7 @@ export class WowProgressLfgService {
 
   constructor(
     private httpService: HttpService,
-    private readonly battleNetService: BattleNetService,
+    _battleNetService: BattleNetService,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(CharactersProfileEntity)
@@ -52,7 +52,7 @@ export class WowProgressLfgService {
   ) {}
 
   @Cron(CronExpression.EVERY_5_MINUTES)
-  async indexWowProgressLfg(clearance: string = BATTLE_NET_KEY_TAG_OSINT): Promise<void> {
+  async indexWowProgressLfg(_clearance: string = BATTLE_NET_KEY_TAG_OSINT): Promise<void> {
     const startTime = Date.now();
     try {
       this.logger.log(chalk.cyan('\n🔍 Starting WoW Progress LFG indexing...'));

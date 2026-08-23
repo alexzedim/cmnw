@@ -1,5 +1,10 @@
 import { formatServiceErrorLog } from '@app/logger';
-import { CharactersEntity, CharactersGuildsLogsEntity, CharactersGuildsMembersEntity, type GuildsEntity } from '@app/pg';
+import {
+  CharactersEntity,
+  CharactersGuildsLogsEntity,
+  CharactersGuildsMembersEntity,
+  type GuildsEntity,
+} from '@app/pg';
 import {
   ACTION_LOG,
   GuildStatusState,
@@ -27,7 +32,7 @@ export class GuildMasterService {
     @InjectRepository(CharactersGuildsMembersEntity)
     private readonly guildMembersRepository: Repository<CharactersGuildsMembersEntity>,
     @InjectRepository(CharactersGuildsLogsEntity)
-    private readonly logsRepository: Repository<CharactersGuildsLogsEntity>,
+    _logsRepository: Repository<CharactersGuildsLogsEntity>,
   ) {}
 
   async detectAndLogGuildMasterChange(guildEntity: GuildsEntity, updatedRoster: IGuildRoster): Promise<string> {

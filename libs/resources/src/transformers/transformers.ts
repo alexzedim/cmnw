@@ -108,7 +108,7 @@ export const toKey = (s: string): string => s.replace(/\s+/g, '_').replace(/'+/g
  * @returns The formatted locale string
  * @example toLocale('enUS') // returns 'en_US'
  */
-export const toLocale = (s: string): string => s.substr(0, 2) + '_' + s.substr(2);
+export const toLocale = (s: string): string => `${s.substr(0, 2)}_${s.substr(2)}`;
 
 /**
  * Converts various date formats to a JavaScript Date object.
@@ -185,7 +185,7 @@ export const transformNamedField = <T extends object>(value: T, key = 'name'): s
   const isNumber = isNamed ? typeof value[key] === 'number' : typeof value === 'number';
 
   if (isNamed && (isString || isNumber)) {
-    return isNaN(value[key]) ? value[key] : parseInt(value[key]);
+    return Number.isNaN(Number(value[key])) ? value[key] : parseInt(value[key], 10);
   }
 
   if (isNamed) {
@@ -223,8 +223,8 @@ export const transformConnectedRealmId = <T extends object>(value: T): number | 
 
   const { href } = value.connected_realm as BlizzardApiNamedField;
 
-  const connectedRealmId = parseInt((href as string).replace(/\D/g, ''));
-  const isValidConnectedRealmId = connectedRealmId && !isNaN(connectedRealmId);
+  const connectedRealmId = parseInt((href as string).replace(/\D/g, ''), 10);
+  const isValidConnectedRealmId = connectedRealmId && !Number.isNaN(connectedRealmId);
 
   if (!isValidConnectedRealmId) {
     return null;

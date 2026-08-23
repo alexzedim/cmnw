@@ -1,12 +1,10 @@
+import { writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { BATTLE_NET_KEY_TAG_WCL_V2, BattleNetNamespace, BattleNetService } from '@app/battle-net';
-import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
-import { writeFileSync } from 'fs';
-import { join } from 'path';
+import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 
 @Injectable()
 export class TestsCore implements OnApplicationBootstrap {
-  private readonly logger = new Logger(TestsCore.name, { timestamp: true });
-
   constructor(private readonly battleNetService: BattleNetService) {}
 
   async onApplicationBootstrap() {

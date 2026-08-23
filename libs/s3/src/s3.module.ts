@@ -4,6 +4,7 @@ import type { S3ModuleOptions } from './interfaces/s3.interface';
 import { S3Service } from './s3.service';
 
 @Module({})
+// biome-ignore lint/complexity/noStaticOnlyClass: NestJS dynamic module pattern
 export class S3Module {
   /**
    * Configure S3Module with a configuration object that includes AWS S3 config and module options

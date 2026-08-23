@@ -30,15 +30,15 @@ describe('GuildSummaryService', () => {
       new URLSearchParams({ grant_type: 'client_credentials' }),
       {
         auth: {
-          username: process.env.BATTLENET_CLIENT_ID!,
-          password: process.env.BATTLENET_CLIENT_SECRET!,
+          username: process.env.BATTLENET_CLIENT_ID ?? '',
+          password: process.env.BATTLENET_CLIENT_SECRET ?? '',
         },
       },
     );
 
     config = {
-      clientId: process.env.BATTLENET_CLIENT_ID!,
-      clientSecret: process.env.BATTLENET_CLIENT_SECRET!,
+      clientId: process.env.BATTLENET_CLIENT_ID ?? '',
+      clientSecret: process.env.BATTLENET_CLIENT_SECRET ?? '',
       accessToken: response.data.access_token,
       region: BattleNetRegion.EU,
     };

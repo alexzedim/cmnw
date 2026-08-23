@@ -52,7 +52,7 @@ export const normalizeRealmName = (realmName: unknown): string => {
 
 export const toPositiveInt = (value: unknown): number | null => {
   const num = Number(value);
-  return !isNaN(num) && Number.isInteger(num) && num > 0 ? num : null;
+  return !Number.isNaN(num) && Number.isInteger(num) && num > 0 ? num : null;
 };
 
 export const toNormalizedString = (value: unknown): string | null => {

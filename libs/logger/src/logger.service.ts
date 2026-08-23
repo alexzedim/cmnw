@@ -203,7 +203,7 @@ export class LoggerService extends ConsoleLogger {
       }
 
       // Standard object handling (no special logTag handling)
-      const { message: objectMessage, ...objectRest } = input;
+      const { message: objectMessage } = input;
       return {
         ...baseInfo,
         message: objectMessage || input.error || 'Object logged',

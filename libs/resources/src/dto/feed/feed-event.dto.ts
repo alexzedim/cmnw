@@ -1,8 +1,7 @@
+import { randomUUID } from 'node:crypto';
 import { Logger } from '@nestjs/common';
-import { randomUUID } from 'crypto';
 
 import {
-  FEED_STATUS_META,
   type FeedEventCategory,
   type FeedStatus,
   isFeedEventCategory,
@@ -89,7 +88,6 @@ export class FeedEventDto implements IFeedEventBase {
     category: FeedEventCategory,
     meta?: Record<string, unknown>,
   ): IFeedEventBase {
-    const metaConfig = FEED_STATUS_META[status];
     const message = `[${count}] ${identifier.toLowerCase()} (${durationMs}ms)`;
 
     return FeedEventDto.create({

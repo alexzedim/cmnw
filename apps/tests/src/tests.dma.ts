@@ -1,10 +1,8 @@
 import { BATTLE_NET_DMA_TIMEOUT, BattleNetNamespace, BattleNetService } from '@app/battle-net';
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class TestsDma {
-  private readonly logger = new Logger(TestsDma.name, { timestamp: true });
-
   constructor(private readonly battleNetService: BattleNetService) {}
 
   async commodity(): Promise<any> {

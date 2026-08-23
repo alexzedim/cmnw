@@ -1,5 +1,10 @@
 import { formatServiceErrorLog } from '@app/logger';
-import { CharactersEntity, CharactersGuildsLogsEntity, CharactersGuildsMembersEntity, type GuildsEntity } from '@app/pg';
+import {
+  CharactersEntity,
+  CharactersGuildsLogsEntity,
+  CharactersGuildsMembersEntity,
+  type GuildsEntity,
+} from '@app/pg';
 import {
   ACTION_LOG,
   GuildStatusState,
@@ -43,9 +48,7 @@ export class GuildMemberService {
       }
 
       if (!guildEntity.id) {
-        this.logger.error(
-          formatServiceErrorLog('updateRoster', guildEntity.guid, 0, 'Guild id is not resolved'),
-        );
+        this.logger.error(formatServiceErrorLog('updateRoster', guildEntity.guid, 0, 'Guild id is not resolved'));
         roster.status = setGuildStatusString('-----', 'MEMBERS', GuildStatusState.ERROR);
         return;
       }
@@ -98,7 +101,7 @@ export class GuildMemberService {
     guildEntity: GuildsEntity,
     comparison: RosterComparisonResult,
     rosterUpdateAt: Date,
-    isNew: boolean,
+    _isNew: boolean,
   ): Promise<void> {
     const {
       originalRoster,

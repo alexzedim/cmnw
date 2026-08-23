@@ -47,10 +47,6 @@ export class ProfileWorker extends WorkerHost {
     startTime: Date.now(),
   };
 
-  private rioUpdated = 0;
-  private wclUpdated = 0;
-  private wpUpdated = 0;
-
   browser: Browser;
   browserContext: BrowserContext;
 
@@ -96,7 +92,6 @@ export class ProfileWorker extends WorkerHost {
         profileUpdates.push(
           this.getRaiderIoProfile(args.name, args.realm).then((raiderIo) => {
             Object.assign(profileEntity, raiderIo);
-            this.rioUpdated++;
           }),
         );
       }
@@ -105,7 +100,6 @@ export class ProfileWorker extends WorkerHost {
         profileUpdates.push(
           this.getWarcraftLogsProfile(args.name, args.realm).then((warcraftLogs) => {
             Object.assign(profileEntity, warcraftLogs);
-            this.wclUpdated++;
           }),
         );
       }
@@ -114,7 +108,6 @@ export class ProfileWorker extends WorkerHost {
         profileUpdates.push(
           this.getWowProgressProfile(args.name, args.realm).then((wowProgress) => {
             Object.assign(profileEntity, wowProgress);
-            this.wpUpdated++;
           }),
         );
       }
@@ -182,7 +175,7 @@ export class ProfileWorker extends WorkerHost {
 
       const [_text, value] = getBestPerfAvgValue.trim().split('\n');
 
-      const isLogsNumberValid = !isNaN(Number(value.trim()));
+      const isLogsNumberValid = !Number.isNaN(Number(value.trim()));
       if (isLogsNumberValid) {
         warcraftLogsProfile[difficulty.fieldName] = parseFloat(value);
         this.logger.log(
@@ -225,36 +218,34 @@ export class ProfileWorker extends WorkerHost {
 
       const wowProgressProfilePage = parse(data);
 
-      await Promise.allSettled(
-        wowProgressProfilePage.querySelectorAll('.language').map((node) => {
-          const characterText = node.text;
-          const [key, stringValue] = characterText.split(':');
-          const isKeyExists = CHARACTER_PROFILE_MAPPING.has(key);
-          if (!isKeyExists) return;
+      wowProgressProfilePage.querySelectorAll('.language').forEach((node) => {
+        const characterText = node.text;
+        const [key, stringValue] = characterText.split(':');
+        const isKeyExists = CHARACTER_PROFILE_MAPPING.has(key);
+        if (!isKeyExists) return;
 
-          const value = stringValue.trim();
+        const value = stringValue.trim();
 
-          const fieldValueName = CHARACTER_PROFILE_MAPPING.get(key);
-          if (fieldValueName === 'readyToTransfer')
-            wowProgressProfile.readyToTransfer = value.includes('ready to transfer');
+        const fieldValueName = CHARACTER_PROFILE_MAPPING.get(key);
+        if (fieldValueName === 'readyToTransfer')
+          wowProgressProfile.readyToTransfer = value.includes('ready to transfer');
 
-          if (fieldValueName === 'raidDays' && value) {
-            const [from, to] = value.split(' - ');
-            const daysFrom = parseInt(from);
-            const daysTo = parseInt(to);
-            const isNumber = typeof daysFrom === 'number' && typeof daysTo === 'number';
-            if (isNumber) wowProgressProfile.raidDays = [daysFrom, daysTo];
-          }
+        if (fieldValueName === 'raidDays' && value) {
+          const [from, to] = value.split(' - ');
+          const daysFrom = parseInt(from, 10);
+          const daysTo = parseInt(to, 10);
+          const isNumber = typeof daysFrom === 'number' && typeof daysTo === 'number';
+          if (isNumber) wowProgressProfile.raidDays = [daysFrom, daysTo];
+        }
 
-          if (fieldValueName === 'languages') {
-            wowProgressProfile.languages = value.split(',').map((s) => s.toLowerCase().trim());
-          }
+        if (fieldValueName === 'languages') {
+          wowProgressProfile.languages = value.split(',').map((s) => s.toLowerCase().trim());
+        }
 
-          if (fieldValueName === 'battleTag' || fieldValueName === 'playRole') {
-            wowProgressProfile[fieldValueName] = value;
-          }
-        }),
-      );
+        if (fieldValueName === 'battleTag' || fieldValueName === 'playRole') {
+          wowProgressProfile[fieldValueName] = value;
+        }
+      });
 
       wowProgressProfile.updatedByWowProgress = new Date();
 

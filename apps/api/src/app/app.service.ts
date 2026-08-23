@@ -417,7 +417,7 @@ export class AppService {
       const packageJsonContent = readFileSync(packageJsonPath, 'utf-8');
       const { version } = JSON.parse(packageJsonContent);
       return version ?? 'unknown';
-    } catch (error) {
+    } catch {
       return 'unknown';
     }
   }

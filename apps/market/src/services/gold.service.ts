@@ -66,26 +66,24 @@ export class GoldService implements OnApplicationBootstrap {
       const connectedRealmIds = new Set<number>();
       const timestamp = DateTime.now().toMillis();
 
-      await Promise.allSettled(
-        exchangeListingPage.querySelectorAll('a.tc-item').map((element) => {
-          const orderId = element.getAttribute('href') ?? '';
-          const realm = element.querySelector('.tc-server')?.text ?? '';
-          const faction = element.querySelector('.tc-side')?.text ?? '';
-          const status = Boolean(element.getAttribute('data-online'));
-          const quantity = element.querySelector('.tc-amount')?.text ?? '';
-          const owner = element.querySelector('.media-user-name')?.text ?? '';
-          const price = element.querySelector('.tc-price div')?.text ?? '';
-          goldOrders.push({
-            realm,
-            faction,
-            status,
-            quantity,
-            owner,
-            price,
-            orderId,
-          });
-        }),
-      );
+      exchangeListingPage.querySelectorAll('a.tc-item').forEach((element) => {
+        const orderId = element.getAttribute('href') ?? '';
+        const realm = element.querySelector('.tc-server')?.text ?? '';
+        const faction = element.querySelector('.tc-side')?.text ?? '';
+        const status = Boolean(element.getAttribute('data-online'));
+        const quantity = element.querySelector('.tc-amount')?.text ?? '';
+        const owner = element.querySelector('.media-user-name')?.text ?? '';
+        const price = element.querySelector('.tc-price div')?.text ?? '';
+        goldOrders.push({
+          realm,
+          faction,
+          status,
+          quantity,
+          owner,
+          price,
+          orderId,
+        });
+      });
 
       const goldMarketEntities = await lastValueFrom(
         from(goldOrders).pipe(
@@ -166,7 +164,7 @@ export class GoldService implements OnApplicationBootstrap {
 
       const [_url, orderId] = order.orderId.split('=') || null;
       const price = parseFloat(order.price.replace(/ ₽/g, ''));
-      const quantity = parseInt(order.quantity.replace(/\s/g, ''));
+      const quantity = parseInt(order.quantity.replace(/\s/g, ''), 10);
       const counterparty = order.owner.replace('\n', '').trim();
 
       const isGoldValid = isGold({

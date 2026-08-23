@@ -34,7 +34,7 @@ export class DmaService {
     @InjectRedis()
     private readonly redisService: Redis,
     @InjectRepository(KeysEntity)
-    private readonly _keysRepository: Repository<KeysEntity>,
+    __keysRepository: Repository<KeysEntity>,
     @InjectRepository(ItemsEntity)
     private readonly itemsRepository: Repository<ItemsEntity>,
     @InjectRepository(MarketEntity)
@@ -45,12 +45,12 @@ export class DmaService {
 
   // TODO validation on DTO level
   async getItem(input: ReqGetItemDto) {
-    const isNotNumber = isNaN(Number(input.id));
+    const isNotNumber = Number.isNaN(Number(input.id));
     if (isNotNumber) {
       throw new BadRequestException('Please provide correct item ID in your query');
     }
 
-    const id = typeof input.id === 'number' ? input.id : parseInt(input.id);
+    const id = typeof input.id === 'number' ? input.id : parseInt(input.id, 10);
 
     const item = await this.itemsRepository.findOneBy({ id });
 
@@ -377,11 +377,13 @@ export class DmaService {
     }
 
     const oldToNew = new Map<number, number>();
-    keptXIndices.forEach((oldX, newX) => oldToNew.set(oldX, newX));
+    keptXIndices.forEach((oldX, newX) => {
+      oldToNew.set(oldX, newX);
+    });
 
     const trimmedDataset = dataset
       .filter((p) => p.x >= minPopulated && p.x <= maxPopulated)
-      .map((p) => ({ ...p, x: oldToNew.get(p.x)! }));
+      .map((p) => ({ ...p, x: oldToNew.get(p.x) ?? p.x }));
 
     const trimmedXAxis = keptXIndices.map((x) => xAxis[x]);
 
@@ -434,7 +436,7 @@ export class DmaService {
     // Parse as numeric ID only
     const itemId = parseInt(trimmedQuery, 10);
 
-    if (isNaN(itemId)) {
+    if (Number.isNaN(itemId)) {
       throw new BadRequestException('Please provide a valid numeric item ID');
     }
 
@@ -452,117 +454,6 @@ export class DmaService {
     }
 
     return item;
-  }
-
-  /**
-   * Find item by name using PostgreSQL full-text search
-   * Searches both 'name' field and JSONB 'names' field
-   */
-  private async findItemByName(searchQuery: string): Promise<ItemsEntity> {
-    const normalizedQuery = searchQuery.toLowerCase().trim();
-
-    if (normalizedQuery.length < 2) {
-      throw new BadRequestException('Search query must be at least 2 characters long');
-    }
-
-    try {
-      // Create query builder for complex search
-      const queryBuilder = this.itemsRepository.createQueryBuilder('item');
-
-      // Search in multiple fields with different strategies
-      const item = await queryBuilder
-        .where(
-          `(
-            -- Exact match on name field
-            LOWER(item.name) = :exactQuery
-            OR
-            -- Partial match on name field
-            LOWER(item.name) LIKE :likeQuery
-            OR
-            -- Full-text search on name field
-            to_tsvector('english', COALESCE(item.name, '')) @@ plainto_tsquery('english', :searchQuery)
-            OR
-            -- Search in JSONB names field (all locales)
-            (
-              item.names IS NOT NULL AND (
-                LOWER(item.names->>'en_US') LIKE :likeQuery OR
-                LOWER(item.names->>'en_GB') LIKE :likeQuery OR
-                LOWER(item.names->>'de_DE') LIKE :likeQuery OR
-                LOWER(item.names->>'fr_FR') LIKE :likeQuery OR
-                LOWER(item.names->>'es_ES') LIKE :likeQuery OR
-                LOWER(item.names->>'es_MX') LIKE :likeQuery OR
-                LOWER(item.names->>'pt_BR') LIKE :likeQuery OR
-                LOWER(item.names->>'it_IT') LIKE :likeQuery OR
-                LOWER(item.names->>'ru_RU') LIKE :likeQuery OR
-                LOWER(item.names->>'ko_KR') LIKE :likeQuery OR
-                LOWER(item.names->>'zh_TW') LIKE :likeQuery OR
-                LOWER(item.names->>'zh_CN') LIKE :likeQuery
-              )
-            )
-            OR
-            -- Full-text search in JSONB names field
-            (
-              item.names IS NOT NULL AND
-              to_tsvector('english',
-                COALESCE(item.names->>'en_US', '') || ' ' ||
-                COALESCE(item.names->>'en_GB', '') || ' ' ||
-                COALESCE(item.names->>'de_DE', '') || ' ' ||
-                COALESCE(item.names->>'fr_FR', '')
-              ) @@ plainto_tsquery('english', :searchQuery)
-            )
-          )`,
-          {
-            exactQuery: normalizedQuery,
-            likeQuery: `%${normalizedQuery}%`,
-            searchQuery: searchQuery,
-          },
-        )
-        // Order by relevance: exact matches first, then partial matches
-        .orderBy(
-          `CASE
-            WHEN LOWER(item.name) = :exactQuery THEN 1
-            WHEN LOWER(item.name) LIKE :startQuery THEN 2
-            WHEN LOWER(item.name) LIKE :likeQuery THEN 3
-            ELSE 4
-          END`,
-          'ASC',
-        )
-        .setParameters({
-          exactQuery: normalizedQuery,
-          startQuery: `${normalizedQuery}%`,
-          likeQuery: `%${normalizedQuery}%`,
-          searchQuery: searchQuery,
-        })
-        .limit(1)
-        .getOne();
-
-      if (!item) {
-        throw new BadRequestException(
-          `No item found matching "${searchQuery}". Try using item ID or a more specific name.`,
-        );
-      }
-
-      this.logger.log(
-        `Found item via name search: "${searchQuery}" -> ID: ${item.id}, Name: ${item.name}`,
-        'findItemByName',
-      );
-
-      return item;
-    } catch (error) {
-      if (error instanceof BadRequestException) {
-        throw error;
-      }
-
-      this.logger.error(
-        `Error searching for item by name: "${searchQuery}"`,
-        error instanceof Error ? error.stack : String(error),
-        'findItemByName',
-      );
-
-      throw new BadRequestException(
-        `Error searching for item "${searchQuery}". Please try a different search term or use item ID.`,
-      );
-    }
   }
 
   async getWowToken(input: WowTokenDto) {
@@ -675,7 +566,7 @@ export class DmaService {
             )
           )`,
           {
-            ...(isNumericId && { itemId: parseInt(query) }),
+            ...(isNumericId && { itemId: parseInt(query, 10) }),
             likeQuery: `%${normalizedQuery}%`,
           },
         )
@@ -691,7 +582,7 @@ export class DmaService {
         )
         .addOrderBy('item.name', 'ASC')
         .setParameters({
-          ...(isNumericId && { itemId: parseInt(query) }),
+          ...(isNumericId && { itemId: parseInt(query, 10) }),
           exactQuery: normalizedQuery,
           startQuery: `${normalizedQuery}%`,
           likeQuery: `%${normalizedQuery}%`,

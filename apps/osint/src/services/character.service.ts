@@ -80,7 +80,7 @@ export class CharacterService {
 
       if (statusResponse.id) {
         const numericId = Number(statusResponse.id);
-        if (!isNaN(numericId) && Number.isInteger(numericId) && numericId > 0) {
+        if (!Number.isNaN(numericId) && Number.isInteger(numericId) && numericId > 0) {
           characterStatus.id = numericId;
         }
       }

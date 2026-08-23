@@ -1,7 +1,9 @@
+import { createHash } from 'node:crypto';
 import { osintConfig } from '@app/configuration';
 import { CharactersEntity } from '@app/pg';
 import {
   CharacterMessageDto,
+  // biome-ignore lint/correctness/noUnusedImports: used in the @InjectQueue parameter decorator below
   charactersQueue,
   type ICharacterMessageBase,
   OSINT_CHARACTER_LIMIT,
@@ -13,7 +15,6 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import type { Queue } from 'bullmq';
-import { createHash } from 'crypto';
 import type Redis from 'ioredis';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import type { Repository } from 'typeorm';
@@ -30,6 +31,7 @@ export class CharactersService implements OnApplicationBootstrap {
     private readonly redisService: Redis,
     @InjectRepository(CharactersEntity)
     private readonly charactersRepository: Repository<CharactersEntity>,
+    // biome-ignore lint/correctness/noInvalidUseBeforeDeclaration: references the imported queue constant, not the class member
     @InjectQueue(charactersQueue.name)
     private readonly charactersQueue: Queue<ICharacterMessageBase>,
     private readonly s3Service: S3Service,

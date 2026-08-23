@@ -47,7 +47,7 @@ export enum TIME_MS {
   /** 1 week in milliseconds */
   ONE_WEEK = 604800000,
   /** Always update regardless of updatedAt (manual force-refresh) */
-  FORCE = Number.MAX_SAFE_INTEGER,
+  FORCE = 9_007_199_254_740_991,
   /** Lower bound of a plausible unix-seconds timestamp (2001-09-09) */
   EPOCH_SECONDS_MIN = 1_000_000_000,
   /** Upper bound of a plausible unix-seconds timestamp (5138-11-16) */

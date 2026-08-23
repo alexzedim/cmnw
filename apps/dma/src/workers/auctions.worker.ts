@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { BATTLE_NET_KEY_TAG_DMA, BattleNetNamespace, BattleNetService } from '@app/battle-net';
 import {
   formatFinalSummary,
@@ -10,7 +11,9 @@ import {
 import { ItemsEntity, MarketEntity, RealmsEntity } from '@app/pg';
 import {
   auctionsQueue,
-  type BlizzardApiAuctions,FeedEventCategory, FeedStatus, 
+  type BlizzardApiAuctions,
+  FeedEventCategory,
+  FeedStatus,
   formatBytes,
   type IAuctionMessageBase,
   type IAuctionsOrder,
@@ -22,7 +25,7 @@ import {
   PETS_KEY_GUARD,
   REALM_ENTITY_ANY,
   toGold,
-  transformPrice
+  transformPrice,
 } from '@app/resources';
 import { FeedService } from '@app/resources/services/feed.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
@@ -31,7 +34,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { isAxiosError } from 'axios';
 import type { Job } from 'bullmq';
-import { createHash } from 'crypto';
 import type Redis from 'ioredis';
 import { DateTime } from 'luxon';
 import { from, lastValueFrom } from 'rxjs';
@@ -66,7 +68,7 @@ export class AuctionsWorker extends WorkerHost {
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(ItemsEntity)
-    private readonly _itemsRepository: Repository<ItemsEntity>,
+    __itemsRepository: Repository<ItemsEntity>,
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
     private readonly battleNetService: BattleNetService,

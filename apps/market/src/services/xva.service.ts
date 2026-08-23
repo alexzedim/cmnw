@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { BATTLE_NET_KEY_TAG_DMA, BattleNetNamespace, BattleNetService } from '@app/battle-net';
 import { dmaConfig } from '@app/configuration';
 import {
@@ -41,7 +42,6 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import csv from 'async-csv';
-import { createHash } from 'crypto';
 import type Redis from 'ioredis';
 import { get } from 'lodash';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
@@ -67,11 +67,11 @@ export class XvaService implements OnApplicationBootstrap {
     @InjectRepository(ItemsEntity)
     private readonly itemsRepository: Repository<ItemsEntity>,
     @InjectRepository(RealmsEntity)
-    private readonly realmsRepository: Repository<RealmsEntity>,
+    _realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
     @InjectRepository(ValuationEntity)
-    private readonly valuationRepository: Repository<ValuationEntity>,
+    _valuationRepository: Repository<ValuationEntity>,
     private readonly s3Service: S3Service,
     private readonly battleNetService: BattleNetService,
   ) {}
@@ -246,7 +246,7 @@ export class XvaService implements OnApplicationBootstrap {
               ...reversePricingMethod,
               reagents: method.reagents,
               derivatives: method.derivatives,
-              recipeId: parseInt(`${reversePricingMethod.spellId}${method.reagents[0].itemId}`),
+              recipeId: parseInt(`${reversePricingMethod.spellId}${method.reagents[0].itemId}`, 10),
             };
 
             await this.pricingRepository.save(entry);
@@ -1134,7 +1134,9 @@ export class XvaService implements OnApplicationBootstrap {
 
     // Add asset classes as tags
     if (item.assetClass) {
-      item.assetClass.forEach((ac) => tagsSet.add(ac.toLowerCase()));
+      item.assetClass.forEach((ac) => {
+        tagsSet.add(ac.toLowerCase());
+      });
     }
 
     // Add ticker parts as tags

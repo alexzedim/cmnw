@@ -24,9 +24,9 @@ export class MarketMetricsService {
     @InjectDataSource()
     private readonly dataSource: DataSource,
     @InjectRepository(AnalyticsEntity)
-    private readonly analyticsMetricRepository: Repository<AnalyticsEntity>,
+    _analyticsMetricRepository: Repository<AnalyticsEntity>,
     @InjectRepository(MarketEntity)
-    private readonly marketRepository: Repository<MarketEntity>,
+    _marketRepository: Repository<MarketEntity>,
   ) {}
 
   async snapshotMarketMetrics(snapshotDate: Date): Promise<number> {

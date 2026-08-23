@@ -66,7 +66,7 @@ export class CharacterOsintService {
     @InjectRepository(CharactersGuildsLogsEntity)
     private readonly logsRepository: Repository<CharactersGuildsLogsEntity>,
     @InjectRepository(GuildsEntity)
-    private readonly guildsRepository: Repository<GuildsEntity>,
+    _guildsRepository: Repository<GuildsEntity>,
     @InjectRepository(HashBlockMembersEntity)
     private readonly hashBlockMembersRepository: Repository<HashBlockMembersEntity>,
     @InjectRepository(HashBlocksEntity)
@@ -362,11 +362,11 @@ export class CharacterOsintService {
         hashQuery: input.hashQuery,
         hashQuery2: input.hashQuery2,
         errorOrException,
-        message: `Error fetching characters by hash: ${input.hashQuery}${input.hashQuery2 ? '/' + input.hashQuery2 : ''}`,
+        message: `Error fetching characters by hash: ${input.hashQuery}${input.hashQuery2 ? `/${input.hashQuery2}` : ''}`,
       });
 
       throw new ServiceUnavailableException(
-        `Error processing hash query: ${input.hashQuery}${input.hashQuery2 ? '/' + input.hashQuery2 : ''}`,
+        `Error processing hash query: ${input.hashQuery}${input.hashQuery2 ? `/${input.hashQuery2}` : ''}`,
       );
     }
   }

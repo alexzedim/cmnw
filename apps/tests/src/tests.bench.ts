@@ -1,4 +1,6 @@
+import path from 'node:path';
 import { pipeline } from 'node:stream/promises';
+import zlib from 'node:zlib';
 import { cmnwConfig } from '@app/configuration';
 import { ItemsEntity, MarketEntity, RealmsEntity } from '@app/pg';
 import {
@@ -24,15 +26,13 @@ import {
   UnsupportedMediaTypeException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { parse } from 'node-html-parser';
 import fs from 'fs-extra';
 import { DateTime } from 'luxon';
-import path from 'path';
+import { parse } from 'node-html-parser';
 import { chromium, devices } from 'playwright';
 import { from, lastValueFrom } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
 import { ArrayContains, In, LessThan, Not, type Repository } from 'typeorm';
-import zlib from 'zlib';
 
 @Injectable()
 export class TestsBench implements OnApplicationBootstrap {
@@ -337,7 +337,7 @@ export class TestsBench implements OnApplicationBootstrap {
     const goldOrders: Array<Partial<IGold>> = [];
     const marketOrders: Array<MarketEntity> = [];
     const realmsEntity = new Map<string, RealmsEntity>([]);
-    const timestamp = new Date().getTime();
+    const timestamp = Date.now();
 
     exchangeListingPage.querySelectorAll('a.tc-item').forEach((element) => {
       const orderId = element.getAttribute('href') ?? '';
@@ -381,7 +381,7 @@ export class TestsBench implements OnApplicationBootstrap {
 
             const [_url, orderId] = order.orderId.split('=');
             const price = parseFloat(order.price.replace(/ ₽/g, ''));
-            const quantity = parseInt(order.quantity.replace(/\s/g, ''));
+            const quantity = parseInt(order.quantity.replace(/\s/g, ''), 10);
             const counterparty = order.owner.replace('\n', '').trim();
             const isQuantityLimit = quantity > 15_000_000 && price;
             if (isQuantityLimit) {
@@ -443,7 +443,7 @@ export class TestsBench implements OnApplicationBootstrap {
         const downloadLink = encodeURI(decodeURI(OSINT_SOURCE_WOW_PROGRESS_RANKS + url));
         const fileName = decodeURIComponent(url.substr(url.lastIndexOf('/') + 1));
         const realmMatch = fileName.match(/(?<=_)(.*?)(?=_)/g);
-        const isMatchExists = realmMatch && realmMatch.length;
+        const isMatchExists = realmMatch?.length;
 
         if (!isMatchExists) return;
 
@@ -481,7 +481,7 @@ export class TestsBench implements OnApplicationBootstrap {
 
       const [_text, value] = getBestPerfAvgValue.trim().split('\n');
 
-      const isMythicLogsValid = !isNaN(Number(value.trim()));
+      const isMythicLogsValid = !Number.isNaN(Number(value.trim()));
       if (isMythicLogsValid) {
         console.log(parseFloat(value));
       }
@@ -505,7 +505,7 @@ export class TestsBench implements OnApplicationBootstrap {
             }
 
             const realmMatch = file.match(/(?<=_)(.*?)(?=_)/g);
-            const isMatchExists = realmMatch && realmMatch.length;
+            const isMatchExists = realmMatch?.length;
             if (!isMatchExists) {
               throw new NotFoundException(`file ${file} doesn't have a realm`);
             }

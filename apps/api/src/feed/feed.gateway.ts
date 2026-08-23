@@ -1,9 +1,9 @@
+import type { Server as HttpServer, IncomingMessage } from 'node:http';
 import { redisConfig, wsConfig } from '@app/configuration';
 import { LoggerService } from '@app/logger';
 import { extractSessionId } from '@app/resources';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 import { HttpAdapterHost } from '@nestjs/core';
-import type { Server as HttpServer, IncomingMessage } from 'http';
 import Redis from 'ioredis';
 import { Server, type WebSocket } from 'ws';
 
@@ -33,8 +33,10 @@ export class FeedGateway implements OnApplicationBootstrap {
       if (pathname !== wsConfig.path) {
         return;
       }
-      this.server!.handleUpgrade(request, socket, head, (ws) => {
-        this.server!.emit('connection', ws, request);
+      const server = this.server;
+      if (!server) return;
+      server.handleUpgrade(request, socket, head, (ws) => {
+        server.emit('connection', ws, request);
       });
     });
 

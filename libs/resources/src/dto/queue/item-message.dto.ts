@@ -1,4 +1,3 @@
-import { Logger } from '@nestjs/common';
 import type { JobsOptions } from 'bullmq';
 import { itemsQueue } from '../../queues/items.queue';
 
@@ -17,8 +16,6 @@ export class ItemMessageDto {
   public readonly name: string;
   public readonly data: IItemMessageBase;
   public readonly opts?: JobsOptions;
-
-  private static readonly itemLogger = new Logger(ItemMessageDto.name);
 
   /**
    * Constructor - creates a validated Item Message with BullMQ properties

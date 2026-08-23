@@ -23,9 +23,9 @@ export class CharacterMetricsService {
     @InjectDataSource()
     private readonly dataSource: DataSource,
     @InjectRepository(AnalyticsEntity)
-    private readonly analyticsMetricRepository: Repository<AnalyticsEntity>,
+    _analyticsMetricRepository: Repository<AnalyticsEntity>,
     @InjectRepository(CharactersEntity)
-    private readonly charactersRepository: Repository<CharactersEntity>,
+    _charactersRepository: Repository<CharactersEntity>,
   ) {}
 
   private getRaceKey(value: string | null | undefined): string | null {

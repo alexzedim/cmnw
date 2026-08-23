@@ -24,9 +24,9 @@ export class GuildMetricsService {
     @InjectDataSource()
     private readonly dataSource: DataSource,
     @InjectRepository(AnalyticsEntity)
-    private readonly analyticsMetricRepository: Repository<AnalyticsEntity>,
+    _analyticsMetricRepository: Repository<AnalyticsEntity>,
     @InjectRepository(GuildsEntity)
-    private readonly guildsRepository: Repository<GuildsEntity>,
+    _guildsRepository: Repository<GuildsEntity>,
   ) {}
 
   async snapshotGuildMetrics(snapshotDate: Date): Promise<number> {
@@ -269,9 +269,7 @@ export class GuildMetricsService {
     }
   }
 
-  private withMembersDistributionSelect(
-    qb: SelectQueryBuilder<GuildsEntity>,
-  ): SelectQueryBuilder<GuildsEntity> {
+  private withMembersDistributionSelect(qb: SelectQueryBuilder<GuildsEntity>): SelectQueryBuilder<GuildsEntity> {
     return qb
       .select('COUNT(*)', 'total')
       .addSelect(`SUM(CASE WHEN g.members_count BETWEEN 1 AND 10 THEN 1 ELSE 0 END)`, 'range_1_10')
@@ -374,9 +372,7 @@ export class GuildMetricsService {
     }
   }
 
-  private withAchievementsDistributionSelect(
-    qb: SelectQueryBuilder<GuildsEntity>,
-  ): SelectQueryBuilder<GuildsEntity> {
+  private withAchievementsDistributionSelect(qb: SelectQueryBuilder<GuildsEntity>): SelectQueryBuilder<GuildsEntity> {
     return qb
       .select('COUNT(*)', 'total')
       .addSelect(`SUM(CASE WHEN g.achievement_points < 1000 THEN 1 ELSE 0 END)`, 'under1k')

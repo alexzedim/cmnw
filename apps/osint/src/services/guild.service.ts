@@ -9,14 +9,12 @@ import {
   toSlug,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
 
 @Injectable()
 export class GuildService {
-  private readonly logger = new Logger(GuildService.name, { timestamp: true });
-
   constructor(
     @InjectRepository(GuildsEntity)
     private readonly guildsRepository: Repository<GuildsEntity>,
@@ -27,7 +25,7 @@ export class GuildService {
   async findOrCreate(guildJob: IGuildMessageBase): Promise<GuildExistsOrCreate> {
     const forceUpdate = guildJob.forceUpdate || TIME_MS.FOUR_HOURS;
     const nameSlug = toSlug(guildJob.name);
-    const timestampNow = new Date().getTime();
+    const timestampNow = Date.now();
 
     const realmEntity = await findRealm(this.realmsRepository, guildJob.realm);
     if (!realmEntity) {

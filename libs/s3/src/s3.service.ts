@@ -1,3 +1,5 @@
+import { promisify } from 'node:util';
+import zlib from 'node:zlib';
 import {
   BucketAlreadyOwnedByYou,
   CreateBucketCommand,
@@ -11,8 +13,6 @@ import {
 } from '@aws-sdk/client-s3';
 import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
 import { InjectS3, type S3 } from 'nestjs-s3';
-import { promisify } from 'util';
-import zlib from 'zlib';
 import type {
   S3BucketConfig,
   S3FileMetadata,
@@ -383,8 +383,8 @@ export class S3Service implements OnModuleInit {
         requestCount++;
 
         if (response.Contents) {
-          const matchingFiles = response.Contents.filter((obj) => obj.Key && obj.Key.endsWith(`.${extension}`)).map(
-            (obj) => obj.Key!,
+          const matchingFiles = response.Contents.map((obj) => obj.Key).filter(
+            (key): key is string => key?.endsWith(`.${extension}`) === true,
           );
 
           files.push(...matchingFiles);

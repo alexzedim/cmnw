@@ -1,4 +1,3 @@
-import { Logger } from '@nestjs/common';
 import type { JobsOptions } from 'bullmq';
 import { realmsQueue } from '../../queues/realms.queue';
 
@@ -19,8 +18,6 @@ export class RealmMessageDto {
   public readonly name: string;
   public readonly data: IRealmMessageBase;
   public readonly opts?: JobsOptions;
-
-  private static readonly realmLogger = new Logger(RealmMessageDto.name);
 
   /**
    * Constructor - creates a validated Realm Message with BullMQ properties

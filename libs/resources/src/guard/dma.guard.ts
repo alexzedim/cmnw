@@ -14,7 +14,7 @@ export const validateAndConvertToNumber = (
 ): { isValid: boolean; value: number; error?: string } => {
   const converted = Number(value);
 
-  if (isNaN(converted)) {
+  if (Number.isNaN(converted)) {
     return {
       isValid: false,
       value: 0,
