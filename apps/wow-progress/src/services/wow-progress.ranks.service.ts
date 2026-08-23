@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { BATTLE_NET_KEY_TAG_OSINT, BattleNetService } from '@app/battle-net';
 import { RealmsEntity } from '@app/pg';
 import {
@@ -20,7 +21,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import type { Queue } from 'bullmq';
 import chalk from 'chalk';
-import { createHash } from 'crypto';
 import type Redis from 'ioredis';
 import type { Browser, Page } from 'playwright';
 import { chromium } from 'playwright-extra';
@@ -53,7 +53,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
     @InjectRedis()
     private readonly redisService: Redis,
     private s3Service: S3Service,
-    private readonly battleNetService: BattleNetService,
+    _battleNetService: BattleNetService,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectQueue('osint.guilds')
@@ -245,7 +245,6 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
               'Cache-Control': 'no-cache',
               Pragma: 'no-cache',
               Referer: 'https://www.wowprogress.com/export/ranks/',
-              // @ts-expect-error
               'User-Agent': navigator.userAgent,
             },
           });
@@ -382,7 +381,7 @@ export class WowProgressRanksService implements OnApplicationBootstrap, OnApplic
     }
   }
 
-  async extractAllGuildRanks(clearance: string = BATTLE_NET_KEY_TAG_OSINT) {
+  async extractAllGuildRanks(_clearance: string = BATTLE_NET_KEY_TAG_OSINT) {
     const startTime = Date.now();
     try {
       const bucketName = this.s3Service.getDefaultBucketName();

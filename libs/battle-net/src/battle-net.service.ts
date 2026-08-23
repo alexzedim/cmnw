@@ -3,7 +3,8 @@ import { KeysEntity } from '@app/pg';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { AxiosHeaders, type AxiosResponse } from 'axios';
+import type { AxiosResponse } from 'axios';
+import { AxiosHeaders } from 'axios';
 import chalk from 'chalk';
 import { lastValueFrom } from 'rxjs';
 import { map, timeout } from 'rxjs/operators';
@@ -190,7 +191,7 @@ export class BattleNetService {
     });
 
     if (tag) {
-      availableKeys = availableKeys.filter((key) => key.tags && key.tags.includes(tag));
+      availableKeys = availableKeys.filter((key) => key.tags?.includes(tag));
     }
 
     if (availableKeys.length === 0) {
@@ -230,7 +231,10 @@ export class BattleNetService {
     });
   }
 
-  private buildHeaders(config: IBattleNetClientConfig, options: IBattleNetQueryOptions): AxiosHeaders {
+  private buildHeaders(
+    config: IBattleNetClientConfig,
+    options: IBattleNetQueryOptions,
+  ): InstanceType<typeof AxiosHeaders> {
     const headers = new AxiosHeaders();
 
     headers.set('Content-Type', 'application/json');

@@ -276,18 +276,12 @@ export class ContractsService implements OnApplicationBootstrap {
         await getPercentileTypeByItemAndTimestamp(this.marketRepository, 'DISC', 0.98, itemId, timestamp, isGold),
       ]);
 
-      const itemOpenInterestWhere = isGold
-        ? {
-            itemId: itemId,
-            timestamp: timestamp,
-            isOnline: true,
-          }
-        : {
-            itemId: itemId,
-            timestamp: timestamp,
-          };
-
-      itemOpenInterestWhere['price'] = LessThan(percentile98);
+      const itemOpenInterestWhere = {
+        itemId: itemId,
+        timestamp: timestamp,
+        price: LessThan(percentile98),
+        ...(isGold ? { isOnline: true } : {}),
+      };
 
       const itemOpenInterest = await this.marketRepository
         .createQueryBuilder('m')

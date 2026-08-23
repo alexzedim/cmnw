@@ -75,7 +75,7 @@ export class CharacterResponseDto extends CharactersEntity {
     description: 'Character global unique identifier (GUID)',
     example: 'us-area-52-12345678',
   })
-  readonly guid: string;
+  declare readonly guid: string;
 
   @ApiProperty({
     type: 'number',
@@ -83,7 +83,7 @@ export class CharacterResponseDto extends CharactersEntity {
     description: 'Character ID from Battle.net API',
     example: 12345,
   })
-  readonly id?: number;
+  declare readonly id?: number;
 
   @ApiProperty({
     type: 'string',
@@ -91,26 +91,26 @@ export class CharacterResponseDto extends CharactersEntity {
     description: 'Character name',
     example: 'Thrallmaster',
   })
-  readonly name: string;
+  declare readonly name: string;
 
   @ApiProperty({
     type: 'number',
     description: 'Realm ID from Battle.net API',
     example: 1,
   })
-  readonly realmId: number;
+  declare readonly realmId: number;
 
   @ApiProperty({
     description: 'Realm name',
     example: 'Area 52',
   })
-  readonly realmName: string;
+  declare readonly realmName: string;
 
   @ApiProperty({
     description: 'Realm slug/identifier',
     example: 'area-52',
   })
-  readonly realm: string;
+  declare readonly realm: string;
 
   @ApiProperty({
     type: 'string',
@@ -118,7 +118,7 @@ export class CharacterResponseDto extends CharactersEntity {
     description: 'Guild name',
     example: 'Eternal Kingdom',
   })
-  readonly guild?: string;
+  declare readonly guild?: string;
 
   @ApiProperty({
     type: 'string',
@@ -126,7 +126,7 @@ export class CharacterResponseDto extends CharactersEntity {
     description: 'Guild global unique identifier (GUID)',
     example: 'us-area-52-guild-12345',
   })
-  readonly guildGuid?: string;
+  declare readonly guildGuid?: string;
 
   @ApiProperty({
     type: 'number',
@@ -134,7 +134,7 @@ export class CharacterResponseDto extends CharactersEntity {
     description: 'Guild ID from Battle.net API',
     example: 98765,
   })
-  readonly guildId?: number;
+  declare readonly guildId?: number;
 
   @ApiProperty({
     type: 'number',
@@ -142,21 +142,21 @@ export class CharacterResponseDto extends CharactersEntity {
     description: 'Character rank in guild (0-based)',
     example: 0,
   })
-  readonly guildRank?: number;
+  declare readonly guildRank?: number;
 
   @ApiProperty({
     type: 'string',
     nullable: true,
     description: 'Hash A for data integrity',
   })
-  readonly hashA?: string;
+  declare readonly hashA?: string;
 
   @ApiProperty({
     type: 'string',
     nullable: true,
     description: 'Hash B for data integrity',
   })
-  readonly hashB?: string;
+  declare readonly hashB?: string;
 
   @ApiProperty({
     type: 'string',
@@ -164,7 +164,7 @@ export class CharacterResponseDto extends CharactersEntity {
     description: 'Character race',
     example: 'Orc',
   })
-  readonly race?: string;
+  declare readonly race?: string;
 
   @ApiProperty({
     type: 'string',
@@ -172,7 +172,7 @@ export class CharacterResponseDto extends CharactersEntity {
     description: 'Character class',
     example: 'Warlock',
   })
-  readonly class?: string;
+  declare readonly class?: string;
 
   @ApiProperty({
     type: 'string',
@@ -180,7 +180,7 @@ export class CharacterResponseDto extends CharactersEntity {
     description: 'Character specialization',
     example: 'Demonology',
   })
-  readonly specialization?: string;
+  declare readonly specialization?: string;
 
   @ApiProperty({
     type: 'string',
@@ -189,7 +189,7 @@ export class CharacterResponseDto extends CharactersEntity {
     enum: ['Male', 'Female'],
     example: 'Male',
   })
-  readonly gender?: string;
+  declare readonly gender?: string;
 
   @ApiProperty({
     type: 'string',
@@ -198,7 +198,7 @@ export class CharacterResponseDto extends CharactersEntity {
     enum: ['Horde', 'Alliance'],
     example: 'Horde',
   })
-  readonly faction?: string;
+  declare readonly faction?: string;
 
   @ApiProperty({
     type: 'number',
@@ -206,7 +206,7 @@ export class CharacterResponseDto extends CharactersEntity {
     description: 'Character level',
     example: 70,
   })
-  readonly level?: number;
+  declare readonly level?: number;
 
   @ApiProperty({
     type: 'number',
@@ -214,7 +214,7 @@ export class CharacterResponseDto extends CharactersEntity {
     description: 'Total achievement points',
     example: 13425,
   })
-  readonly achievementPoints?: number;
+  declare readonly achievementPoints?: number;
 
   @ApiProperty({
     type: 'number',
@@ -222,7 +222,7 @@ export class CharacterResponseDto extends CharactersEntity {
     description: 'Average item level across all items',
     example: 489,
   })
-  readonly averageItemLevel?: number;
+  declare readonly averageItemLevel?: number;
 
   @ApiProperty({
     type: 'number',
@@ -230,7 +230,7 @@ export class CharacterResponseDto extends CharactersEntity {
     description: 'Equipped item level (only equipped items)',
     example: 496,
   })
-  readonly equippedItemLevel?: number;
+  declare readonly equippedItemLevel?: number;
 
   @ApiProperty({
     type: 'number',
@@ -246,7 +246,7 @@ export class CharacterResponseDto extends CharactersEntity {
     description: 'Covenant ID (Shadowlands)',
     example: 1,
   })
-  readonly covenantId?: number;
+  declare readonly covenantId?: number;
 
   @ApiProperty({
     type: 'string',
@@ -254,21 +254,21 @@ export class CharacterResponseDto extends CharactersEntity {
     description: 'Avatar image URL',
     example: 'https://render.worldofwarcraft.com/us/character/area-52/1/12345678/avatar.jpg',
   })
-  readonly avatarImage?: string;
+  declare readonly avatarImage?: string;
 
   @ApiProperty({
     type: 'string',
     nullable: true,
     description: 'Inset image URL',
   })
-  readonly insetImage?: string;
+  declare readonly insetImage?: string;
 
   @ApiProperty({
     type: 'string',
     nullable: true,
     description: 'Main profile image URL',
   })
-  readonly mainImage?: string;
+  declare readonly mainImage?: string;
 
   @ApiProperty({
     type: 'number',
@@ -276,7 +276,7 @@ export class CharacterResponseDto extends CharactersEntity {
     description: 'Total number of mounts collected',
     example: 256,
   })
-  readonly mountsNumber?: number;
+  declare readonly mountsNumber?: number;
 
   @ApiProperty({
     type: 'number',
@@ -284,7 +284,7 @@ export class CharacterResponseDto extends CharactersEntity {
     description: 'Total number of pets collected',
     example: 892,
   })
-  readonly petsNumber?: number;
+  declare readonly petsNumber?: number;
 
   @ApiProperty({
     type: 'string',
@@ -292,13 +292,13 @@ export class CharacterResponseDto extends CharactersEntity {
     description: 'Service or process that created this record',
     example: 'OSINT-CHARACTER-GET',
   })
-  readonly createdBy?: string;
+  declare readonly createdBy?: string;
 
   @ApiProperty({
     description: 'Service or process that last updated this record',
     example: 'OSINT-CHARACTER-INDEX',
   })
-  readonly updatedBy: string;
+  declare readonly updatedBy: string;
 
   @ApiProperty({
     type: 'string',
@@ -306,7 +306,7 @@ export class CharacterResponseDto extends CharactersEntity {
     nullable: true,
     description: 'Timestamp of last modification',
   })
-  readonly lastModified?: Date;
+  declare readonly lastModified?: Date;
 
   @ApiProperty({
     type: 'string',
@@ -314,7 +314,7 @@ export class CharacterResponseDto extends CharactersEntity {
     nullable: true,
     description: 'Record creation timestamp',
   })
-  readonly createdAt?: Date;
+  declare readonly createdAt?: Date;
 
   @ApiProperty({
     type: 'string',
@@ -322,7 +322,7 @@ export class CharacterResponseDto extends CharactersEntity {
     nullable: true,
     description: 'Record last update timestamp',
   })
-  readonly updatedAt?: Date;
+  declare readonly updatedAt?: Date;
 
   @ApiProperty({
     type: CharacterPercentiles,
