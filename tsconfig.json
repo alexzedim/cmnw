@@ -2,6 +2,8 @@
   "compilerOptions": {
     "module": "nodenext",
     "moduleResolution": "nodenext",
+    "strict": false,
+    "types": ["node", "jest"],
     "declaration": true,
     "removeComments": true,
     "emitDecoratorMetadata": true,
@@ -28,5 +30,7 @@
       "@app/s3": ["./libs/s3/src"],
       "@app/s3/*": ["./libs/s3/src/*"]
     }
-  }
+  },
+  "include": ["apps/**/*", "libs/**/*", "types/**/*", "jest.setup.ts"],
+  "exclude": ["node_modules", "dist", "coverage"]
 }
