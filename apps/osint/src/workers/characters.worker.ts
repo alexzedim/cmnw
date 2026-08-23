@@ -130,6 +130,7 @@ export class CharactersWorker extends WorkerHost {
         }
       }
 
+      characterEntity.updatedAt = new Date();
       await this.characterService.save(characterEntity);
 
       const hasHashBNow = Boolean(characterEntity.hashB);

@@ -154,6 +154,7 @@ export class GuildsWorker extends WorkerHost {
       };
 
       guildEntity.status = this.aggregateGuildStatus(guildEntity.status, operationStatuses);
+      guildEntity.updatedAt = new Date();
       await this.guildService.save(guildEntity);
 
       if (!hasCoreGuildErrorInString(guildEntity.status) && isCoreGuildSuccessInString(guildEntity.status)) {
