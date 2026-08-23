@@ -1,5 +1,10 @@
 import { AnalyticsEntity } from '@app/pg';
-import { AnalyticsMetricCategory, AnalyticsMetricType, ARRAY_METRIC_TYPES } from '@app/resources';
+import {
+  AnalyticsMetricCategory,
+  AnalyticsMetricType,
+  ARRAY_METRIC_TYPES,
+  RETIRED_METRIC_TYPES,
+} from '@app/resources';
 import type { RankRecord } from '@app/resources/types';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -12,8 +17,11 @@ import { In, type Repository } from 'typeorm';
  * Standardized contract: every metric `value` is a JSONB **object** keyed by
  * entity identifier (guild `guid` or `String(itemId)`), never an array.
  *
+ * Also purges snapshots of retired metric types (see RETIRED_METRIC_TYPES)
+ * from the database.
+ *
  * Legacy shapes handled here:
- *  - arrays of records (topByMembers/Achievements/Volume/Auctions, and the
+ *  - arrays of records (topByAchievements/Volume/Auctions, and the
  *    newer array rows of the contract metrics)
  *  - single bare record objects for the contract metrics
  *    (topByQuantity/topByOpenInterest/priceVolatility) where the record fields
@@ -34,6 +42,8 @@ export class AnalyticsMigrationService {
     const logTag = 'migrateAnalyticsValues';
     const byMetricType: Record<string, number> = {};
     let migratedRows = 0;
+
+    await this.purgeRetiredMetricTypes();
 
     const legacyRows = await this.analyticsRepository.find({
       where: {
@@ -80,6 +90,20 @@ export class AnalyticsMigrationService {
     }
 
     return { migratedRows, byMetricType };
+  }
+
+  private async purgeRetiredMetricTypes(): Promise<number> {
+    const logTag = 'purgeRetiredMetricTypes';
+    const result = await this.analyticsRepository.delete({
+      metricType: In([...RETIRED_METRIC_TYPES]),
+    });
+
+    const deleted = result.affected ?? 0;
+    if (deleted > 0) {
+      this.logger.log({ logTag, message: 'Purged retired analytics metrics', deleted });
+    }
+
+    return deleted;
   }
 
   /**

@@ -122,12 +122,24 @@ export interface GuildRealmFactionAggregation {
   count: string;
 }
 
-export interface GuildSizeDistribution {
-  tiny: string;
-  small: string;
-  medium: string;
-  large: string;
-  massive: string;
+export interface GuildMembersDistributionRow {
+  realm_id?: number;
+  total: string;
+  range_1_10: string;
+  range_11_50: string;
+  range_51_100: string;
+  range_101_250: string;
+  range_251_500: string;
+  range_501_750: string;
+  range_751_999: string;
+  capped: string;
+  avg_members: string;
+  stddev_members: string;
+  min_members: string | number;
+  max_members: string | number;
+  p50: string | number;
+  p90: string | number;
+  p99: string | number;
 }
 
 export interface GuildTopByMembers {
@@ -135,6 +147,23 @@ export interface GuildTopByMembers {
   name: string;
   realm: string;
   value: number;
+}
+
+export interface GuildAchievementsDistributionRow {
+  realm_id?: number;
+  total: string;
+  under1k: string;
+  range1k10k: string;
+  range10k100k: string;
+  range100k1m: string;
+  over1m: string;
+  avg_points: string;
+  stddev_points: string;
+  min_points: string | number;
+  max_points: string | number;
+  p50: string | number;
+  p90: string | number;
+  p99: string | number;
 }
 
 export interface MarketTotalMetrics {

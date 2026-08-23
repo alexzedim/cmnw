@@ -2,16 +2,17 @@ import { AnalyticsEntity, GuildsEntity } from '@app/pg';
 import { AnalyticsMetricCategory, AnalyticsMetricType } from '@app/resources';
 import { analyticsKeyOf, findExistingAnalyticsKeys } from '@app/resources/dao';
 import type {
+  GuildAchievementsDistributionRow,
   GuildCountAggregation,
+  GuildMembersDistributionRow,
   GuildRealmAggregation,
   GuildRealmFactionAggregation,
-  GuildSizeDistribution,
   GuildTopByMembers,
   GuildTotalMetrics,
 } from '@app/resources/types';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import type { DataSource, EntityManager, Repository } from 'typeorm';
+import type { DataSource, EntityManager, Repository, SelectQueryBuilder } from 'typeorm';
 
 @Injectable()
 export class GuildMetricsService {
@@ -41,8 +42,8 @@ export class GuildMetricsService {
         await this.collectGuildByFaction(manager, rows, existingKeys, snapshotDate);
         await this.collectGuildByRealm(manager, rows, existingKeys, snapshotDate);
         await this.collectGuildByRealmFaction(manager, rows, existingKeys, snapshotDate);
-        await this.collectGuildSizeDistribution(manager, rows, existingKeys, snapshotDate);
-        await this.collectGuildTopByMembers(manager, rows, existingKeys, snapshotDate);
+        await this.collectGuildMembersDistribution(manager, rows, existingKeys, snapshotDate);
+        await this.collectGuildAchievementsDistribution(manager, rows, existingKeys, snapshotDate);
         await this.collectGuildTopByAchievements(manager, rows, existingKeys, snapshotDate);
 
         if (rows.length > 0) {
@@ -210,76 +211,217 @@ export class GuildMetricsService {
     }
   }
 
-  private async collectGuildSizeDistribution(
+  private async collectGuildMembersDistribution(
     manager: EntityManager,
     rows: AnalyticsEntity[],
     existingKeys: Set<string>,
     snapshotDate: Date,
   ): Promise<void> {
-    const key = analyticsKeyOf(AnalyticsMetricCategory.GUILDS, AnalyticsMetricType.SIZE_DISTRIBUTION);
-    if (existingKeys.has(key)) return;
+    const globalKey = analyticsKeyOf(AnalyticsMetricCategory.GUILDS, AnalyticsMetricType.MEMBERS_DISTRIBUTION);
+    if (!existingKeys.has(globalKey)) {
+      const globalRow = await this.withMembersDistributionSelect(
+        manager.getRepository(GuildsEntity).createQueryBuilder('g'),
+      )
+        .where('g.faction IS NOT NULL')
+        .andWhere('g.members_count > 0')
+        .getRawOne<GuildMembersDistributionRow>();
 
-    const sizeDistribution = await manager
-      .getRepository(GuildsEntity)
-      .createQueryBuilder('g')
-      .select(`SUM(CASE WHEN g.members_count BETWEEN 1 AND 10 THEN 1 ELSE 0 END)`, 'tiny')
-      .addSelect(`SUM(CASE WHEN g.members_count BETWEEN 11 AND 30 THEN 1 ELSE 0 END)`, 'small')
-      .addSelect(`SUM(CASE WHEN g.members_count BETWEEN 31 AND 100 THEN 1 ELSE 0 END)`, 'medium')
-      .addSelect(`SUM(CASE WHEN g.members_count BETWEEN 101 AND 300 THEN 1 ELSE 0 END)`, 'large')
-      .addSelect(`SUM(CASE WHEN g.members_count > 300 THEN 1 ELSE 0 END)`, 'massive')
-      .getRawOne<GuildSizeDistribution>();
-
-    rows.push(
-      manager.create(AnalyticsEntity, {
-        category: AnalyticsMetricCategory.GUILDS,
-        metricType: AnalyticsMetricType.SIZE_DISTRIBUTION,
-        value: {
-          tiny: parseInt(sizeDistribution?.tiny || '0', 10),
-          small: parseInt(sizeDistribution?.small || '0', 10),
-          medium: parseInt(sizeDistribution?.medium || '0', 10),
-          large: parseInt(sizeDistribution?.large || '0', 10),
-          massive: parseInt(sizeDistribution?.massive || '0', 10),
-        },
-        snapshotDate,
-      }),
-    );
-  }
-
-  private async collectGuildTopByMembers(
-    manager: EntityManager,
-    rows: AnalyticsEntity[],
-    existingKeys: Set<string>,
-    snapshotDate: Date,
-  ): Promise<void> {
-    const key = analyticsKeyOf(AnalyticsMetricCategory.GUILDS, AnalyticsMetricType.TOP_BY_MEMBERS);
-    if (existingKeys.has(key)) return;
-
-    const topByMembers = await manager
-      .getRepository(GuildsEntity)
-      .createQueryBuilder('g')
-      .select('g.guid', 'guid')
-      .addSelect('g.name', 'name')
-      .addSelect('g.realm', 'realm')
-      .addSelect('g.members_count', 'value')
-      .orderBy('g.members_count', 'DESC')
-      .limit(10)
-      .getRawMany<GuildTopByMembers>();
-
-    const value: Record<string, GuildTopByMembers> = {};
-    for (const guild of topByMembers) {
-      if (guild?.guid) {
-        value[guild.guid] = guild;
+      if (globalRow) {
+        rows.push(
+          manager.create(AnalyticsEntity, {
+            category: AnalyticsMetricCategory.GUILDS,
+            metricType: AnalyticsMetricType.MEMBERS_DISTRIBUTION,
+            value: this.toMembersDistributionValue(globalRow),
+            snapshotDate,
+          }),
+        );
       }
     }
 
-    rows.push(
-      manager.create(AnalyticsEntity, {
-        category: AnalyticsMetricCategory.GUILDS,
-        metricType: AnalyticsMetricType.TOP_BY_MEMBERS,
-        value,
-        snapshotDate,
-      }),
-    );
+    const byRealm = await this.withMembersDistributionSelect(
+      manager.getRepository(GuildsEntity).createQueryBuilder('g'),
+    )
+      .addSelect('g.realm_id', 'realm_id')
+      .where('g.faction IS NOT NULL')
+      .andWhere('g.members_count > 0')
+      .groupBy('g.realm_id')
+      .getRawMany<GuildMembersDistributionRow>();
+
+    for (const realmRow of byRealm) {
+      if (!realmRow?.realm_id) continue;
+
+      const key = analyticsKeyOf(
+        AnalyticsMetricCategory.GUILDS,
+        AnalyticsMetricType.MEMBERS_DISTRIBUTION,
+        realmRow.realm_id,
+      );
+      if (existingKeys.has(key)) continue;
+
+      rows.push(
+        manager.create(AnalyticsEntity, {
+          category: AnalyticsMetricCategory.GUILDS,
+          metricType: AnalyticsMetricType.MEMBERS_DISTRIBUTION,
+          realmId: realmRow.realm_id,
+          value: this.toMembersDistributionValue(realmRow),
+          snapshotDate,
+        }),
+      );
+    }
+  }
+
+  private withMembersDistributionSelect(
+    qb: SelectQueryBuilder<GuildsEntity>,
+  ): SelectQueryBuilder<GuildsEntity> {
+    return qb
+      .select('COUNT(*)', 'total')
+      .addSelect(`SUM(CASE WHEN g.members_count BETWEEN 1 AND 10 THEN 1 ELSE 0 END)`, 'range_1_10')
+      .addSelect(`SUM(CASE WHEN g.members_count BETWEEN 11 AND 50 THEN 1 ELSE 0 END)`, 'range_11_50')
+      .addSelect(`SUM(CASE WHEN g.members_count BETWEEN 51 AND 100 THEN 1 ELSE 0 END)`, 'range_51_100')
+      .addSelect(`SUM(CASE WHEN g.members_count BETWEEN 101 AND 250 THEN 1 ELSE 0 END)`, 'range_101_250')
+      .addSelect(`SUM(CASE WHEN g.members_count BETWEEN 251 AND 500 THEN 1 ELSE 0 END)`, 'range_251_500')
+      .addSelect(`SUM(CASE WHEN g.members_count BETWEEN 501 AND 750 THEN 1 ELSE 0 END)`, 'range_501_750')
+      .addSelect(`SUM(CASE WHEN g.members_count BETWEEN 751 AND 999 THEN 1 ELSE 0 END)`, 'range_751_999')
+      .addSelect(`SUM(CASE WHEN g.members_count >= 1000 THEN 1 ELSE 0 END)`, 'capped')
+      .addSelect('AVG(g.members_count)', 'avg_members')
+      .addSelect('STDDEV_POP(g.members_count)', 'stddev_members')
+      .addSelect('MIN(g.members_count)', 'min_members')
+      .addSelect('MAX(g.members_count)', 'max_members')
+      .addSelect('PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY g.members_count)', 'p50')
+      .addSelect('PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY g.members_count)', 'p90')
+      .addSelect('PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY g.members_count)', 'p99');
+  }
+
+  private toMembersDistributionValue(row: GuildMembersDistributionRow): Record<string, any> {
+    return {
+      total: parseInt(row.total || '0', 10),
+      capped: parseInt(row.capped || '0', 10),
+      ranges: {
+        '1-10': parseInt(row.range_1_10 || '0', 10),
+        '11-50': parseInt(row.range_11_50 || '0', 10),
+        '51-100': parseInt(row.range_51_100 || '0', 10),
+        '101-250': parseInt(row.range_101_250 || '0', 10),
+        '251-500': parseInt(row.range_251_500 || '0', 10),
+        '501-750': parseInt(row.range_501_750 || '0', 10),
+        '751-999': parseInt(row.range_751_999 || '0', 10),
+      },
+      stats: {
+        min: parseInt(String(row.min_members ?? 0), 10),
+        max: parseInt(String(row.max_members ?? 0), 10),
+        avg: Math.round(Number(row.avg_members || 0) * 100) / 100,
+        stddev: Math.round(Number(row.stddev_members || 0) * 100) / 100,
+        p50: Math.round(Number(row.p50 || 0) * 100) / 100,
+        p90: Math.round(Number(row.p90 || 0) * 100) / 100,
+        p99: Math.round(Number(row.p99 || 0) * 100) / 100,
+      },
+    };
+  }
+
+  private async collectGuildAchievementsDistribution(
+    manager: EntityManager,
+    rows: AnalyticsEntity[],
+    existingKeys: Set<string>,
+    snapshotDate: Date,
+  ): Promise<void> {
+    const globalKey = analyticsKeyOf(AnalyticsMetricCategory.GUILDS, AnalyticsMetricType.ACHIEVEMENTS_DISTRIBUTION);
+    if (!existingKeys.has(globalKey)) {
+      const globalRow = await this.withAchievementsDistributionSelect(
+        manager.getRepository(GuildsEntity).createQueryBuilder('g'),
+      )
+        .where('g.faction IS NOT NULL')
+        .andWhere('g.achievement_points > 0')
+        .getRawOne<GuildAchievementsDistributionRow>();
+
+      if (globalRow) {
+        rows.push(
+          manager.create(AnalyticsEntity, {
+            category: AnalyticsMetricCategory.GUILDS,
+            metricType: AnalyticsMetricType.ACHIEVEMENTS_DISTRIBUTION,
+            value: this.toAchievementsDistributionValue(globalRow),
+            snapshotDate,
+          }),
+        );
+      }
+    }
+
+    const byRealm = await this.withAchievementsDistributionSelect(
+      manager.getRepository(GuildsEntity).createQueryBuilder('g'),
+    )
+      .addSelect('g.realm_id', 'realm_id')
+      .where('g.faction IS NOT NULL')
+      .andWhere('g.achievement_points > 0')
+      .groupBy('g.realm_id')
+      .getRawMany<GuildAchievementsDistributionRow>();
+
+    for (const realmRow of byRealm) {
+      if (!realmRow?.realm_id) continue;
+
+      const key = analyticsKeyOf(
+        AnalyticsMetricCategory.GUILDS,
+        AnalyticsMetricType.ACHIEVEMENTS_DISTRIBUTION,
+        realmRow.realm_id,
+      );
+      if (existingKeys.has(key)) continue;
+
+      rows.push(
+        manager.create(AnalyticsEntity, {
+          category: AnalyticsMetricCategory.GUILDS,
+          metricType: AnalyticsMetricType.ACHIEVEMENTS_DISTRIBUTION,
+          realmId: realmRow.realm_id,
+          value: this.toAchievementsDistributionValue(realmRow),
+          snapshotDate,
+        }),
+      );
+    }
+  }
+
+  private withAchievementsDistributionSelect(
+    qb: SelectQueryBuilder<GuildsEntity>,
+  ): SelectQueryBuilder<GuildsEntity> {
+    return qb
+      .select('COUNT(*)', 'total')
+      .addSelect(`SUM(CASE WHEN g.achievement_points < 1000 THEN 1 ELSE 0 END)`, 'under1k')
+      .addSelect(
+        `SUM(CASE WHEN g.achievement_points >= 1000 AND g.achievement_points < 10000 THEN 1 ELSE 0 END)`,
+        'range1k10k',
+      )
+      .addSelect(
+        `SUM(CASE WHEN g.achievement_points >= 10000 AND g.achievement_points < 100000 THEN 1 ELSE 0 END)`,
+        'range10k100k',
+      )
+      .addSelect(
+        `SUM(CASE WHEN g.achievement_points >= 100000 AND g.achievement_points < 1000000 THEN 1 ELSE 0 END)`,
+        'range100k1m',
+      )
+      .addSelect(`SUM(CASE WHEN g.achievement_points >= 1000000 THEN 1 ELSE 0 END)`, 'over1m')
+      .addSelect('AVG(g.achievement_points)', 'avg_points')
+      .addSelect('STDDEV_POP(g.achievement_points)', 'stddev_points')
+      .addSelect('MIN(g.achievement_points)', 'min_points')
+      .addSelect('MAX(g.achievement_points)', 'max_points')
+      .addSelect('PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY g.achievement_points)', 'p50')
+      .addSelect('PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY g.achievement_points)', 'p90')
+      .addSelect('PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY g.achievement_points)', 'p99');
+  }
+
+  private toAchievementsDistributionValue(row: GuildAchievementsDistributionRow): Record<string, any> {
+    return {
+      total: parseInt(row.total || '0', 10),
+      ranges: {
+        under1k: parseInt(row.under1k || '0', 10),
+        '1k-10k': parseInt(row.range1k10k || '0', 10),
+        '10k-100k': parseInt(row.range10k100k || '0', 10),
+        '100k-1m': parseInt(row.range100k1m || '0', 10),
+        over1m: parseInt(row.over1m || '0', 10),
+      },
+      stats: {
+        min: parseInt(String(row.min_points ?? 0), 10),
+        max: parseInt(String(row.max_points ?? 0), 10),
+        avg: Math.round(Number(row.avg_points || 0) * 100) / 100,
+        stddev: Math.round(Number(row.stddev_points || 0) * 100) / 100,
+        p50: Math.round(Number(row.p50 || 0) * 100) / 100,
+        p90: Math.round(Number(row.p90 || 0) * 100) / 100,
+        p99: Math.round(Number(row.p99 || 0) * 100) / 100,
+      },
+    };
   }
 
   private async collectGuildTopByAchievements(

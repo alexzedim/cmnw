@@ -20,8 +20,8 @@ export enum AnalyticsMetricType {
   AVERAGES = 'averages',
   UNIQUE_PLAYERS = 'uniquePlayers',
   BY_CONNECTED_REALM = 'byConnectedRealm',
-  SIZE_DISTRIBUTION = 'sizeDistribution',
-  TOP_BY_MEMBERS = 'topByMembers',
+  MEMBERS_DISTRIBUTION = 'membersDistribution',
+  ACHIEVEMENTS_DISTRIBUTION = 'achievementsDistribution',
   TOP_BY_ACHIEVEMENTS = 'topByAchievements',
   PRICE_RANGES = 'priceRanges',
   TOP_BY_VOLUME = 'topByVolume',
@@ -34,7 +34,6 @@ export enum AnalyticsMetricType {
 }
 
 export const ARRAY_METRIC_TYPES = [
-  AnalyticsMetricType.TOP_BY_MEMBERS,
   AnalyticsMetricType.TOP_BY_ACHIEVEMENTS,
   AnalyticsMetricType.TOP_BY_VOLUME,
   AnalyticsMetricType.TOP_BY_AUCTIONS,
@@ -42,3 +41,5 @@ export const ARRAY_METRIC_TYPES = [
   AnalyticsMetricType.TOP_BY_OPEN_INTEREST,
   AnalyticsMetricType.PRICE_VOLATILITY,
 ] as const;
+
+export const RETIRED_METRIC_TYPES = ['sizeDistribution', 'topByMembers'] as const;
