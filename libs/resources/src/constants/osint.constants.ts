@@ -21,6 +21,8 @@ export const OSINT_TIMEOUT_TOLERANCE = 50 * 1_000;
 
 export const MAX_CHARACTERS_PER_ACCOUNT = 70;
 
+export const HASH_RECONCILE_SWEEP_CHANCE = 0.02;
+
 export enum HASH_BLOCK_ACTION {
   GENESIS = 'GENESIS',
   JOIN = 'JOIN',

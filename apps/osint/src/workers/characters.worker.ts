@@ -17,6 +17,7 @@ import {
   charactersQueue,
   FeedEventCategory,
   FeedStatus,
+  HASH_RECONCILE_SWEEP_CHANCE,
   type ICharacterMessageBase,
   type IRefreshContext,
   isEndpointSuccessInString,
@@ -133,9 +134,14 @@ export class CharactersWorker extends WorkerHost {
       characterEntity.updatedAt = new Date();
       await this.characterService.save(characterEntity);
 
-      const hasHashBNow = Boolean(characterEntity.hashB);
-      const hadHashB = !isNew && Boolean(original?.hashB);
-      if (hasHashBNow || hadHashB) {
+      const newHashA = characterEntity.hashA ?? null;
+      const newHashB = characterEntity.hashB ?? null;
+      const oldHashA = original?.hashA ?? null;
+      const oldHashB = original?.hashB ?? null;
+      const isHashChanged = newHashA !== oldHashA || newHashB !== oldHashB;
+      const hasAnyHashB = Boolean(newHashB) || Boolean(oldHashB);
+      const isSweepHit = Math.random() < HASH_RECONCILE_SWEEP_CHANCE;
+      if (hasAnyHashB && (isHashChanged || isSweepHit)) {
         await this.hashBlockService.enqueueHashUpdate(characterEntity.guid);
       }
 
