@@ -1,3 +1,4 @@
+import { formatServiceErrorLog } from '@app/logger';
 import { CharactersEntity, CharactersGuildsLogsEntity, CharactersGuildsMembersEntity, type GuildsEntity } from '@app/pg';
 import {
   ACTION_LOG,
@@ -49,11 +50,14 @@ export class GuildMemberService {
       roster.status = setGuildStatusString('-----', 'MEMBERS', GuildStatusState.SUCCESS);
     } catch (errorOrException) {
       roster.status = setGuildStatusString('-----', 'MEMBERS', GuildStatusState.ERROR);
-      this.logger.error({
-        logTag: 'updateRoster',
-        guildGuid: guildEntity.guid,
-        error: JSON.stringify(errorOrException),
-      });
+      this.logger.error(
+        formatServiceErrorLog(
+          'updateRoster',
+          guildEntity.guid,
+          0,
+          errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
+        ),
+      );
     }
   }
 
@@ -206,11 +210,14 @@ export class GuildMemberService {
         },
       );
     } catch (errorOrException) {
-      this.logger.error({
-        logTag: 'processIntersectionMember',
-        guildGuid: guildEntity.guid,
-        error: JSON.stringify(errorOrException),
-      });
+      this.logger.error(
+        formatServiceErrorLog(
+          'processIntersectionMember',
+          guildEntity.guid,
+          0,
+          errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
+        ),
+      );
     }
   }
 
@@ -287,11 +294,14 @@ export class GuildMemberService {
         },
       );
     } catch (errorOrException) {
-      this.logger.error({
-        logTag: 'processJoinMember',
-        guildGuid: guildEntity.guid,
-        error: JSON.stringify(errorOrException),
-      });
+      this.logger.error(
+        formatServiceErrorLog(
+          'processJoinMember',
+          guildEntity.guid,
+          0,
+          errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
+        ),
+      );
     }
   }
 
@@ -351,11 +361,14 @@ export class GuildMemberService {
         },
       );
     } catch (errorOrException) {
-      this.logger.error({
-        logTag: 'processLeaveMember',
-        guildGuid: guildEntity.guid,
-        error: JSON.stringify(errorOrException),
-      });
+      this.logger.error(
+        formatServiceErrorLog(
+          'processLeaveMember',
+          guildEntity.guid,
+          0,
+          errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
+        ),
+      );
     }
   }
 
@@ -368,12 +381,10 @@ export class GuildMemberService {
     results.forEach((result, index) => {
       if (result.status === 'rejected') {
         const operation = operations[index].name;
-        this.logger.error({
-          logTag: `${context.logTag}:${operation}`,
-          guildGuid: context.guildGuid,
-          characterGuid: context.characterGuid,
-          error: JSON.stringify(result.reason),
-        });
+        const reason = result.reason instanceof Error ? result.reason.message : String(result.reason);
+        this.logger.error(
+          formatServiceErrorLog(`${context.logTag}:${operation}`, context.guildGuid, 0, reason, context.characterGuid),
+        );
       }
     });
   }

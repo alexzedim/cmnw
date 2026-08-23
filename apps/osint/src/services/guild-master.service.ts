@@ -1,3 +1,4 @@
+import { formatServiceErrorLog } from '@app/logger';
 import { CharactersEntity, CharactersGuildsLogsEntity, CharactersGuildsMembersEntity, type GuildsEntity } from '@app/pg';
 import {
   ACTION_LOG,
@@ -61,11 +62,14 @@ export class GuildMasterService {
 
       return setGuildStatusString('-----', 'MASTER', GuildStatusState.SUCCESS);
     } catch (errorOrException) {
-      this.logger.error({
-        logTag: 'detectAndLogGuildMasterChange',
-        guildGuid: guildEntity.guid,
-        error: JSON.stringify(errorOrException),
-      });
+      this.logger.error(
+        formatServiceErrorLog(
+          'detectAndLogGuildMasterChange',
+          guildEntity.guid,
+          0,
+          errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
+        ),
+      );
       return setGuildStatusString('-----', 'MASTER', GuildStatusState.ERROR);
     }
   }

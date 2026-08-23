@@ -1,3 +1,4 @@
+import { formatServiceErrorLog } from '@app/logger';
 import { MountsEntity, PetsEntity } from '@app/pg';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -29,10 +30,14 @@ export class CharacterEntityIndexingService {
         skipUpdateIfNoValuesChanged: true,
       });
     } catch (errorOrException) {
-      this.logger.error({
-        logTag: 'indexMounts',
-        error: JSON.stringify(errorOrException),
-      });
+      this.logger.error(
+        formatServiceErrorLog(
+          'indexMounts',
+          'mounts-index',
+          0,
+          errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
+        ),
+      );
     }
   }
 
@@ -51,10 +56,14 @@ export class CharacterEntityIndexingService {
 
       await Promise.all(pets.map((pet) => this.redisService.set(`PETS:${pet.id}`, 1)));
     } catch (errorOrException) {
-      this.logger.error({
-        logTag: 'indexPets',
-        error: JSON.stringify(errorOrException),
-      });
+      this.logger.error(
+        formatServiceErrorLog(
+          'indexPets',
+          'pets-index',
+          0,
+          errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
+        ),
+      );
     }
   }
 }

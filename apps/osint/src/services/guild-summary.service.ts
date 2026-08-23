@@ -1,4 +1,5 @@
 import { BattleNetNamespace, BattleNetService, type IBattleNetClientConfig } from '@app/battle-net';
+import { formatServiceErrorLog, formatServiceLog, WorkerLogStatus } from '@app/logger';
 import {
   type BlizzardApiGuildSummary,
   GUILD_SUMMARY_KEYS,
@@ -36,7 +37,15 @@ export class GuildSummaryService {
       );
 
       if (!isGuildSummary(response)) {
-        this.logger.warn({ logTag: 'getSummary', guildNameSlug, realmSlug, message: 'Invalid guild summary response' });
+        this.logger.warn(
+          formatServiceLog(
+            WorkerLogStatus.WARNING,
+            'getSummary',
+            `${guildNameSlug}@${realmSlug}`,
+            0,
+            'Invalid guild summary response',
+          ),
+        );
         return {};
       }
 
@@ -95,11 +104,7 @@ export class GuildSummaryService {
 
     summary.status = setGuildStatusString('-----', 'SUMMARY', GuildStatusState.ERROR);
 
-    this.logger.error({
-      logTag: 'getSummary',
-      guildGuid: toGuid(guildNameSlug, realmSlug),
-      statusCode,
-    });
+    this.logger.error(formatServiceErrorLog('getSummary', toGuid(guildNameSlug, realmSlug), 0, `HTTP ${statusCode}`));
 
     return summary;
   }

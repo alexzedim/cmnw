@@ -1,3 +1,4 @@
+import { formatServiceErrorLog } from '@app/logger';
 import { CharactersGuildsLogsEntity, type GuildsEntity } from '@app/pg';
 import { ACTION_LOG, GuildStatusState, setGuildStatusString } from '@app/resources';
 import { Injectable, Logger } from '@nestjs/common';
@@ -68,11 +69,14 @@ export class GuildLogService {
 
       return setGuildStatusString('-----', 'LOGS', GuildStatusState.SUCCESS);
     } catch (errorOrException) {
-      this.logger.error({
-        logTag: 'detectAndLogChanges',
-        guildGuid: original.guid,
-        error: JSON.stringify(errorOrException),
-      });
+      this.logger.error(
+        formatServiceErrorLog(
+          'detectAndLogChanges',
+          original.guid,
+          0,
+          errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
+        ),
+      );
       return setGuildStatusString('-----', 'LOGS', GuildStatusState.ERROR);
     }
   }

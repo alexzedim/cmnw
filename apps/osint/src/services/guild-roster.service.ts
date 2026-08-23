@@ -1,4 +1,5 @@
 import { BattleNetNamespace, BattleNetService, type IBattleNetClientConfig } from '@app/battle-net';
+import { formatServiceErrorLog } from '@app/logger';
 import { CharactersEntity, type GuildsEntity, RealmsEntity } from '@app/pg';
 import {
   CharacterMessageDto,
@@ -162,12 +163,16 @@ export class GuildRosterService {
         race: characterRace,
         faction: resolvedFaction,
       });
-    } catch (_errorOrException) {
-      this.logger.error({
-        logTag: 'processRosterMember',
-        member: member.character?.id,
-        guildGuid: guildEntity.guid,
-      });
+    } catch (errorOrException) {
+      this.logger.error(
+        formatServiceErrorLog(
+          'processRosterMember',
+          guildEntity.guid,
+          0,
+          errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
+          `member ${member.character?.id}`,
+        ),
+      );
     }
   }
 
@@ -233,11 +238,7 @@ export class GuildRosterService {
     roster.statusCode = statusCode || 400;
     roster.status = setGuildStatusString('-----', 'ROSTER', GuildStatusState.ERROR);
 
-    this.logger.error({
-      logTag: 'fetchRoster',
-      guildGuid: guildEntity.guid,
-      statusCode: roster.statusCode,
-    });
+    this.logger.error(formatServiceErrorLog('fetchRoster', guildEntity.guid, 0, `HTTP ${roster.statusCode}`));
 
     return roster;
   }
