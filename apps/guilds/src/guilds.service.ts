@@ -133,14 +133,13 @@ export class GuildsService implements OnApplicationBootstrap {
       let guildIteration = 0;
 
       const guilds = await this.guildsRepository.find({
-        order: { updatedAt: 'ASC' },
+        order: { guid: 'ASC' },
         take: OSINT_GUILD_LIMIT,
         skip: this.offset,
       });
 
-      const isRotate = false;
       const guildsCount = await this.guildsRepository.count();
-      this.offset = this.offset + (isRotate ? OSINT_GUILD_LIMIT : 0);
+      this.offset = this.offset + OSINT_GUILD_LIMIT;
 
       if (this.offset >= guildsCount) {
         this.logger.warn({
