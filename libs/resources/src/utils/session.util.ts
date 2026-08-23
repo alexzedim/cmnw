@@ -1,4 +1,4 @@
-import type { IncomingMessage } from 'http';
+import type { IncomingMessage } from 'node:http';
 
 import { SESSION_QUERY_KEY } from '../constants/feed.constants';
 

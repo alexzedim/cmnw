@@ -1,10 +1,5 @@
 import { AnalyticsEntity } from '@app/pg';
-import {
-  AnalyticsMetricCategory,
-  AnalyticsMetricType,
-  ARRAY_METRIC_TYPES,
-  RETIRED_METRIC_TYPES,
-} from '@app/resources';
+import { AnalyticsMetricCategory, AnalyticsMetricType, ARRAY_METRIC_TYPES, RETIRED_METRIC_TYPES } from '@app/resources';
 import type { RankRecord } from '@app/resources/types';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -196,10 +191,7 @@ export class AnalyticsMigrationService {
   private renameTopMetricFields(record: Record<string, unknown>): boolean {
     let changed = false;
 
-    if (
-      Object.hasOwn(record, 'quantity') &&
-      !Object.hasOwn(record, 'maxQuantity')
-    ) {
+    if (Object.hasOwn(record, 'quantity') && !Object.hasOwn(record, 'maxQuantity')) {
       const sum = record.quantity;
       record.maxQuantity = sum;
       record.minQuantity = sum;
@@ -207,10 +199,7 @@ export class AnalyticsMigrationService {
       changed = true;
     }
 
-    if (
-      Object.hasOwn(record, 'openInterest') &&
-      !Object.hasOwn(record, 'maxOpenInterest')
-    ) {
+    if (Object.hasOwn(record, 'openInterest') && !Object.hasOwn(record, 'maxOpenInterest')) {
       const sum = record.openInterest;
       record.maxOpenInterest = sum;
       record.minOpenInterest = sum;
@@ -246,7 +235,7 @@ export class AnalyticsMigrationService {
       return false;
     }
 
-    return  Object.hasOwn(value, 'itemId');
+    return Object.hasOwn(value, 'itemId');
   }
 
   private normalize(

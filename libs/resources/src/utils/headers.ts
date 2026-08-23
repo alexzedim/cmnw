@@ -60,7 +60,7 @@ export function getRandomizedHeaders(options: RandomizedHeadersOptions): Record<
   };
 
   if (referer) {
-    xhrHeaders['Referer'] = referer;
+    xhrHeaders.Referer = referer;
   }
 
   return xhrHeaders;

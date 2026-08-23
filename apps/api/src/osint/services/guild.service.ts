@@ -7,7 +7,14 @@ import {
   GuildsEntity,
   RealmsEntity,
 } from '@app/pg';
-import { findRealm, type GuildIdDto, GuildMessageDto, guildsQueue, type IGuildMessageBase, toGuid } from '@app/resources';
+import {
+  findRealm,
+  type GuildIdDto,
+  GuildMessageDto,
+  guildsQueue,
+  type IGuildMessageBase,
+  toGuid,
+} from '@app/resources';
 import { InjectQueue } from '@nestjs/bullmq';
 import {
   BadRequestException,

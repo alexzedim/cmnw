@@ -1,4 +1,9 @@
-import { BATTLE_NET_KEY_TAG_DMA, BattleNetNamespace, BattleNetService, type IBattleNetClientConfig } from '@app/battle-net';
+import {
+  BATTLE_NET_KEY_TAG_DMA,
+  BattleNetNamespace,
+  BattleNetService,
+  type IBattleNetClientConfig,
+} from '@app/battle-net';
 import {
   formatFinalSummary,
   formatProgressReport,

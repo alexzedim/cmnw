@@ -31,7 +31,7 @@ export class CharacterLifecycleService {
   ) {}
 
   async findOrCreateCharacter(character: ICharacterMessageBase): Promise<CharacterExistsOrCreate> {
-    const timestampNow = new Date().getTime();
+    const timestampNow = Date.now();
     const forceUpdate = character.forceUpdate || TIME_MS.TWENTY_FOUR_HOURS;
 
     const realmEntity = await findRealm(this.realmsRepository, character.realm);
@@ -160,7 +160,7 @@ export class CharacterLifecycleService {
   }
 
   shouldUpdateCharacter(characterEntity: CharactersEntity, forceUpdate: number): boolean {
-    const timestampNow = new Date().getTime();
+    const timestampNow = Date.now();
     const updateSafe = timestampNow - forceUpdate;
     const updatedAt = characterEntity.updatedAt.getTime();
 

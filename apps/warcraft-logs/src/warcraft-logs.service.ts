@@ -22,10 +22,10 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import { AxiosError, type AxiosProxyConfig } from 'axios';
 import type { Queue } from 'bullmq';
 import chalk from 'chalk';
-import { parse } from 'node-html-parser';
 import type Redis from 'ioredis';
 import { get } from 'lodash';
 import { DateTime } from 'luxon';
+import { parse } from 'node-html-parser';
 import { from, lastValueFrom } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
 import { ArrayContains, IsNull, Not, type Repository } from 'typeorm';
@@ -127,7 +127,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
     if (!keyEntity) return null;
 
     if (keyEntity.accessToken) {
-      this.sessionCookies['wcl_session'] = keyEntity.accessToken;
+      this.sessionCookies.wcl_session = keyEntity.accessToken;
       return keyEntity.accessToken;
     }
 
@@ -257,7 +257,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
 
       this.updateCookies(loginResponse.headers['set-cookie']);
 
-      const sessionCookie = this.sessionCookies['wcl_session'];
+      const sessionCookie = this.sessionCookies.wcl_session;
       if (!sessionCookie) {
         throw new Error('wcl_session cookie not found in login response');
       }
@@ -366,7 +366,7 @@ export class WarcraftLogsService implements OnApplicationBootstrap {
         const isReports = hrefString?.includes('reports');
         if (isReports && momentFormat) {
           const matchResult = hrefString.match(/(.{16})\s*$/g);
-          if (matchResult && matchResult[0]) {
+          if (matchResult?.[0]) {
             const logId = matchResult[0];
             const createdAt = DateTime.fromSeconds(Number(momentFormat)).toJSDate();
             warcraftLogsMap.set(logId, { logId, createdAt });

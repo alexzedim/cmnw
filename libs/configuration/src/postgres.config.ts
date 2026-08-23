@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import {
   AnalyticsEntity,
   CharactersEntity,
@@ -27,7 +28,6 @@ import {
   SpellReagentsEntity,
 } from '@app/pg';
 import type { TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { readFileSync } from 'fs';
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies';
 
 export const postgresConfig: TypeOrmModuleOptions = {
@@ -67,9 +67,10 @@ export const postgresConfig: TypeOrmModuleOptions = {
     SpellReagentsEntity,
   ],
   synchronize: true,
-  poolSize: 20,
+  poolSize: Number(process.env.POSTGRES_POOL_MAX) || 10,
+  applicationName: process.env.POSTGRES_APP_NAME || 'cmnw',
   extra: {
-    max: 20,
+    min: Number(process.env.POSTGRES_POOL_MIN) || 2,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000,
   },

@@ -1,5 +1,5 @@
+import { hostname } from 'node:os';
 import type { IWorkerConfig } from '@app/configuration/interfaces';
-import { hostname } from 'os';
 
 const getWorkerId = (): string => {
   // Check for explicit WORKER_ID env var
@@ -14,7 +14,7 @@ const getWorkerId = (): string => {
 
   // Use system hostname
   const systemHostname = hostname();
-  if (systemHostname && systemHostname.trim()) {
+  if (systemHostname?.trim()) {
     return systemHostname.trim();
   }
 

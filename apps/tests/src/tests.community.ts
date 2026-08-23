@@ -2,8 +2,8 @@ import type { IOsintConfig } from '@app/configuration';
 import { isCharacterRaidLogResponse, type RaidCharacter, toGuid } from '@app/resources';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, Logger } from '@nestjs/common';
-import { parse } from 'node-html-parser';
 import { get } from 'lodash';
+import { parse } from 'node-html-parser';
 
 @Injectable()
 export class TestsCommunity {
