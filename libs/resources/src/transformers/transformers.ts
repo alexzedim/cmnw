@@ -1,4 +1,4 @@
-import { type BlizzardApiNamedField, type ConvertPrice, FACTION } from '@app/resources/index';
+import { type BlizzardApiNamedField, type ConvertPrice, FACTION, TIME_MS } from '@app/resources/index';
 import type { TransformFnParams } from 'class-transformer';
 import { DateTime } from 'luxon';
 
@@ -113,9 +113,16 @@ export const toLocale = (s: string): string => s.substr(0, 2) + '_' + s.substr(2
 /**
  * Converts various date formats to a JavaScript Date object.
  *
+ * Numeric input is validated against plausible epoch ranges: unix-seconds
+ * values (Blizzard API) are scaled to milliseconds, and values outside both
+ * the seconds and milliseconds plausibility windows fall through to the
+ * sentinel date instead of producing a 1970-01-01 date.
+ *
  * @param lastModified - The date value (Date, RFC2822 string, or timestamp)
  * @returns A valid Date object or a default date if parsing fails
- * @example toDate(1234567890000) // returns Date object
+ * @example toDate(1234567890) // returns Date object from unix seconds
+ * @example toDate(1234567890000) // returns Date object from unix milliseconds
+ * @example toDate(188) // returns sentinel date, not 1970-01-01
  */
 export const toDate = (lastModified: unknown): Date => {
   if (lastModified instanceof Date) {
@@ -126,8 +133,14 @@ export const toDate = (lastModified: unknown): Date => {
     return DateTime.fromRFC2822(lastModified).toJSDate();
   }
 
-  if (typeof lastModified === 'number' && DateTime.fromMillis(lastModified).isValid) {
-    return DateTime.fromMillis(lastModified).toJSDate();
+  if (typeof lastModified === 'number') {
+    const isUnixSeconds = lastModified >= TIME_MS.EPOCH_SECONDS_MIN && lastModified < TIME_MS.EPOCH_SECONDS_MAX;
+    const timestampMs = isUnixSeconds ? lastModified * 1000 : lastModified;
+    const isPlausibleMillis = timestampMs >= TIME_MS.EPOCH_MILLIS_MIN && timestampMs < TIME_MS.EPOCH_MILLIS_MAX;
+
+    if (isPlausibleMillis && DateTime.fromMillis(timestampMs).isValid) {
+      return DateTime.fromMillis(timestampMs).toJSDate();
+    }
   }
 
   return new Date('1999-09-11T20:00:30');
