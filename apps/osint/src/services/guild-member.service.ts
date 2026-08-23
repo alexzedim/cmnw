@@ -42,6 +42,14 @@ export class GuildMemberService {
         return;
       }
 
+      if (!guildEntity.id) {
+        this.logger.error(
+          formatServiceErrorLog('updateRoster', guildEntity.guid, 0, 'Guild id is not resolved'),
+        );
+        roster.status = setGuildStatusString('-----', 'MEMBERS', GuildStatusState.ERROR);
+        return;
+      }
+
       const comparison = await this.compareRosters(guildEntity, updatedRosterMembers);
       const rosterUpdateAt = roster.updatedAt;
 

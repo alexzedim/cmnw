@@ -131,7 +131,7 @@ export class GuildsWorker extends WorkerHost {
       Object.assign(guildEntity, guildData.summaryResult);
 
       guildData.rosterResult.updatedAt = guildEntity.updatedAt;
-      await this.guildMemberService.updateRoster(guildSnapshot, guildData.rosterResult, isNew);
+      await this.guildMemberService.updateRoster(guildEntity, guildData.rosterResult, isNew);
 
       const logStatusResult = isNew
         ? this.getLogStatusForNewGuild(guildSnapshot, guildEntity)

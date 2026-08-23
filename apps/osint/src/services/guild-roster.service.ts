@@ -65,6 +65,8 @@ export class GuildRosterService {
         return this.handleRosterError(new Error('Invalid roster response'), roster, guildEntity);
       }
 
+      guildEntity.id = response.guild.id ?? guildEntity.id;
+
       await lastValueFrom(
         from(response.members).pipe(
           mergeMap(
