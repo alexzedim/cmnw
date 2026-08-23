@@ -86,13 +86,10 @@ export const isGuildSummary = (response: unknown): response is BlizzardApiGuildS
   typeof (response as any).lastModified === 'string';
 
 export const isPetsCollection = (response: unknown): response is Readonly<BlizzardApiPetsCollection> =>
-  typeof response === 'object' && 'pets' in response && Array.isArray(response.pets) && Boolean(response.pets.length);
+  typeof response === 'object' && 'pets' in response && Array.isArray(response.pets);
 
 export const isMountCollection = (response: unknown): response is Readonly<BlizzardApiMountsCollection> =>
-  typeof response === 'object' &&
-  'mounts' in response &&
-  Array.isArray(response.mounts) &&
-  Boolean(response.mounts.length);
+  typeof response === 'object' && 'mounts' in response && Array.isArray(response.mounts);
 
 export const isCharacterSummary = (response: unknown): response is BlizzardApiCharacterSummary =>
   typeof response === 'object' && !('error' in response) && 'id' in response && 'name' in response;
