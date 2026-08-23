@@ -51,7 +51,7 @@ export class GuildsEntity {
   faction?: string;
 
   @Column({
-    default: 100,
+    default: null,
     nullable: true,
     type: 'int',
     name: 'achievement_points',
@@ -59,7 +59,7 @@ export class GuildsEntity {
   achievementPoints?: number;
 
   @Column({
-    default: 100,
+    default: null,
     nullable: true,
     type: 'int',
     name: 'members_count',
