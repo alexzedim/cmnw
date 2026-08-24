@@ -1,3 +1,6 @@
+import { defer, forkJoin, from, lastValueFrom, of, timer } from 'rxjs';
+import { bufferCount, catchError, concatMap, map, mergeMap, tap } from 'rxjs/operators';
+
 export const limitConcurrency = <T extends readonly (() => Promise<unknown>)[]>(
   tasks: T,
   limit: number,
@@ -30,4 +33,44 @@ export const limitConcurrency = <T extends readonly (() => Promise<unknown>)[]>(
       void runNext();
     }
   });
+};
+
+/**
+ * Promise.allSettled equivalent that executes thunks in sequential batches of
+ * `batchSize`, waiting `batchDelayMs` before each subsequent batch, so requests
+ * are paced instead of all leaving at once.
+ */
+export const batchedAllSettled = async <T extends readonly (() => Promise<unknown>)[]>(
+  factories: T,
+  batchSize: number,
+  batchDelayMs: number,
+): Promise<{ [K in keyof T]: PromiseSettledResult<Awaited<ReturnType<T[K]>>> }> => {
+  const results: PromiseSettledResult<unknown>[] = new Array(factories.length);
+
+  await lastValueFrom(
+    from(factories).pipe(
+      map((factory, index) => ({ factory, index })),
+      bufferCount(batchSize),
+      concatMap((batch, batchIndex) =>
+        (batchIndex === 0 ? of(batch) : timer(batchDelayMs).pipe(map(() => batch))).pipe(
+          mergeMap((delayedBatch) =>
+            forkJoin(
+              delayedBatch.map(({ factory, index }) =>
+                defer(factory).pipe(
+                  map((value) => ({ status: 'fulfilled', value }) as PromiseSettledResult<unknown>),
+                  catchError((reason: unknown) => of({ status: 'rejected', reason } as PromiseSettledResult<unknown>)),
+                  tap((result) => {
+                    results[index] = result;
+                  }),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    ),
+    { defaultValue: undefined },
+  );
+
+  return results as { [K in keyof T]: PromiseSettledResult<Awaited<ReturnType<T[K]>>> };
 };

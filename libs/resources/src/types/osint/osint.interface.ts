@@ -1,5 +1,11 @@
 import type { CharactersGuildsMembersEntity, CharactersProfileEntity } from '@app/pg';
 
+import type {
+  BlizzardApiCharacterProfessions,
+  BlizzardApiMountsCollection,
+  BlizzardApiPetsCollection,
+} from '../api/api.type';
+
 /**
  * -----------------------------------------------------------------------------
  * Shared link & identity helpers
@@ -411,6 +417,15 @@ export interface CharacterSummary {
   covenantId: string;
   status: string;
 }
+
+export type CharacterEndpointTasks = [
+  () => Promise<Partial<CharacterSummary>>,
+  () => Promise<Partial<Media>>,
+  () => Promise<BlizzardApiPetsCollection | null>,
+  () => Promise<BlizzardApiMountsCollection | null>,
+  () => Promise<BlizzardApiCharacterProfessions | null>,
+  () => Promise<Partial<CharacterAge> | null>,
+];
 
 export interface ICharacterSummary {
   _links: {

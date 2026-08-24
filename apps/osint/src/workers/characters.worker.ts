@@ -12,8 +12,12 @@ import {
   type BlizzardApiCharacterProfessions,
   type BlizzardApiMountsCollection,
   type BlizzardApiPetsCollection,
+  batchedAllSettled,
+  CHARACTER_ENDPOINT_BATCH_DELAY_MS,
+  CHARACTER_ENDPOINT_BATCH_SIZE,
   type CHARACTER_STATUS_CODES,
   type CharacterAge,
+  type CharacterEndpointTasks,
   CharacterStatusState,
   charactersQueue,
   FeedEventCategory,
@@ -179,37 +183,47 @@ export class CharactersWorker extends WorkerHost {
     const realmSlug = characterEntity.realm;
     const isAgeRecoveryNeeded = characterEntity.createdApprox == null;
 
-    const [summaryResult, mediaResult, petsResult, mountsResult, professionsResult, achievementsResult] =
-      await Promise.allSettled([
+    const achievementsTask: CharacterEndpointTasks[5] = isAgeRecoveryNeeded
+      ? () =>
+          this.tapRefresh(
+            refreshCtx,
+            RefreshEndpoint.ACHIEVEMENTS,
+            this.characterService.getAchievements(nameSlug, realmSlug, config),
+          )
+      : () => Promise.resolve(null);
+
+    const endpointTasks: CharacterEndpointTasks = [
+      () =>
         this.tapRefresh(
           refreshCtx,
           RefreshEndpoint.SUMMARY,
           this.characterService.getSummary(nameSlug, realmSlug, config),
         ),
+      () =>
         this.tapRefresh(refreshCtx, RefreshEndpoint.MEDIA, this.characterService.getMedia(nameSlug, realmSlug, config)),
+      () =>
         this.tapRefresh(
           refreshCtx,
           RefreshEndpoint.PETS,
           this.characterService.getPetsCollection(nameSlug, realmSlug, config),
         ),
+      () =>
         this.tapRefresh(
           refreshCtx,
           RefreshEndpoint.MOUNTS,
           this.characterService.getMountsCollection(nameSlug, realmSlug, config),
         ),
+      () =>
         this.tapRefresh(
           refreshCtx,
           RefreshEndpoint.PROFESSIONS,
           this.characterService.getProfessions(nameSlug, realmSlug, config),
         ),
-        isAgeRecoveryNeeded
-          ? this.tapRefresh(
-              refreshCtx,
-              RefreshEndpoint.ACHIEVEMENTS,
-              this.characterService.getAchievements(nameSlug, realmSlug, config),
-            )
-          : Promise.resolve(null),
-      ]);
+      achievementsTask,
+    ];
+
+    const [summaryResult, mediaResult, petsResult, mountsResult, professionsResult, achievementsResult] =
+      await batchedAllSettled(endpointTasks, CHARACTER_ENDPOINT_BATCH_SIZE, CHARACTER_ENDPOINT_BATCH_DELAY_MS);
 
     let status = characterEntity.status || '-------';
 
