@@ -39,7 +39,7 @@ export const kebabCase = (str: string, keepLeadingDash = false): string => {
  * @param name - The character name
  * @param realm - The realm name
  * @returns A kebab-cased GUID in the format "name@realm"
- * @example toGuid('PlayerName', 'RealmName') // returns 'player-name@realm-name'
+ * @example toGuid('PlayerName', 'RealmName') // returns 'playername@realmname'
  */
 export const toGuid = (name: string, realm: string): string => `${kebabCase(name)}@${kebabCase(realm)}`;
 
