@@ -162,10 +162,10 @@ export class CharactersEntity {
   equippedItemLevel?: number;
 
   @Column({
-    default: '------',
+    default: '-------',
     nullable: true,
     type: 'varchar',
-    length: 6,
+    length: 7,
     name: 'status',
   })
   status?: string;
@@ -232,6 +232,12 @@ export class CharactersEntity {
     default: () => 'CURRENT_TIMESTAMP',
   })
   lastModified?: Date;
+
+  @Column('timestamp with time zone', {
+    name: 'created_approx',
+    nullable: true,
+  })
+  createdApprox?: Date;
 
   @CreateDateColumn({
     type: 'timestamp with time zone',
