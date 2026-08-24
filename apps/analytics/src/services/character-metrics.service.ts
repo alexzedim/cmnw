@@ -9,10 +9,11 @@ import type {
   CharacterRealmClassAggregation,
   CharacterRealmFactionAggregation,
   CharacterRealmUniquePlayersAggregation,
+  GuildTopByMembers,
 } from '@app/resources/types';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
-import type { DataSource, EntityManager, Repository } from 'typeorm';
+import type { DataSource, EntityManager, Repository, SelectQueryBuilder } from 'typeorm';
 
 import { addAchievementsDistributionSelect, toAchievementsDistributionValue } from './achievement-distribution.util';
 
@@ -73,6 +74,8 @@ export class CharacterMetricsService {
         if (maxLevel > 0) {
           await this.collectCharacterAchievementsDistribution(manager, rows, existingKeys, snapshotDate, maxLevel);
         }
+
+        await this.collectCharacterTopByAge(manager, rows, existingKeys, snapshotDate);
 
         if (rows.length > 0) {
           await manager.save(AnalyticsEntity, rows);
@@ -685,5 +688,95 @@ export class CharacterMetricsService {
         }),
       );
     }
+  }
+
+  /**
+   * Oldest characters by created_approx: top 3 globally and the single oldest
+   * per realm. `value` is the age in whole days. created_approx is populated
+   * by the OSINT pipeline as an approximate creation date; dates before the
+   * game's release (epoch garbage) are skipped. Produces no rows until the
+   * column exists and is backfilled.
+   */
+  private async collectCharacterTopByAge(
+    manager: EntityManager,
+    rows: AnalyticsEntity[],
+    existingKeys: Set<string>,
+    snapshotDate: Date,
+  ): Promise<void> {
+    const globalKey = analyticsKeyOf(AnalyticsMetricCategory.CHARACTERS, AnalyticsMetricType.TOP_BY_AGE);
+    if (!existingKeys.has(globalKey)) {
+      const oldest = await this.withOldestCharactersSelect(
+        manager.getRepository(CharactersEntity).createQueryBuilder('c'),
+      )
+        .limit(3)
+        .getRawMany<GuildTopByMembers>();
+
+      const value = this.toOldestCharactersValue(oldest);
+
+      if (Object.keys(value).length > 0) {
+        rows.push(
+          manager.create(AnalyticsEntity, {
+            category: AnalyticsMetricCategory.CHARACTERS,
+            metricType: AnalyticsMetricType.TOP_BY_AGE,
+            value,
+            snapshotDate,
+          }),
+        );
+      }
+    }
+
+    // DISTINCT ON keeps one row per realm — the oldest, per ORDER BY.
+    const byRealm = await this.withOldestCharactersSelect(
+      manager.getRepository(CharactersEntity).createQueryBuilder('c'),
+    )
+      .distinctOn(['c.realm_id'])
+      .addSelect('c.realm_id', 'realm_id')
+      .orderBy('c.realm_id', 'ASC')
+      .addOrderBy('c.created_approx', 'ASC')
+      .getRawMany<GuildTopByMembers & { realm_id: number }>();
+
+    for (const character of byRealm) {
+      if (!character?.realm_id || !character.guid) continue;
+
+      const key = analyticsKeyOf(
+        AnalyticsMetricCategory.CHARACTERS,
+        AnalyticsMetricType.TOP_BY_AGE,
+        character.realm_id,
+      );
+      if (existingKeys.has(key)) continue;
+
+      rows.push(
+        manager.create(AnalyticsEntity, {
+          category: AnalyticsMetricCategory.CHARACTERS,
+          metricType: AnalyticsMetricType.TOP_BY_AGE,
+          realmId: character.realm_id,
+          value: this.toOldestCharactersValue([character]),
+          snapshotDate,
+        }),
+      );
+    }
+  }
+
+  private withOldestCharactersSelect(qb: SelectQueryBuilder<CharactersEntity>): SelectQueryBuilder<CharactersEntity> {
+    return qb
+      .select('c.guid', 'guid')
+      .addSelect('c.name', 'name')
+      .addSelect('c.realm', 'realm')
+      .addSelect(`FLOOR(EXTRACT(EPOCH FROM (now() - c.created_approx)) / 86400.0)`, 'value')
+      .where('c.created_approx IS NOT NULL')
+      .andWhere('c.created_approx > :wowRelease', { wowRelease: '2004-11-23' })
+      .orderBy('c.created_approx', 'ASC');
+  }
+
+  private toOldestCharactersValue(characters: GuildTopByMembers[]): Record<string, GuildTopByMembers> {
+    const value: Record<string, GuildTopByMembers> = {};
+
+    for (const character of characters) {
+      if (character?.guid) {
+        value[character.guid] = { ...character, value: Number(character.value ?? 0) };
+      }
+    }
+
+    return value;
   }
 }
