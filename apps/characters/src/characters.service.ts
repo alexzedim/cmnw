@@ -93,8 +93,6 @@ export class CharactersService implements OnApplicationBootstrap {
               equippedItemLevel: character.equippedItemLevel,
               covenantId: character.covenantId,
               avatarImage: character.avatarImage,
-              insetImage: character.insetImage,
-              mainImage: character.mainImage,
               mountsNumber: character.mountsNumber,
               petsNumber: character.petsNumber,
               hashA: character.hashA,

@@ -188,22 +188,6 @@ export class CharactersEntity {
   @Column({
     default: null,
     nullable: true,
-    type: 'varchar',
-    name: 'inset_image',
-  })
-  insetImage?: string;
-
-  @Column({
-    default: null,
-    nullable: true,
-    type: 'varchar',
-    name: 'main_image',
-  })
-  mainImage?: string;
-
-  @Column({
-    default: null,
-    nullable: true,
     type: 'int',
     name: 'mounts_number',
   })

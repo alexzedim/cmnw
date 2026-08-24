@@ -1,5 +1,5 @@
 import { type AnalyticsEntity, CharactersEntity } from '@app/pg/entity';
-import { calculateCharacterPercentiles } from '@app/resources/utils';
+import { calculateCharacterPercentiles, toInsetImage, toMainImage } from '@app/resources/utils';
 import { ApiProperty } from '@nestjs/swagger';
 
 class PercentileStats {
@@ -356,6 +356,8 @@ export class CharacterResponseDto extends CharactersEntity {
 
     return {
       ...character,
+      insetImage: toInsetImage(character.avatarImage),
+      mainImage: toMainImage(character.avatarImage),
       percentiles,
       hashBlock: hashBlock ?? null,
     } as CharacterResponseDto;

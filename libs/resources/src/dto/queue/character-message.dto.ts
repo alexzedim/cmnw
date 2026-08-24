@@ -43,8 +43,6 @@ export interface ICharacterMessageBase {
   mountsNumber?: number;
   petsNumber?: number;
   avatarImage?: string;
-  insetImage?: string;
-  mainImage?: string;
   hashA?: string;
   hashB?: string;
 
@@ -415,8 +413,6 @@ export class CharacterMessageDto {
     equippedItemLevel?: number;
     covenantId?: number;
     avatarImage?: string;
-    insetImage?: string;
-    mainImage?: string;
     mountsNumber?: number;
     petsNumber?: number;
     hashA?: string;
@@ -448,8 +444,6 @@ export class CharacterMessageDto {
       equippedItemLevel: params.equippedItemLevel,
       covenantId: params.covenantId,
       avatarImage: params.avatarImage,
-      insetImage: params.insetImage,
-      mainImage: params.mainImage,
       mountsNumber: params.mountsNumber,
       petsNumber: params.petsNumber,
       hashA: params.hashA,

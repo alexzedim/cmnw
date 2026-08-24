@@ -275,8 +275,6 @@ export interface IConnectedRealm {
  */
 export interface Media {
   avatarImage: string;
-  insetImage: string;
-  mainImage: string;
   status: string;
 }
 

@@ -110,8 +110,6 @@ export const CHARACTER_ARGS_ENTITY_KEYS = [
   'equippedItemLevel',
   'covenantId',
   'avatarImage',
-  'insetImage',
-  'mainImage',
   'mountsNumber',
   'petsNumber',
   'lastModified',
@@ -143,11 +141,7 @@ export const CHARACTER_SUMMARY_FIELD_MAPPING = new Map<string, SummaryFieldMappi
   ['lastModified', { path: 'last_login_timestamp' }],
 ]);
 
-export const CHARACTER_MEDIA_FIELD_MAPPING = new Map<string, string>([
-  ['avatar', 'avatarImage'],
-  ['main-raw', 'mainImage'],
-  ['inset', 'insetImage'],
-]);
+export const CHARACTER_MEDIA_FIELD_MAPPING = new Map<string, string>([['avatar', 'avatarImage']]);
 
 export const CHARACTER_RAID_DIFFICULTY = new Map<string, IWarcraftLogsMap>([
   ['heroic', { wclId: 4, fieldName: 'heroicLogs' }],

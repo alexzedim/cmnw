@@ -10,4 +10,5 @@ export * from './helpers';
 export * from './percentile';
 export * from './price-binning.util';
 export * from './redis-cache.util';
+export * from './render.util';
 export * from './session.util';

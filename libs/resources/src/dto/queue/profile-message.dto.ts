@@ -23,8 +23,6 @@ export interface IProfileMessageBase {
 
   // Media
   avatarImage?: string;
-  insetImage?: string;
-  mainImage?: string;
 
   // Character attributes
   class?: string;

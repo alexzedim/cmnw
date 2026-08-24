@@ -81,8 +81,6 @@ describe('CharacterService', () => {
 
       expect(result).toMatchObject({
         avatarImage: expect.any(String),
-        mainImage: expect.any(String),
-        insetImage: expect.any(String),
       });
     });
   });
