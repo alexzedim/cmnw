@@ -1,6 +1,7 @@
 export * from './axios-retry.config';
 export * from './cache-keys.util';
 export * from './cache-ttl.util';
+export * from './character-age.utils';
 export * from './character-status.utils';
 export * from './cipher';
 export * from './circuit-breaker.util';

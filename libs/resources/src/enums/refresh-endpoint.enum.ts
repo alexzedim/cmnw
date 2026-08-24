@@ -1,0 +1,9 @@
+export enum RefreshEndpoint {
+  STATUS = 'STATUS',
+  SUMMARY = 'SUMMARY',
+  MEDIA = 'MEDIA',
+  PETS = 'PETS',
+  MOUNTS = 'MOUNTS',
+  PROFESSIONS = 'PROFESSIONS',
+  ACHIEVEMENTS = 'ACHIEVEMENTS',
+}

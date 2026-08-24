@@ -1,5 +1,6 @@
 import type {
   BlizzardApiAuctions,
+  BlizzardApiCharacterAchievements,
   BlizzardApiCharacterMedia,
   BlizzardApiCharacterProfessions,
   BlizzardApiCharacterSummary,
@@ -93,6 +94,9 @@ export const isMountCollection = (response: unknown): response is Readonly<Blizz
 
 export const isCharacterSummary = (response: unknown): response is BlizzardApiCharacterSummary =>
   typeof response === 'object' && !('error' in response) && 'id' in response && 'name' in response;
+
+export const isCharacterAchievements = (response: unknown): response is Readonly<BlizzardApiCharacterAchievements> =>
+  typeof response === 'object' && 'achievements' in response && Array.isArray((response as any).achievements);
 
 export const isCharacterMedia = (response: unknown): response is BlizzardApiCharacterMedia =>
   typeof response === 'object' &&

@@ -312,6 +312,15 @@ export class CharacterResponseDto extends CharactersEntity {
     type: 'string',
     format: 'date-time',
     nullable: true,
+    description:
+      'Approximate character creation date recovered from leveling achievements (character was created on or before this date)',
+  })
+  declare readonly createdApprox?: Date;
+
+  @ApiProperty({
+    type: 'string',
+    format: 'date-time',
+    nullable: true,
     description: 'Record creation timestamp',
   })
   declare readonly createdAt?: Date;

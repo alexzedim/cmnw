@@ -13,6 +13,7 @@ import {
   type BlizzardApiMountsCollection,
   type BlizzardApiPetsCollection,
   type CHARACTER_STATUS_CODES,
+  type CharacterAge,
   CharacterStatusState,
   charactersQueue,
   FeedEventCategory,
@@ -21,7 +22,7 @@ import {
   type ICharacterMessageBase,
   type IRefreshContext,
   isEndpointSuccessInString,
-  type RefreshEndpoint,
+  RefreshEndpoint,
   setStatusString,
   toSlug,
 } from '@app/resources';
@@ -102,7 +103,7 @@ export class CharactersWorker extends WorkerHost {
 
       const status = await this.tapRefresh(
         refreshCtx,
-        'STATUS',
+        RefreshEndpoint.STATUS,
         this.characterService.getStatus(nameSlug, characterEntity.realm, config),
       );
 
@@ -176,16 +177,41 @@ export class CharactersWorker extends WorkerHost {
     refreshCtx: IRefreshContext | null,
   ): Promise<void> {
     const realmSlug = characterEntity.realm;
+    const isAgeRecoveryNeeded = characterEntity.createdApprox == null;
 
-    const [summaryResult, mediaResult, petsResult, mountsResult, professionsResult] = await Promise.allSettled([
-      this.tapRefresh(refreshCtx, 'SUMMARY', this.characterService.getSummary(nameSlug, realmSlug, config)),
-      this.tapRefresh(refreshCtx, 'MEDIA', this.characterService.getMedia(nameSlug, realmSlug, config)),
-      this.tapRefresh(refreshCtx, 'PETS', this.characterService.getPetsCollection(nameSlug, realmSlug, config)),
-      this.tapRefresh(refreshCtx, 'MOUNTS', this.characterService.getMountsCollection(nameSlug, realmSlug, config)),
-      this.tapRefresh(refreshCtx, 'PROFESSIONS', this.characterService.getProfessions(nameSlug, realmSlug, config)),
-    ]);
+    const [summaryResult, mediaResult, petsResult, mountsResult, professionsResult, achievementsResult] =
+      await Promise.allSettled([
+        this.tapRefresh(
+          refreshCtx,
+          RefreshEndpoint.SUMMARY,
+          this.characterService.getSummary(nameSlug, realmSlug, config),
+        ),
+        this.tapRefresh(refreshCtx, RefreshEndpoint.MEDIA, this.characterService.getMedia(nameSlug, realmSlug, config)),
+        this.tapRefresh(
+          refreshCtx,
+          RefreshEndpoint.PETS,
+          this.characterService.getPetsCollection(nameSlug, realmSlug, config),
+        ),
+        this.tapRefresh(
+          refreshCtx,
+          RefreshEndpoint.MOUNTS,
+          this.characterService.getMountsCollection(nameSlug, realmSlug, config),
+        ),
+        this.tapRefresh(
+          refreshCtx,
+          RefreshEndpoint.PROFESSIONS,
+          this.characterService.getProfessions(nameSlug, realmSlug, config),
+        ),
+        isAgeRecoveryNeeded
+          ? this.tapRefresh(
+              refreshCtx,
+              RefreshEndpoint.ACHIEVEMENTS,
+              this.characterService.getAchievements(nameSlug, realmSlug, config),
+            )
+          : Promise.resolve(null),
+      ]);
 
-    let status = characterEntity.status || '------';
+    let status = characterEntity.status || '-------';
 
     status = this.processResult(status, 'SUMMARY', summaryResult, (data) => {
       Object.assign(characterEntity, data);
@@ -199,6 +225,8 @@ export class CharactersWorker extends WorkerHost {
     });
 
     status = await this.processProfessionsResult(status, professionsResult, nameSlug, realmSlug, characterEntity);
+
+    status = this.processAchievementsResult(status, achievementsResult, characterEntity, isAgeRecoveryNeeded);
 
     characterEntity.status = status;
   }
@@ -266,8 +294,30 @@ export class CharactersWorker extends WorkerHost {
     return setStatusString(currentStatus, 'PROFESSIONS', CharacterStatusState.ERROR);
   }
 
+  private processAchievementsResult(
+    currentStatus: string,
+    result: PromiseSettledResult<Partial<CharacterAge> | null>,
+    characterEntity: CharactersEntity,
+    isAgeRecoveryNeeded: boolean,
+  ): string {
+    if (!isAgeRecoveryNeeded) {
+      return currentStatus;
+    }
+
+    const age = result.status === 'fulfilled' ? result.value : null;
+    if (!age) {
+      return setStatusString(currentStatus, 'ACHIEVEMENTS', CharacterStatusState.ERROR);
+    }
+
+    if (age.createdApprox) {
+      characterEntity.createdApprox = age.createdApprox;
+    }
+
+    return setStatusString(currentStatus, 'ACHIEVEMENTS', CharacterStatusState.SUCCESS);
+  }
+
   private logCharacterResult(character: CharactersEntity, duration: number, refreshCtx: IRefreshContext | null): void {
-    const status = character.status || '------';
+    const status = character.status || '-------';
     const guid = character.guid;
     const isAllSuccess = isEndpointSuccessInString(status, 'STATUS') && isEndpointSuccessInString(status, 'SUMMARY');
     const hasAnyError = /[a-z]/.test(status);

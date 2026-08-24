@@ -9,8 +9,6 @@ export interface WorkerConfig {
   replicas: string | null;
 }
 
-export type RefreshEndpoint = 'STATUS' | 'SUMMARY' | 'MEDIA' | 'PETS' | 'MOUNTS' | 'PROFESSIONS';
-
 export interface IRefreshContext {
   sessionId: string;
   requestId?: string;

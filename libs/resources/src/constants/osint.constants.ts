@@ -143,6 +143,15 @@ export const CHARACTER_SUMMARY_FIELD_MAPPING = new Map<string, SummaryFieldMappi
 
 export const CHARACTER_MEDIA_FIELD_MAPPING = new Map<string, string>([['avatar', 'avatarImage']]);
 
+/**
+ * Leveling achievements used to approximate character creation date:
+ * 6 = Level 10, 7 = Level 20, 8 = Level 30, 9 = Level 40.
+ * The earliest matched completed_timestamp approximates creation ("created on or before").
+ * Boosted characters have the whole ladder stamped at boost time; characters
+ * created before patch 3.0.2 have it stamped at their first login after 2008-10-14.
+ */
+export const CHARACTER_AGE_PATTERN_ACHIEVEMENTS = [6, 7, 8, 9] as const;
+
 export const CHARACTER_RAID_DIFFICULTY = new Map<string, IWarcraftLogsMap>([
   ['heroic', { wclId: 4, fieldName: 'heroicLogs' }],
   ['mythic', { wclId: 5, fieldName: 'mythicLogs' }],

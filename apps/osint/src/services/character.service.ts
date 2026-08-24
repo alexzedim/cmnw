@@ -2,6 +2,7 @@ import { BattleNetNamespace, BattleNetService, type IBattleNetClientConfig } fro
 import { formatServiceErrorLog, formatServiceLog, WorkerLogStatus } from '@app/logger';
 import { CharactersEntity } from '@app/pg';
 import {
+  type BlizzardApiCharacterAchievements,
   type BlizzardApiCharacterMedia,
   type BlizzardApiCharacterProfessions,
   type BlizzardApiCharacterSummary,
@@ -10,12 +11,15 @@ import {
   CHARACTER_ARGS_ENTITY_KEYS,
   CHARACTER_MEDIA_FIELD_MAPPING,
   CHARACTER_SUMMARY_FIELD_MAPPING,
+  type CharacterAge,
   type CharacterStatus,
   CharacterStatusState,
   type CharacterSummary,
+  extractCreatedApproxTimestamp,
   GUILD_INHERIT_KEYS,
   type IBlizzardStatusResponse,
   type ICharacterMessageBase,
+  isCharacterAchievements,
   isCharacterMedia,
   isCharacterProfessions,
   isCharacterSummary,
@@ -93,7 +97,7 @@ export class CharacterService {
       }
 
       characterStatus.status = setStatusString(
-        characterStatus.status || '------',
+        characterStatus.status || '-------',
         'STATUS',
         CharacterStatusState.SUCCESS,
       );
@@ -101,7 +105,7 @@ export class CharacterService {
       return characterStatus;
     } catch (errorOrException) {
       characterStatus.status = setStatusString(
-        characterStatus.status || '------',
+        characterStatus.status || '-------',
         'STATUS',
         CharacterStatusState.ERROR,
       );
@@ -189,11 +193,11 @@ export class CharacterService {
         }
       }
 
-      summary.status = setStatusString(summary.status || '------', 'SUMMARY', CharacterStatusState.SUCCESS);
+      summary.status = setStatusString(summary.status || '-------', 'SUMMARY', CharacterStatusState.SUCCESS);
 
       return summary;
     } catch (errorOrException) {
-      summary.status = setStatusString(summary.status || '------', 'SUMMARY', CharacterStatusState.ERROR);
+      summary.status = setStatusString(summary.status || '-------', 'SUMMARY', CharacterStatusState.ERROR);
 
       this.logger.error(
         formatServiceErrorLog('getSummary', `${nameSlug}@${realmSlug}`, 0, errorOrException.message, summary.status),
@@ -225,11 +229,11 @@ export class CharacterService {
         media[CHARACTER_MEDIA_FIELD_MAPPING.get(key)] = value;
       });
 
-      media.status = setStatusString(media.status || '------', 'MEDIA', CharacterStatusState.SUCCESS);
+      media.status = setStatusString(media.status || '-------', 'MEDIA', CharacterStatusState.SUCCESS);
 
       return media;
     } catch (errorOrException) {
-      media.status = setStatusString(media.status || '------', 'MEDIA', CharacterStatusState.ERROR);
+      media.status = setStatusString(media.status || '-------', 'MEDIA', CharacterStatusState.ERROR);
 
       const statusCode = isAxiosError(errorOrException)
         ? errorOrException.response?.status
@@ -264,7 +268,7 @@ export class CharacterService {
 
       Object.assign(mounts, response);
 
-      mounts.status = setStatusString(mounts.status || '------', 'MOUNTS', CharacterStatusState.SUCCESS);
+      mounts.status = setStatusString(mounts.status || '-------', 'MOUNTS', CharacterStatusState.SUCCESS);
 
       return mounts as BlizzardApiMountsCollection;
     } catch (errorOrException) {
@@ -306,7 +310,7 @@ export class CharacterService {
 
       Object.assign(pets, response);
 
-      pets.status = setStatusString(pets.status || '------', 'PETS', CharacterStatusState.SUCCESS);
+      pets.status = setStatusString(pets.status || '-------', 'PETS', CharacterStatusState.SUCCESS);
 
       return pets as BlizzardApiPetsCollection;
     } catch (errorOrException) {
@@ -343,17 +347,25 @@ export class CharacterService {
 
       const isValidProfessions = isCharacterProfessions(response);
       if (!isValidProfessions) {
-        professions.status = setStatusString(professions.status || '------', 'PROFESSIONS', CharacterStatusState.ERROR);
+        professions.status = setStatusString(
+          professions.status || '-------',
+          'PROFESSIONS',
+          CharacterStatusState.ERROR,
+        );
         return professions as BlizzardApiCharacterProfessions;
       }
 
       Object.assign(professions, response);
 
-      professions.status = setStatusString(professions.status || '------', 'PROFESSIONS', CharacterStatusState.SUCCESS);
+      professions.status = setStatusString(
+        professions.status || '-------',
+        'PROFESSIONS',
+        CharacterStatusState.SUCCESS,
+      );
 
       return professions as BlizzardApiCharacterProfessions;
     } catch (errorOrException) {
-      professions.status = setStatusString(professions.status || '------', 'PROFESSIONS', CharacterStatusState.ERROR);
+      professions.status = setStatusString(professions.status || '-------', 'PROFESSIONS', CharacterStatusState.ERROR);
 
       const statusCode = isAxiosError(errorOrException)
         ? errorOrException.response?.status
@@ -369,6 +381,56 @@ export class CharacterService {
       );
 
       return professions as BlizzardApiCharacterProfessions;
+    }
+  }
+
+  async getAchievements(
+    nameSlug: string,
+    realmSlug: string,
+    config?: IBattleNetClientConfig,
+  ): Promise<Partial<CharacterAge> | null> {
+    try {
+      const response = await this.battleNetService.query<BlizzardApiCharacterAchievements>(
+        `/profile/wow/character/${realmSlug}/${nameSlug}/achievements`,
+        this.battleNetService.createQueryOptions(BattleNetNamespace.PROFILE),
+        config,
+      );
+
+      const isValidAchievements = isCharacterAchievements(response);
+      if (!isValidAchievements) {
+        return null;
+      }
+
+      const age: Partial<CharacterAge> = {};
+
+      const timestamp = extractCreatedApproxTimestamp(response.achievements);
+      if (timestamp) {
+        age.createdApprox = toDate(timestamp);
+      }
+
+      return age;
+    } catch (errorOrException) {
+      const statusCode = isAxiosError(errorOrException)
+        ? errorOrException.response?.status
+        : get(errorOrException, 'status', 400);
+
+      const isNotFound = statusCode === 404;
+      if (isNotFound) {
+        this.logger.debug(
+          formatServiceLog(WorkerLogStatus.NOT_FOUND, 'getAchievements', `${nameSlug}@${realmSlug}`, 0),
+        );
+      } else {
+        this.logger.error(
+          formatServiceErrorLog(
+            'getAchievements',
+            `${nameSlug}@${realmSlug}`,
+            0,
+            `${statusCode} - ${errorOrException.message}`,
+          ),
+        );
+      }
+
+      return null;
     }
   }
 }

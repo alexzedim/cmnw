@@ -116,7 +116,7 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
       mountsCollection.mountsNumber = mounts?.length ?? 0;
 
       mountsCollection.status = setStatusString(
-        mountsCollection.status || '------',
+        mountsCollection.status || '-------',
         'MOUNTS',
         CharacterStatusState.SUCCESS,
       );
@@ -132,7 +132,7 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
         ),
       );
       mountsCollection.status = setStatusString(
-        mountsCollection.status || '------',
+        mountsCollection.status || '-------',
         'MOUNTS',
         CharacterStatusState.ERROR,
       );
@@ -207,7 +207,7 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
       }
 
       petsCollection.petsNumber = pets?.length ?? 0;
-      petsCollection.status = setStatusString(petsCollection.status || '------', 'PETS', CharacterStatusState.SUCCESS);
+      petsCollection.status = setStatusString(petsCollection.status || '-------', 'PETS', CharacterStatusState.SUCCESS);
 
       const hasHashB = Boolean(hashB.length);
       if (hasHashB) {
@@ -229,7 +229,7 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
           errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
         ),
       );
-      petsCollection.status = setStatusString(petsCollection.status || '------', 'PETS', CharacterStatusState.ERROR);
+      petsCollection.status = setStatusString(petsCollection.status || '-------', 'PETS', CharacterStatusState.ERROR);
       return petsCollection;
     }
   }
@@ -312,7 +312,7 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
 
       // Set status to SUCCESS for PROFESSIONS endpoint
       professionsData.status = setStatusString(
-        professionsData.status || '------',
+        professionsData.status || '-------',
         'PROFESSIONS',
         CharacterStatusState.SUCCESS,
       );
@@ -328,7 +328,7 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
         ),
       );
       professionsData.status = setStatusString(
-        professionsData.status || '------',
+        professionsData.status || '-------',
         'PROFESSIONS',
         CharacterStatusState.ERROR,
       );

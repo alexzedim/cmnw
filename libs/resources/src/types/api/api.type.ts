@@ -191,6 +191,33 @@ export type BlizzardApiCharacterProfessions = {
   status?: string;
 };
 
+// Character Achievements
+export type ICharacterAchievementEntry = {
+  id: number;
+  completed_timestamp: number;
+};
+
+export type BlizzardApiCharacterAchievements = {
+  _links: {
+    self: { href: string };
+  };
+  character: {
+    key: { href: string };
+    name: string;
+    id: number;
+    realm: {
+      key: { href: string };
+      name: string;
+      id: number;
+      slug: string;
+    };
+  };
+  achievements: ICharacterAchievementEntry[];
+  total_quantity: number;
+  total_points: number;
+  lastModified: string;
+};
+
 /**
  * Context information for API key error tracking
  *

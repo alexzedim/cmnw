@@ -8,6 +8,7 @@ import {
   OSINT_SOURCE,
   TIME_MS,
   toDate,
+  toGuid,
   toNormalizedString,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
@@ -41,9 +42,17 @@ export class CharacterLifecycleService {
       throw new NotFoundException(`Realm ${character.realm} not found`);
     }
 
-    const characterEntity = await this.charactersRepository.findOneBy({
+    const canonicalGuid = toGuid(character.name, realmEntity.slug);
+
+    let characterEntity = await this.charactersRepository.findOneBy({
       guid: character.guid,
     });
+
+    if (!characterEntity && canonicalGuid !== character.guid) {
+      characterEntity = await this.charactersRepository.findOneBy({
+        guid: canonicalGuid,
+      });
+    }
 
     const isNewCharacter = !characterEntity;
     if (isNewCharacter) {
@@ -73,7 +82,7 @@ export class CharacterLifecycleService {
       };
     }
 
-    characterEntity.status = '------';
+    characterEntity.status = '-------';
 
     return {
       characterEntity,
@@ -87,7 +96,7 @@ export class CharacterLifecycleService {
     const characterNew = this.charactersRepository.create({
       ...character,
       id: character.id || null,
-      guid: character.guid,
+      guid: toGuid(character.name, realmEntity.slug),
       name: capitalize(character.name),
       realm: realmEntity.slug,
       realmId: realmEntity.id,

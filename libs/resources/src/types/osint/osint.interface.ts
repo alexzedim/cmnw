@@ -384,6 +384,10 @@ export interface IBlizzardProfessionsResponse {
  * Character summaries & status
  * -----------------------------------------------------------------------------
  */
+export interface CharacterAge {
+  createdApprox: Date;
+}
+
 export interface CharacterSummary {
   guid: string;
   name: string;
