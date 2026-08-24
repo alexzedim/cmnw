@@ -2,15 +2,20 @@ import { type BlizzardApiNamedField, type ConvertPrice, FACTION, TIME_MS } from 
 import type { TransformFnParams } from 'class-transformer';
 import { DateTime } from 'luxon';
 
-const KEBAB_REGEX = /\p{Lu}/gu;
+const KEBAB_REGEX = /(\p{Ll}|\d)(\p{Lu})/gu;
 
 /**
  * Transforms a string into kebab-case.
  *
+ * Only inserts a dash at camelCase boundaries (lowercase or digit followed by
+ * uppercase), so names written in all caps stay intact: 'AWSM' -> 'awsm',
+ * while 'PlayerName' -> 'player-name'. Matches Blizzard slug behavior for
+ * guild and character names, which are lowercased with spaces as dashes.
+ *
  * @example
- * kebabCase("helloWorld"); // "hello-world"
- * kebabCase("HelloWorld"); // "-hello-world"
- * kebabCase("HelloWorld", false); // "hello-world"
+ * kebabCase('helloWorld'); // 'hello-world'
+ * kebabCase('AWSM'); // 'awsm'
+ * kebabCase('D A S H E S'); // 'd-a-s-h-e-s'
  *
  * @param str - The string to transform
  * @param keepLeadingDash - Whether to keep the leading dash if string starts
@@ -20,7 +25,8 @@ const KEBAB_REGEX = /\p{Lu}/gu;
 export const kebabCase = (str: string, keepLeadingDash = false): string => {
   const result = str
     .replace(/\s+/g, '-')
-    .replace(KEBAB_REGEX, (match) => `-${match.toLowerCase()}`)
+    .replace(KEBAB_REGEX, (_match, lower: string, upper: string) => `${lower}-${upper}`)
+    .toLowerCase()
     .replace(/-+/g, '-');
 
   if (keepLeadingDash) {
