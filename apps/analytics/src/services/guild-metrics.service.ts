@@ -14,6 +14,14 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import type { DataSource, EntityManager, Repository, SelectQueryBuilder } from 'typeorm';
 
+const ACHIEVEMENTS_DISTRIBUTION_BUCKETS = 5;
+
+const GUILD_ACHIEVEMENT_POINTS_FILTER = 'g2.faction IS NOT NULL AND g2.achievement_points > 0';
+
+const GLOBAL_MAX_ACHIEVEMENT_POINTS_SQL = `(SELECT MAX(g2.achievement_points) FROM guilds g2 WHERE ${GUILD_ACHIEVEMENT_POINTS_FILTER})`;
+
+const REALM_MAX_ACHIEVEMENT_POINTS_SQL = `(SELECT MAX(g2.achievement_points) FROM guilds g2 WHERE g2.realm_id = g.realm_id AND ${GUILD_ACHIEVEMENT_POINTS_FILTER})`;
+
 @Injectable()
 export class GuildMetricsService {
   private readonly logger = new Logger(GuildMetricsService.name, {
@@ -324,6 +332,7 @@ export class GuildMetricsService {
     if (!existingKeys.has(globalKey)) {
       const globalRow = await this.withAchievementsDistributionSelect(
         manager.getRepository(GuildsEntity).createQueryBuilder('g'),
+        GLOBAL_MAX_ACHIEVEMENT_POINTS_SQL,
       )
         .where('g.faction IS NOT NULL')
         .andWhere('g.achievement_points > 0')
@@ -343,6 +352,7 @@ export class GuildMetricsService {
 
     const byRealm = await this.withAchievementsDistributionSelect(
       manager.getRepository(GuildsEntity).createQueryBuilder('g'),
+      REALM_MAX_ACHIEVEMENT_POINTS_SQL,
     )
       .addSelect('g.realm_id', 'realm_id')
       .where('g.faction IS NOT NULL')
@@ -372,23 +382,22 @@ export class GuildMetricsService {
     }
   }
 
-  private withAchievementsDistributionSelect(qb: SelectQueryBuilder<GuildsEntity>): SelectQueryBuilder<GuildsEntity> {
+  private withAchievementsDistributionSelect(
+    qb: SelectQueryBuilder<GuildsEntity>,
+    maxPointsBoundSql: string,
+  ): SelectQueryBuilder<GuildsEntity> {
+    // Buckets are relative to the scope's max achievement points: five even
+    // [i*w, (i+1)*w) spans between 0 and max (width_bucket sends x == max to
+    // bucket 6, so LEAST caps it into the last bucket).
+    const bucket = `LEAST(width_bucket(g.achievement_points, 0, ${maxPointsBoundSql}, ${ACHIEVEMENTS_DISTRIBUTION_BUCKETS}), ${ACHIEVEMENTS_DISTRIBUTION_BUCKETS})`;
+
     return qb
       .select('COUNT(*)', 'total')
-      .addSelect(`SUM(CASE WHEN g.achievement_points < 1000 THEN 1 ELSE 0 END)`, 'under1k')
-      .addSelect(
-        `SUM(CASE WHEN g.achievement_points >= 1000 AND g.achievement_points < 10000 THEN 1 ELSE 0 END)`,
-        'range1k10k',
-      )
-      .addSelect(
-        `SUM(CASE WHEN g.achievement_points >= 10000 AND g.achievement_points < 100000 THEN 1 ELSE 0 END)`,
-        'range10k100k',
-      )
-      .addSelect(
-        `SUM(CASE WHEN g.achievement_points >= 100000 AND g.achievement_points < 1000000 THEN 1 ELSE 0 END)`,
-        'range100k1m',
-      )
-      .addSelect(`SUM(CASE WHEN g.achievement_points >= 1000000 THEN 1 ELSE 0 END)`, 'over1m')
+      .addSelect(`SUM(CASE WHEN ${bucket} = 1 THEN 1 ELSE 0 END)`, 'bucket1')
+      .addSelect(`SUM(CASE WHEN ${bucket} = 2 THEN 1 ELSE 0 END)`, 'bucket2')
+      .addSelect(`SUM(CASE WHEN ${bucket} = 3 THEN 1 ELSE 0 END)`, 'bucket3')
+      .addSelect(`SUM(CASE WHEN ${bucket} = 4 THEN 1 ELSE 0 END)`, 'bucket4')
+      .addSelect(`SUM(CASE WHEN ${bucket} = ${ACHIEVEMENTS_DISTRIBUTION_BUCKETS} THEN 1 ELSE 0 END)`, 'bucket5')
       .addSelect('AVG(g.achievement_points)', 'avg_points')
       .addSelect('STDDEV_POP(g.achievement_points)', 'stddev_points')
       .addSelect('MIN(g.achievement_points)', 'min_points')
@@ -399,18 +408,23 @@ export class GuildMetricsService {
   }
 
   private toAchievementsDistributionValue(row: GuildAchievementsDistributionRow): Record<string, any> {
+    const max = parseInt(String(row.max_points ?? 0), 10);
+    const width = max / ACHIEVEMENTS_DISTRIBUTION_BUCKETS;
+    const ranges: Record<string, number> = {};
+
+    for (let index = 0; index < ACHIEVEMENTS_DISTRIBUTION_BUCKETS; index += 1) {
+      const from = Math.floor(index * width);
+      const to = index === ACHIEVEMENTS_DISTRIBUTION_BUCKETS - 1 ? max : Math.floor((index + 1) * width);
+
+      ranges[`${from} ⋯ ${to}`] = parseInt(row[`bucket${index + 1}`] || '0', 10);
+    }
+
     return {
       total: parseInt(row.total || '0', 10),
-      ranges: {
-        under1k: parseInt(row.under1k || '0', 10),
-        '1k-10k': parseInt(row.range1k10k || '0', 10),
-        '10k-100k': parseInt(row.range10k100k || '0', 10),
-        '100k-1m': parseInt(row.range100k1m || '0', 10),
-        over1m: parseInt(row.over1m || '0', 10),
-      },
+      ranges,
       stats: {
         min: parseInt(String(row.min_points ?? 0), 10),
-        max: parseInt(String(row.max_points ?? 0), 10),
+        max,
         avg: Math.round(Number(row.avg_points || 0) * 100) / 100,
         stddev: Math.round(Number(row.stddev_points || 0) * 100) / 100,
         p50: Math.round(Number(row.p50 || 0) * 100) / 100,

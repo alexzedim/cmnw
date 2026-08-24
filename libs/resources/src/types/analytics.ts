@@ -152,11 +152,11 @@ export interface GuildTopByMembers {
 export interface GuildAchievementsDistributionRow {
   realm_id?: number;
   total: string;
-  under1k: string;
-  range1k10k: string;
-  range10k100k: string;
-  range100k1m: string;
-  over1m: string;
+  bucket1: string;
+  bucket2: string;
+  bucket3: string;
+  bucket4: string;
+  bucket5: string;
   avg_points: string;
   stddev_points: string;
   min_points: string | number;
