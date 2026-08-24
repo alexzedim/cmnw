@@ -22,6 +22,8 @@ export enum AnalyticsMetricType {
   BY_CONNECTED_REALM = 'byConnectedRealm',
   MEMBERS_DISTRIBUTION = 'membersDistribution',
   ACHIEVEMENTS_DISTRIBUTION = 'achievementsDistribution',
+  AGE_DISTRIBUTION = 'ageDistribution',
+  TOP_BY_AGE = 'topByAge',
   TOP_BY_ACHIEVEMENTS = 'topByAchievements',
   PRICE_RANGES = 'priceRanges',
   TOP_BY_VOLUME = 'topByVolume',

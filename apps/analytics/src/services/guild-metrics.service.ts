@@ -3,6 +3,7 @@ import { AnalyticsMetricCategory, AnalyticsMetricType } from '@app/resources';
 import { analyticsKeyOf, findExistingAnalyticsKeys } from '@app/resources/dao';
 import type {
   AchievementsDistributionRow,
+  GuildAgeDistributionRow,
   GuildCountAggregation,
   GuildMembersDistributionRow,
   GuildRealmAggregation,
@@ -46,6 +47,8 @@ export class GuildMetricsService {
         await this.collectGuildByRealmFaction(manager, rows, existingKeys, snapshotDate);
         await this.collectGuildMembersDistribution(manager, rows, existingKeys, snapshotDate);
         await this.collectGuildAchievementsDistribution(manager, rows, existingKeys, snapshotDate);
+        await this.collectGuildAgeDistribution(manager, rows, existingKeys, snapshotDate);
+        await this.collectGuildTopByAge(manager, rows, existingKeys, snapshotDate);
         await this.collectGuildTopByAchievements(manager, rows, existingKeys, snapshotDate);
 
         if (rows.length > 0) {
@@ -379,6 +382,202 @@ export class GuildMetricsService {
         }),
       );
     }
+  }
+
+  /**
+   * Age distribution over created_timestamp with fixed year tiers
+   * (<1y, 1-3y, 3-5y, 5-10y, 10-15y, 15+y). Fixed boundaries keep the
+   * buckets stable across days (guilds age uniformly, so anchored/dynamic
+   * bounds would shift daily). Global row plus one row per realm.
+   */
+  private async collectGuildAgeDistribution(
+    manager: EntityManager,
+    rows: AnalyticsEntity[],
+    existingKeys: Set<string>,
+    snapshotDate: Date,
+  ): Promise<void> {
+    const globalKey = analyticsKeyOf(AnalyticsMetricCategory.GUILDS, AnalyticsMetricType.AGE_DISTRIBUTION);
+    if (!existingKeys.has(globalKey)) {
+      const globalRow = await this.withAgeDistributionSelect(
+        manager.getRepository(GuildsEntity).createQueryBuilder('g'),
+      )
+        .where('g.faction IS NOT NULL')
+        .andWhere('g.members_count > 0')
+        .andWhere('g.created_timestamp IS NOT NULL')
+        .getRawOne<GuildAgeDistributionRow>();
+
+      if (globalRow) {
+        rows.push(
+          manager.create(AnalyticsEntity, {
+            category: AnalyticsMetricCategory.GUILDS,
+            metricType: AnalyticsMetricType.AGE_DISTRIBUTION,
+            value: this.toAgeDistributionValue(globalRow),
+            snapshotDate,
+          }),
+        );
+      }
+    }
+
+    const byRealm = await this.withAgeDistributionSelect(manager.getRepository(GuildsEntity).createQueryBuilder('g'))
+      .addSelect('g.realm_id', 'realm_id')
+      .where('g.faction IS NOT NULL')
+      .andWhere('g.members_count > 0')
+      .andWhere('g.created_timestamp IS NOT NULL')
+      .groupBy('g.realm_id')
+      .getRawMany<GuildAgeDistributionRow>();
+
+    for (const realmRow of byRealm) {
+      if (!realmRow?.realm_id) continue;
+
+      const key = analyticsKeyOf(
+        AnalyticsMetricCategory.GUILDS,
+        AnalyticsMetricType.AGE_DISTRIBUTION,
+        realmRow.realm_id,
+      );
+      if (existingKeys.has(key)) continue;
+
+      rows.push(
+        manager.create(AnalyticsEntity, {
+          category: AnalyticsMetricCategory.GUILDS,
+          metricType: AnalyticsMetricType.AGE_DISTRIBUTION,
+          realmId: realmRow.realm_id,
+          value: this.toAgeDistributionValue(realmRow),
+          snapshotDate,
+        }),
+      );
+    }
+  }
+
+  private withAgeDistributionSelect(qb: SelectQueryBuilder<GuildsEntity>): SelectQueryBuilder<GuildsEntity> {
+    const age = 'now() - g.created_timestamp';
+
+    return qb
+      .select(`SUM(CASE WHEN ${age} < INTERVAL '1 year' THEN 1 ELSE 0 END)`, 'under1y')
+      .addSelect(
+        `SUM(CASE WHEN ${age} >= INTERVAL '1 year' AND ${age} < INTERVAL '3 years' THEN 1 ELSE 0 END)`,
+        'range1y3y',
+      )
+      .addSelect(
+        `SUM(CASE WHEN ${age} >= INTERVAL '3 years' AND ${age} < INTERVAL '5 years' THEN 1 ELSE 0 END)`,
+        'range3y5y',
+      )
+      .addSelect(
+        `SUM(CASE WHEN ${age} >= INTERVAL '5 years' AND ${age} < INTERVAL '10 years' THEN 1 ELSE 0 END)`,
+        'range5y10y',
+      )
+      .addSelect(
+        `SUM(CASE WHEN ${age} >= INTERVAL '10 years' AND ${age} < INTERVAL '15 years' THEN 1 ELSE 0 END)`,
+        'range10y15y',
+      )
+      .addSelect(`SUM(CASE WHEN ${age} >= INTERVAL '15 years' THEN 1 ELSE 0 END)`, 'over15y')
+      .addSelect('COUNT(*)', 'total')
+      .addSelect(`AVG(EXTRACT(EPOCH FROM ${age}) / 31557600.0)`, 'avg_age_years')
+      .addSelect(
+        `PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM ${age}) / 31557600.0)`,
+        'median_age_years',
+      )
+      .addSelect(`MIN(EXTRACT(EPOCH FROM ${age}) / 86400.0)`, 'newest_days')
+      .addSelect(`MAX(EXTRACT(EPOCH FROM ${age}) / 86400.0)`, 'oldest_days');
+  }
+
+  private toAgeDistributionValue(row: GuildAgeDistributionRow): Record<string, any> {
+    return {
+      total: parseInt(row.total || '0', 10),
+      ranges: {
+        under1y: parseInt(row.under1y || '0', 10),
+        '1y-3y': parseInt(row.range1y3y || '0', 10),
+        '3y-5y': parseInt(row.range3y5y || '0', 10),
+        '5y-10y': parseInt(row.range5y10y || '0', 10),
+        '10y-15y': parseInt(row.range10y15y || '0', 10),
+        over15y: parseInt(row.over15y || '0', 10),
+      },
+      stats: {
+        avgYears: Math.round(Number(row.avg_age_years || 0) * 100) / 100,
+        medianYears: Math.round(Number(row.median_age_years || 0) * 100) / 100,
+        oldestDays: Math.round(Number(row.oldest_days || 0)),
+        newestDays: Math.round(Number(row.newest_days || 0)),
+      },
+    };
+  }
+
+  /**
+   * Oldest guilds by created_timestamp: top 3 globally and the single oldest
+   * per realm, from the live-guild slice. `value` is the age in whole days.
+   */
+  private async collectGuildTopByAge(
+    manager: EntityManager,
+    rows: AnalyticsEntity[],
+    existingKeys: Set<string>,
+    snapshotDate: Date,
+  ): Promise<void> {
+    const globalKey = analyticsKeyOf(AnalyticsMetricCategory.GUILDS, AnalyticsMetricType.TOP_BY_AGE);
+    if (!existingKeys.has(globalKey)) {
+      const oldest = await this.withOldestGuildsSelect(manager.getRepository(GuildsEntity).createQueryBuilder('g'))
+        .limit(3)
+        .getRawMany<GuildTopByMembers>();
+
+      const value = this.toOldestGuildsValue(oldest);
+
+      if (Object.keys(value).length > 0) {
+        rows.push(
+          manager.create(AnalyticsEntity, {
+            category: AnalyticsMetricCategory.GUILDS,
+            metricType: AnalyticsMetricType.TOP_BY_AGE,
+            value,
+            snapshotDate,
+          }),
+        );
+      }
+    }
+
+    // DISTINCT ON keeps one row per realm — the oldest, per ORDER BY.
+    const byRealm = await this.withOldestGuildsSelect(manager.getRepository(GuildsEntity).createQueryBuilder('g'))
+      .distinctOn(['g.realm_id'])
+      .addSelect('g.realm_id', 'realm_id')
+      .orderBy('g.realm_id', 'ASC')
+      .addOrderBy('g.created_timestamp', 'ASC')
+      .getRawMany<GuildTopByMembers & { realm_id: number }>();
+
+    for (const guild of byRealm) {
+      if (!guild?.realm_id || !guild.guid) continue;
+
+      const key = analyticsKeyOf(AnalyticsMetricCategory.GUILDS, AnalyticsMetricType.TOP_BY_AGE, guild.realm_id);
+      if (existingKeys.has(key)) continue;
+
+      rows.push(
+        manager.create(AnalyticsEntity, {
+          category: AnalyticsMetricCategory.GUILDS,
+          metricType: AnalyticsMetricType.TOP_BY_AGE,
+          realmId: guild.realm_id,
+          value: this.toOldestGuildsValue([guild]),
+          snapshotDate,
+        }),
+      );
+    }
+  }
+
+  private withOldestGuildsSelect(qb: SelectQueryBuilder<GuildsEntity>): SelectQueryBuilder<GuildsEntity> {
+    return qb
+      .select('g.guid', 'guid')
+      .addSelect('g.name', 'name')
+      .addSelect('g.realm', 'realm')
+      .addSelect(`FLOOR(EXTRACT(EPOCH FROM (now() - g.created_timestamp)) / 86400.0)`, 'value')
+      .where('g.faction IS NOT NULL')
+      .andWhere('g.members_count > 0')
+      .andWhere('g.created_timestamp IS NOT NULL')
+      .orderBy('g.created_timestamp', 'ASC');
+  }
+
+  private toOldestGuildsValue(guilds: GuildTopByMembers[]): Record<string, GuildTopByMembers> {
+    const value: Record<string, GuildTopByMembers> = {};
+
+    for (const guild of guilds) {
+      if (guild?.guid) {
+        value[guild.guid] = { ...guild, value: Number(guild.value ?? 0) };
+      }
+    }
+
+    return value;
   }
 
   private async collectGuildTopByAchievements(

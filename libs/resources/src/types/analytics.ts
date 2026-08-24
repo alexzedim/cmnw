@@ -149,6 +149,21 @@ export interface GuildTopByMembers {
   value: number;
 }
 
+export interface GuildAgeDistributionRow {
+  realm_id?: number;
+  total: string;
+  under1y: string;
+  range1y3y: string;
+  range3y5y: string;
+  range5y10y: string;
+  range10y15y: string;
+  over15y: string;
+  avg_age_years: string;
+  median_age_years: string | number;
+  oldest_days: string | number;
+  newest_days: string | number;
+}
+
 export interface AchievementsDistributionRow {
   realm_id?: number;
   total: string;
