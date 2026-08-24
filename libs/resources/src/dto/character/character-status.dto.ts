@@ -3,17 +3,17 @@ import { ApiProperty } from '@nestjs/swagger';
 /**
  * Character Status DTO
  * Represents the status of character data collection endpoints
- * Status string format: 6 characters representing [STATUS, SUMMARY, MEDIA, PETS, MOUNTS, PROFESSIONS]
- * - Uppercase letter = Success (S, U, V, P, M, R)
- * - Lowercase letter = Error (s, u, v, p, m, r)
+ * Status string format: 7 characters representing [STATUS, SUMMARY, MEDIA, PETS, MOUNTS, PROFESSIONS, ACHIEVEMENTS]
+ * - Uppercase letter = Success (S, U, V, P, M, R, A)
+ * - Lowercase letter = Error (s, u, v, p, m, r, a)
  * - Hyphen (-) = Pending/Not attempted
  */
 export class CharacterStatusDto {
   @ApiProperty({
     type: 'string',
-    description: 'Status string representing endpoint statuses (6 characters)',
-    example: 'SU-MPV',
-    pattern: '^[SUVPMRsuvrpm-]{6}$',
+    description: 'Status string representing endpoint statuses (7 characters)',
+    example: 'SUPMVR-',
+    pattern: '^[SUVPMRsuvrpmAa-]{7}$',
   })
   readonly status: string;
 

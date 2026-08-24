@@ -2,8 +2,8 @@
  * Character Status Utility Functions
  *
  * Provides utilities for working with character status strings.
- * Status strings are 6-character strings where each character represents
- * the status of a specific endpoint (e.g., "SU-MPVR").
+ * Status strings are 7-character strings where each character represents
+ * the status of a specific endpoint (e.g., "SUPMVR-").
  */
 
 import { CHARACTER_STATUS_CODES, CharacterStatusState, STATUS_ENDPOINT_ORDER } from '@app/resources/constants';
@@ -16,7 +16,7 @@ import { CHARACTER_STATUS_CODES, CharacterStatusState, STATUS_ENDPOINT_ORDER } f
  * @returns Updated status string
  *
  * @example
- * setStatusString('------', 'STATUS', CharacterStatusState.SUCCESS) // "S-----"
+ * setStatusString('-------', 'STATUS', CharacterStatusState.SUCCESS) // "S------"
  * setStatusString('S-----', 'SUMMARY', CharacterStatusState.SUCCESS) // "SU----"
  * setStatusString('SU----', 'MEDIA', CharacterStatusState.ERROR) // "SU-M---"
  */
@@ -180,7 +180,7 @@ export function hasAnyErrorInString(status: string): boolean {
  *
  * @example
  * getCompletionPercentageInString('SU-MPV') // 83
- * getCompletionPercentageInString('------') // 0
+ * getCompletionPercentageInString('-------') // 0
  */
 export function getCompletionPercentageInString(status: string): number {
   const total = STATUS_ENDPOINT_ORDER.length;
@@ -264,17 +264,16 @@ export function getStatusDescriptionInString(status: string): string {
  * @returns True if status string is valid
  *
  * @example
- * isValidStatusString('SU-MPV') // true
- * isValidStatusString('SU-MPVX') // false (too long)
- * isValidStatusString('SU-MPV') // true
- * isValidStatusString('SU-MPV') // true
+ * isValidStatusString('SUPMVR-') // true
+ * isValidStatusString('SUPMVR-A') // false (too long)
+ * isValidStatusString('SUPMVR') // false (too short)
  */
 export function isValidStatusString(status: string): boolean {
   if (status.length !== STATUS_ENDPOINT_ORDER.length) {
     return false;
   }
 
-  const validChars = new Set(['S', 's', 'U', 'u', 'M', 'm', 'P', 'p', 'V', 'v', 'R', 'r', '-']);
+  const validChars = new Set(['S', 's', 'U', 'u', 'M', 'm', 'P', 'p', 'V', 'v', 'R', 'r', 'A', 'a', '-']);
 
   for (const char of status) {
     if (!validChars.has(char)) {

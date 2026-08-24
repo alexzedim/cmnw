@@ -28,13 +28,22 @@ export const CHARACTER_STATUS_CODES = {
   PETS: { success: 'P', error: 'p', pending: '-' },
   MOUNTS: { success: 'M', error: 'm', pending: '-' },
   PROFESSIONS: { success: 'R', error: 'r', pending: '-' },
+  ACHIEVEMENTS: { success: 'A', error: 'a', pending: '-' },
 } as const;
 
 /**
  * Endpoint order for string representation
- * Defines the position of each endpoint in the 6-character status string
+ * Defines the position of each endpoint in the 7-character status string
  */
-export const STATUS_ENDPOINT_ORDER = ['STATUS', 'SUMMARY', 'MEDIA', 'PETS', 'MOUNTS', 'PROFESSIONS'] as const;
+export const STATUS_ENDPOINT_ORDER = [
+  'STATUS',
+  'SUMMARY',
+  'MEDIA',
+  'PETS',
+  'MOUNTS',
+  'PROFESSIONS',
+  'ACHIEVEMENTS',
+] as const;
 
 /**
  * Guild Status State for each operation
