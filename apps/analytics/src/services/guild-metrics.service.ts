@@ -2,7 +2,7 @@ import { AnalyticsEntity, GuildsEntity } from '@app/pg';
 import { AnalyticsMetricCategory, AnalyticsMetricType } from '@app/resources';
 import { analyticsKeyOf, findExistingAnalyticsKeys } from '@app/resources/dao';
 import type {
-  GuildAchievementsDistributionRow,
+  AchievementsDistributionRow,
   GuildCountAggregation,
   GuildMembersDistributionRow,
   GuildRealmAggregation,
@@ -14,13 +14,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import type { DataSource, EntityManager, Repository, SelectQueryBuilder } from 'typeorm';
 
-const ACHIEVEMENTS_DISTRIBUTION_BUCKETS = 5;
-
-const GUILD_ACHIEVEMENT_POINTS_FILTER = 'g2.faction IS NOT NULL AND g2.achievement_points > 0';
-
-const GLOBAL_MAX_ACHIEVEMENT_POINTS_SQL = `(SELECT MAX(g2.achievement_points) FROM guilds g2 WHERE ${GUILD_ACHIEVEMENT_POINTS_FILTER})`;
-
-const REALM_MAX_ACHIEVEMENT_POINTS_SQL = `(SELECT MAX(g2.achievement_points) FROM guilds g2 WHERE g2.realm_id = g.realm_id AND ${GUILD_ACHIEVEMENT_POINTS_FILTER})`;
+import { addAchievementsDistributionSelect, toAchievementsDistributionValue } from './achievement-distribution.util';
 
 @Injectable()
 export class GuildMetricsService {
@@ -330,35 +324,40 @@ export class GuildMetricsService {
   ): Promise<void> {
     const globalKey = analyticsKeyOf(AnalyticsMetricCategory.GUILDS, AnalyticsMetricType.ACHIEVEMENTS_DISTRIBUTION);
     if (!existingKeys.has(globalKey)) {
-      const globalRow = await this.withAchievementsDistributionSelect(
+      const globalRow = await addAchievementsDistributionSelect(
         manager.getRepository(GuildsEntity).createQueryBuilder('g'),
-        GLOBAL_MAX_ACHIEVEMENT_POINTS_SQL,
+        'g',
+        { table: 'guilds', filter: 'p.faction IS NOT NULL AND p.achievement_points > 0' },
       )
         .where('g.faction IS NOT NULL')
         .andWhere('g.achievement_points > 0')
-        .getRawOne<GuildAchievementsDistributionRow>();
+        .getRawOne<AchievementsDistributionRow>();
 
       if (globalRow) {
         rows.push(
           manager.create(AnalyticsEntity, {
             category: AnalyticsMetricCategory.GUILDS,
             metricType: AnalyticsMetricType.ACHIEVEMENTS_DISTRIBUTION,
-            value: this.toAchievementsDistributionValue(globalRow),
+            value: toAchievementsDistributionValue(globalRow),
             snapshotDate,
           }),
         );
       }
     }
 
-    const byRealm = await this.withAchievementsDistributionSelect(
+    const byRealm = await addAchievementsDistributionSelect(
       manager.getRepository(GuildsEntity).createQueryBuilder('g'),
-      REALM_MAX_ACHIEVEMENT_POINTS_SQL,
+      'g',
+      {
+        table: 'guilds',
+        filter: 'p.realm_id = g.realm_id AND p.faction IS NOT NULL AND p.achievement_points > 0',
+      },
     )
       .addSelect('g.realm_id', 'realm_id')
       .where('g.faction IS NOT NULL')
       .andWhere('g.achievement_points > 0')
       .groupBy('g.realm_id')
-      .getRawMany<GuildAchievementsDistributionRow>();
+      .getRawMany<AchievementsDistributionRow>();
 
     for (const realmRow of byRealm) {
       if (!realmRow?.realm_id) continue;
@@ -375,63 +374,11 @@ export class GuildMetricsService {
           category: AnalyticsMetricCategory.GUILDS,
           metricType: AnalyticsMetricType.ACHIEVEMENTS_DISTRIBUTION,
           realmId: realmRow.realm_id,
-          value: this.toAchievementsDistributionValue(realmRow),
+          value: toAchievementsDistributionValue(realmRow),
           snapshotDate,
         }),
       );
     }
-  }
-
-  private withAchievementsDistributionSelect(
-    qb: SelectQueryBuilder<GuildsEntity>,
-    maxPointsBoundSql: string,
-  ): SelectQueryBuilder<GuildsEntity> {
-    // Buckets are relative to the scope's max achievement points: five even
-    // [i*w, (i+1)*w) spans between 0 and max (width_bucket sends x == max to
-    // bucket 6, so LEAST caps it into the last bucket).
-    const bucket = `LEAST(width_bucket(g.achievement_points, 0, ${maxPointsBoundSql}, ${ACHIEVEMENTS_DISTRIBUTION_BUCKETS}), ${ACHIEVEMENTS_DISTRIBUTION_BUCKETS})`;
-
-    return qb
-      .select('COUNT(*)', 'total')
-      .addSelect(`SUM(CASE WHEN ${bucket} = 1 THEN 1 ELSE 0 END)`, 'bucket1')
-      .addSelect(`SUM(CASE WHEN ${bucket} = 2 THEN 1 ELSE 0 END)`, 'bucket2')
-      .addSelect(`SUM(CASE WHEN ${bucket} = 3 THEN 1 ELSE 0 END)`, 'bucket3')
-      .addSelect(`SUM(CASE WHEN ${bucket} = 4 THEN 1 ELSE 0 END)`, 'bucket4')
-      .addSelect(`SUM(CASE WHEN ${bucket} = ${ACHIEVEMENTS_DISTRIBUTION_BUCKETS} THEN 1 ELSE 0 END)`, 'bucket5')
-      .addSelect('AVG(g.achievement_points)', 'avg_points')
-      .addSelect('STDDEV_POP(g.achievement_points)', 'stddev_points')
-      .addSelect('MIN(g.achievement_points)', 'min_points')
-      .addSelect('MAX(g.achievement_points)', 'max_points')
-      .addSelect('PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY g.achievement_points)', 'p50')
-      .addSelect('PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY g.achievement_points)', 'p90')
-      .addSelect('PERCENTILE_CONT(0.99) WITHIN GROUP (ORDER BY g.achievement_points)', 'p99');
-  }
-
-  private toAchievementsDistributionValue(row: GuildAchievementsDistributionRow): Record<string, any> {
-    const max = parseInt(String(row.max_points ?? 0), 10);
-    const width = max / ACHIEVEMENTS_DISTRIBUTION_BUCKETS;
-    const ranges: Record<string, number> = {};
-
-    for (let index = 0; index < ACHIEVEMENTS_DISTRIBUTION_BUCKETS; index += 1) {
-      const from = Math.floor(index * width);
-      const to = index === ACHIEVEMENTS_DISTRIBUTION_BUCKETS - 1 ? max : Math.floor((index + 1) * width);
-
-      ranges[`${from} ⋯ ${to}`] = parseInt(row[`bucket${index + 1}`] || '0', 10);
-    }
-
-    return {
-      total: parseInt(row.total || '0', 10),
-      ranges,
-      stats: {
-        min: parseInt(String(row.min_points ?? 0), 10),
-        max,
-        avg: Math.round(Number(row.avg_points || 0) * 100) / 100,
-        stddev: Math.round(Number(row.stddev_points || 0) * 100) / 100,
-        p50: Math.round(Number(row.p50 || 0) * 100) / 100,
-        p90: Math.round(Number(row.p90 || 0) * 100) / 100,
-        p99: Math.round(Number(row.p99 || 0) * 100) / 100,
-      },
-    };
   }
 
   private async collectGuildTopByAchievements(

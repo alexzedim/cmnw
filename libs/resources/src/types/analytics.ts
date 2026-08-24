@@ -149,14 +149,17 @@ export interface GuildTopByMembers {
   value: number;
 }
 
-export interface GuildAchievementsDistributionRow {
+export interface AchievementsDistributionRow {
   realm_id?: number;
   total: string;
+  bucket0: string;
   bucket1: string;
   bucket2: string;
   bucket3: string;
   bucket4: string;
   bucket5: string;
+  bucket6: string;
+  bucket7: string;
   avg_points: string;
   stddev_points: string;
   min_points: string | number;
