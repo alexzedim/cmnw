@@ -50,7 +50,7 @@ export const characterAsGuildMember = async (
 
     characterEntity = charactersRepository.create({
       id: guildMember.id,
-      guid: guildMember.guid,
+      guid: toGuid(guildMember.name, realmEntity.slug),
       name: guildMember.name,
       realm: realm,
       realmId: realmId,
