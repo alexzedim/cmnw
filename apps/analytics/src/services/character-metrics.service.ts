@@ -2,6 +2,7 @@ import { AnalyticsEntity, CharactersEntity } from '@app/pg';
 import { AnalyticsMetricCategory, AnalyticsMetricType } from '@app/resources';
 import { analyticsKeyOf, findExistingAnalyticsKeys } from '@app/resources/dao';
 import type {
+  AchievementsDistributionRow,
   CharacterAverages,
   CharacterExtreme,
   CharacterGlobalAggregationRow,
@@ -12,6 +13,8 @@ import type {
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import type { DataSource, EntityManager, Repository } from 'typeorm';
+
+import { addAchievementsDistributionSelect, toAchievementsDistributionValue } from './achievement-distribution.util';
 
 @Injectable()
 export class CharacterMetricsService {
@@ -66,6 +69,10 @@ export class CharacterMetricsService {
 
         await this.collectCharacterExtremes(manager, rows, existingKeys, snapshotDate, maxLevel);
         await this.collectCharacterAverages(manager, rows, existingKeys, snapshotDate, maxLevel);
+
+        if (maxLevel > 0) {
+          await this.collectCharacterAchievementsDistribution(manager, rows, existingKeys, snapshotDate, maxLevel);
+        }
 
         if (rows.length > 0) {
           await manager.save(AnalyticsEntity, rows);
@@ -605,5 +612,78 @@ export class CharacterMetricsService {
         snapshotDate,
       }),
     );
+  }
+
+  /**
+   * Achievements distribution for max-level characters: median-anchored
+   * buckets over achievement_points (see achievement-distribution.util).
+   * Global row plus one row per realm, each anchored on its own median/max.
+   */
+  private async collectCharacterAchievementsDistribution(
+    manager: EntityManager,
+    rows: AnalyticsEntity[],
+    existingKeys: Set<string>,
+    snapshotDate: Date,
+    maxLevel: number,
+  ): Promise<void> {
+    const globalKey = analyticsKeyOf(AnalyticsMetricCategory.CHARACTERS, AnalyticsMetricType.ACHIEVEMENTS_DISTRIBUTION);
+    if (!existingKeys.has(globalKey)) {
+      const globalRow = await addAchievementsDistributionSelect(
+        manager.getRepository(CharactersEntity).createQueryBuilder('c'),
+        'c',
+        { table: 'characters', filter: 'p.level = :maxLevel AND p.achievement_points > 0' },
+      )
+        .where('c.level = :maxLevel')
+        .andWhere('c.achievement_points > 0')
+        .setParameter('maxLevel', maxLevel)
+        .getRawOne<AchievementsDistributionRow>();
+
+      if (globalRow) {
+        rows.push(
+          manager.create(AnalyticsEntity, {
+            category: AnalyticsMetricCategory.CHARACTERS,
+            metricType: AnalyticsMetricType.ACHIEVEMENTS_DISTRIBUTION,
+            value: toAchievementsDistributionValue(globalRow),
+            snapshotDate,
+          }),
+        );
+      }
+    }
+
+    const byRealm = await addAchievementsDistributionSelect(
+      manager.getRepository(CharactersEntity).createQueryBuilder('c'),
+      'c',
+      {
+        table: 'characters',
+        filter: 'p.realm_id = c.realm_id AND p.level = :maxLevel AND p.achievement_points > 0',
+      },
+    )
+      .addSelect('c.realm_id', 'realm_id')
+      .where('c.level = :maxLevel')
+      .andWhere('c.achievement_points > 0')
+      .setParameter('maxLevel', maxLevel)
+      .groupBy('c.realm_id')
+      .getRawMany<AchievementsDistributionRow>();
+
+    for (const realmRow of byRealm) {
+      if (!realmRow?.realm_id) continue;
+
+      const key = analyticsKeyOf(
+        AnalyticsMetricCategory.CHARACTERS,
+        AnalyticsMetricType.ACHIEVEMENTS_DISTRIBUTION,
+        realmRow.realm_id,
+      );
+      if (existingKeys.has(key)) continue;
+
+      rows.push(
+        manager.create(AnalyticsEntity, {
+          category: AnalyticsMetricCategory.CHARACTERS,
+          metricType: AnalyticsMetricType.ACHIEVEMENTS_DISTRIBUTION,
+          realmId: realmRow.realm_id,
+          value: toAchievementsDistributionValue(realmRow),
+          snapshotDate,
+        }),
+      );
+    }
   }
 }
