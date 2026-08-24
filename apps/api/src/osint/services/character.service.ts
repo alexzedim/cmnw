@@ -472,17 +472,19 @@ export class CharacterOsintService {
 
       if (entry.guild) {
         const lastDash = entry.guild.lastIndexOf('-');
-        if (lastDash > 0) {
-          const suffix = entry.guild.substring(lastDash + 1);
-          let guildRealm = guildRealmCache.get(suffix);
-          if (guildRealm === undefined) {
-            guildRealm = await this.realmsCache.findRealm(suffix);
-            guildRealmCache.set(suffix, guildRealm);
-          }
-          if (guildRealm) {
-            entry.guild = entry.guild.substring(0, lastDash);
-            entry.guildGuid = toGuid(entry.guild, guildRealm.slug);
-          }
+        const suffix = lastDash > 0 ? entry.guild.substring(lastDash + 1) : null;
+        let guildRealm = suffix ? guildRealmCache.get(suffix) : null;
+        if (suffix && guildRealm === undefined) {
+          guildRealm = await this.realmsCache.findRealm(suffix);
+          guildRealmCache.set(suffix, guildRealm);
+        }
+        if (guildRealm) {
+          entry.guild = entry.guild.substring(0, lastDash);
+          entry.guildGuid = toGuid(entry.guild, guildRealm.slug);
+        } else {
+          entry.guild = undefined;
+          entry.guildGuid = undefined;
+          entry.guildRank = undefined;
         }
       }
     }
