@@ -45,8 +45,8 @@ export const characterAsGuildMember = async (
     }
 
     const realmId = realmEntity.id;
-    const realm = realmEntity.name;
-    const realmName = realmEntity.localeName;
+    const realm = realmEntity.slug;
+    const realmName = realmEntity.name;
 
     characterEntity = charactersRepository.create({
       id: guildMember.id,
