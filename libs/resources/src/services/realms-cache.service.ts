@@ -2,6 +2,7 @@ import { RealmsEntity } from '@app/pg';
 import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
+import { findRealm as findRealmInDb } from '../dao/realms.dao';
 import { toSlug } from '../transformers';
 
 /**
@@ -61,45 +62,7 @@ export class RealmsCacheService implements OnApplicationBootstrap {
 
         // Build lookup maps
         for (const realm of realms) {
-          this.realmsById.set(realm.id, realm);
-
-          if (realm.name) {
-            this.realmsByName.set(realm.name, realm);
-            this.realmsByName.set(realm.name.toLowerCase(), realm);
-          }
-
-          if (realm.slug) {
-            this.realmsBySlug.set(realm.slug, realm);
-            this.realmsBySlug.set(realm.slug.toLowerCase(), realm);
-          }
-
-          if (realm.localeName) {
-            this.realmsByLocaleName.set(realm.localeName, realm);
-            this.realmsByLocaleName.set(realm.localeName.toLowerCase(), realm);
-          }
-
-          if (realm.localeSlug) {
-            this.realmsByLocaleSlug.set(realm.localeSlug, realm);
-            this.realmsByLocaleSlug.set(realm.localeSlug.toLowerCase(), realm);
-          }
-
-          if (realm.ticker) {
-            this.realmsByTicker.set(realm.ticker, realm);
-            this.realmsByTicker.set(realm.ticker.toLowerCase(), realm);
-          }
-
-          if (realm.slug) {
-            const normalized = realm.slug.replace(/-/g, '').toLowerCase();
-            if (!this.realmsByNormalizedSlug.has(normalized)) {
-              this.realmsByNormalizedSlug.set(normalized, realm);
-            }
-          }
-          if (realm.localeSlug) {
-            const normalized = realm.localeSlug.replace(/-/g, '').toLowerCase();
-            if (!this.realmsByNormalizedSlug.has(normalized)) {
-              this.realmsByNormalizedSlug.set(normalized, realm);
-            }
-          }
+          this.indexRealm(realm);
         }
 
         this.isInitialized = true;
@@ -132,9 +95,52 @@ export class RealmsCacheService implements OnApplicationBootstrap {
     await this.loadRealms();
   }
 
+  private indexRealm(realm: RealmsEntity): void {
+    this.realmsById.set(realm.id, realm);
+
+    if (realm.name) {
+      this.realmsByName.set(realm.name, realm);
+      this.realmsByName.set(realm.name.toLowerCase(), realm);
+    }
+
+    if (realm.slug) {
+      this.realmsBySlug.set(realm.slug, realm);
+      this.realmsBySlug.set(realm.slug.toLowerCase(), realm);
+    }
+
+    if (realm.localeName) {
+      this.realmsByLocaleName.set(realm.localeName, realm);
+      this.realmsByLocaleName.set(realm.localeName.toLowerCase(), realm);
+    }
+
+    if (realm.localeSlug) {
+      this.realmsByLocaleSlug.set(realm.localeSlug, realm);
+      this.realmsByLocaleSlug.set(realm.localeSlug.toLowerCase(), realm);
+    }
+
+    if (realm.ticker) {
+      this.realmsByTicker.set(realm.ticker, realm);
+      this.realmsByTicker.set(realm.ticker.toLowerCase(), realm);
+    }
+
+    if (realm.slug) {
+      const normalized = realm.slug.replace(/-/g, '').toLowerCase();
+      if (!this.realmsByNormalizedSlug.has(normalized)) {
+        this.realmsByNormalizedSlug.set(normalized, realm);
+      }
+    }
+    if (realm.localeSlug) {
+      const normalized = realm.localeSlug.replace(/-/g, '').toLowerCase();
+      if (!this.realmsByNormalizedSlug.has(normalized)) {
+        this.realmsByNormalizedSlug.set(normalized, realm);
+      }
+    }
+  }
+
   /**
-   * Find realm by any identifier (name, slug, localeName, localeSlug)
-   * Returns null if not found
+   * Find realm by any identifier (name, slug, localeName, localeSlug).
+   * Falls back to a database lookup on cache miss and self-heals the in-memory maps.
+   * Returns null if not found.
    */
   async findRealm(query: string): Promise<RealmsEntity | null> {
     if (!this.isInitialized) {
@@ -173,7 +179,15 @@ export class RealmsCacheService implements OnApplicationBootstrap {
     const normalizedQuery = query.replace(/-/g, '').toLowerCase();
     realm = this.realmsByNormalizedSlug.get(normalizedQuery);
 
-    return realm || null;
+    if (realm) return realm;
+
+    const realmFromDb = await findRealmInDb(this.realmsRepository, query);
+    if (realmFromDb) {
+      this.indexRealm(realmFromDb);
+      return realmFromDb;
+    }
+
+    return null;
   }
 
   async resolveCanonicalSlug(query: string): Promise<string | null> {
