@@ -147,15 +147,6 @@ export const CHARACTER_SUMMARY_FIELD_MAPPING = new Map<string, SummaryFieldMappi
 
 export const CHARACTER_MEDIA_FIELD_MAPPING = new Map<string, string>([['avatar', 'avatarImage']]);
 
-/**
- * Leveling achievements used to approximate character creation date:
- * 6 = Level 10, 7 = Level 20, 8 = Level 30, 9 = Level 40.
- * The earliest matched completed_timestamp approximates creation ("created on or before").
- * Boosted characters have the whole ladder stamped at boost time; characters
- * created before patch 3.0.2 have it stamped at their first login after 2008-10-14.
- */
-export const CHARACTER_AGE_PATTERN_ACHIEVEMENTS = [6, 7, 8, 9] as const;
-
 export const CHARACTER_RAID_DIFFICULTY = new Map<string, IWarcraftLogsMap>([
   ['heroic', { wclId: 4, fieldName: 'heroicLogs' }],
   ['mythic', { wclId: 5, fieldName: 'mythicLogs' }],
@@ -636,6 +627,63 @@ export enum EXPANSIONS {
   Legion = 'LGN',
   BattleForAzeroth = 'BFA',
   Shadowlands = 'SHDW',
+  Dragonflight = 'DRGF',
+  TheWarWithin = 'TWWN',
+}
+
+/**
+ * Original leveling ladder used to approximate character creation date:
+ * 6 = Level 10, 7-13 = Level 20-80.
+ * The earliest matched completed_timestamp approximates creation ("created on or before").
+ * Boosted characters have the whole ladder stamped at boost time; characters
+ * created before patch 3.0.2 have it stamped at their first login after 2008-10-14.
+ */
+export const CHARACTER_AGE_ORIGINAL_LEVEL_10_ID = 6;
+
+export const CHARACTER_AGE_ORIGINAL_CHAIN_IDS = [7, 8, 9, 10, 11, 12, 13] as const;
+
+/**
+ * Expansion leveling chains (10-60 / 10-70): stamped while leveling through the
+ * expansion, or batch-stamped at the same millisecond when a level boost
+ * instantly completes the ladder.
+ */
+export const CHARACTER_AGE_EXPANSION_LEVEL_IDS: Map<EXPANSIONS, readonly number[]> = new Map([
+  [EXPANSIONS.Shadowlands, [14781, 14782, 14783, 14784, 14785, 14786]],
+  [EXPANSIONS.Dragonflight, [8998, 8999, 9000, 9001, 9002, 9003]],
+  [EXPANSIONS.TheWarWithin, [19486, 19487, 19488, 19489, 19490, 19491, 19492]],
+]);
+
+/**
+ * Direct level boost achievements, mapped to the expansion whose boost was
+ * applied. Presence of any of these conclusively proves a level boost.
+ */
+export const CHARACTER_LEVEL_BOOST_ACHIEVEMENT_EXPANSION: Map<number, EXPANSIONS> = new Map([
+  [15179, EXPANSIONS.Shadowlands],
+  [15070, EXPANSIONS.Shadowlands],
+  [16400, EXPANSIONS.Dragonflight],
+  [40167, EXPANSIONS.TheWarWithin],
+]);
+
+/**
+ * Hero classes (Death Knight, Demon Hunter, Evoker) start above level 10 and
+ * get expansion chains batch-stamped at creation, so inference-only boost
+ * patterns (chain absent / timestamp cluster) must be skipped for them.
+ */
+export const CHARACTER_LEVEL_BOOST_INFERENCE_EXCLUDED_CLASSES: ReadonlySet<string> = new Set(
+  [PLAYABLE_CLASS.get(6), PLAYABLE_CLASS.get(12), PLAYABLE_CLASS.get(13)].filter(
+    (className): className is string => className != null,
+  ),
+);
+
+/**
+ * Which achievement pattern produced the level boost verdict.
+ */
+export enum LEVEL_BOOST_EVIDENCE {
+  DIRECT_ACHIEVEMENT = 'DIRECT_ACHIEVEMENT',
+  TIMESTAMP_CLUSTER = 'TIMESTAMP_CLUSTER',
+  ORIGINAL_CHAIN_ABSENT = 'ORIGINAL_CHAIN_ABSENT',
+  ORIGINAL_LEVEL_10_PRESENT = 'ORIGINAL_LEVEL_10_PRESENT',
+  INDETERMINATE = 'INDETERMINATE',
 }
 
 export enum MYTHIC_PLUS_SEASONS {

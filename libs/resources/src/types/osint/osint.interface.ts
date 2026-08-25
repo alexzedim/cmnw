@@ -1,5 +1,7 @@
 import type { CharactersGuildsMembersEntity, CharactersProfileEntity } from '@app/pg';
 
+import type { EXPANSIONS, LEVEL_BOOST_EVIDENCE } from '@app/resources/constants';
+
 import type {
   BlizzardApiCharacterProfessions,
   BlizzardApiMountsCollection,
@@ -392,6 +394,10 @@ export interface IBlizzardProfessionsResponse {
  */
 export interface CharacterAge {
   createdApprox: Date;
+  isLevelBoosted: boolean | null;
+  levelBoostEvidence: LEVEL_BOOST_EVIDENCE | null;
+  levelBoostType: EXPANSIONS | null;
+  levelBoostedAt: Date | null;
 }
 
 export interface CharacterSummary {

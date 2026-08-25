@@ -15,7 +15,7 @@ import {
   type CharacterStatus,
   CharacterStatusState,
   type CharacterSummary,
-  extractCreatedApproxTimestamp,
+  detectCharacterAgeAndLevelBoost,
   GUILD_INHERIT_KEYS,
   type IBlizzardStatusResponse,
   type ICharacterMessageBase,
@@ -388,6 +388,7 @@ export class CharacterService {
     nameSlug: string,
     realmSlug: string,
     config?: IBattleNetClientConfig,
+    characterClass?: string | null,
   ): Promise<Partial<CharacterAge> | null> {
     try {
       const response = await this.battleNetService.query<BlizzardApiCharacterAchievements>(
@@ -401,14 +402,7 @@ export class CharacterService {
         return null;
       }
 
-      const age: Partial<CharacterAge> = {};
-
-      const timestamp = extractCreatedApproxTimestamp(response.achievements);
-      if (timestamp) {
-        age.createdApprox = toDate(timestamp);
-      }
-
-      return age;
+      return detectCharacterAgeAndLevelBoost(response.achievements, characterClass);
     } catch (errorOrException) {
       const statusCode = isAxiosError(errorOrException)
         ? errorOrException.response?.status

@@ -181,14 +181,16 @@ export class CharactersWorker extends WorkerHost {
     refreshCtx: IRefreshContext | null,
   ): Promise<void> {
     const realmSlug = characterEntity.realm;
-    const isAgeRecoveryNeeded = characterEntity.createdApprox == null;
+    const isScanNeeded =
+      characterEntity.createdApprox == null ||
+      (characterEntity.isLevelBoosted == null && characterEntity.levelBoostEvidence == null);
 
-    const achievementsTask: CharacterEndpointTasks[5] = isAgeRecoveryNeeded
+    const achievementsTask: CharacterEndpointTasks[5] = isScanNeeded
       ? () =>
           this.tapRefresh(
             refreshCtx,
             RefreshEndpoint.ACHIEVEMENTS,
-            this.characterService.getAchievements(nameSlug, realmSlug, config),
+            this.characterService.getAchievements(nameSlug, realmSlug, config, characterEntity.class),
           )
       : () => Promise.resolve(null);
 
@@ -240,7 +242,7 @@ export class CharactersWorker extends WorkerHost {
 
     status = await this.processProfessionsResult(status, professionsResult, nameSlug, realmSlug, characterEntity);
 
-    status = this.processAchievementsResult(status, achievementsResult, characterEntity, isAgeRecoveryNeeded);
+    status = this.processAchievementsResult(status, achievementsResult, characterEntity, isScanNeeded);
 
     characterEntity.status = status;
   }
@@ -312,9 +314,9 @@ export class CharactersWorker extends WorkerHost {
     currentStatus: string,
     result: PromiseSettledResult<Partial<CharacterAge> | null>,
     characterEntity: CharactersEntity,
-    isAgeRecoveryNeeded: boolean,
+    isScanNeeded: boolean,
   ): string {
-    if (!isAgeRecoveryNeeded) {
+    if (!isScanNeeded) {
       return currentStatus;
     }
 
@@ -326,6 +328,14 @@ export class CharactersWorker extends WorkerHost {
     if (age.createdApprox) {
       characterEntity.createdApprox = age.createdApprox;
     }
+
+    if (age.levelBoostEvidence) {
+      characterEntity.levelBoostEvidence = age.levelBoostEvidence;
+    }
+
+    characterEntity.isLevelBoosted = age.isLevelBoosted ?? null;
+    characterEntity.levelBoostType = age.levelBoostType ?? null;
+    characterEntity.levelBoostedAt = age.levelBoostedAt ?? null;
 
     return setStatusString(currentStatus, 'ACHIEVEMENTS', CharacterStatusState.SUCCESS);
   }

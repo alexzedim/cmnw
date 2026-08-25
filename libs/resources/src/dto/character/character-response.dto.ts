@@ -1,4 +1,5 @@
 import { type AnalyticsEntity, CharactersEntity } from '@app/pg/entity';
+import { EXPANSIONS, LEVEL_BOOST_EVIDENCE } from '@app/resources/constants';
 import { calculateCharacterPercentiles, toInsetImage, toMainImage } from '@app/resources/utils';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -316,6 +317,38 @@ export class CharacterResponseDto extends CharactersEntity {
       'Approximate character creation date recovered from leveling achievements (character was created on or before this date)',
   })
   declare readonly createdApprox?: Date;
+
+  @ApiProperty({
+    type: 'boolean',
+    nullable: true,
+    description:
+      'Whether the character consumed a level boost (true = boosted, false = naturally leveled, null = undetermined)',
+  })
+  declare readonly isLevelBoosted?: boolean | null;
+
+  @ApiProperty({
+    type: 'string',
+    enum: LEVEL_BOOST_EVIDENCE,
+    nullable: true,
+    description: 'Achievement pattern behind the level boost verdict',
+  })
+  declare readonly levelBoostEvidence?: LEVEL_BOOST_EVIDENCE | null;
+
+  @ApiProperty({
+    type: 'string',
+    enum: EXPANSIONS,
+    nullable: true,
+    description: 'Expansion whose level boost was applied',
+  })
+  declare readonly levelBoostType?: EXPANSIONS | null;
+
+  @ApiProperty({
+    type: 'string',
+    format: 'date-time',
+    nullable: true,
+    description: 'Timestamp of the level boost (null when only inferred)',
+  })
+  declare readonly levelBoostedAt?: Date | null;
 
   @ApiProperty({
     type: 'string',

@@ -4,6 +4,7 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColum
 @Index('ix__characters__guild_guild', ['guildGuid'], {})
 @Index('ix__characters__hash_a', ['hashA'], {})
 @Index('ix__characters__hash_b', ['hashB'], {})
+@Index('ix__characters__is_level_boosted', ['isLevelBoosted'], {})
 @Index('ix__characters__realm_id', ['realmId'], {})
 @Index('ix__characters__level', ['level'], {})
 @Index('ix__characters__realm_level', ['realmId', 'level'], {})
@@ -238,6 +239,37 @@ export class CharactersEntity {
     nullable: true,
   })
   createdApprox?: Date;
+
+  @Column({
+    default: null,
+    nullable: true,
+    type: 'boolean',
+    name: 'is_level_boosted',
+  })
+  isLevelBoosted?: boolean | null;
+
+  @Column({
+    default: null,
+    nullable: true,
+    type: 'varchar',
+    name: 'level_boost_evidence',
+  })
+  levelBoostEvidence?: string | null;
+
+  @Column({
+    default: null,
+    nullable: true,
+    type: 'varchar',
+    name: 'level_boost_type',
+  })
+  levelBoostType?: string | null;
+
+  @Column('timestamp with time zone', {
+    default: null,
+    nullable: true,
+    name: 'level_boosted_at',
+  })
+  levelBoostedAt?: Date | null;
 
   @CreateDateColumn({
     type: 'timestamp with time zone',
