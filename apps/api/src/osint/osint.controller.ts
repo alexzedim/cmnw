@@ -19,6 +19,7 @@ import type {
   RealmDto,
   UploadOsintDto,
 } from '@app/resources';
+import { CharacterResponseDto } from '@app/resources/dto/character/character-response.dto';
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query } from '@nestjs/common';
 import {
   ApiBadRequestResponse,
@@ -58,7 +59,7 @@ export class OsintController {
       'the character is force-refreshed from Blizzard and progress is ' +
       'streamed over the WS feed to the originating session.',
   })
-  @ApiOkResponse({ description: 'Request character with selected guid' })
+  @ApiOkResponse({ description: 'Request character with selected guid', type: CharacterResponseDto })
   @ApiUnauthorizedResponse({
     description: 'You need authenticate yourself before request',
   })
@@ -70,7 +71,7 @@ export class OsintController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
   @Get('/character')
-  async getCharacter(@Query() input: CharacterIdDto): Promise<CharactersEntity> {
+  async getCharacter(@Query() input: CharacterIdDto): Promise<CharacterResponseDto> {
     return await this.characterOsintService.getCharacter(input);
   }
 
