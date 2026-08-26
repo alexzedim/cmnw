@@ -16,10 +16,11 @@ import {
   CHARACTER_ENDPOINT_BATCH_DELAY_MS,
   CHARACTER_ENDPOINT_BATCH_SIZE,
   type CHARACTER_STATUS_CODES,
-  type CharacterAge,
+  type CharacterAchievementsScan,
   type CharacterEndpointTasks,
   CharacterStatusState,
   charactersQueue,
+  detectBlizzardEmployeeSignature,
   FeedEventCategory,
   FeedStatus,
   HASH_RECONCILE_SWEEP_CHANCE,
@@ -183,7 +184,8 @@ export class CharactersWorker extends WorkerHost {
     const realmSlug = characterEntity.realm;
     const isScanNeeded =
       characterEntity.createdApprox == null ||
-      (characterEntity.isLevelBoosted == null && characterEntity.levelBoostEvidence == null);
+      (characterEntity.isLevelBoosted == null && characterEntity.levelBoostEvidence == null) ||
+      characterEntity.isBlizzardEmployee == null;
 
     const achievementsTask: CharacterEndpointTasks[5] = isScanNeeded
       ? () =>
@@ -227,6 +229,8 @@ export class CharactersWorker extends WorkerHost {
     const [summaryResult, mediaResult, petsResult, mountsResult, professionsResult, achievementsResult] =
       await batchedAllSettled(endpointTasks, CHARACTER_ENDPOINT_BATCH_SIZE, CHARACTER_ENDPOINT_BATCH_DELAY_MS);
 
+    const petsPayload = petsResult.status === 'fulfilled' ? petsResult.value : null;
+
     let status = characterEntity.status || '-------';
 
     status = this.processResult(status, 'SUMMARY', summaryResult, (data) => {
@@ -243,6 +247,14 @@ export class CharactersWorker extends WorkerHost {
     status = await this.processProfessionsResult(status, professionsResult, nameSlug, realmSlug, characterEntity);
 
     status = this.processAchievementsResult(status, achievementsResult, characterEntity, isScanNeeded);
+
+    if (isScanNeeded) {
+      const employeeSignature = detectBlizzardEmployeeSignature(
+        petsPayload?.pets ?? null,
+        achievementsResult.status === 'fulfilled' ? (achievementsResult.value?.employeeFos ?? null) : null,
+      );
+      Object.assign(characterEntity, employeeSignature);
+    }
 
     characterEntity.status = status;
   }
@@ -312,7 +324,7 @@ export class CharactersWorker extends WorkerHost {
 
   private processAchievementsResult(
     currentStatus: string,
-    result: PromiseSettledResult<Partial<CharacterAge> | null>,
+    result: PromiseSettledResult<CharacterAchievementsScan | null>,
     characterEntity: CharactersEntity,
     isScanNeeded: boolean,
   ): string {

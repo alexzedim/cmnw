@@ -1,6 +1,6 @@
 import type { CharactersGuildsMembersEntity, CharactersProfileEntity } from '@app/pg';
 
-import type { EXPANSIONS, LEVEL_BOOST_EVIDENCE } from '@app/resources/constants';
+import type { BLIZZARD_EMPLOYEE_EVIDENCE, EXPANSIONS, LEVEL_BOOST_EVIDENCE } from '@app/resources/constants';
 
 import type {
   BlizzardApiCharacterProfessions,
@@ -400,6 +400,21 @@ export interface CharacterAge {
   levelBoostedAt: Date | null;
 }
 
+export interface BlizzardEmployeeFosEntry {
+  achievementId: number;
+  expansion: EXPANSIONS;
+  timestamp: number;
+}
+
+export interface BlizzardEmployeeSignature {
+  isBlizzardEmployee: boolean | null;
+  blizzardEmployeeEvidence: BLIZZARD_EMPLOYEE_EVIDENCE | null;
+  blizzardEmployeePets: string[] | null;
+  hiredApprox: Date | null;
+}
+
+export type CharacterAchievementsScan = Partial<CharacterAge> & { employeeFos?: BlizzardEmployeeFosEntry[] };
+
 export interface CharacterSummary {
   guid: string;
   name: string;
@@ -430,7 +445,7 @@ export type CharacterEndpointTasks = [
   () => Promise<BlizzardApiPetsCollection | null>,
   () => Promise<BlizzardApiMountsCollection | null>,
   () => Promise<BlizzardApiCharacterProfessions | null>,
-  () => Promise<Partial<CharacterAge> | null>,
+  () => Promise<CharacterAchievementsScan | null>,
 ];
 
 export interface ICharacterSummary {

@@ -1,5 +1,5 @@
 import { type AnalyticsEntity, CharactersEntity } from '@app/pg/entity';
-import { EXPANSIONS, LEVEL_BOOST_EVIDENCE } from '@app/resources/constants';
+import { BLIZZARD_EMPLOYEE_EVIDENCE, EXPANSIONS, LEVEL_BOOST_EVIDENCE } from '@app/resources/constants';
 import { calculateCharacterPercentiles, toInsetImage, toMainImage } from '@app/resources/utils';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -349,6 +349,38 @@ export class CharacterResponseDto extends CharactersEntity {
     description: 'Timestamp of the level boost (null when only inferred)',
   })
   declare readonly levelBoostedAt?: Date | null;
+
+  @ApiProperty({
+    type: 'boolean',
+    nullable: true,
+    description:
+      "Whether the character carries the Blizzard employee collector's edition signature (true = employee, false = ruled out, null = undetermined)",
+  })
+  declare readonly isBlizzardEmployee?: boolean | null;
+
+  @ApiProperty({
+    type: 'string',
+    enum: BLIZZARD_EMPLOYEE_EVIDENCE,
+    nullable: true,
+    description: 'Data pattern behind the Blizzard employee verdict',
+  })
+  declare readonly blizzardEmployeeEvidence?: BLIZZARD_EMPLOYEE_EVIDENCE | null;
+
+  @ApiProperty({
+    type: 'array',
+    items: { type: 'string' },
+    nullable: true,
+    description: "Collector's Edition pets owned by the character",
+  })
+  declare readonly blizzardEmployeePets?: string[] | null;
+
+  @ApiProperty({
+    type: 'string',
+    format: 'date-time',
+    nullable: true,
+    description: "Approximate hire date (UTC day of the collector's edition batch grant)",
+  })
+  declare readonly hiredApprox?: Date | null;
 
   @ApiProperty({
     type: 'string',

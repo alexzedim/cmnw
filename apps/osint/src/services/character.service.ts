@@ -11,10 +11,11 @@ import {
   CHARACTER_ARGS_ENTITY_KEYS,
   CHARACTER_MEDIA_FIELD_MAPPING,
   CHARACTER_SUMMARY_FIELD_MAPPING,
-  type CharacterAge,
+  type CharacterAchievementsScan,
   type CharacterStatus,
   CharacterStatusState,
   type CharacterSummary,
+  collectBlizzardEmployeeFos,
   detectCharacterAgeAndLevelBoost,
   GUILD_INHERIT_KEYS,
   type IBlizzardStatusResponse,
@@ -389,7 +390,7 @@ export class CharacterService {
     realmSlug: string,
     config?: IBattleNetClientConfig,
     characterClass?: string | null,
-  ): Promise<Partial<CharacterAge> | null> {
+  ): Promise<CharacterAchievementsScan | null> {
     try {
       const response = await this.battleNetService.query<BlizzardApiCharacterAchievements>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/achievements`,
@@ -402,7 +403,10 @@ export class CharacterService {
         return null;
       }
 
-      return detectCharacterAgeAndLevelBoost(response.achievements, characterClass);
+      return {
+        ...detectCharacterAgeAndLevelBoost(response.achievements, characterClass),
+        employeeFos: collectBlizzardEmployeeFos(response.achievements),
+      };
     } catch (errorOrException) {
       const statusCode = isAxiosError(errorOrException)
         ? errorOrException.response?.status

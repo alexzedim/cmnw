@@ -686,6 +686,74 @@ export enum LEVEL_BOOST_EVIDENCE {
   INDETERMINATE = 'INDETERMINATE',
 }
 
+/**
+ * Which data pattern produced the Blizzard employee verdict.
+ */
+export enum BLIZZARD_EMPLOYEE_EVIDENCE {
+  CE_FOS_SAME_DAY = 'CE_FOS_SAME_DAY',
+  CE_TIMELINE_ORGANIC = 'CE_TIMELINE_ORGANIC',
+  MULTI_CE_PETS_UNVERIFIED = 'MULTI_CE_PETS_UNVERIFIED',
+  NO_CE_PETS = 'NO_CE_PETS',
+  INDETERMINATE = 'INDETERMINATE',
+}
+
+/**
+ * Collector's Edition battle pet species (pet.species.id) mapped to the
+ * expansion whose physical Collector's Edition granted them. Blizzard employees
+ * reportedly receive every edition on their hire date, so the collected set is
+ * the "what" pillar of employee detection. Species IDs verified against the
+ * pets table; excludes non-CE lookalikes (Fel Pup is a Tanaan rare drop,
+ * Drakks is the mass-market Dragonflight Epic Edition pet).
+ */
+export const CHARACTER_BLIZZARD_EMPLOYEE_CE_PETS: Map<number, { name: string; expansion: EXPANSIONS }> = new Map([
+  [92, { name: 'Panda Cub', expansion: EXPANSIONS.Classic }],
+  [93, { name: 'Mini Diablo', expansion: EXPANSIONS.Classic }],
+  [94, { name: 'Zergling', expansion: EXPANSIONS.Classic }],
+  [131, { name: 'Netherwhelp', expansion: EXPANSIONS.TheBurningCrusade }],
+  [188, { name: 'Frosty', expansion: EXPANSIONS.WraithOfTheLichKing }],
+  [268, { name: "Lil' Deathwing", expansion: EXPANSIONS.Cataclysm }],
+  [671, { name: 'Lucky Quilen Cub', expansion: EXPANSIONS.MistsOfPandaria }],
+  [1386, { name: 'Dread Hatchling', expansion: EXPANSIONS.WarlordsOfDraenor }],
+  [1691, { name: 'Nibbles', expansion: EXPANSIONS.Legion }],
+  [2143, { name: 'Tottle', expansion: EXPANSIONS.BattleForAzeroth }],
+  [2779, { name: 'Anima Wyrmling', expansion: EXPANSIONS.Shadowlands }],
+  [3175, { name: 'Murkastrasza', expansion: EXPANSIONS.Dragonflight }],
+  [4266, { name: 'Squally', expansion: EXPANSIONS.TheWarWithin }],
+]);
+
+/**
+ * Collector's Edition pet Feats of Strength mapped to their expansion. They
+ * carry completed_timestamp in the achievements payload and form the "when"
+ * pillar: employee grants land on one calendar day. Blizzard stopped issuing
+ * CE pet feats after Battle for Azeroth, so Shadowlands and later pets have no
+ * timestamp source and can never be covered by this map.
+ */
+export const CHARACTER_BLIZZARD_EMPLOYEE_CE_FOS_ACHIEVEMENTS: Map<number, EXPANSIONS> = new Map([
+  [662, EXPANSIONS.Classic],
+  [663, EXPANSIONS.Classic],
+  [664, EXPANSIONS.Classic],
+  [665, EXPANSIONS.TheBurningCrusade],
+  [683, EXPANSIONS.WraithOfTheLichKing],
+  [5377, EXPANSIONS.Cataclysm],
+  [6848, EXPANSIONS.MistsOfPandaria],
+  [8917, EXPANSIONS.WarlordsOfDraenor],
+  [10321, EXPANSIONS.Legion],
+  [12232, EXPANSIONS.BattleForAzeroth],
+]);
+
+/**
+ * Distinct CE expansions whose Feats of Strength must share one UTC calendar
+ * day to prove a batch grant (the hire date). One vanilla CE code redeems all
+ * three vanilla pets, which is why counting is per expansion, not per pet.
+ */
+export const CHARACTER_BLIZZARD_EMPLOYEE_CE_MIN_EDITIONS_SAME_DAY = 2;
+
+/**
+ * Distinct CE pet species (without usable FoS timestamp coverage) that mark a
+ * character as a suspected employee pending verification.
+ */
+export const CHARACTER_BLIZZARD_EMPLOYEE_CE_SUSPECT_SPECIES = 4;
+
 export enum MYTHIC_PLUS_SEASONS {
   BFA_S1 = 1,
   BFA_S2 = 2,

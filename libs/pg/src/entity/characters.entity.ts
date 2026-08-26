@@ -4,6 +4,7 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColum
 @Index('ix__characters__guild_guild', ['guildGuid'], {})
 @Index('ix__characters__hash_a', ['hashA'], {})
 @Index('ix__characters__hash_b', ['hashB'], {})
+@Index('ix__characters__is_blizzard_employee', ['isBlizzardEmployee'], {})
 @Index('ix__characters__is_level_boosted', ['isLevelBoosted'], {})
 @Index('ix__characters__realm_id', ['realmId'], {})
 @Index('ix__characters__level', ['level'], {})
@@ -270,6 +271,38 @@ export class CharactersEntity {
     name: 'level_boosted_at',
   })
   levelBoostedAt?: Date | null;
+
+  @Column({
+    default: null,
+    nullable: true,
+    type: 'boolean',
+    name: 'is_blizzard_employee',
+  })
+  isBlizzardEmployee?: boolean | null;
+
+  @Column({
+    default: null,
+    nullable: true,
+    type: 'varchar',
+    name: 'blizzard_employee_evidence',
+  })
+  blizzardEmployeeEvidence?: string | null;
+
+  @Column({
+    default: null,
+    nullable: true,
+    type: 'text',
+    array: true,
+    name: 'blizzard_employee_pets',
+  })
+  blizzardEmployeePets?: string[] | null;
+
+  @Column('timestamp with time zone', {
+    default: null,
+    nullable: true,
+    name: 'hired_approx',
+  })
+  hiredApprox?: Date | null;
 
   @CreateDateColumn({
     type: 'timestamp with time zone',
