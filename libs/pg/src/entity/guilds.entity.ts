@@ -3,6 +3,10 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColum
 
 @Index('ix__guilds__realm_id', ['realmId'], {})
 @Index('ix__guilds__members_count', ['membersCount'], {})
+// Serves analytics age-distribution and topByAge ordering on created_timestamp.
+@Index('ix__guilds__created_timestamp', ['createdTimestamp'], {
+  where: 'created_timestamp IS NOT NULL',
+})
 @Entity({ name: CMNW_ENTITY_ENUM.GUILDS })
 export class GuildsEntity {
   @PrimaryColumn({

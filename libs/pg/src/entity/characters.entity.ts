@@ -9,6 +9,16 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColum
 @Index('ix__characters__realm_id', ['realmId'], {})
 @Index('ix__characters__level', ['level'], {})
 @Index('ix__characters__realm_level', ['realmId', 'level'], {})
+// Serves analytics achievements-distribution queries: level-prefixed scan
+// yields rows grouped by (realm_id, achievement_points), so anchors and
+// width_bucket aggregation avoid re-sorting the filtered slice.
+@Index('ix__characters__level_realm_achievement_points', ['level', 'realmId', 'achievementPoints'], {
+  where: 'achievement_points > 0',
+})
+// Serves analytics topByAge queries (global top and per-realm DISTINCT ON).
+@Index('ix__characters__realm_created_approx', ['realmId', 'createdApprox'], {
+  where: 'created_approx IS NOT NULL',
+})
 @Entity({ name: CMNW_ENTITY_ENUM.CHARACTERS })
 export class CharactersEntity {
   @PrimaryColumn({
