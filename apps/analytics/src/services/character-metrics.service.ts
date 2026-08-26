@@ -1,6 +1,6 @@
 import { AnalyticsEntity, CharactersEntity } from '@app/pg';
 import { AnalyticsMetricCategory, AnalyticsMetricType } from '@app/resources';
-import { analyticsKeyOf, findExistingAnalyticsKeys } from '@app/resources/dao';
+import { analyticsKeyOf } from '@app/resources/dao';
 import type {
   AchievementsDistributionRow,
   CharacterAverages,
@@ -20,6 +20,7 @@ import {
   toAchievementsDistributionValue,
   withAchievementsAnchors,
 } from './achievement-distribution.util';
+import { type MetricsCollector, runMetricsCollector } from './collector-runner';
 
 @Injectable()
 export class CharacterMetricsService {
@@ -44,62 +45,76 @@ export class CharacterMetricsService {
   }
 
   async snapshotCharacterMetrics(snapshotDate: Date): Promise<number> {
-    const logTag = 'snapshotCharacterMetrics';
     const startTime = Date.now();
 
-    try {
-      const savedCount = await this.dataSource.transaction(async (manager) => {
-        const existingKeys = await findExistingAnalyticsKeys(manager, snapshotDate);
-        const rows: AnalyticsEntity[] = [];
+    // Every collector commits in its own transaction: a slow or failing
+    // query (e.g. a heavy distribution aggregation) can no longer pin or
+    // roll back the metrics captured by the other collectors.
+    const maxLevel = await this.getCharacterMaxLevel(this.dataSource.manager);
 
-        const maxLevel = await this.getCharacterMaxLevel(manager);
+    const collectors: Array<[string, MetricsCollector]> = [
+      [
+        'characterTotal',
+        (manager, rows, existingKeys) => this.collectCharacterTotal(manager, rows, existingKeys, snapshotDate),
+      ],
+      // Global dimension aggregations: faction / class / race / level in one UNION ALL query.
+      [
+        'characterGlobalDimensions',
+        async (manager, rows, existingKeys) => {
+          const globalAggregations = await this.getGlobalAggregations(manager);
+          this.pushGlobalDimensionRows(rows, manager, existingKeys, snapshotDate, globalAggregations);
+        },
+      ],
+      // Realm totals + unique players + realm/faction + realm/class.
+      [
+        'characterRealmAggregations',
+        (manager, rows, existingKeys) => this.collectRealmAggregations(manager, rows, existingKeys, snapshotDate),
+      ],
+      [
+        'characterMaxLevelDimensions',
+        async (manager, rows, existingKeys) => {
+          if (maxLevel <= 0) return;
 
-        await this.collectCharacterTotal(manager, rows, existingKeys, snapshotDate);
-
-        // Global dimension aggregations: faction / class / race / level in one UNION ALL query.
-        const globalAggregations = await this.getGlobalAggregations(manager);
-        this.pushGlobalDimensionRows(rows, manager, existingKeys, snapshotDate, globalAggregations);
-
-        // Realm totals + unique players + realm/faction + realm/class.
-        await this.collectRealmAggregations(manager, rows, existingKeys, snapshotDate);
-
-        if (maxLevel > 0) {
           // Max-level dimension aggregations: faction / class / race / level in one UNION ALL query.
           const maxLevelAggregations = await this.getGlobalAggregations(manager, maxLevel);
           this.pushMaxLevelDimensionRows(rows, manager, existingKeys, snapshotDate, maxLevelAggregations, maxLevel);
 
           // Realm + faction max-level and realm + class max-level.
           await this.collectRealmMaxLevelAggregations(manager, rows, existingKeys, snapshotDate, maxLevel);
-        }
+        },
+      ],
+      [
+        'characterExtremes',
+        (manager, rows, existingKeys) =>
+          this.collectCharacterExtremes(manager, rows, existingKeys, snapshotDate, maxLevel),
+      ],
+      [
+        'characterAverages',
+        (manager, rows, existingKeys) =>
+          this.collectCharacterAverages(manager, rows, existingKeys, snapshotDate, maxLevel),
+      ],
+      [
+        'characterAchievementsDistribution',
+        (manager, rows, existingKeys) => {
+          if (maxLevel <= 0) return Promise.resolve();
 
-        await this.collectCharacterExtremes(manager, rows, existingKeys, snapshotDate, maxLevel);
-        await this.collectCharacterAverages(manager, rows, existingKeys, snapshotDate, maxLevel);
+          return this.collectCharacterAchievementsDistribution(manager, rows, existingKeys, snapshotDate, maxLevel);
+        },
+      ],
+      [
+        'characterTopByAge',
+        (manager, rows, existingKeys) => this.collectCharacterTopByAge(manager, rows, existingKeys, snapshotDate),
+      ],
+    ];
 
-        if (maxLevel > 0) {
-          await this.collectCharacterAchievementsDistribution(manager, rows, existingKeys, snapshotDate, maxLevel);
-        }
-
-        await this.collectCharacterTopByAge(manager, rows, existingKeys, snapshotDate);
-
-        if (rows.length > 0) {
-          await manager.save(AnalyticsEntity, rows);
-        }
-        return rows.length;
-      });
-
-      const duration = Date.now() - startTime;
-      this.logger.log(`Character metrics snapshotted - metricsCount: ${savedCount}, durationMs: ${duration}`);
-      return savedCount;
-    } catch (errorOrException) {
-      const duration = Date.now() - startTime;
-      this.logger.error({
-        logTag,
-        message: 'Error snapshotting character metrics',
-        errorOrException,
-        durationMs: duration,
-      });
-      throw errorOrException;
+    let savedCount = 0;
+    for (const [name, collector] of collectors) {
+      savedCount += await runMetricsCollector(this.dataSource, this.logger, name, snapshotDate, collector);
     }
+
+    const duration = Date.now() - startTime;
+    this.logger.log(`Character metrics snapshotted - metricsCount: ${savedCount}, durationMs: ${duration}`);
+    return savedCount;
   }
 
   private async getCharacterMaxLevel(manager: EntityManager): Promise<number> {

@@ -6,6 +6,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import type { DataSource, EntityManager, Repository } from 'typeorm';
 
+import { type MetricsCollector, runMetricsCollector } from './collector-runner';
+
 @Injectable()
 export class HallOfFameMetricsService {
   private readonly logger = new Logger(HallOfFameMetricsService.name, {
@@ -24,36 +26,26 @@ export class HallOfFameMetricsService {
   ) {}
 
   async snapshotHallOfFameMetrics(snapshotDate: Date): Promise<number> {
-    const logTag = 'snapshotHallOfFameMetrics';
     const startTime = Date.now();
 
-    try {
-      const savedCount = await this.dataSource.transaction(async (manager) => {
-        const rows: AnalyticsEntity[] = [];
+    // Every collector commits in its own transaction, so one failing or
+    // slow metric cannot roll back or pin the rest of the Hall of Fame
+    // snapshot. These collectors dedupe via analyticsMetricLatest + isUnchanged
+    // instead of the snapshot-key set.
+    const collectors: Array<[string, MetricsCollector]> = [
+      ['hallOfFameTotal', (manager, rows) => this.collectHallOfFameTotal(manager, rows, snapshotDate)],
+      ['hallOfFameByRaid', (manager, rows) => this.collectHallOfFameByRaid(manager, rows, snapshotDate)],
+      ['hallOfFamePerRealm', (manager, rows) => this.collectHallOfFamePerRealm(manager, rows, snapshotDate)],
+    ];
 
-        await this.collectHallOfFameTotal(manager, rows, snapshotDate);
-        await this.collectHallOfFameByRaid(manager, rows, snapshotDate);
-        await this.collectHallOfFamePerRealm(manager, rows, snapshotDate);
-
-        if (rows.length > 0) {
-          await manager.save(AnalyticsEntity, rows);
-        }
-        return rows.length;
-      });
-
-      const duration = Date.now() - startTime;
-      this.logger.log(`Hall of Fame metrics snapshotted - metricsCount: ${savedCount}, durationMs: ${duration}`);
-      return savedCount;
-    } catch (errorOrException) {
-      const duration = Date.now() - startTime;
-      this.logger.error({
-        logTag,
-        message: 'Error snapshotting Hall of Fame metrics',
-        errorOrException,
-        durationMs: duration,
-      });
-      throw errorOrException;
+    let savedCount = 0;
+    for (const [name, collector] of collectors) {
+      savedCount += await runMetricsCollector(this.dataSource, this.logger, name, snapshotDate, collector);
     }
+
+    const duration = Date.now() - startTime;
+    this.logger.log(`Hall of Fame metrics snapshotted - metricsCount: ${savedCount}, durationMs: ${duration}`);
+    return savedCount;
   }
 
   private async collectHallOfFameTotal(

@@ -62,8 +62,9 @@ export class AnalyticsService implements OnApplicationBootstrap {
 
       // If table is empty (first launch) or no snapshot for today, run immediately.
       // Fire-and-forget so we don't block HTTP serving in co-hosted apps
-      // (e.g. the API process). The snapshot is idempotent and wrapped in
-      // its own try/catch, so any failure only logs — it cannot crash boot.
+      // (e.g. the API process). The snapshot is idempotent and every collector
+      // commits in its own transaction, so any failure only logs — it cannot
+      // crash boot or starve other metrics of their daily row.
       if (tableRowCount === 0 || !todaySnapshot) {
         this.logger.log({
           logTag,

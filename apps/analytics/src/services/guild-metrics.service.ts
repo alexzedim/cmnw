@@ -1,6 +1,6 @@
 import { AnalyticsEntity, GuildsEntity } from '@app/pg';
 import { AnalyticsMetricCategory, AnalyticsMetricType } from '@app/resources';
-import { analyticsKeyOf, findExistingAnalyticsKeys } from '@app/resources/dao';
+import { analyticsKeyOf } from '@app/resources/dao';
 import type {
   AchievementsDistributionRow,
   GuildAgeDistributionRow,
@@ -20,6 +20,7 @@ import {
   toAchievementsDistributionValue,
   withAchievementsAnchors,
 } from './achievement-distribution.util';
+import { type MetricsCollector, runMetricsCollector } from './collector-runner';
 
 @Injectable()
 export class GuildMetricsService {
@@ -37,43 +38,59 @@ export class GuildMetricsService {
   ) {}
 
   async snapshotGuildMetrics(snapshotDate: Date): Promise<number> {
-    const logTag = 'snapshotGuildMetrics';
     const startTime = Date.now();
 
-    try {
-      const savedCount = await this.dataSource.transaction(async (manager) => {
-        const existingKeys = await findExistingAnalyticsKeys(manager, snapshotDate);
-        const rows: AnalyticsEntity[] = [];
+    // Every collector commits in its own transaction, so one failing or
+    // slow metric cannot roll back or pin the rest of the guild snapshot.
+    const collectors: Array<[string, MetricsCollector]> = [
+      [
+        'guildTotal',
+        (manager, rows, existingKeys) => this.collectGuildTotal(manager, rows, existingKeys, snapshotDate),
+      ],
+      [
+        'guildByFaction',
+        (manager, rows, existingKeys) => this.collectGuildByFaction(manager, rows, existingKeys, snapshotDate),
+      ],
+      [
+        'guildByRealm',
+        (manager, rows, existingKeys) => this.collectGuildByRealm(manager, rows, existingKeys, snapshotDate),
+      ],
+      [
+        'guildByRealmFaction',
+        (manager, rows, existingKeys) => this.collectGuildByRealmFaction(manager, rows, existingKeys, snapshotDate),
+      ],
+      [
+        'guildMembersDistribution',
+        (manager, rows, existingKeys) =>
+          this.collectGuildMembersDistribution(manager, rows, existingKeys, snapshotDate),
+      ],
+      [
+        'guildAchievementsDistribution',
+        (manager, rows, existingKeys) =>
+          this.collectGuildAchievementsDistribution(manager, rows, existingKeys, snapshotDate),
+      ],
+      [
+        'guildAgeDistribution',
+        (manager, rows, existingKeys) => this.collectGuildAgeDistribution(manager, rows, existingKeys, snapshotDate),
+      ],
+      [
+        'guildTopByAge',
+        (manager, rows, existingKeys) => this.collectGuildTopByAge(manager, rows, existingKeys, snapshotDate),
+      ],
+      [
+        'guildTopByAchievements',
+        (manager, rows, existingKeys) => this.collectGuildTopByAchievements(manager, rows, existingKeys, snapshotDate),
+      ],
+    ];
 
-        await this.collectGuildTotal(manager, rows, existingKeys, snapshotDate);
-        await this.collectGuildByFaction(manager, rows, existingKeys, snapshotDate);
-        await this.collectGuildByRealm(manager, rows, existingKeys, snapshotDate);
-        await this.collectGuildByRealmFaction(manager, rows, existingKeys, snapshotDate);
-        await this.collectGuildMembersDistribution(manager, rows, existingKeys, snapshotDate);
-        await this.collectGuildAchievementsDistribution(manager, rows, existingKeys, snapshotDate);
-        await this.collectGuildAgeDistribution(manager, rows, existingKeys, snapshotDate);
-        await this.collectGuildTopByAge(manager, rows, existingKeys, snapshotDate);
-        await this.collectGuildTopByAchievements(manager, rows, existingKeys, snapshotDate);
-
-        if (rows.length > 0) {
-          await manager.save(AnalyticsEntity, rows);
-        }
-        return rows.length;
-      });
-
-      const duration = Date.now() - startTime;
-      this.logger.log(`Guild metrics snapshotted - metricsCount: ${savedCount}, durationMs: ${duration}`);
-      return savedCount;
-    } catch (errorOrException) {
-      const duration = Date.now() - startTime;
-      this.logger.error({
-        logTag,
-        message: 'Error snapshotting guild metrics',
-        errorOrException,
-        durationMs: duration,
-      });
-      throw errorOrException;
+    let savedCount = 0;
+    for (const [name, collector] of collectors) {
+      savedCount += await runMetricsCollector(this.dataSource, this.logger, name, snapshotDate, collector);
     }
+
+    const duration = Date.now() - startTime;
+    this.logger.log(`Guild metrics snapshotted - metricsCount: ${savedCount}, durationMs: ${duration}`);
+    return savedCount;
   }
 
   private async collectGuildTotal(

@@ -1,6 +1,6 @@
 import { AnalyticsEntity, MarketEntity } from '@app/pg';
 import { AnalyticsMetricCategory, AnalyticsMetricType, EXCLUDED_ITEM_IDS, MARKET_TYPE } from '@app/resources';
-import { analyticsKeyOf, findExistingAnalyticsKeys } from '@app/resources/dao';
+import { analyticsKeyOf } from '@app/resources/dao';
 import type {
   MarketAggregateCount,
   MarketByConnectedRealm,
@@ -13,6 +13,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DateTime } from 'luxon';
 import { type DataSource, type EntityManager, MoreThan, type Repository } from 'typeorm';
+
+import { type MetricsCollector, runMetricsCollector } from './collector-runner';
 
 @Injectable()
 export class MarketMetricsService {
@@ -30,40 +32,51 @@ export class MarketMetricsService {
   ) {}
 
   async snapshotMarketMetrics(snapshotDate: Date): Promise<number> {
-    const logTag = 'snapshotMarketMetrics';
     const startTime = Date.now();
 
-    try {
-      const savedCount = await this.dataSource.transaction(async (manager) => {
-        const existingKeys = await findExistingAnalyticsKeys(manager, snapshotDate);
-        const rows: AnalyticsEntity[] = [];
-        const threshold24h = DateTime.now().minus({ hours: 24 }).toMillis();
+    // Every collector commits in its own transaction, so one failing or
+    // slow metric cannot roll back or pin the rest of the market snapshot.
+    // The 24h threshold is captured per collector, inside its transaction.
+    const collectors: Array<[string, MetricsCollector]> = [
+      [
+        'marketTotal',
+        (manager, rows, existingKeys) =>
+          this.collectMarketTotal(manager, rows, existingKeys, snapshotDate, this.marketThreshold24h()),
+      ],
+      [
+        'marketByConnectedRealm',
+        (manager, rows, existingKeys) =>
+          this.collectMarketByConnectedRealm(manager, rows, existingKeys, snapshotDate, this.marketThreshold24h()),
+      ],
+      [
+        'marketPriceRanges',
+        (manager, rows, existingKeys) =>
+          this.collectMarketPriceRanges(manager, rows, existingKeys, snapshotDate, this.marketThreshold24h()),
+      ],
+      [
+        'marketTopByVolume',
+        (manager, rows, existingKeys) =>
+          this.collectMarketTopByVolume(manager, rows, existingKeys, snapshotDate, this.marketThreshold24h()),
+      ],
+      [
+        'marketTopByAuctions',
+        (manager, rows, existingKeys) =>
+          this.collectMarketTopByAuctions(manager, rows, existingKeys, snapshotDate, this.marketThreshold24h()),
+      ],
+    ];
 
-        await this.collectMarketTotal(manager, rows, existingKeys, snapshotDate, threshold24h);
-        await this.collectMarketByConnectedRealm(manager, rows, existingKeys, snapshotDate, threshold24h);
-        await this.collectMarketPriceRanges(manager, rows, existingKeys, snapshotDate, threshold24h);
-        await this.collectMarketTopByVolume(manager, rows, existingKeys, snapshotDate, threshold24h);
-        await this.collectMarketTopByAuctions(manager, rows, existingKeys, snapshotDate, threshold24h);
-
-        if (rows.length > 0) {
-          await manager.save(AnalyticsEntity, rows);
-        }
-        return rows.length;
-      });
-
-      const duration = Date.now() - startTime;
-      this.logger.log(`Market metrics snapshotted - metricsCount: ${savedCount}, durationMs: ${duration}`);
-      return savedCount;
-    } catch (errorOrException) {
-      const duration = Date.now() - startTime;
-      this.logger.error({
-        logTag,
-        message: 'Error snapshotting market metrics',
-        errorOrException,
-        durationMs: duration,
-      });
-      throw errorOrException;
+    let savedCount = 0;
+    for (const [name, collector] of collectors) {
+      savedCount += await runMetricsCollector(this.dataSource, this.logger, name, snapshotDate, collector);
     }
+
+    const duration = Date.now() - startTime;
+    this.logger.log(`Market metrics snapshotted - metricsCount: ${savedCount}, durationMs: ${duration}`);
+    return savedCount;
+  }
+
+  private marketThreshold24h(): number {
+    return DateTime.now().minus({ hours: 24 }).toMillis();
   }
 
   private async collectMarketTotal(

@@ -1,6 +1,6 @@
 import { AnalyticsEntity, ContractEntity } from '@app/pg';
 import { AnalyticsMetricCategory, AnalyticsMetricType, CONTRACTS_EXCLUDED_ITEM_IDS } from '@app/resources';
-import { analyticsKeyOf, findExistingAnalyticsKeys } from '@app/resources/dao';
+import { analyticsKeyOf } from '@app/resources/dao';
 import type {
   ContractByConnectedRealm,
   ContractCommoditiesData,
@@ -13,6 +13,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DateTime } from 'luxon';
 import { type DataSource, type EntityManager, MoreThan, type Repository } from 'typeorm';
+
+import { type MetricsCollector, runMetricsCollector } from './collector-runner';
 
 @Injectable()
 export class ContractMetricsService {
@@ -30,41 +32,54 @@ export class ContractMetricsService {
   ) {}
 
   async snapshotContractMetrics(snapshotDate: Date): Promise<number> {
-    const logTag = 'snapshotContractMetrics';
     const startTime = Date.now();
 
-    try {
-      const savedCount = await this.dataSource.transaction(async (manager) => {
-        const existingKeys = await findExistingAnalyticsKeys(manager, snapshotDate);
-        const rows: AnalyticsEntity[] = [];
-        const threshold24h = DateTime.now().minus({ hours: 24 }).toMillis();
+    // Every collector commits in its own transaction, so one failing or
+    // slow metric cannot roll back or pin the rest of the contract snapshot.
+    // The 24h threshold is captured per collector, inside its transaction.
+    const threshold24h = () => DateTime.now().minus({ hours: 24 }).toMillis();
 
-        await this.collectContractTotal(manager, rows, existingKeys, snapshotDate, threshold24h);
-        await this.collectContractByCommodities(manager, rows, existingKeys, snapshotDate, threshold24h);
-        await this.collectContractByConnectedRealm(manager, rows, existingKeys, snapshotDate, threshold24h);
-        await this.collectContractTopByQuantity(manager, rows, existingKeys, snapshotDate, threshold24h);
-        await this.collectContractTopByOpenInterest(manager, rows, existingKeys, snapshotDate, threshold24h);
-        await this.collectContractPriceVolatility(manager, rows, existingKeys, snapshotDate, threshold24h);
+    const collectors: Array<[string, MetricsCollector]> = [
+      [
+        'contractTotal',
+        (manager, rows, existingKeys) =>
+          this.collectContractTotal(manager, rows, existingKeys, snapshotDate, threshold24h()),
+      ],
+      [
+        'contractByCommodities',
+        (manager, rows, existingKeys) =>
+          this.collectContractByCommodities(manager, rows, existingKeys, snapshotDate, threshold24h()),
+      ],
+      [
+        'contractByConnectedRealm',
+        (manager, rows, existingKeys) =>
+          this.collectContractByConnectedRealm(manager, rows, existingKeys, snapshotDate, threshold24h()),
+      ],
+      [
+        'contractTopByQuantity',
+        (manager, rows, existingKeys) =>
+          this.collectContractTopByQuantity(manager, rows, existingKeys, snapshotDate, threshold24h()),
+      ],
+      [
+        'contractTopByOpenInterest',
+        (manager, rows, existingKeys) =>
+          this.collectContractTopByOpenInterest(manager, rows, existingKeys, snapshotDate, threshold24h()),
+      ],
+      [
+        'contractPriceVolatility',
+        (manager, rows, existingKeys) =>
+          this.collectContractPriceVolatility(manager, rows, existingKeys, snapshotDate, threshold24h()),
+      ],
+    ];
 
-        if (rows.length > 0) {
-          await manager.save(AnalyticsEntity, rows);
-        }
-        return rows.length;
-      });
-
-      const duration = Date.now() - startTime;
-      this.logger.log(`Contract metrics snapshotted - metricsCount: ${savedCount}, durationMs: ${duration}`);
-      return savedCount;
-    } catch (errorOrException) {
-      const duration = Date.now() - startTime;
-      this.logger.error({
-        logTag,
-        message: 'Error snapshotting contract metrics',
-        errorOrException,
-        durationMs: duration,
-      });
-      throw errorOrException;
+    let savedCount = 0;
+    for (const [name, collector] of collectors) {
+      savedCount += await runMetricsCollector(this.dataSource, this.logger, name, snapshotDate, collector);
     }
+
+    const duration = Date.now() - startTime;
+    this.logger.log(`Contract metrics snapshotted - metricsCount: ${savedCount}, durationMs: ${duration}`);
+    return savedCount;
   }
 
   private async collectContractTotal(
