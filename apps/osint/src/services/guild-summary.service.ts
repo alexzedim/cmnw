@@ -80,10 +80,6 @@ export class GuildSummaryService {
     summary.realm = response.realm.slug;
 
     // Extract date information
-    if (response.lastModified) {
-      summary.lastModified = new Date(response.lastModified);
-    }
-
     if (response.created_timestamp) {
       summary.createdTimestamp = new Date(response.created_timestamp);
     }

@@ -134,7 +134,6 @@ export type BlizzardApiGuildSummary = {
   created_timestamp: number;
   activity: { href: string };
   name_search: string;
-  lastModified: string;
 };
 
 // Profession Index Query Responses

@@ -60,7 +60,6 @@ describe('GuildSummaryService', () => {
         realm: expect.any(String),
         faction: expect.any(String),
         membersCount: expect.any(Number),
-        lastModified: expect.any(Date),
         createdTimestamp: expect.any(Date),
       });
     });

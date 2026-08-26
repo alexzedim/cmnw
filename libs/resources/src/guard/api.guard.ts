@@ -82,9 +82,7 @@ export const isGuildSummary = (response: unknown): response is BlizzardApiGuildS
   'name' in (response as any).realm &&
   'slug' in (response as any).realm &&
   'created_timestamp' in response &&
-  typeof (response as any).created_timestamp === 'number' &&
-  'lastModified' in response &&
-  typeof (response as any).lastModified === 'string';
+  typeof (response as any).created_timestamp === 'number';
 
 export const isPetsCollection = (response: unknown): response is Readonly<BlizzardApiPetsCollection> =>
   typeof response === 'object' && 'pets' in response && Array.isArray(response.pets);

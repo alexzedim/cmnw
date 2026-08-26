@@ -639,7 +639,6 @@ export interface IGuildSummary {
   realmName: string;
   createdTimestamp: Date;
   status: string;
-  lastModified: Date;
 }
 
 export interface ICharacterQueueWP {
