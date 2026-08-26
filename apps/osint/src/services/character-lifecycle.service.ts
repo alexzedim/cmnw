@@ -8,8 +8,8 @@ import {
   OSINT_SOURCE,
   TIME_MS,
   toDate,
+  toDiffLogString,
   toGuid,
-  toNormalizedString,
 } from '@app/resources';
 import { findRealm } from '@app/resources/dao/realms.dao';
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
@@ -139,16 +139,19 @@ export class CharacterLifecycleService {
       ];
 
       for (const { action, key } of actionLogFields) {
-        const hasField = Boolean(original[key]) && Boolean(updated[key]);
+        const originalValue = toDiffLogString(original[key]);
+        const updatedValue = toDiffLogString(updated[key]);
+
+        const hasField = Boolean(originalValue) && Boolean(updatedValue);
         if (!hasField) continue;
 
-        const isFieldChanged = original[key] !== updated[key];
+        const isFieldChanged = originalValue !== updatedValue;
         if (!isFieldChanged) continue;
 
         const logEntity = this.charactersGuildsLogsRepository.create({
           characterGuid: updated.guid,
-          original: toNormalizedString(original[key]) ?? '',
-          updated: toNormalizedString(updated[key]) ?? '',
+          original: originalValue,
+          updated: updatedValue,
           action,
           scannedAt: toDate(original.lastModified || original.updatedAt),
           createdAt: toDate(updated.lastModified || updated.updatedAt),

@@ -62,6 +62,11 @@ export const toNormalizedString = (value: unknown): string | null => {
   return null;
 };
 
+export const toDiffLogString = (value: unknown): string | null => {
+  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : null;
+  return toNormalizedString(value);
+};
+
 export const normalizeLocaleField = (value: unknown): string | null => {
   if (value == null) return null;
 
