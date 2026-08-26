@@ -8,41 +8,55 @@ import type { SelectQueryBuilder } from 'typeorm';
  */
 export const ACHIEVEMENTS_DISTRIBUTION_BUCKETS = 7;
 
-interface AchievementBucketScope {
-  /** Table the anchor subqueries read from, e.g. 'guilds' or 'characters'. */
+interface AchievementAnchorScope {
+  /** Table the anchor CTE reads from, e.g. 'guilds' or 'characters'. */
   table: string;
   /**
-   * WHERE clause for the anchor subqueries, written against the 'p' alias
-   * (e.g. 'p.faction IS NOT NULL AND p.achievement_points > 0'). Per-realm
-   * scopes correlate with the outer row via 'p.realm_id = <outer>.realm_id'.
+   * WHERE clause for the anchor rows, written against the 'p' alias (e.g.
+   * 'p.faction IS NOT NULL AND p.achievement_points > 0'). Must match the
+   * outer row filter so every grouped row finds its anchor.
    */
   filter: string;
 }
 
 /**
- * Builds the width_bucket expression anchored on the scope's median: bucket 0
- * holds values at/below the median, buckets 1..N cover (median, max] with even
- * widths (LEAST caps x == max into the last bucket).
+ * Adds the `anchors` CTE computing the median/max achievement anchors once,
+ * then joins it as `a` — either per realm (GROUP BY p.realm_id, joined on
+ * realm_id) or as a single global row (joined on TRUE).
+ *
+ * The anchors must never be inlined into the bucket expressions: as scalar
+ * subqueries they turn into per-row SubPlans (correlated per realm), which on
+ * multi-million-row tables never completes. The CTE is evaluated once.
  */
-const bucketExpression = (outerAlias: string, scope: AchievementBucketScope): string => {
-  const { table, filter } = scope;
-  const median = `(SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY p.achievement_points) FROM ${table} p WHERE ${filter})`;
-  const max = `(SELECT MAX(p.achievement_points) FROM ${table} p WHERE ${filter})`;
+export const withAchievementsAnchors = <E>(
+  qb: SelectQueryBuilder<E>,
+  outerAlias: string,
+  scope: AchievementAnchorScope,
+  groupByRealm: boolean,
+): SelectQueryBuilder<E> => {
+  const realmColumns = groupByRealm ? 'p.realm_id, ' : '';
+  const realmGroup = groupByRealm ? ' GROUP BY p.realm_id' : '';
+  const cte = `SELECT ${realmColumns}percentile_cont(0.5) WITHIN GROUP (ORDER BY p.achievement_points) AS median, MAX(p.achievement_points) AS max_points FROM ${scope.table} p WHERE ${scope.filter}${realmGroup}`;
+  const joinCondition = groupByRealm ? `a.realm_id = ${outerAlias}.realm_id` : 'TRUE';
 
-  return `LEAST(width_bucket(${outerAlias}.achievement_points, ${median}, ${max}, ${ACHIEVEMENTS_DISTRIBUTION_BUCKETS}), ${ACHIEVEMENTS_DISTRIBUTION_BUCKETS})`;
+  return qb.addCommonTableExpression(cte, 'anchors').innerJoin('anchors', 'a', joinCondition);
 };
 
 /**
  * Adds the achievements-distribution aggregates (bucket0..bucket7 + stats) to
- * a query builder. The stats p50 doubles as the median anchor exposed in the
- * stored value. Expects a fresh query builder (no prior selects).
+ * a query builder already carrying the `anchors` join (see
+ * withAchievementsAnchors). Expects a fresh query builder (no prior selects).
  */
 export const addAchievementsDistributionSelect = <E>(
   qb: SelectQueryBuilder<E>,
   outerAlias: string,
-  scope: AchievementBucketScope,
 ): SelectQueryBuilder<E> => {
-  const bucket = bucketExpression(outerAlias, scope);
+  // width_bucket raises "lower bound cannot equal upper bound" when a scope's
+  // median equals its max (every value identical). In that case the
+  // (median, max] interval is empty, so any upper bound above the median puts
+  // all rows in bucket 0 — the correct degenerate result.
+  const upperBound = `CASE WHEN a.max_points <= a.median THEN a.median + 1 ELSE a.max_points END`;
+  const bucket = `LEAST(width_bucket(${outerAlias}.achievement_points, a.median, ${upperBound}, ${ACHIEVEMENTS_DISTRIBUTION_BUCKETS}), ${ACHIEVEMENTS_DISTRIBUTION_BUCKETS})`;
   let query = qb.select(`SUM(CASE WHEN ${bucket} = 0 THEN 1 ELSE 0 END)`, 'bucket0');
 
   for (let index = 1; index <= ACHIEVEMENTS_DISTRIBUTION_BUCKETS; index += 1) {

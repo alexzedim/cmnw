@@ -15,7 +15,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import type { DataSource, EntityManager, Repository, SelectQueryBuilder } from 'typeorm';
 
-import { addAchievementsDistributionSelect, toAchievementsDistributionValue } from './achievement-distribution.util';
+import {
+  addAchievementsDistributionSelect,
+  toAchievementsDistributionValue,
+  withAchievementsAnchors,
+} from './achievement-distribution.util';
 
 @Injectable()
 export class GuildMetricsService {
@@ -327,10 +331,11 @@ export class GuildMetricsService {
   ): Promise<void> {
     const globalKey = analyticsKeyOf(AnalyticsMetricCategory.GUILDS, AnalyticsMetricType.ACHIEVEMENTS_DISTRIBUTION);
     if (!existingKeys.has(globalKey)) {
-      const globalRow = await addAchievementsDistributionSelect(
-        manager.getRepository(GuildsEntity).createQueryBuilder('g'),
+      const globalRow = await withAchievementsAnchors(
+        addAchievementsDistributionSelect(manager.getRepository(GuildsEntity).createQueryBuilder('g'), 'g'),
         'g',
         { table: 'guilds', filter: 'p.faction IS NOT NULL AND p.achievement_points > 0' },
+        false,
       )
         .where('g.faction IS NOT NULL')
         .andWhere('g.achievement_points > 0')
@@ -348,13 +353,11 @@ export class GuildMetricsService {
       }
     }
 
-    const byRealm = await addAchievementsDistributionSelect(
-      manager.getRepository(GuildsEntity).createQueryBuilder('g'),
+    const byRealm = await withAchievementsAnchors(
+      addAchievementsDistributionSelect(manager.getRepository(GuildsEntity).createQueryBuilder('g'), 'g'),
       'g',
-      {
-        table: 'guilds',
-        filter: 'p.realm_id = g.realm_id AND p.faction IS NOT NULL AND p.achievement_points > 0',
-      },
+      { table: 'guilds', filter: 'p.faction IS NOT NULL AND p.achievement_points > 0' },
+      true,
     )
       .addSelect('g.realm_id', 'realm_id')
       .where('g.faction IS NOT NULL')

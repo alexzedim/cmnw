@@ -15,7 +15,11 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import type { DataSource, EntityManager, Repository, SelectQueryBuilder } from 'typeorm';
 
-import { addAchievementsDistributionSelect, toAchievementsDistributionValue } from './achievement-distribution.util';
+import {
+  addAchievementsDistributionSelect,
+  toAchievementsDistributionValue,
+  withAchievementsAnchors,
+} from './achievement-distribution.util';
 
 @Injectable()
 export class CharacterMetricsService {
@@ -631,10 +635,11 @@ export class CharacterMetricsService {
   ): Promise<void> {
     const globalKey = analyticsKeyOf(AnalyticsMetricCategory.CHARACTERS, AnalyticsMetricType.ACHIEVEMENTS_DISTRIBUTION);
     if (!existingKeys.has(globalKey)) {
-      const globalRow = await addAchievementsDistributionSelect(
-        manager.getRepository(CharactersEntity).createQueryBuilder('c'),
+      const globalRow = await withAchievementsAnchors(
+        addAchievementsDistributionSelect(manager.getRepository(CharactersEntity).createQueryBuilder('c'), 'c'),
         'c',
         { table: 'characters', filter: 'p.level = :maxLevel AND p.achievement_points > 0' },
+        false,
       )
         .where('c.level = :maxLevel')
         .andWhere('c.achievement_points > 0')
@@ -653,13 +658,11 @@ export class CharacterMetricsService {
       }
     }
 
-    const byRealm = await addAchievementsDistributionSelect(
-      manager.getRepository(CharactersEntity).createQueryBuilder('c'),
+    const byRealm = await withAchievementsAnchors(
+      addAchievementsDistributionSelect(manager.getRepository(CharactersEntity).createQueryBuilder('c'), 'c'),
       'c',
-      {
-        table: 'characters',
-        filter: 'p.realm_id = c.realm_id AND p.level = :maxLevel AND p.achievement_points > 0',
-      },
+      { table: 'characters', filter: 'p.level = :maxLevel AND p.achievement_points > 0' },
+      true,
     )
       .addSelect('c.realm_id', 'realm_id')
       .where('c.level = :maxLevel')
