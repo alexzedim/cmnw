@@ -253,7 +253,16 @@ export class CharactersWorker extends WorkerHost {
         petsPayload?.pets ?? null,
         achievementsResult.status === 'fulfilled' ? (achievementsResult.value?.employeeFos ?? null) : null,
       );
-      Object.assign(characterEntity, employeeSignature);
+
+      if (employeeSignature.isBlizzardEmployee != null) {
+        characterEntity.isBlizzardEmployee = employeeSignature.isBlizzardEmployee;
+        characterEntity.blizzardEmployeeEvidence = employeeSignature.blizzardEmployeeEvidence ?? null;
+        characterEntity.hiredApprox = employeeSignature.hiredApprox ?? null;
+      }
+
+      if (employeeSignature.blizzardEmployeePets) {
+        characterEntity.blizzardEmployeePets = employeeSignature.blizzardEmployeePets;
+      }
     }
 
     characterEntity.status = status;
@@ -312,12 +321,16 @@ export class CharactersWorker extends WorkerHost {
     characterEntity: CharactersEntity,
   ): Promise<string> {
     if (result.status === 'fulfilled' && result.value) {
-      characterEntity.professions = await this.collectionSyncService.syncCharacterProfessions(
+      const professionsSummary = await this.collectionSyncService.syncCharacterProfessions(
         nameSlug,
         realmSlug,
         result.value,
       );
-      return setStatusString(currentStatus, 'PROFESSIONS', CharacterStatusState.SUCCESS);
+
+      if (professionsSummary) {
+        characterEntity.professions = professionsSummary;
+        return setStatusString(currentStatus, 'PROFESSIONS', CharacterStatusState.SUCCESS);
+      }
     }
     return setStatusString(currentStatus, 'PROFESSIONS', CharacterStatusState.ERROR);
   }
@@ -341,13 +354,14 @@ export class CharactersWorker extends WorkerHost {
       characterEntity.createdApprox = age.createdApprox;
     }
 
-    if (age.levelBoostEvidence) {
-      characterEntity.levelBoostEvidence = age.levelBoostEvidence;
+    if (age.isLevelBoosted != null) {
+      characterEntity.isLevelBoosted = age.isLevelBoosted;
+      characterEntity.levelBoostEvidence = age.levelBoostEvidence ?? null;
+      characterEntity.levelBoostType = age.levelBoostType ?? null;
+      characterEntity.levelBoostedAt = age.levelBoostedAt ?? null;
+    } else if (characterEntity.levelBoostEvidence == null) {
+      characterEntity.levelBoostEvidence = age.levelBoostEvidence ?? null;
     }
-
-    characterEntity.isLevelBoosted = age.isLevelBoosted ?? null;
-    characterEntity.levelBoostType = age.levelBoostType ?? null;
-    characterEntity.levelBoostedAt = age.levelBoostedAt ?? null;
 
     return setStatusString(currentStatus, 'ACHIEVEMENTS', CharacterStatusState.SUCCESS);
   }

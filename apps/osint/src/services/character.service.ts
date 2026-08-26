@@ -167,7 +167,10 @@ export class CharacterService {
       }
 
       summary.guid = toGuid(nameSlug, summary.realm);
-      summary.lastModified = toDate(summary.lastModified);
+
+      if (summary.lastModified) {
+        summary.lastModified = toDate(summary.lastModified);
+      }
 
       if (!response.guild) {
         summary.guildId = null;

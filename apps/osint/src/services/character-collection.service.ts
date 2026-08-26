@@ -238,12 +238,12 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
     nameSlug: string,
     realmSlug: string,
     professionsData: BlizzardApiCharacterProfessions,
-  ): Promise<string[]> {
+  ): Promise<string[] | null> {
     const professionsSummary: string[] = [];
 
     try {
       if (!professionsData) {
-        return professionsSummary;
+        return null;
       }
 
       const professionRecords: CharactersProfessionsEntity[] = [];
@@ -332,7 +332,7 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
         'PROFESSIONS',
         CharacterStatusState.ERROR,
       );
-      return professionsSummary;
+      return null;
     }
   }
 }
