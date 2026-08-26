@@ -26,7 +26,15 @@ import { AnalyticsMigrationService } from './services/analytics-migration.servic
 @Module({
   imports: [
     ScheduleModule.forRoot(),
-    TypeOrmModule.forRoot(postgresConfig),
+    // statement_timeout caps any single aggregation query (15 min), so a
+    // pathological query fails loudly instead of pinning the snapshot.
+    TypeOrmModule.forRoot({
+      ...postgresConfig,
+      extra: {
+        ...postgresConfig.extra,
+        statement_timeout: 900_000,
+      },
+    }),
     TypeOrmModule.forFeature([
       AnalyticsEntity,
       CharactersEntity,
