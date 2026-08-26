@@ -1,6 +1,6 @@
 import { formatServiceErrorLog } from '@app/logger';
 import { CharactersGuildsLogsEntity, type GuildsEntity } from '@app/pg';
-import { ACTION_LOG, GuildStatusState, setGuildStatusString } from '@app/resources';
+import { ACTION_LOG, GuildStatusState, setGuildStatusString, toNormalizedString } from '@app/resources';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
@@ -30,18 +30,23 @@ export class GuildLogService {
     this.logger.debug(`Guild ${updated.guid} name changed: ${original.name} → ${updated.name}`);
   }
 
-  async logFactionChange(original: GuildsEntity, updated: GuildsEntity): Promise<void> {
+  async logFactionChange(
+    original: GuildsEntity,
+    updated: GuildsEntity,
+    originalFaction: string,
+    updatedFaction: string,
+  ): Promise<void> {
     const logEntity = this.logsRepository.create({
       guildGuid: updated.guid,
-      original: original.faction,
-      updated: updated.faction,
+      original: originalFaction,
+      updated: updatedFaction,
       action: ACTION_LOG.FACTION,
       scannedAt: original.updatedAt,
       createdAt: updated.updatedAt,
     });
 
     await this.logsRepository.save(logEntity);
-    this.logger.debug(`Guild ${updated.guid} faction changed: ${original.faction} → ${updated.faction}`);
+    this.logger.debug(`Guild ${updated.guid} faction changed: ${originalFaction} → ${updatedFaction}`);
   }
 
   async updateGuildGuidForAllLogs(oldGuid: string, newGuid: string): Promise<void> {
@@ -50,8 +55,12 @@ export class GuildLogService {
 
   async detectAndLogChanges(original: GuildsEntity, updated: GuildsEntity): Promise<string> {
     try {
+      const originalFaction = toNormalizedString(original.faction);
+      const updatedFaction = toNormalizedString(updated.faction);
+
       const isNameChanged = original.name !== updated.name;
-      const isFactionChanged = original.faction !== updated.faction;
+      const isFactionChanged =
+        Boolean(originalFaction) && Boolean(updatedFaction) && originalFaction !== updatedFaction;
 
       if (!isNameChanged && !isFactionChanged) {
         this.logger.debug(`Guild ${original.guid} - no changes detected`);
@@ -64,7 +73,7 @@ export class GuildLogService {
       }
 
       if (isFactionChanged) {
-        await this.logFactionChange(original, updated);
+        await this.logFactionChange(original, updated, originalFaction ?? '', updatedFaction ?? '');
       }
 
       return setGuildStatusString('-----', 'LOGS', GuildStatusState.SUCCESS);
