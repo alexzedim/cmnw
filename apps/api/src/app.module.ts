@@ -5,9 +5,9 @@ import { HttpModule } from '@nestjs/axios';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { RedisModule } from '@nestjs-modules/ioredis';
-// HoF + analytics snapshots computed on API bootstrap so the snapshot
-// endpoint serves fresh data without requiring a separate analytics process.
-import { AnalyticsModule } from '../../analytics/src/analytics.module';
+// Analytics snapshots are owned exclusively by the dedicated analytics
+// worker (cron + bootstrap); the API only reads the analytics table through
+// the AnalyticsEntity repository registered in AppInfoModule.
 import { AppInfoModule } from './app/app.module';
 import { AuthModule } from './auth/auth.module';
 import { DmaModule } from './dma/dma.module';
@@ -37,7 +37,6 @@ import { QueueModule } from './queue/queue.module';
     QueueModule,
     AppInfoModule,
     FeedModule,
-    AnalyticsModule,
   ],
   controllers: [],
   providers: [],
