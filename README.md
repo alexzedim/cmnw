@@ -3,7 +3,7 @@
     <img src="https://user-images.githubusercontent.com/907696/221422670-61897db8-4bbc-4436-969f-bdc5cf194275.svg" width="200" alt="CMNW Logo" />
   </a>
 
-  <h1>CMNW | Backend</h1>
+  <h1>CMNW</h1>
 
   <p>NestJS microservices platform for World of Warcraft OSINT and market analytics — 13 services behind one REST gateway, scraping and enriching Blizzard data around the clock to power <a href="https://cmnw.me">cmnw.me</a> | <a href="https://cmnw.ru">cmnw.ru</a>.</p>
 </div>
@@ -83,7 +83,7 @@ Only `api` exposes HTTP (REST + Swagger + WebSocket live feed + Bull Board). Eve
 <tr align="center">
     <td valign="bottom"><img src="./icons/nestjs.svg" alt="NestJS logo" width="48"/><br/>NestJS</td>
     <td valign="bottom"><img src="./icons/nodedotjs.svg" alt="Node.js logo" width="48"/><br/>Node.js</td>
-    <td valign="bottom"><img src="./icons/typescript.svg" alt="TypeScript logo" width="48"/><br/>TypeScript</td>
+    <td valign="bottom"><img src="./icons/typescript.svg" alt="TypeScript logo" width="48"/><br/>TypeScript 7</td>
     <td valign="bottom"><img src="./icons/swc.svg" alt="SWC logo" width="48"/><br/>SWC</td>
 </tr>
 </table>
