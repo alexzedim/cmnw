@@ -5,7 +5,9 @@
 
   <h1>CMNW</h1>
 
-  <p>NestJS microservices platform for World of Warcraft OSINT and market analytics — 13 services behind one REST gateway, scraping and enriching Blizzard data around the clock to power <a href="https://cmnw.me">cmnw.me</a> | <a href="https://cmnw.ru">cmnw.ru</a>.</p>
+  <p>NestJS microservices platform for World of Warcraft OSINT and market analytics — thirteen headless workers behind a single REST gateway, harvesting Blizzard data around the clock and turning it into character intelligence, guild analytics and market valuations for <a href="https://cmnw.me">cmnw.me</a> | <a href="https://cmnw.ru">cmnw.ru</a>.</p>
+
+  <p><strong>13 services</strong> · <strong>8 queues</strong> · <strong>29 entities</strong> · <strong>5 Battle.net regions</strong> · <strong>24/7</strong></p>
 </div>
 
 ---
@@ -207,41 +209,6 @@ All queues: 3 attempts, exponential backoff, dead-letter retention of 500 failur
 
 **No FKs, ever** — GUID references only. GUID format: `{name-slug}@{realm-slug}`.
 
-## 🐳 Compose Stacks
-
-| Stack | Services |
-|-------|----------|
-| `docker-compose.db.yml` | PostgreSQL 17.4, Redis 7.4.3, BullMQ Redis (6380) |
-| `docker-compose.core.yml` | core, api (:8080), analytics, cmnw-next frontend |
-| `docker-compose.osint.yml` | osint ×5, characters, guilds, warcraft-logs, wow-progress |
-| `docker-compose.dma.yml` | dma ×2, market |
-| `docker-compose.analytics.yml` | Grafana (:3000), Prometheus (:9090), Loki (:3100), Promtail, Postgres exporter, 4 MCP servers |
-| `docker-compose.dev.yml` | Minimal dev: PostgreSQL, Redis |
-
-Images publish to `ghcr.io/alexzedim/{core,dma,osint}` on `v*` tag pushes via self-hosted GitHub Actions runners (x64 + arm64). Workers run with `--max-old-space-size=6144`.
-
-## 🚀 Quick Start
-
-```bash
-git clone https://github.com/alexzedim/cmnw.git
-cd cmnw
-pnpm install
-cp .env.docker .env          # fill in your values
-docker compose -f docker-compose.db.yml up -d
-pnpm build:all               # SWC, ~350ms
-pnpm dev                     # watch mode — or `pnpm start` for the built API
-```
-
-| Script | Command |
-|--------|---------|
-| `pnpm build:all` | Build all apps + libs via SWC |
-| `pnpm typecheck` | TypeScript 7 native (`tsc --noEmit`) |
-| `pnpm lint` | Biome check + type-import audit |
-| `pnpm test` | Jest (`--forceExit`) |
-| `pnpm docker:build` | Build the local Docker image |
-
-Swagger UI: `http://localhost:8080/api/docs` · Bull Board: `http://localhost:8080/queues`
-
 ## 📁 Project Structure
 
 ```
@@ -267,8 +234,6 @@ cmnw/
 │   ├── logger/              # Structured logging (Loki)
 │   ├── s3/                  # S3 storage integration
 │   └── battle-net/          # Blizzard API client & key management
-├── docker/                  # Dockerfiles (x64 / arm64 / local)
-├── migrations/              # Hand-written SQL data migrations
 ├── docs/                    # Architecture & pattern documentation
 └── icons/                   # README icon assets
 ```
