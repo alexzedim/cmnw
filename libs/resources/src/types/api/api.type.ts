@@ -73,6 +73,7 @@ export type BlizzardApiGuildSummary = {
   id: number;
   name: string;
   faction: {
+    id?: number;
     type: string;
     name: string;
   };
@@ -81,10 +82,10 @@ export type BlizzardApiGuildSummary = {
   realm: {
     key: { href: string };
     name: string;
-    id: number;
-    slug: string;
+    id?: number;
+    slug?: string;
   };
-  crest: {
+  crest?: {
     emblem: {
       id: number;
       media: {
@@ -129,11 +130,13 @@ export type BlizzardApiGuildSummary = {
       };
     };
   };
+  emblem?: Record<string, unknown>;
+  news?: Array<Record<string, unknown>>;
   roster: { href: string };
   achievements: { href: string };
-  created_timestamp: number;
-  activity: { href: string };
-  name_search: string;
+  created_timestamp?: number;
+  activity?: { href: string };
+  name_search?: string;
 };
 
 // Profession Index Query Responses

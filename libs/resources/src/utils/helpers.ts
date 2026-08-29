@@ -62,3 +62,13 @@ export const extractRealmSlug = (guildUrl: string): string | null => {
   const match = guildUrl.match(/\/guild\/[^/]+\/([^/]+)\//);
   return match ? match[1] : null;
 };
+
+/**
+ * @description Extract numeric id from Blizzard API key href.
+ * @param href {string} e.g. 'https://eu.api.blizzard.com/data/wow/realm/1391?namespace=profile-eu'
+ */
+export const parseIdFromKeyHref = (href: string | undefined): number | null => {
+  if (!href) return null;
+  const match = href.match(/\/(\d+)(?:\?|$)/);
+  return match ? Number(match[1]) : null;
+};

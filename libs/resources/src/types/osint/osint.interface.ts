@@ -634,10 +634,10 @@ export interface IGuildSummary {
   faction: string;
   achievementPoints: number;
   membersCount: number;
-  realmId: number;
+  realmId?: number;
   realm: string;
   realmName: string;
-  createdTimestamp: Date;
+  createdTimestamp?: Date;
   status: string;
 }
 
