@@ -196,7 +196,7 @@ All queues: 3 attempts, exponential backoff, dead-letter retention of 500 failur
 
 ## 🗃️ Database
 
-29 PostgreSQL entities, no foreign keys by design — OSINT data arrives out-of-order from external APIs, so GUID references only (expected orphan rate ~7-8%, see [docs/FOREIGN_KEY_POLICY.md](docs/FOREIGN_KEY_POLICY.md)).
+29 PostgreSQL entities, no foreign keys by design — OSINT data arrives out-of-order from external APIs, so GUID references only (expected orphan rate ~7-8%).
 
 | Domain | Tables |
 |--------|--------|
@@ -234,13 +234,13 @@ cmnw/
 │   ├── logger/              # Structured logging (Loki)
 │   ├── s3/                  # S3 storage integration
 │   └── battle-net/          # Blizzard API client & key management
-├── docs/                    # Architecture & pattern documentation
+├── docs/                    # Market valuation research
 └── icons/                   # README icon assets
 ```
 
 ## 📖 Documentation
 
-Full documentation lives in [docs/](docs/README.md) — queue monitoring guides, migration reports, foreign-key policy, employee detection pattern, 429 strategy design, and historical decisions.
+Valuation research lives in [docs/](docs/README.md) — disenchanting, milling and prospecting economics, reagent derivatives, and TSM value comparisons.
 
 ## 🌐 Ecosystem
 
