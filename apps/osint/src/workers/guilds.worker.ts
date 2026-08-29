@@ -19,6 +19,7 @@ import {
   type IRefreshContext,
   isCoreGuildSuccessInString,
   isEuRegion,
+  isGuildOperationErrorInString,
   PROGRESS_LOG_INTERVAL,
   setGuildStatusString,
   toSlug,
@@ -128,7 +129,8 @@ export class GuildsWorker extends WorkerHost {
 
       const guildData = await this.fetchGuildData(nameSlug, guildEntity, config);
 
-      Object.assign(guildEntity, guildData.summaryResult);
+      const { status: summaryStatus, ...summaryFields } = guildData.summaryResult;
+      Object.assign(guildEntity, summaryFields);
 
       guildData.rosterResult.updatedAt = guildEntity.updatedAt;
       await this.guildMemberService.updateRoster(guildEntity, guildData.rosterResult, isNew);
@@ -144,10 +146,11 @@ export class GuildsWorker extends WorkerHost {
 
       const [logStatusResolved, masterStatusResolved] = await Promise.allSettled([logStatusResult, masterStatusResult]);
 
-      const logStatus = logStatusResolved.status === 'fulfilled' ? logStatusResolved.value : '-----';
-      const masterStatus = masterStatusResolved.status === 'fulfilled' ? masterStatusResolved.value : '-----';
+      const logStatus = logStatusResolved.status === 'fulfilled' ? logStatusResolved.value : undefined;
+      const masterStatus = masterStatusResolved.status === 'fulfilled' ? masterStatusResolved.value : undefined;
 
       const operationStatuses = {
+        summary: summaryStatus,
         roster: guildData.rosterResult.status,
         logs: logStatus,
         master: masterStatus,
@@ -209,26 +212,36 @@ export class GuildsWorker extends WorkerHost {
       rosterResult:
         rosterResult.status === 'fulfilled'
           ? rosterResult.value
-          : ({ status: '-----', updatedAt: new Date() } as IGuildRoster),
+          : ({
+              members: [],
+              updatedAt: new Date(),
+              status: setGuildStatusString('-----', 'ROSTER', GuildStatusState.ERROR),
+            } as IGuildRoster),
     };
   }
 
-  private aggregateGuildStatus(currentStatus: string, operationStatuses: Record<string, string | undefined>): string {
+  private aggregateGuildStatus(
+    currentStatus: string,
+    operationStatuses: { summary?: string; roster?: string; logs?: string; master?: string },
+  ): string {
     let aggregated = currentStatus || '-----';
 
     const operations: Array<{
-      name: 'ROSTER' | 'MEMBERS' | 'LOGS' | 'MASTER';
+      name: 'SUMMARY' | 'ROSTER' | 'MEMBERS' | 'LOGS' | 'MASTER';
       statusString: string | undefined;
-      errorIndicator: string;
     }> = [
-      { name: 'ROSTER', statusString: operationStatuses.roster, errorIndicator: 'r' },
-      { name: 'MEMBERS', statusString: operationStatuses.roster, errorIndicator: 'm' },
-      { name: 'LOGS', statusString: operationStatuses.logs, errorIndicator: 'l' },
-      { name: 'MASTER', statusString: operationStatuses.master, errorIndicator: 'g' },
+      { name: 'SUMMARY', statusString: operationStatuses.summary },
+      { name: 'ROSTER', statusString: operationStatuses.roster },
+      { name: 'MEMBERS', statusString: operationStatuses.roster },
+      { name: 'LOGS', statusString: operationStatuses.logs },
+      { name: 'MASTER', statusString: operationStatuses.master },
     ];
 
     for (const operation of operations) {
-      const hasError = operation.statusString?.includes(operation.errorIndicator.toLowerCase()) ?? false;
+      if (!operation.statusString) {
+        continue;
+      }
+      const hasError = isGuildOperationErrorInString(operation.statusString, operation.name);
       aggregated = setGuildStatusString(
         aggregated,
         operation.name,

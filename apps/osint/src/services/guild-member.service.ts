@@ -42,14 +42,16 @@ export class GuildMemberService {
       const { members: updatedRosterMembers } = roster;
 
       if (!updatedRosterMembers.length) {
+        // An empty roster means the roster fetch failed: isGuildRoster only passes
+        // non-empty rosters through, so members can never be indexed from here.
         this.logger.debug(`Guild roster for ${guildEntity.guid} was not found!`);
-        roster.status = setGuildStatusString('-----', 'MEMBERS', GuildStatusState.SUCCESS);
+        roster.status = setGuildStatusString(roster.status ?? '-----', 'MEMBERS', GuildStatusState.ERROR);
         return;
       }
 
       if (!guildEntity.id) {
         this.logger.error(formatServiceErrorLog('updateRoster', guildEntity.guid, 0, 'Guild id is not resolved'));
-        roster.status = setGuildStatusString('-----', 'MEMBERS', GuildStatusState.ERROR);
+        roster.status = setGuildStatusString(roster.status ?? '-----', 'MEMBERS', GuildStatusState.ERROR);
         return;
       }
 
@@ -58,9 +60,9 @@ export class GuildMemberService {
 
       await this.processRosterChanges(guildEntity, comparison, rosterUpdateAt, isNew);
 
-      roster.status = setGuildStatusString('-----', 'MEMBERS', GuildStatusState.SUCCESS);
+      roster.status = setGuildStatusString(roster.status ?? '-----', 'MEMBERS', GuildStatusState.SUCCESS);
     } catch (errorOrException) {
-      roster.status = setGuildStatusString('-----', 'MEMBERS', GuildStatusState.ERROR);
+      roster.status = setGuildStatusString(roster.status ?? '-----', 'MEMBERS', GuildStatusState.ERROR);
       this.logger.error(
         formatServiceErrorLog(
           'updateRoster',

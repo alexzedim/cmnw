@@ -7,6 +7,7 @@ import {
   type IGuildSummary,
   isGuildSummary,
   normalizeLocaleField,
+  parseIdFromKeyHref,
   setGuildStatusString,
   toGuid,
   transformFaction,
@@ -46,18 +47,19 @@ export class GuildSummaryService {
             'Invalid guild summary response',
           ),
         );
-        return {};
+        return { status: setGuildStatusString('-----', 'SUMMARY', GuildStatusState.ERROR) };
       }
 
       const summary: Partial<IGuildSummary> = {};
-      this.populateSummary(response, summary);
+      this.populateSummary(response, summary, realmSlug);
+      summary.status = setGuildStatusString('-----', 'SUMMARY', GuildStatusState.SUCCESS);
       return summary;
     } catch (errorOrException) {
       return this.handleSummaryError(errorOrException, {}, guildNameSlug, realmSlug);
     }
   }
 
-  private populateSummary(response: BlizzardApiGuildSummary, summary: Partial<IGuildSummary>): void {
+  private populateSummary(response: BlizzardApiGuildSummary, summary: Partial<IGuildSummary>, realmSlug: string): void {
     // Extract basic fields from GUILD_SUMMARY_KEYS
     Object.entries(response).forEach(([key, value]) => {
       if (value === null || !GUILD_SUMMARY_KEYS.includes(key as any)) {
@@ -74,10 +76,14 @@ export class GuildSummaryService {
       summary.faction = transformedFaction;
     }
 
-    // Extract realm information (guaranteed by typeguard)
-    summary.realmId = response.realm.id;
+    // Legacy guild responses omit realm id and slug: recover the id from the
+    // realm key href and fall back to the slug the summary was requested with.
+    const realmId = response.realm.id ?? parseIdFromKeyHref(response.realm.key.href);
+    if (realmId !== null) {
+      summary.realmId = realmId;
+    }
     summary.realmName = normalizeLocaleField(response.realm.name);
-    summary.realm = response.realm.slug;
+    summary.realm = response.realm.slug ?? realmSlug;
 
     // Extract date information
     if (response.created_timestamp) {
