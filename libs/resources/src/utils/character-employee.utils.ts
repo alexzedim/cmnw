@@ -3,7 +3,9 @@ import {
   CHARACTER_BLIZZARD_EMPLOYEE_CE_FOS_ACHIEVEMENTS,
   CHARACTER_BLIZZARD_EMPLOYEE_CE_MIN_EDITIONS_SAME_DAY,
   CHARACTER_BLIZZARD_EMPLOYEE_CE_PETS,
+  CHARACTER_BLIZZARD_EMPLOYEE_CE_RELEASE_MS,
   CHARACTER_BLIZZARD_EMPLOYEE_CE_SUSPECT_SPECIES,
+  CHARACTER_BLIZZARD_EMPLOYEE_FOS_RETRO_GRANT_CUTOFF_MS,
   type EXPANSIONS,
 } from '@app/resources/constants';
 import type {
@@ -48,11 +50,19 @@ export const collectBlizzardEmployeeFos = (
 
 /**
  * Single-pass verdict on the Blizzard employee Collector's Edition signature.
- * Blizzard employees reportedly receive every collector's edition on their
- * hire date, so all CE Feats of Strength on one account share one UTC day.
+ * Blizzard employees reportedly receive every collector's edition released up
+ * to their hire date, so their CE Feats of Strength share one UTC day that
+ * also spans every edition released by that day.
+ *
+ * Same-day clusters also form without a hire, so three guards disqualify
+ * cluster days: FoS stamped by the 2008 achievement-launch retro-grant, days
+ * coinciding with this character's level boost (boost re-evaluation
+ * batch-stamps account entitlements at the boost moment), and clusters missing
+ * an edition released on or before their day (partial multi-code redemption by
+ * a collector).
  *
  * Patterns are evaluated in strict priority order, first match wins:
- * A) >= 2 distinct CE expansions' Feats of Strength completed on one UTC day
+ * A) one UTC day hosting FoS of every CE expansion released on or before it
  *    -> employee (the hire-date batch grant)
  * B) >= 1 CE Feat of Strength, no same-day cluster, every owned CE pet
  *    expansion timestamp-covered -> organic collector timeline
@@ -62,14 +72,16 @@ export const collectBlizzardEmployeeFos = (
  *
  * @param pets - Character pets from the Blizzard collections endpoint (null when unavailable)
  * @param fos - CE Feats of Strength pre-extracted by collectBlizzardEmployeeFos (null when unscanned)
+ * @param boostedAt - Known level boost timestamp of the character (null when not boosted or unknown)
  * @returns Partial BlizzardEmployeeSignature
  *
  * @example
- * detectBlizzardEmployeeSignature(null, []) // { isBlizzardEmployee: null, blizzardEmployeeEvidence: 'INDETERMINATE', ... }
+ * detectBlizzardEmployeeSignature(null, [], null) // { isBlizzardEmployee: null, blizzardEmployeeEvidence: 'INDETERMINATE', ... }
  */
 export const detectBlizzardEmployeeSignature = (
   pets: ReadonlyArray<IPetType> | null,
   fos: ReadonlyArray<BlizzardEmployeeFosEntry> | null,
+  boostedAt: Date | null,
 ): Partial<BlizzardEmployeeSignature> => {
   const matchedNames = new Map<number, string>();
   const petExpansions = new Set<EXPANSIONS>();
@@ -87,20 +99,32 @@ export const detectBlizzardEmployeeSignature = (
   const petsNames = [...matchedNames.values()].sort();
   const knownPets: string[] | null = pets === null ? null : petsNames;
 
-  // PATTERN A: one UTC day hosting Feats of Strength from >= 2 distinct CE expansions
+  // PATTERN A: one UTC day hosting FoS of every CE expansion released on or before it
   if (fos && fos.length > 0) {
+    const boostDay = boostedAt ? Math.floor(boostedAt.getTime() / MS_PER_UTC_DAY) : null;
     const dayExpansions = new Map<number, Set<EXPANSIONS>>();
 
     for (const entry of fos) {
+      if (entry.timestamp < CHARACTER_BLIZZARD_EMPLOYEE_FOS_RETRO_GRANT_CUTOFF_MS) continue;
+
       const day = Math.floor(entry.timestamp / MS_PER_UTC_DAY);
+      if (day === boostDay) continue;
+
       const expansions = dayExpansions.get(day) ?? new Set<EXPANSIONS>();
       expansions.add(entry.expansion);
       dayExpansions.set(day, expansions);
     }
 
-    const cluster = [...dayExpansions].find(
-      ([, expansions]) => expansions.size >= CHARACTER_BLIZZARD_EMPLOYEE_CE_MIN_EDITIONS_SAME_DAY,
-    );
+    const cluster = [...dayExpansions].find(([day, expansions]) => {
+      const dayMs = day * MS_PER_UTC_DAY;
+      const releasedByDay = [...CHARACTER_BLIZZARD_EMPLOYEE_CE_RELEASE_MS].filter(
+        ([, releaseMs]) => releaseMs <= dayMs,
+      );
+      return (
+        releasedByDay.length >= CHARACTER_BLIZZARD_EMPLOYEE_CE_MIN_EDITIONS_SAME_DAY &&
+        releasedByDay.every(([expansion]) => expansions.has(expansion))
+      );
+    });
     if (cluster) {
       return {
         isBlizzardEmployee: true,

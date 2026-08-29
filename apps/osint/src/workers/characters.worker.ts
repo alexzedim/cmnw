@@ -252,6 +252,7 @@ export class CharactersWorker extends WorkerHost {
       const employeeSignature = detectBlizzardEmployeeSignature(
         petsPayload?.pets ?? null,
         achievementsResult.status === 'fulfilled' ? (achievementsResult.value?.employeeFos ?? null) : null,
+        characterEntity.isLevelBoosted === true ? characterEntity.levelBoostedAt : null,
       );
 
       if (employeeSignature.isBlizzardEmployee != null) {

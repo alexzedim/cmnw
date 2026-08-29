@@ -742,9 +742,34 @@ export const CHARACTER_BLIZZARD_EMPLOYEE_CE_FOS_ACHIEVEMENTS: Map<number, EXPANS
 ]);
 
 /**
- * Distinct CE expansions whose Feats of Strength must share one UTC calendar
- * day to prove a batch grant (the hire date). One vanilla CE code redeems all
- * three vanilla pets, which is why counting is per expansion, not per pet.
+ * UTC release dates of the physical Collector's Editions whose pets carry a
+ * Feat of Strength. A hire-date batch grant contains every edition released on
+ * or before the cluster day, so a same-day cluster that misses a released
+ * edition is a partial multi-code redemption by a collector, not an employee.
+ */
+export const CHARACTER_BLIZZARD_EMPLOYEE_CE_RELEASE_MS: Map<EXPANSIONS, number> = new Map([
+  [EXPANSIONS.Classic, Date.UTC(2004, 10, 23)],
+  [EXPANSIONS.TheBurningCrusade, Date.UTC(2007, 0, 16)],
+  [EXPANSIONS.WraithOfTheLichKing, Date.UTC(2008, 10, 13)],
+  [EXPANSIONS.Cataclysm, Date.UTC(2010, 11, 7)],
+  [EXPANSIONS.MistsOfPandaria, Date.UTC(2012, 8, 25)],
+  [EXPANSIONS.WarlordsOfDraenor, Date.UTC(2014, 10, 13)],
+  [EXPANSIONS.Legion, Date.UTC(2016, 7, 30)],
+  [EXPANSIONS.BattleForAzeroth, Date.UTC(2018, 7, 14)],
+]);
+
+/**
+ * FoS completed before this cutoff were batch-stamped by the 3.0.2 achievement
+ * system launch retro-grant (first login after 2008-10-14), so same-day
+ * clustering below the cutoff proves nothing about hire dates. Sits after the
+ * Wrath CE release, so every admissible cluster already spans three editions.
+ */
+export const CHARACTER_BLIZZARD_EMPLOYEE_FOS_RETRO_GRANT_CUTOFF_MS = Date.UTC(2009, 0, 1);
+
+/**
+ * Lower bound on distinct CE expansions sharing one UTC calendar day, on top of
+ * the every-released-edition rule. Counting is per expansion, not per feat, so
+ * the three vanilla pet feats cannot inflate the count.
  */
 export const CHARACTER_BLIZZARD_EMPLOYEE_CE_MIN_EDITIONS_SAME_DAY = 2;
 
