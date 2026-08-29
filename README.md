@@ -69,8 +69,6 @@ flowchart TB
   guilds --> s3
 ```
 
-Only `api` exposes HTTP (REST + Swagger + WebSocket live feed + Bull Board). Every other service is a headless worker booted via `createApplicationContext` — BullMQ processors and cron jobs, no inbound ports.
-
 ## ⚡ Tech Stack
 
 <div align="center">
@@ -149,8 +147,6 @@ Only `api` exposes HTTP (REST + Swagger + WebSocket live feed + Bull Board). Eve
 </tr>
 </table>
 </div>
-
-Scraping for [Warcraft Logs](https://www.warcraftlogs.com) (HTML + GraphQL v2) and [WoWProgress](https://www.wowprogress.com) is done with Playwright stealth sessions.
 
 ## 🧱 Microservices
 
