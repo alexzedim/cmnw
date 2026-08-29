@@ -7,7 +7,7 @@
 
   <p>NestJS microservices platform for World of Warcraft OSINT and market analytics — thirteen headless workers behind a single REST gateway, harvesting Blizzard data around the clock and turning it into character intelligence, guild analytics and market valuations for <a href="https://cmnw.me">cmnw.me</a> | <a href="https://cmnw.ru">cmnw.ru</a>.</p>
 
-  <p><strong>13 services</strong> · <strong>8 queues</strong> · <strong>29 entities</strong> · <strong>5 Battle.net regions</strong> · <strong>24/7</strong></p>
+  <p><strong>6+ years</strong> · <strong>4,063 commits</strong> · <strong>207 releases</strong> · <strong>16 contributors</strong> · <strong>13 services</strong> · <strong>24/7 in production</strong></p>
 </div>
 
 ---
@@ -70,6 +70,17 @@ flowchart TB
   characters --> s3[(S3)]
   guilds --> s3
 ```
+
+## 🧠 Engine Schemas
+
+<div align="center">
+  <img src="./images/ignition.png" width="100%" alt="Ignition — boot pipeline schema"/>
+  <p><em>Ignition — how the platform boots from encrypted config and raw game data into a fleet of workers</em></p>
+  <img src="./images/conveyor.png" width="100%" alt="Conveyor — OSINT ingestion schema"/>
+  <p><em>The Conveyor — every character and guild sighting validated, diffed against history, and persisted</em></p>
+  <img src="./images/valuations_a9.png" width="100%" alt="Valuations engine schema"/>
+  <p><em>The Valuations engine — deciding what every item is worth, realm by realm</em></p>
+</div>
 
 ## ⚡ Tech Stack
 
@@ -251,6 +262,12 @@ Valuation research lives in [docs/](docs/README.md) — disenchanting, milling a
 | [cmnw-osint](https://github.com/alexzedim/cmnw-osint) | WoW addon — in-game data collection |
 | [cmnw-oraculum](https://github.com/alexzedim/cmnw-oraculum) | Discord bot integration |
 | [core](https://github.com/alexzedim/core) | Self-hosted infrastructure running it all |
+
+<div align="center">
+  <a href="https://www.star-history.com/#alexzedim/cmnw&Date">
+    <img src="https://api.star-history.com/svg?repos=alexzedim/cmnw&type=Date" width="600" alt="Star History Chart"/>
+  </a>
+</div>
 
 ---
 
