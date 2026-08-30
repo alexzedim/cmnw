@@ -45,7 +45,21 @@ export class GuildService {
         isNew: false,
         isCreateOnlyUnique: true,
         isNotReadyToUpdate: false,
+        isDead: false,
       };
+    }
+
+    if (guildEntity.isDead) {
+      const isForceRefresh = guildJob.forceUpdate === TIME_MS.FORCE || Boolean(guildJob.sessionId);
+      if (!isForceRefresh) {
+        return {
+          guildEntity,
+          isNew: false,
+          isCreateOnlyUnique: false,
+          isNotReadyToUpdate: false,
+          isDead: true,
+        };
+      }
     }
 
     const updateSafe = timestampNow - forceUpdate;
@@ -58,16 +72,18 @@ export class GuildService {
         isNew: false,
         isNotReadyToUpdate,
         isCreateOnlyUnique: false,
+        isDead: false,
       };
     }
 
-    guildEntity.status = '--';
+    guildEntity.status = '-----';
 
     return {
       guildEntity,
       isNew: false,
       isNotReadyToUpdate: false,
       isCreateOnlyUnique: false,
+      isDead: false,
     };
   }
 
@@ -92,6 +108,7 @@ export class GuildService {
       isNew: true,
       isNotReadyToUpdate: false,
       isCreateOnlyUnique: false,
+      isDead: false,
     };
   }
 

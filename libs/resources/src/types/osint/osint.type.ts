@@ -21,6 +21,7 @@ export type GuildExistsOrCreate = {
   isNew: boolean;
   isCreateOnlyUnique: boolean;
   isNotReadyToUpdate: boolean;
+  isDead: boolean;
 };
 
 export type WowProgressProfile = Partial<

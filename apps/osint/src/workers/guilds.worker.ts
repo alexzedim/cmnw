@@ -10,6 +10,7 @@ import type { GuildsEntity } from '@app/pg';
 import {
   FeedEventCategory,
   FeedStatus,
+  GUILD_DEAD_THRESHOLD,
   GuildStatusState,
   guildsQueue,
   hasCoreGuildErrorInString,
@@ -20,6 +21,7 @@ import {
   isCoreGuildSuccessInString,
   isEuRegion,
   isGuildOperationErrorInString,
+  isGuildOperationSuccessInString,
   PROGRESS_LOG_INTERVAL,
   setGuildStatusString,
   toSlug,
@@ -78,8 +80,22 @@ export class GuildsWorker extends WorkerHost {
         await this.emitRefresh(refreshCtx, FeedStatus.INFO, `refresh started`, { phase: 'started' });
       }
 
-      const { guildEntity, isNew, isNotReadyToUpdate, isCreateOnlyUnique } =
+      const { guildEntity, isNew, isNotReadyToUpdate, isCreateOnlyUnique, isDead } =
         await this.guildService.findOrCreate(message);
+
+      if (isDead) {
+        this.stats.skipped++;
+        const duration = Date.now() - startTime;
+        this.logger.log(formatWorkerLog(WorkerLogStatus.SKIPPED, this.stats.total, guildEntity.guid, duration, 'dead'));
+        if (refreshCtx) {
+          await this.emitRefresh(refreshCtx, FeedStatus.SKIPPED, `refresh skipped: dead`, {
+            phase: 'skipped',
+            durationMs: duration,
+            reason: 'dead',
+          });
+        }
+        return;
+      }
 
       if (isNotReadyToUpdate) {
         this.stats.skipped++;
@@ -129,20 +145,32 @@ export class GuildsWorker extends WorkerHost {
 
       const guildData = await this.fetchGuildData(nameSlug, guildEntity, config);
 
-      const { status: summaryStatus, ...summaryFields } = guildData.summaryResult;
+      const { status: summaryStatus, statusCode: summaryStatusCode, ...summaryFields } = guildData.summaryResult;
       Object.assign(guildEntity, summaryFields);
+
+      const isSummarySuccess = isGuildOperationSuccessInString(summaryStatus ?? '-----', 'SUMMARY');
+      const isRosterSuccess = guildData.rosterResult.members.length > 0;
+
+      this.applyDissolutionTracking(
+        guildEntity,
+        summaryStatusCode,
+        guildData.rosterResult,
+        isSummarySuccess,
+        isRosterSuccess,
+      );
 
       guildData.rosterResult.updatedAt = guildEntity.updatedAt;
       await this.guildMemberService.updateRoster(guildEntity, guildData.rosterResult, isNew);
 
-      const logStatusResult = isNew
-        ? this.getLogStatusForNewGuild(guildSnapshot, guildEntity)
-        : this.guildLogService.detectAndLogChanges(guildSnapshot, guildEntity);
+      const logStatusResult = isSummarySuccess
+        ? isNew
+          ? this.getLogStatusForNewGuild(guildSnapshot, guildEntity)
+          : this.guildLogService.detectAndLogChanges(guildSnapshot, guildEntity)
+        : undefined;
 
-      const masterStatusResult = this.guildMasterService.detectAndLogGuildMasterChange(
-        guildSnapshot,
-        guildData.rosterResult,
-      );
+      const masterStatusResult = isRosterSuccess
+        ? this.guildMasterService.detectAndLogGuildMasterChange(guildSnapshot, guildData.rosterResult)
+        : undefined;
 
       const [logStatusResolved, masterStatusResolved] = await Promise.allSettled([logStatusResult, masterStatusResult]);
 
@@ -185,6 +213,36 @@ export class GuildsWorker extends WorkerHost {
         });
       }
       throw errorOrException;
+    }
+  }
+
+  private applyDissolutionTracking(
+    guildEntity: GuildsEntity,
+    summaryStatusCode: number | undefined,
+    rosterResult: IGuildRoster,
+    isSummarySuccess: boolean,
+    isRosterSuccess: boolean,
+  ): void {
+    const isBothNotFound = summaryStatusCode === 404 && rosterResult.statusCode === 404;
+    if (isBothNotFound) {
+      guildEntity.deadCount += 1;
+      if (guildEntity.deadCount >= GUILD_DEAD_THRESHOLD && !guildEntity.isDead) {
+        guildEntity.isDead = true;
+        guildEntity.deadAt = new Date();
+        this.logger.warn(`Guild ${guildEntity.guid} marked dead after ${guildEntity.deadCount} consecutive 404s`);
+      }
+      return;
+    }
+
+    const isAnyRealSuccess = isSummarySuccess || isRosterSuccess;
+    if (isAnyRealSuccess && guildEntity.deadCount > 0) {
+      guildEntity.deadCount = 0;
+    }
+
+    if (isAnyRealSuccess && guildEntity.isDead) {
+      guildEntity.isDead = false;
+      guildEntity.deadAt = null;
+      this.logger.log(`Guild ${guildEntity.guid} revived`);
     }
   }
 
