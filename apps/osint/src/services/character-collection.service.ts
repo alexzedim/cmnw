@@ -8,13 +8,12 @@ import {
 } from '@app/pg';
 import {
   type BlizzardApiCharacterProfessions,
+  type BlizzardApiMountsCollection,
   type BlizzardApiPetsCollection,
-  CharacterStatusState,
   EXPANSION_TICKER,
   EXPANSION_TICKER_MAP,
   type IMounts,
   type IPets,
-  setStatusString,
   toGuid,
 } from '@app/resources';
 import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
@@ -80,9 +79,9 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
   async syncCharacterMounts(
     nameSlug: string,
     realmSlug: string,
-    mountsResponse: any,
+    mountsResponse: BlizzardApiMountsCollection,
     isIndex = false,
-  ): Promise<Partial<IMounts>> {
+  ): Promise<Partial<IMounts> | null> {
     const mountsCollection: Partial<IMounts> = {};
 
     try {
@@ -92,18 +91,30 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
 
       if (mounts?.length && isIndex) {
         for (const mount of mounts) {
-          const isMountExists = await this.mountsRepository.existsBy({
-            id: mount.mount.id,
-          });
-
-          const isNewMount = !isMountExists;
-          if (isNewMount) {
-            const mountEntity = this.mountsRepository.create({
+          try {
+            const isMountExists = await this.mountsRepository.existsBy({
               id: mount.mount.id,
-              name: mount.mount.name,
             });
 
-            mountEntities.push(mountEntity);
+            const isNewMount = !isMountExists;
+            if (isNewMount) {
+              const mountEntity = this.mountsRepository.create({
+                id: mount.mount.id,
+                name: mount.mount.name,
+              });
+
+              mountEntities.push(mountEntity);
+            }
+          } catch (error) {
+            this.logger.error(
+              formatServiceErrorLog(
+                'syncCharacterMounts',
+                `${nameSlug}@${realmSlug}`,
+                0,
+                error instanceof Error ? error.message : String(error),
+                'processMount',
+              ),
+            );
           }
         }
       }
@@ -115,12 +126,6 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
 
       mountsCollection.mountsNumber = mounts?.length ?? 0;
 
-      mountsCollection.status = setStatusString(
-        mountsCollection.status || '-------',
-        'MOUNTS',
-        CharacterStatusState.SUCCESS,
-      );
-
       return mountsCollection;
     } catch (errorOrException) {
       this.logger.error(
@@ -131,12 +136,7 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
           errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
         ),
       );
-      mountsCollection.status = setStatusString(
-        mountsCollection.status || '-------',
-        'MOUNTS',
-        CharacterStatusState.ERROR,
-      );
-      return mountsCollection;
+      return null;
     }
   }
 
@@ -145,7 +145,7 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
     realmSlug: string,
     petsResponse: BlizzardApiPetsCollection,
     isIndex = false,
-  ): Promise<Partial<IPets>> {
+  ): Promise<Partial<IPets> | null> {
     const petsCollection: Partial<IPets> = {};
 
     try {
@@ -207,7 +207,6 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
       }
 
       petsCollection.petsNumber = pets?.length ?? 0;
-      petsCollection.status = setStatusString(petsCollection.status || '-------', 'PETS', CharacterStatusState.SUCCESS);
 
       const hasHashB = Boolean(hashB.length);
       if (hasHashB) {
@@ -229,8 +228,7 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
           errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
         ),
       );
-      petsCollection.status = setStatusString(petsCollection.status || '-------', 'PETS', CharacterStatusState.ERROR);
-      return petsCollection;
+      return null;
     }
   }
 
@@ -259,71 +257,83 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
         await lastValueFrom(
           from(allProfessions).pipe(
             mergeMap(async ({ prof, isPrimary }) => {
-              const { profession, tiers, specialization: profSpecialization } = prof;
-              const { id: professionId, name: professionName } = profession;
+              try {
+                const { profession, tiers, specialization: profSpecialization } = prof;
+                const { id: professionId, name: professionName } = profession;
 
-              const resolvedTiers: any[] =
-                tiers?.length > 0
-                  ? tiers
-                  : prof.skill_points != null
-                    ? [
-                        {
-                          tier: null,
-                          skill_points: prof.skill_points,
-                          max_skill_points: prof.max_skill_points ?? null,
-                        },
-                      ]
-                    : [];
+                const resolvedTiers: any[] =
+                  tiers?.length > 0
+                    ? tiers
+                    : prof.skill_points != null
+                      ? [
+                          {
+                            tier: null,
+                            skill_points: prof.skill_points,
+                            max_skill_points: prof.max_skill_points ?? null,
+                          },
+                        ]
+                      : [];
 
-              resolvedTiers.forEach((tier: any) => {
-                const { tier: tierInfo, skill_points, max_skill_points } = tier;
-                const tierId = tierInfo?.id ?? null;
-                const tierName = tierInfo?.name ?? null;
+                resolvedTiers.forEach((tier: any) => {
+                  const { tier: tierInfo, skill_points, max_skill_points } = tier;
+                  const tierId = tierInfo?.id ?? null;
+                  const tierName = tierInfo?.name ?? null;
 
-                const record = this.charactersProfessionsRepository.create({
-                  characterGuid,
-                  professionId,
-                  professionName,
-                  tierId,
-                  tierName,
-                  skillPoints: skill_points,
-                  maxSkillPoints: max_skill_points,
-                  isPrimary,
-                  specialization: profSpecialization?.name || null,
-                });
-
-                professionRecords.push(record);
-                let expansionTicker = EXPANSION_TICKER.CLSC;
-                let tierMatched = false;
-                if (tierName) {
-                  Array.from(EXPANSION_TICKER_MAP.entries()).some(([key, ticker]) => {
-                    if (tierName.includes(key)) {
-                      expansionTicker = ticker;
-                      tierMatched = true;
-                      return true;
-                    }
-                    return false;
+                  const record = this.charactersProfessionsRepository.create({
+                    characterGuid,
+                    professionId,
+                    professionName,
+                    tierId,
+                    tierName,
+                    skillPoints: skill_points,
+                    maxSkillPoints: max_skill_points,
+                    isPrimary,
+                    specialization: profSpecialization?.name || null,
                   });
-                  if (!tierMatched) {
-                    this.logger.warn(
-                      `syncCharacterProfessions: tier "${tierName}" matched no EXPANSION_TICKER_MAP key; falling back to CLSC`,
-                    );
+
+                  professionRecords.push(record);
+                  let expansionTicker = EXPANSION_TICKER.CLSC;
+                  let tierMatched = false;
+                  if (tierName) {
+                    Array.from(EXPANSION_TICKER_MAP.entries()).some(([key, ticker]) => {
+                      if (tierName.includes(key)) {
+                        expansionTicker = ticker;
+                        tierMatched = true;
+                        return true;
+                      }
+                      return false;
+                    });
+                    if (!tierMatched) {
+                      this.logger.warn(
+                        `syncCharacterProfessions: tier "${tierName}" matched no EXPANSION_TICKER_MAP key; falling back to CLSC`,
+                      );
+                    }
                   }
-                }
-                const specializationSuffix = profSpecialization?.name ? ` (${profSpecialization.name})` : '';
-                const tickerPrefix = tierMatched ? `${expansionTicker} ` : '';
-                professionsSummary.push(
-                  `${tickerPrefix}${professionName}${specializationSuffix} ${skill_points}/${max_skill_points}`,
+                  const specializationSuffix = profSpecialization?.name ? ` (${profSpecialization.name})` : '';
+                  const tickerPrefix = tierMatched ? `${expansionTicker} ` : '';
+                  professionsSummary.push(
+                    `${tickerPrefix}${professionName}${specializationSuffix} ${skill_points}/${max_skill_points}`,
+                  );
+                });
+              } catch (error) {
+                this.logger.error(
+                  formatServiceErrorLog(
+                    'syncCharacterProfessions',
+                    `${nameSlug}@${realmSlug}`,
+                    0,
+                    error instanceof Error ? error.message : String(error),
+                    'processProfession',
+                  ),
                 );
-              });
+              }
             }, 5),
           ),
           { defaultValue: undefined },
         );
       }
 
-      await this.charactersProfessionsRepository.delete({ characterGuid });
       if (professionRecords.length > 0) {
+        await this.charactersProfessionsRepository.delete({ characterGuid });
         await this.charactersProfessionsRepository.save(professionRecords);
       }
 

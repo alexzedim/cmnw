@@ -21,6 +21,7 @@ import {
   CharacterStatusState,
   charactersQueue,
   detectBlizzardEmployeeSignature,
+  enrichEntity,
   FeedEventCategory,
   FeedStatus,
   HASH_RECONCILE_SWEEP_CHANCE,
@@ -239,14 +240,20 @@ export class CharactersWorker extends WorkerHost {
     let status = characterEntity.status || '-------';
 
     status = this.processResult(status, 'SUMMARY', summaryResult, (data) => {
-      Object.assign(characterEntity, data);
+      enrichEntity(characterEntity, data);
+      if (data.isGuildless) {
+        characterEntity.guild = null;
+        characterEntity.guildGuid = null;
+        characterEntity.guildId = null;
+        characterEntity.guildRank = null;
+      }
     });
 
     status = await this.processPetsResult(status, petsResult, nameSlug, realmSlug, characterEntity);
     status = await this.processMountsResult(status, mountsResult, nameSlug, realmSlug, characterEntity);
 
     status = this.processResult(status, 'MEDIA', mediaResult, (data) => {
-      Object.assign(characterEntity, data);
+      enrichEntity(characterEntity, data);
     });
 
     status = await this.processProfessionsResult(status, professionsResult, nameSlug, realmSlug, characterEntity);
@@ -296,10 +303,14 @@ export class CharactersWorker extends WorkerHost {
   ): Promise<string> {
     if (result.status === 'fulfilled' && result.value) {
       const syncResult = await this.collectionSyncService.syncCharacterPets(nameSlug, realmSlug, result.value, true);
-      characterEntity.petsNumber = syncResult.petsNumber;
-      characterEntity.hashA = syncResult.hashA;
-      characterEntity.hashB = syncResult.hashB;
-      return setStatusString(currentStatus, 'PETS', CharacterStatusState.SUCCESS);
+      if (syncResult) {
+        enrichEntity(characterEntity, {
+          petsNumber: syncResult.petsNumber,
+          hashA: syncResult.hashA,
+          hashB: syncResult.hashB,
+        });
+        return setStatusString(currentStatus, 'PETS', CharacterStatusState.SUCCESS);
+      }
     }
     return setStatusString(currentStatus, 'PETS', CharacterStatusState.ERROR);
   }
@@ -313,8 +324,10 @@ export class CharactersWorker extends WorkerHost {
   ): Promise<string> {
     if (result.status === 'fulfilled' && result.value) {
       const syncResult = await this.collectionSyncService.syncCharacterMounts(nameSlug, realmSlug, result.value, true);
-      characterEntity.mountsNumber = syncResult.mountsNumber;
-      return setStatusString(currentStatus, 'MOUNTS', CharacterStatusState.SUCCESS);
+      if (syncResult) {
+        enrichEntity(characterEntity, { mountsNumber: syncResult.mountsNumber });
+        return setStatusString(currentStatus, 'MOUNTS', CharacterStatusState.SUCCESS);
+      }
     }
     return setStatusString(currentStatus, 'MOUNTS', CharacterStatusState.ERROR);
   }
@@ -334,7 +347,7 @@ export class CharactersWorker extends WorkerHost {
       );
 
       if (professionsSummary) {
-        characterEntity.professions = professionsSummary;
+        enrichEntity(characterEntity, { professions: professionsSummary });
         return setStatusString(currentStatus, 'PROFESSIONS', CharacterStatusState.SUCCESS);
       }
     }
