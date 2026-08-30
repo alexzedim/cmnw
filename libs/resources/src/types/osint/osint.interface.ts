@@ -430,6 +430,7 @@ export interface CharacterSummary {
   guild: string;
   guildGuid: string;
   guildRank: number;
+  isGuildless: boolean;
   level: number;
   achievementPoints: number;
   lastModified: Date;
@@ -440,8 +441,8 @@ export interface CharacterSummary {
 }
 
 export type CharacterEndpointTasks = [
-  () => Promise<Partial<CharacterSummary>>,
-  () => Promise<Partial<Media>>,
+  () => Promise<Partial<CharacterSummary> | null>,
+  () => Promise<Partial<Media> | null>,
   () => Promise<BlizzardApiPetsCollection | null>,
   () => Promise<BlizzardApiMountsCollection | null>,
   () => Promise<BlizzardApiCharacterProfessions | null>,

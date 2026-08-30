@@ -106,14 +106,19 @@ export class CharactersWorker extends WorkerHost {
       const nameSlug = toSlug(characterEntity.name);
       this.characterService.inheritSafeValuesFromArgs(characterEntity, message);
 
-      const status = await this.tapRefresh(
+      const statusPayload = await this.tapRefresh(
         refreshCtx,
         RefreshEndpoint.STATUS,
         this.characterService.getStatus(nameSlug, characterEntity.realm, config),
       );
 
-      const isValidCharacter = status?.isValid;
-      if (status) Object.assign(characterEntity, status);
+      const isValidCharacter = statusPayload?.isValid;
+      if (statusPayload) Object.assign(characterEntity, statusPayload);
+      characterEntity.status = setStatusString(
+        characterEntity.status || '-------',
+        'STATUS',
+        statusPayload ? CharacterStatusState.SUCCESS : CharacterStatusState.ERROR,
+      );
 
       if (isValidCharacter) {
         await this.fetchAndUpdateCharacterData(characterEntity, nameSlug, config, refreshCtx);

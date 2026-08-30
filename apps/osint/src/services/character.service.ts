@@ -71,7 +71,7 @@ export class CharacterService {
     nameSlug: string,
     realmSlug: string,
     config?: IBattleNetClientConfig,
-  ): Promise<Partial<CharacterStatus>> {
+  ): Promise<Partial<CharacterStatus> | null> {
     const characterStatus: Partial<CharacterStatus> = {};
 
     try {
@@ -97,20 +97,8 @@ export class CharacterService {
         characterStatus.lastModified = toDate(statusResponse.last_modified);
       }
 
-      characterStatus.status = setStatusString(
-        characterStatus.status || '-------',
-        'STATUS',
-        CharacterStatusState.SUCCESS,
-      );
-
       return characterStatus;
     } catch (errorOrException) {
-      characterStatus.status = setStatusString(
-        characterStatus.status || '-------',
-        'STATUS',
-        CharacterStatusState.ERROR,
-      );
-
       const statusCode = isAxiosError(errorOrException) ? errorOrException.response?.status : errorOrException.status;
 
       const isStatusNotFound = statusCode === 404;
@@ -118,11 +106,11 @@ export class CharacterService {
         this.logger.debug(formatServiceLog(WorkerLogStatus.NOT_FOUND, 'getStatus', `${nameSlug}@${realmSlug}`, 0));
       } else {
         this.logger.warn(
-          formatServiceLog(WorkerLogStatus.WARNING, 'getStatus', `${nameSlug}@${realmSlug}`, 0, characterStatus.status),
+          formatServiceLog(WorkerLogStatus.WARNING, 'getStatus', `${nameSlug}@${realmSlug}`, 0, `${statusCode}`),
         );
       }
 
-      return characterStatus;
+      return null;
     }
   }
 
@@ -130,7 +118,7 @@ export class CharacterService {
     nameSlug: string,
     realmSlug: string,
     config?: IBattleNetClientConfig,
-  ): Promise<Partial<CharacterSummary>> {
+  ): Promise<Partial<CharacterSummary> | null> {
     const summary: Partial<CharacterSummary> = {};
 
     try {
@@ -142,7 +130,15 @@ export class CharacterService {
 
       const isValidSummary = isCharacterSummary(response);
       if (!isValidSummary) {
-        return summary;
+        this.logger.error(
+          formatServiceErrorLog(
+            'getSummary',
+            `${nameSlug}@${realmSlug}`,
+            0,
+            `invalid summary schema: ${Object.keys(response ?? {}).join(',')}`,
+          ),
+        );
+        return null;
       }
 
       for (const [key, mapping] of CHARACTER_SUMMARY_FIELD_MAPPING.entries()) {
@@ -173,10 +169,7 @@ export class CharacterService {
       }
 
       if (!response.guild) {
-        summary.guildId = null;
-        summary.guild = null;
-        summary.guildGuid = null;
-        summary.guildRank = null;
+        summary.isGuildless = true;
       }
 
       if (response.guild) {
@@ -197,21 +190,26 @@ export class CharacterService {
         }
       }
 
-      summary.status = setStatusString(summary.status || '-------', 'SUMMARY', CharacterStatusState.SUCCESS);
-
       return summary;
     } catch (errorOrException) {
-      summary.status = setStatusString(summary.status || '-------', 'SUMMARY', CharacterStatusState.ERROR);
+      const statusCode = isAxiosError(errorOrException)
+        ? errorOrException.response?.status
+        : get(errorOrException, 'status', 400);
 
       this.logger.error(
-        formatServiceErrorLog('getSummary', `${nameSlug}@${realmSlug}`, 0, errorOrException.message, summary.status),
+        formatServiceErrorLog(
+          'getSummary',
+          `${nameSlug}@${realmSlug}`,
+          0,
+          `${statusCode} - ${errorOrException.message}`,
+        ),
       );
 
-      return summary;
+      return null;
     }
   }
 
-  async getMedia(nameSlug: string, realmSlug: string, config?: IBattleNetClientConfig): Promise<Partial<Media>> {
+  async getMedia(nameSlug: string, realmSlug: string, config?: IBattleNetClientConfig): Promise<Partial<Media> | null> {
     const media: Partial<Media> = {};
 
     try {
@@ -222,7 +220,17 @@ export class CharacterService {
       );
 
       const isValidMedia = isCharacterMedia(response);
-      if (!isValidMedia) return media;
+      if (!isValidMedia) {
+        this.logger.error(
+          formatServiceErrorLog(
+            'getMedia',
+            `${nameSlug}@${realmSlug}`,
+            0,
+            `invalid media schema: ${Object.keys(response ?? {}).join(',')}`,
+          ),
+        );
+        return null;
+      }
 
       const { assets } = response;
 
@@ -233,12 +241,8 @@ export class CharacterService {
         media[CHARACTER_MEDIA_FIELD_MAPPING.get(key)] = value;
       });
 
-      media.status = setStatusString(media.status || '-------', 'MEDIA', CharacterStatusState.SUCCESS);
-
       return media;
     } catch (errorOrException) {
-      media.status = setStatusString(media.status || '-------', 'MEDIA', CharacterStatusState.ERROR);
-
       const statusCode = isAxiosError(errorOrException)
         ? errorOrException.response?.status
         : get(errorOrException, 'status', 400);
@@ -247,7 +251,7 @@ export class CharacterService {
         formatServiceErrorLog('getMedia', `${nameSlug}@${realmSlug}`, 0, `${statusCode} - ${errorOrException.message}`),
       );
 
-      return media;
+      return null;
     }
   }
 
@@ -256,8 +260,6 @@ export class CharacterService {
     realmSlug: string,
     config?: IBattleNetClientConfig,
   ): Promise<BlizzardApiMountsCollection | null> {
-    const mounts: Partial<BlizzardApiMountsCollection> = {};
-
     try {
       const response = await this.battleNetService.query<BlizzardApiMountsCollection>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/collections/mounts`,
@@ -267,14 +269,18 @@ export class CharacterService {
 
       const isValidCollection = isMountCollection(response);
       if (!isValidCollection) {
+        this.logger.error(
+          formatServiceErrorLog(
+            'getMountsCollection',
+            `${nameSlug}@${realmSlug}`,
+            0,
+            `invalid mounts schema: ${Object.keys(response ?? {}).join(',')}`,
+          ),
+        );
         return null;
       }
 
-      Object.assign(mounts, response);
-
-      mounts.status = setStatusString(mounts.status || '-------', 'MOUNTS', CharacterStatusState.SUCCESS);
-
-      return mounts as BlizzardApiMountsCollection;
+      return response;
     } catch (errorOrException) {
       const statusCode = isAxiosError(errorOrException)
         ? errorOrException.response?.status
@@ -298,8 +304,6 @@ export class CharacterService {
     realmSlug: string,
     config?: IBattleNetClientConfig,
   ): Promise<BlizzardApiPetsCollection | null> {
-    const pets: Partial<BlizzardApiPetsCollection> = {};
-
     try {
       const response = await this.battleNetService.query<BlizzardApiPetsCollection>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/collections/pets`,
@@ -309,14 +313,18 @@ export class CharacterService {
 
       const isValidCollection = isPetsCollection(response);
       if (!isValidCollection) {
+        this.logger.error(
+          formatServiceErrorLog(
+            'getPetsCollection',
+            `${nameSlug}@${realmSlug}`,
+            0,
+            `invalid pets schema: ${Object.keys(response ?? {}).join(',')}`,
+          ),
+        );
         return null;
       }
 
-      Object.assign(pets, response);
-
-      pets.status = setStatusString(pets.status || '-------', 'PETS', CharacterStatusState.SUCCESS);
-
-      return pets as BlizzardApiPetsCollection;
+      return response;
     } catch (errorOrException) {
       const statusCode = isAxiosError(errorOrException)
         ? errorOrException.response?.status
