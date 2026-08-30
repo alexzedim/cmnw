@@ -143,7 +143,9 @@ export class GuildsWorker extends WorkerHost {
 
       const config = await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_OSINT);
 
-      const guildData = await this.fetchGuildData(nameSlug, guildEntity, config);
+      const conditionalDate = !isNew && guildEntity.id != null ? guildEntity.lastModified : null;
+
+      const guildData = await this.fetchGuildData(nameSlug, guildEntity, config, conditionalDate);
 
       const { status: summaryStatus, statusCode: summaryStatusCode, ...summaryFields } = guildData.summaryResult;
       Object.assign(guildEntity, summaryFields);
@@ -154,7 +156,10 @@ export class GuildsWorker extends WorkerHost {
       }
 
       const isSummarySuccess = isGuildOperationSuccessInString(summaryStatus ?? '-----', 'SUMMARY');
-      const isRosterSuccess = guildData.rosterResult.members.length > 0;
+      const hasSummaryData = isSummarySuccess && guildData.summaryResult.notModified !== true;
+      const hasRosterData = guildData.rosterResult.members.length > 0;
+      const isRosterNotModified = guildData.rosterResult.notModified === true;
+      const isRosterSuccess = hasRosterData || isRosterNotModified;
 
       this.applyDissolutionTracking(
         guildEntity,
@@ -164,16 +169,18 @@ export class GuildsWorker extends WorkerHost {
         isRosterSuccess,
       );
 
-      guildData.rosterResult.updatedAt = guildEntity.updatedAt;
-      await this.guildMemberService.updateRoster(guildEntity, guildData.rosterResult, isNew);
+      if (!isRosterNotModified) {
+        guildData.rosterResult.updatedAt = guildEntity.updatedAt;
+        await this.guildMemberService.updateRoster(guildEntity, guildData.rosterResult, isNew);
+      }
 
-      const logStatusResult = isSummarySuccess
+      const logStatusResult = hasSummaryData
         ? isNew
           ? this.getLogStatusForNewGuild(guildSnapshot, guildEntity)
           : this.guildLogService.detectAndLogChanges(guildSnapshot, guildEntity)
         : undefined;
 
-      const masterStatusResult = isRosterSuccess
+      const masterStatusResult = hasRosterData
         ? this.guildMasterService.detectAndLogGuildMasterChange(guildSnapshot, guildData.rosterResult)
         : undefined;
 
@@ -261,13 +268,14 @@ export class GuildsWorker extends WorkerHost {
     nameSlug: string,
     guildEntity: GuildsEntity,
     config: IBattleNetClientConfig,
+    conditionalDate: Date | null,
   ): Promise<{
     summaryResult: Partial<IGuildSummary>;
     rosterResult: IGuildRoster;
   }> {
     const [summaryResult, rosterResult] = await Promise.allSettled([
-      this.guildSummaryService.getSummary(nameSlug, guildEntity.realm, config),
-      this.guildRosterService.fetchRoster(guildEntity, config),
+      this.guildSummaryService.getSummary(nameSlug, guildEntity.realm, config, conditionalDate),
+      this.guildRosterService.fetchRoster(guildEntity, config, conditionalDate),
     ]);
 
     return {

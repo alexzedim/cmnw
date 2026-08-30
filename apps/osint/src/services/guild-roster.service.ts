@@ -30,6 +30,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { isAxiosError } from 'axios';
 import type { Queue } from 'bullmq';
 import { get } from 'lodash';
+import { DateTime } from 'luxon';
 import { from, lastValueFrom } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
 import type { Repository } from 'typeorm';
@@ -51,14 +52,22 @@ export class GuildRosterService {
     private readonly realmsCacheService: RealmsCacheService,
   ) {}
 
-  async fetchRoster(guildEntity: GuildsEntity, config?: IBattleNetClientConfig): Promise<IGuildRoster> {
+  async fetchRoster(
+    guildEntity: GuildsEntity,
+    config?: IBattleNetClientConfig,
+    ifModifiedSince?: Date | null,
+  ): Promise<IGuildRoster> {
     const roster: IGuildRoster = { members: [] };
 
     try {
       const guildNameSlug = toSlug(guildEntity.name);
+      const headers = ifModifiedSince
+        ? { 'If-Modified-Since': DateTime.fromJSDate(ifModifiedSince).toHTTP() }
+        : undefined;
+
       const response = await this.battleNetService.queryWithResponse<IRGuildRoster>(
         `/data/wow/guild/${guildEntity.realm}/${guildNameSlug}/roster`,
-        this.battleNetService.createQueryOptions(BattleNetNamespace.PROFILE),
+        this.battleNetService.createQueryOptions(BattleNetNamespace.PROFILE, undefined, undefined, headers),
         config,
       );
 
@@ -82,6 +91,13 @@ export class GuildRosterService {
       roster.status = setGuildStatusString('-----', 'ROSTER', GuildStatusState.SUCCESS);
       return roster;
     } catch (errorOrException) {
+      if (isAxiosError(errorOrException) && errorOrException.response?.status === 304) {
+        return {
+          ...roster,
+          notModified: true,
+          status: setGuildStatusString('-----', 'ROSTER', GuildStatusState.SUCCESS),
+        };
+      }
       return this.handleRosterError(errorOrException, roster, guildEntity);
     }
   }

@@ -17,6 +17,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { isAxiosError } from 'axios';
 import * as changeCase from 'change-case';
 import { get } from 'lodash';
+import { DateTime } from 'luxon';
 
 @Injectable()
 export class GuildSummaryService {
@@ -30,11 +31,16 @@ export class GuildSummaryService {
     guildNameSlug: string,
     realmSlug: string,
     config?: IBattleNetClientConfig,
+    ifModifiedSince?: Date | null,
   ): Promise<Partial<IGuildSummary>> {
     try {
+      const headers = ifModifiedSince
+        ? { 'If-Modified-Since': DateTime.fromJSDate(ifModifiedSince).toHTTP() }
+        : undefined;
+
       const response = await this.battleNetService.queryWithResponse<BlizzardApiGuildSummary>(
         `/data/wow/guild/${realmSlug}/${guildNameSlug}`,
-        this.battleNetService.createQueryOptions(BattleNetNamespace.PROFILE),
+        this.battleNetService.createQueryOptions(BattleNetNamespace.PROFILE, undefined, undefined, headers),
         config,
       );
 
@@ -57,6 +63,12 @@ export class GuildSummaryService {
       summary.status = setGuildStatusString('-----', 'SUMMARY', GuildStatusState.SUCCESS);
       return summary;
     } catch (errorOrException) {
+      if (isAxiosError(errorOrException) && errorOrException.response?.status === 304) {
+        return {
+          notModified: true,
+          status: setGuildStatusString('-----', 'SUMMARY', GuildStatusState.SUCCESS),
+        };
+      }
       return this.handleSummaryError(errorOrException, {}, guildNameSlug, realmSlug);
     }
   }
