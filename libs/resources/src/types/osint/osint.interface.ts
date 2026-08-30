@@ -66,6 +66,8 @@ export interface IGuildRoster {
   readonly members: IGuildMember[];
   updatedAt?: Date;
   statusCode?: number;
+  dataLastModified?: Date;
+  notModified?: boolean;
   status?: string;
 }
 
@@ -640,6 +642,8 @@ export interface IGuildSummary {
   realmName: string;
   createdTimestamp?: Date;
   statusCode?: number;
+  dataLastModified?: Date;
+  notModified?: boolean;
   status: string;
 }
 

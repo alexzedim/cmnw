@@ -148,6 +148,11 @@ export class GuildsWorker extends WorkerHost {
       const { status: summaryStatus, statusCode: summaryStatusCode, ...summaryFields } = guildData.summaryResult;
       Object.assign(guildEntity, summaryFields);
 
+      const dataLastModified = guildData.summaryResult.dataLastModified ?? guildData.rosterResult.dataLastModified;
+      if (dataLastModified) {
+        guildEntity.lastModified = dataLastModified;
+      }
+
       const isSummarySuccess = isGuildOperationSuccessInString(summaryStatus ?? '-----', 'SUMMARY');
       const isRosterSuccess = guildData.rosterResult.members.length > 0;
 

@@ -1,5 +1,6 @@
 import { setTimeout } from 'node:timers/promises';
 import { isEqual } from 'lodash';
+import { DateTime } from 'luxon';
 
 /**
  * @description Delay for the selected amount of time in seconds
@@ -71,4 +72,14 @@ export const parseIdFromKeyHref = (href: string | undefined): number | null => {
   if (!href) return null;
   const match = href.match(/\/(\d+)(?:\?|$)/);
   return match ? Number(match[1]) : null;
+};
+
+/**
+ * @description Parse an HTTP Last-Modified header (RFC 2822) into a Date.
+ * @param header {unknown} axios header value, guarded to string
+ */
+export const parseHttpLastModified = (header: unknown): Date | null => {
+  if (typeof header !== 'string') return null;
+  const parsed = DateTime.fromRFC2822(header);
+  return parsed.isValid ? parsed.toJSDate() : null;
 };

@@ -7,6 +7,7 @@ import {
   type IGuildSummary,
   isGuildSummary,
   normalizeLocaleField,
+  parseHttpLastModified,
   parseIdFromKeyHref,
   setGuildStatusString,
   toGuid,
@@ -31,13 +32,13 @@ export class GuildSummaryService {
     config?: IBattleNetClientConfig,
   ): Promise<Partial<IGuildSummary>> {
     try {
-      const response = await this.battleNetService.query<BlizzardApiGuildSummary>(
+      const response = await this.battleNetService.queryWithResponse<BlizzardApiGuildSummary>(
         `/data/wow/guild/${realmSlug}/${guildNameSlug}`,
         this.battleNetService.createQueryOptions(BattleNetNamespace.PROFILE),
         config,
       );
 
-      if (!isGuildSummary(response)) {
+      if (!isGuildSummary(response.data)) {
         this.logger.warn(
           formatServiceLog(
             WorkerLogStatus.WARNING,
@@ -51,7 +52,8 @@ export class GuildSummaryService {
       }
 
       const summary: Partial<IGuildSummary> = {};
-      this.populateSummary(response, summary, realmSlug);
+      this.populateSummary(response.data, summary, realmSlug);
+      summary.dataLastModified = parseHttpLastModified(response.headers['last-modified']) ?? undefined;
       summary.status = setGuildStatusString('-----', 'SUMMARY', GuildStatusState.SUCCESS);
       return summary;
     } catch (errorOrException) {

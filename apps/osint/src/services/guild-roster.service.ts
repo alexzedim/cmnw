@@ -18,6 +18,7 @@ import {
   OSINT_GM_RANK,
   PLAYABLE_CLASS,
   PLAYABLE_RACE,
+  parseHttpLastModified,
   setGuildStatusString,
   toGuid,
   toSlug,
@@ -55,20 +56,20 @@ export class GuildRosterService {
 
     try {
       const guildNameSlug = toSlug(guildEntity.name);
-      const response = await this.battleNetService.query<IRGuildRoster>(
+      const response = await this.battleNetService.queryWithResponse<IRGuildRoster>(
         `/data/wow/guild/${guildEntity.realm}/${guildNameSlug}/roster`,
         this.battleNetService.createQueryOptions(BattleNetNamespace.PROFILE),
         config,
       );
 
-      if (!isGuildRoster(response)) {
+      if (!isGuildRoster(response.data)) {
         return this.handleRosterError(new Error('Invalid roster response'), roster, guildEntity);
       }
 
-      guildEntity.id = response.guild.id ?? guildEntity.id;
+      guildEntity.id = response.data.guild.id ?? guildEntity.id;
 
       await lastValueFrom(
-        from(response.members).pipe(
+        from(response.data.members).pipe(
           mergeMap(
             (member) => this.processRosterMember(member, guildEntity, guildNameSlug, roster),
             GUILD_WORKER_CONSTANTS.ROSTER_CONCURRENCY,
@@ -77,6 +78,7 @@ export class GuildRosterService {
         { defaultValue: undefined },
       );
 
+      roster.dataLastModified = parseHttpLastModified(response.headers['last-modified']) ?? undefined;
       roster.status = setGuildStatusString('-----', 'ROSTER', GuildStatusState.SUCCESS);
       return roster;
     } catch (errorOrException) {
