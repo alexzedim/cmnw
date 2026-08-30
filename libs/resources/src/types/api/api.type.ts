@@ -29,11 +29,14 @@ export type BlizzardApiResponse = Record<string, BlizzardApiValue | BlizzardApiN
 
 export type BlizzardApiArrayResponse = Record<string, BlizzardApiArray>;
 
-export type BlizzardApiPetsCollection = Record<'pets', Array<IPetType>> & {
+export type BlizzardApiPetsCollection = {
+  pets?: Array<IPetType>;
+  unlocked_battle_pet_slots?: number;
   status?: string;
 };
 
-export type BlizzardApiMountsCollection = Record<'mounts', Array<IMountsNameWithId>> & {
+export type BlizzardApiMountsCollection = {
+  mounts?: Array<IMountsNameWithId>;
   status?: string;
 };
 
@@ -215,7 +218,7 @@ export type BlizzardApiCharacterAchievements = {
       slug: string;
     };
   };
-  achievements: ICharacterAchievementEntry[];
+  achievements?: ICharacterAchievementEntry[];
   total_quantity: number;
   total_points: number;
   lastModified: string;

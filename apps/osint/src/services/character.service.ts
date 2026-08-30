@@ -393,8 +393,8 @@ export class CharacterService {
       }
 
       return {
-        ...detectCharacterAgeAndLevelBoost(response.achievements, characterClass),
-        employeeFos: collectBlizzardEmployeeFos(response.achievements),
+        ...detectCharacterAgeAndLevelBoost(response.achievements ?? [], characterClass),
+        employeeFos: collectBlizzardEmployeeFos(response.achievements ?? []),
       };
     } catch (errorOrException) {
       const statusCode = isAxiosError(errorOrException)

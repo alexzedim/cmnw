@@ -82,22 +82,37 @@ export const isGuildSummary = (response: unknown): response is BlizzardApiGuildS
   (!('created_timestamp' in response) || typeof (response as any).created_timestamp === 'number');
 
 export const isPetsCollection = (response: unknown): response is Readonly<BlizzardApiPetsCollection> =>
-  typeof response === 'object' && 'pets' in response && Array.isArray(response.pets);
+  typeof response === 'object' &&
+  response !== null &&
+  '_links' in response &&
+  (!('pets' in response) || Array.isArray(response.pets));
 
 export const isMountCollection = (response: unknown): response is Readonly<BlizzardApiMountsCollection> =>
-  typeof response === 'object' && 'mounts' in response && Array.isArray(response.mounts);
+  typeof response === 'object' &&
+  response !== null &&
+  '_links' in response &&
+  (!('mounts' in response) || Array.isArray(response.mounts));
 
 export const isCharacterSummary = (response: unknown): response is BlizzardApiCharacterSummary =>
-  typeof response === 'object' && !('error' in response) && 'id' in response && 'name' in response;
+  typeof response === 'object' &&
+  response !== null &&
+  '_links' in response &&
+  !('error' in response) &&
+  'id' in response &&
+  'name' in response;
 
 export const isCharacterAchievements = (response: unknown): response is Readonly<BlizzardApiCharacterAchievements> =>
-  typeof response === 'object' && 'achievements' in response && Array.isArray((response as any).achievements);
+  typeof response === 'object' &&
+  response !== null &&
+  '_links' in response &&
+  (!('achievements' in response) || Array.isArray((response as any).achievements));
 
 export const isCharacterMedia = (response: unknown): response is BlizzardApiCharacterMedia =>
   typeof response === 'object' &&
+  response !== null &&
+  '_links' in response &&
   'assets' in response &&
-  Array.isArray(response.assets) &&
-  Boolean(response.assets.length);
+  Array.isArray(response.assets);
 
 export const isWowToken = (response: unknown): response is BlizzardApiWowToken =>
   typeof response === 'object' && 'price' in response && 'last_updated_timestamp' in response;
