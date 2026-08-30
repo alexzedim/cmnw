@@ -170,6 +170,7 @@ export type BlizzardApiCharacterProfession = {
     name: string;
   };
   skill_points?: number;
+  max_skill_points?: number;
 };
 
 export type BlizzardApiCharacterProfessions = {
@@ -187,8 +188,8 @@ export type BlizzardApiCharacterProfessions = {
       slug: string;
     };
   };
-  primaries: BlizzardApiCharacterProfession[];
-  secondaries: BlizzardApiCharacterProfession[];
+  primaries?: BlizzardApiCharacterProfession[];
+  secondaries?: BlizzardApiCharacterProfession[];
   lastModified: string;
   status?: string;
 };

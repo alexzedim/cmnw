@@ -340,8 +340,6 @@ export class CharacterService {
     realmSlug: string,
     config?: IBattleNetClientConfig,
   ): Promise<BlizzardApiCharacterProfessions | null> {
-    const professions: Partial<BlizzardApiCharacterProfessions> = {};
-
     try {
       const response = await this.battleNetService.query<BlizzardApiCharacterProfessions>(
         `/profile/wow/character/${realmSlug}/${nameSlug}/professions`,
@@ -351,26 +349,14 @@ export class CharacterService {
 
       const isValidProfessions = isCharacterProfessions(response);
       if (!isValidProfessions) {
-        professions.status = setStatusString(
-          professions.status || '-------',
-          'PROFESSIONS',
-          CharacterStatusState.ERROR,
+        this.logger.error(
+          formatServiceErrorLog('getProfessions', `${nameSlug}@${realmSlug}`, 0, 'invalid professions schema'),
         );
-        return professions as BlizzardApiCharacterProfessions;
+        return null;
       }
 
-      Object.assign(professions, response);
-
-      professions.status = setStatusString(
-        professions.status || '-------',
-        'PROFESSIONS',
-        CharacterStatusState.SUCCESS,
-      );
-
-      return professions as BlizzardApiCharacterProfessions;
+      return response;
     } catch (errorOrException) {
-      professions.status = setStatusString(professions.status || '-------', 'PROFESSIONS', CharacterStatusState.ERROR);
-
       const statusCode = isAxiosError(errorOrException)
         ? errorOrException.response?.status
         : get(errorOrException, 'status', 400);
@@ -384,7 +370,7 @@ export class CharacterService {
         ),
       );
 
-      return professions as BlizzardApiCharacterProfessions;
+      return null;
     }
   }
 

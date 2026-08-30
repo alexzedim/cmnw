@@ -150,11 +150,11 @@ export const isCommunityHallOfFame = (response: unknown): response is ICommunity
 
 export const isCharacterProfessions = (response: unknown): response is BlizzardApiCharacterProfessions =>
   typeof response === 'object' &&
+  response !== null &&
+  '_links' in response &&
   'character' in response &&
-  'primaries' in response &&
-  'secondaries' in response &&
-  Array.isArray(response.primaries) &&
-  Array.isArray(response.secondaries);
+  (!('primaries' in response) || Array.isArray(response.primaries)) &&
+  (!('secondaries' in response) || Array.isArray(response.secondaries));
 
 export const isResponseError = (error: unknown): error is BlizzardApiErrorResponse =>
   typeof error === 'object' && get(error, 'response.status') && get(error, 'response.statusText');

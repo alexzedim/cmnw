@@ -262,9 +262,23 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
               const { profession, tiers, specialization: profSpecialization } = prof;
               const { id: professionId, name: professionName } = profession;
 
-              tiers?.forEach((tier: any) => {
+              const resolvedTiers: any[] =
+                tiers?.length > 0
+                  ? tiers
+                  : prof.skill_points != null
+                    ? [
+                        {
+                          tier: null,
+                          skill_points: prof.skill_points,
+                          max_skill_points: prof.max_skill_points ?? null,
+                        },
+                      ]
+                    : [];
+
+              resolvedTiers.forEach((tier: any) => {
                 const { tier: tierInfo, skill_points, max_skill_points } = tier;
-                const { id: tierId, name: tierName } = tierInfo;
+                const tierId = tierInfo?.id ?? null;
+                const tierName = tierInfo?.name ?? null;
 
                 const record = this.charactersProfessionsRepository.create({
                   characterGuid,
@@ -281,22 +295,25 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
                 professionRecords.push(record);
                 let expansionTicker = EXPANSION_TICKER.CLSC;
                 let tierMatched = false;
-                Array.from(EXPANSION_TICKER_MAP.entries()).some(([key, ticker]) => {
-                  if (tierName.includes(key)) {
-                    expansionTicker = ticker;
-                    tierMatched = true;
-                    return true;
+                if (tierName) {
+                  Array.from(EXPANSION_TICKER_MAP.entries()).some(([key, ticker]) => {
+                    if (tierName.includes(key)) {
+                      expansionTicker = ticker;
+                      tierMatched = true;
+                      return true;
+                    }
+                    return false;
+                  });
+                  if (!tierMatched) {
+                    this.logger.warn(
+                      `syncCharacterProfessions: tier "${tierName}" matched no EXPANSION_TICKER_MAP key; falling back to CLSC`,
+                    );
                   }
-                  return false;
-                });
-                if (!tierMatched) {
-                  this.logger.warn(
-                    `syncCharacterProfessions: tier "${tierName}" matched no EXPANSION_TICKER_MAP key; falling back to CLSC`,
-                  );
                 }
                 const specializationSuffix = profSpecialization?.name ? ` (${profSpecialization.name})` : '';
+                const tickerPrefix = tierMatched ? `${expansionTicker} ` : '';
                 professionsSummary.push(
-                  `${expansionTicker} ${professionName}${specializationSuffix} ${skill_points}/${max_skill_points}`,
+                  `${tickerPrefix}${professionName}${specializationSuffix} ${skill_points}/${max_skill_points}`,
                 );
               });
             }, 5),
@@ -305,17 +322,10 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
         );
       }
 
+      await this.charactersProfessionsRepository.delete({ characterGuid });
       if (professionRecords.length > 0) {
-        await this.charactersProfessionsRepository.delete({ characterGuid });
         await this.charactersProfessionsRepository.save(professionRecords);
       }
-
-      // Set status to SUCCESS for PROFESSIONS endpoint
-      professionsData.status = setStatusString(
-        professionsData.status || '-------',
-        'PROFESSIONS',
-        CharacterStatusState.SUCCESS,
-      );
 
       return professionsSummary;
     } catch (errorOrException) {
@@ -326,11 +336,6 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
           0,
           errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
         ),
-      );
-      professionsData.status = setStatusString(
-        professionsData.status || '-------',
-        'PROFESSIONS',
-        CharacterStatusState.ERROR,
       );
       return null;
     }
