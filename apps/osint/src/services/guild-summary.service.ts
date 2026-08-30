@@ -104,6 +104,7 @@ export class GuildSummaryService {
       ? errorOrException.response?.status
       : get(errorOrException, 'status', 400);
 
+    summary.statusCode = statusCode || 400;
     summary.status = setGuildStatusString('-----', 'SUMMARY', GuildStatusState.ERROR);
 
     this.logger.error(formatServiceErrorLog('getSummary', toGuid(guildNameSlug, realmSlug), 0, `HTTP ${statusCode}`));

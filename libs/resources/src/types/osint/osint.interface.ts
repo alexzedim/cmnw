@@ -639,6 +639,7 @@ export interface IGuildSummary {
   realm: string;
   realmName: string;
   createdTimestamp?: Date;
+  statusCode?: number;
   status: string;
 }
 
