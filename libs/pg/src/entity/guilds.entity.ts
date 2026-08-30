@@ -80,6 +80,29 @@ export class GuildsEntity {
   status?: string;
 
   @Column({
+    default: false,
+    nullable: false,
+    type: 'boolean',
+    name: 'is_dead',
+  })
+  isDead: boolean;
+
+  @Column({
+    default: 0,
+    nullable: false,
+    type: 'int',
+    name: 'dead_count',
+  })
+  deadCount: number;
+
+  @Column('timestamp with time zone', {
+    default: null,
+    nullable: true,
+    name: 'dead_at',
+  })
+  deadAt?: Date | null;
+
+  @Column({
     default: 'OSINT-GUILD-GET',
     nullable: true,
     type: 'varchar',
