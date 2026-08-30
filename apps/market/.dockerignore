@@ -12,8 +12,8 @@ arm64.dma.Dockerfile
 x64.osint.Dockerfile
 x64.dma.Dockerfile
 
-docker-compose.db.yaml
-docker-compose.oraculum.yaml
-docker-compose.dev.oraculum.yaml
+compose.db.yaml
+compose.oraculum.yaml
+compose.dev.oraculum.yaml
 
 README.md

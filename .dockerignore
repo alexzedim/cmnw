@@ -14,7 +14,7 @@ config/default.yml
 config/local.yml
 config/test.yml
 
-docker-compose*
+compose*.yaml
 *.lock
 
 .env
