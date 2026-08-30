@@ -7,6 +7,8 @@ import {
 } from '@app/pg';
 import {
   ACTION_LOG,
+  GUILD_ROSTER_MASS_LEAVE_MIN_SIZE,
+  GUILD_ROSTER_MASS_LEAVE_RATIO,
   GuildStatusState,
   type IGuildMember,
   type IGuildRoster,
@@ -58,7 +60,14 @@ export class GuildMemberService {
       const comparison = await this.compareRosters(guildEntity, updatedRosterMembers);
       const rosterUpdateAt = roster.updatedAt;
 
-      await this.processRosterChanges(guildEntity, comparison, rosterUpdateAt, isNew);
+      const shouldProcessLeaves = this.isRosterTrustworthyForLeaves(
+        guildEntity,
+        updatedRosterMembers.length,
+        comparison.membersLeaveIds.length,
+        comparison.originalRoster.size,
+      );
+
+      await this.processRosterChanges(guildEntity, comparison, rosterUpdateAt, isNew, shouldProcessLeaves);
 
       roster.status = setGuildStatusString(roster.status ?? '-----', 'MEMBERS', GuildStatusState.SUCCESS);
     } catch (errorOrException) {
@@ -99,11 +108,35 @@ export class GuildMemberService {
     };
   }
 
+  private isRosterTrustworthyForLeaves(
+    guildEntity: GuildsEntity,
+    receivedCount: number,
+    leaveCount: number,
+    storedCount: number,
+  ): boolean {
+    if (leaveCount === 0) return true;
+
+    if (storedCount < GUILD_ROSTER_MASS_LEAVE_MIN_SIZE) return true;
+
+    const isDropWithinRatio = receivedCount >= storedCount * GUILD_ROSTER_MASS_LEAVE_RATIO;
+    if (isDropWithinRatio) return true;
+
+    const summaryMembersCount = guildEntity.membersCount ?? null;
+    if (summaryMembersCount != null && summaryMembersCount <= receivedCount * 1.2) return true;
+
+    this.logger.warn(
+      `Suspected partial roster for ${guildEntity.guid}: stored ${storedCount} members, received ${receivedCount}, ` +
+        `summary member_count ${summaryMembersCount} — skipping ${leaveCount} leave logs`,
+    );
+    return false;
+  }
+
   private async processRosterChanges(
     guildEntity: GuildsEntity,
     comparison: RosterComparisonResult,
     rosterUpdateAt: Date,
     _isNew: boolean,
+    shouldProcessLeaves: boolean,
   ): Promise<void> {
     const {
       originalRoster,
@@ -137,7 +170,7 @@ export class GuildMemberService {
       );
     }
 
-    if (membersLeaveIds.length) {
+    if (shouldProcessLeaves && membersLeaveIds.length) {
       await lastValueFrom(
         from(membersLeaveIds).pipe(
           mergeMap((guildMemberId) =>

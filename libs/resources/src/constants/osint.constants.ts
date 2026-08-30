@@ -17,6 +17,12 @@ export const OSINT_CHARACTER_LIMIT = 5_000;
 
 export const OSINT_GUILD_LIMIT = 500;
 
+export const GUILD_DEAD_THRESHOLD = 3;
+
+export const GUILD_ROSTER_MASS_LEAVE_RATIO = 0.5;
+
+export const GUILD_ROSTER_MASS_LEAVE_MIN_SIZE = 10;
+
 export const OSINT_TIMEOUT_TOLERANCE = 50 * 1_000;
 
 export const MAX_CHARACTERS_PER_ACCOUNT = 70;
