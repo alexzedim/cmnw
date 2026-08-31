@@ -638,42 +638,45 @@ export enum EXPANSIONS {
 }
 
 /**
- * Original leveling ladder used to approximate character creation date:
- * 6 = Level 10, 7-13 = Level 20-80.
- * The earliest matched completed_timestamp approximates creation ("created on or before").
- * Boosted characters have the whole ladder stamped at boost time; characters
- * created before patch 3.0.2 have it stamped at their first login after 2008-10-14.
+ * Live level milestone achievements (Level 10-80): earned one by one while
+ * leveling, or batch-granted with one identical completed_timestamp when a
+ * level boost instantly completes the ladder. Ids 6-9 survived the level
+ * squish, 14782+ are the post-Squish chain.
  */
-export const CHARACTER_AGE_ORIGINAL_LEVEL_10_ID = 6;
-
-export const CHARACTER_AGE_ORIGINAL_CHAIN_IDS = [7, 8, 9, 10, 11, 12, 13] as const;
-
-/**
- * Expansion leveling chains (10-60 / 10-70): stamped while leveling through the
- * expansion, or batch-stamped at the same millisecond when a level boost
- * instantly completes the ladder.
- */
-export const CHARACTER_AGE_EXPANSION_LEVEL_IDS: Map<EXPANSIONS, readonly number[]> = new Map([
-  [EXPANSIONS.Shadowlands, [14781, 14782, 14783, 14784, 14785, 14786]],
-  [EXPANSIONS.Dragonflight, [8998, 8999, 9000, 9001, 9002, 9003]],
-  [EXPANSIONS.TheWarWithin, [19486, 19487, 19488, 19489, 19490, 19491, 19492]],
+export const CHARACTER_LEVEL_MILESTONE_IDS: ReadonlyMap<number, number> = new Map([
+  [10, 6],
+  [20, 7],
+  [30, 8],
+  [40, 9],
+  [50, 14782],
+  [60, 14783],
+  [70, 15805],
+  [80, 19459],
 ]);
 
 /**
- * Direct level boost achievements, mapped to the expansion whose boost was
- * applied. Presence of any of these conclusively proves a level boost.
+ * Pre-Squish milestones converted to Legacy ("Reached level X prior to the
+ * Shadowlands expansion"): unobtainable since 9.0, tracked only as an extra
+ * character age signal.
  */
-export const CHARACTER_LEVEL_BOOST_ACHIEVEMENT_EXPANSION: Map<number, EXPANSIONS> = new Map([
-  [15179, EXPANSIONS.Shadowlands],
-  [15070, EXPANSIONS.Shadowlands],
-  [16400, EXPANSIONS.Dragonflight],
-  [40167, EXPANSIONS.TheWarWithin],
+export const CHARACTER_AGE_LEGACY_MILESTONE_IDS = [10, 11, 12, 13] as const;
+
+/**
+ * Boost-tier milestone levels mapped to the expansion whose level boost
+ * stamps them. A timestamp cluster only proves a boost when it reaches one of
+ * these: pre-3.0.2 first-login stamps and Death Knight creation batch-stamp
+ * the ladder only up to Level 50.
+ */
+export const CHARACTER_LEVEL_BOOST_LEVEL_EXPANSION: ReadonlyMap<number, EXPANSIONS> = new Map([
+  [60, EXPANSIONS.Shadowlands],
+  [70, EXPANSIONS.Dragonflight],
+  [80, EXPANSIONS.TheWarWithin],
 ]);
 
 /**
  * Hero classes (Death Knight, Demon Hunter, Evoker) start above level 10 and
- * get expansion chains batch-stamped at creation, so inference-only boost
- * patterns (chain absent / timestamp cluster) must be skipped for them.
+ * get milestone achievements batch-stamped at creation, so the timestamp
+ * cluster pattern must be skipped for them.
  */
 export const CHARACTER_LEVEL_BOOST_INFERENCE_EXCLUDED_CLASSES: ReadonlySet<string> = new Set(
   [PLAYABLE_CLASS.get(6), PLAYABLE_CLASS.get(12), PLAYABLE_CLASS.get(13)].filter(
@@ -685,9 +688,7 @@ export const CHARACTER_LEVEL_BOOST_INFERENCE_EXCLUDED_CLASSES: ReadonlySet<strin
  * Which achievement pattern produced the level boost verdict.
  */
 export enum LEVEL_BOOST_EVIDENCE {
-  DIRECT_ACHIEVEMENT = 'DIRECT_ACHIEVEMENT',
   TIMESTAMP_CLUSTER = 'TIMESTAMP_CLUSTER',
-  ORIGINAL_CHAIN_ABSENT = 'ORIGINAL_CHAIN_ABSENT',
   ORIGINAL_LEVEL_10_PRESENT = 'ORIGINAL_LEVEL_10_PRESENT',
   INDETERMINATE = 'INDETERMINATE',
 }

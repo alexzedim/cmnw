@@ -1,10 +1,8 @@
 import {
-  CHARACTER_AGE_EXPANSION_LEVEL_IDS,
-  CHARACTER_AGE_ORIGINAL_CHAIN_IDS,
-  CHARACTER_AGE_ORIGINAL_LEVEL_10_ID,
-  CHARACTER_LEVEL_BOOST_ACHIEVEMENT_EXPANSION,
+  CHARACTER_AGE_LEGACY_MILESTONE_IDS,
   CHARACTER_LEVEL_BOOST_INFERENCE_EXCLUDED_CLASSES,
-  EXPANSIONS,
+  CHARACTER_LEVEL_BOOST_LEVEL_EXPANSION,
+  CHARACTER_LEVEL_MILESTONE_IDS,
   LEVEL_BOOST_EVIDENCE,
 } from '@app/resources/constants';
 import type { CharacterAge, ICharacterAchievementEntry } from '@app/resources/types';
@@ -17,6 +15,12 @@ import { toDate } from '../transformers';
  */
 export const CHARACTER_AGE_EPOCH_FLOOR_MS = 1223913600000;
 
+const MILESTONE_ID_TO_LEVEL = new Map<number, number>(
+  [...CHARACTER_LEVEL_MILESTONE_IDS].map(([level, id]) => [id, level] as [number, number]),
+);
+
+const LEGACY_MILESTONE_IDS = new Set<number>(CHARACTER_AGE_LEGACY_MILESTONE_IDS);
+
 /**
  * Returns the entry timestamp when it lies within the plausible window
  * (after the achievement system existed, not in the future), null otherwise.
@@ -28,34 +32,38 @@ const toAgeTimestamp = (entry: ICharacterAchievementEntry): number | null => {
   return isPlausible ? timestamp : null;
 };
 
-const minTimestamp = (timestamps: number[]): number | null =>
-  timestamps.length === 0 ? null : Math.min(...timestamps);
-
 /**
- * Finds the largest group of expansion leveling achievements sharing one
- * expansion and one identical completed_timestamp. Ties resolve to the
- * earliest timestamp. A natural player cannot earn two level achievements in
- * the same millisecond, so a group of >= 2 proves a batch grant (level boost).
+ * Finds the largest group of level milestones sharing one identical
+ * completed_timestamp, together with the highest boost-tier level (60/70/80)
+ * it contains. A natural player cannot earn two level milestones in the same
+ * millisecond, so such a group proves a batch grant (level boost). Groups
+ * without a boost-tier milestone are ignored: pre-3.0.2 characters and Death
+ * Knight creation also batch-stamp the lower ladder.
  */
-const findLargestExpansionTimestampCluster = (
-  expansionTimestamps: Map<EXPANSIONS, number[]>,
-): { expansion: EXPANSIONS; timestamp: number } | null => {
-  let largest: { expansion: EXPANSIONS; timestamp: number; size: number } | null = null;
+const findLargestMilestoneTimestampCluster = (
+  milestones: { level: number; timestamp: number }[],
+): { boostLevel: number; timestamp: number } | null => {
+  const groups = new Map<number, { boostLevel: number; size: number }>();
 
-  for (const [expansion, timestamps] of expansionTimestamps) {
-    const groups = new Map<number, number>();
-    for (const timestamp of timestamps) {
-      groups.set(timestamp, (groups.get(timestamp) ?? 0) + 1);
-    }
+  for (const { level, timestamp } of milestones) {
+    const group = groups.get(timestamp) ?? { boostLevel: 0, size: 0 };
+    groups.set(timestamp, {
+      boostLevel: CHARACTER_LEVEL_BOOST_LEVEL_EXPANSION.has(level)
+        ? Math.max(group.boostLevel, level)
+        : group.boostLevel,
+      size: group.size + 1,
+    });
+  }
 
-    for (const [timestamp, size] of groups) {
-      if (size < 2) continue;
+  let largest: { boostLevel: number; timestamp: number; size: number } | null = null;
 
-      const isLarger = largest === null || size > largest.size;
-      const isTiedEarlier = largest !== null && size === largest.size && timestamp < largest.timestamp;
-      if (isLarger || isTiedEarlier) {
-        largest = { expansion, timestamp, size };
-      }
+  for (const [timestamp, { boostLevel, size }] of groups) {
+    if (size < 2 || boostLevel === 0) continue;
+
+    const isLarger = largest === null || size > largest.size;
+    const isTiedEarlier = largest !== null && size === largest.size && timestamp < largest.timestamp;
+    if (isLarger || isTiedEarlier) {
+      largest = { boostLevel, timestamp, size };
     }
   }
 
@@ -67,15 +75,15 @@ const findLargestExpansionTimestampCluster = (
  * approximation ("created on or before") and the level boost verdict.
  *
  * Patterns are evaluated in strict priority order, first match wins:
- * A) direct boost achievement present -> boosted, boost metadata from the achievement
- * C) >= 2 same-expansion level achievements with identical timestamps -> boosted
- * D) original Level 10 achievement present -> naturally leveled
- * B) zero original ladder + >= 1 expansion level achievement -> boosted (inferred)
- * E) none of the above -> indeterminate
+ * A) >= 2 level milestones with an identical timestamp, including a
+ *    boost-tier milestone (60/70/80) -> boosted, tier from the highest
+ *    boost-tier milestone in the cluster
+ * B) Level 10 milestone present -> naturally leveled
+ * C) none of the above -> indeterminate
  *
- * Patterns B and C are skipped for hero classes (Death Knight, Demon Hunter,
- * Evoker): they start above level 10 and get expansion chains batch-stamped at
- * creation, which would otherwise read as a boost.
+ * Pattern A is skipped for hero classes (Death Knight, Demon Hunter, Evoker):
+ * they start above level 10 and get milestones batch-stamped at creation,
+ * which would otherwise read as a boost.
  *
  * @param entries - Character achievements from the Blizzard API
  * @param characterClass - Character class name (e.g. 'Evoker'), used for hero-class gating
@@ -89,86 +97,45 @@ export const detectCharacterAgeAndLevelBoost = (
   entries: ReadonlyArray<ICharacterAchievementEntry>,
   characterClass?: string | null,
 ): Partial<CharacterAge> => {
-  const originalChainIds = new Set<number>(CHARACTER_AGE_ORIGINAL_CHAIN_IDS);
-  const expansionLevelIds = new Map<number, EXPANSIONS>();
-  for (const [expansion, ids] of CHARACTER_AGE_EXPANSION_LEVEL_IDS) {
-    for (const id of ids) {
-      expansionLevelIds.set(id, expansion);
-    }
-  }
-
-  let level10Timestamp: number | null = null;
-  const originalChainTimestamps: number[] = [];
-  const expansionTimestamps = new Map<EXPANSIONS, number[]>();
-  const expansionEntriesFlat: { expansion: EXPANSIONS; timestamp: number }[] = [];
-  const boostEntries: ICharacterAchievementEntry[] = [];
+  let earliestTimestamp: number | null = null;
+  const milestones: { level: number; timestamp: number }[] = [];
 
   for (const entry of entries) {
     const timestamp = toAgeTimestamp(entry);
     if (timestamp === null) continue;
 
-    if (entry.id === CHARACTER_AGE_ORIGINAL_LEVEL_10_ID) {
-      level10Timestamp = timestamp;
+    const level = MILESTONE_ID_TO_LEVEL.get(entry.id);
+    if (level !== undefined) {
+      milestones.push({ level, timestamp });
+    } else if (!LEGACY_MILESTONE_IDS.has(entry.id)) {
       continue;
     }
 
-    if (originalChainIds.has(entry.id)) {
-      originalChainTimestamps.push(timestamp);
-      continue;
-    }
-
-    const expansion = expansionLevelIds.get(entry.id);
-    if (expansion) {
-      const group = expansionTimestamps.get(expansion) ?? [];
-      group.push(timestamp);
-      expansionTimestamps.set(expansion, group);
-      expansionEntriesFlat.push({ expansion, timestamp });
-      continue;
-    }
-
-    if (CHARACTER_LEVEL_BOOST_ACHIEVEMENT_EXPANSION.has(entry.id)) {
-      boostEntries.push(entry);
-    }
+    earliestTimestamp = earliestTimestamp === null ? timestamp : Math.min(earliestTimestamp, timestamp);
   }
 
   const isInferenceExcluded =
     characterClass != null && CHARACTER_LEVEL_BOOST_INFERENCE_EXCLUDED_CLASSES.has(characterClass);
 
-  // PATTERN A: direct boost achievement, conclusive for every class
-  if (boostEntries.length > 0) {
-    const boostEntry = boostEntries[0];
-    const candidateTimestamps = [
-      ...boostEntries.map((entry) => entry.completed_timestamp),
-      ...expansionEntriesFlat.map((flat) => flat.timestamp),
-    ];
-
-    return {
-      createdApprox: toDate(Math.min(...candidateTimestamps)),
-      isLevelBoosted: true,
-      levelBoostEvidence: LEVEL_BOOST_EVIDENCE.DIRECT_ACHIEVEMENT,
-      levelBoostType: CHARACTER_LEVEL_BOOST_ACHIEVEMENT_EXPANSION.get(boostEntry.id) ?? null,
-      levelBoostedAt: toDate(boostEntry.completed_timestamp),
-    };
-  }
-
-  // PATTERN C: identical-timestamp cluster inside one expansion leveling chain
+  // PATTERN A: identical-timestamp cluster of level milestones proves a batch grant (level boost)
   if (!isInferenceExcluded) {
-    const cluster = findLargestExpansionTimestampCluster(expansionTimestamps);
+    const cluster = findLargestMilestoneTimestampCluster(milestones);
     if (cluster) {
       return {
-        createdApprox: toDate(cluster.timestamp),
+        createdApprox: toDate(earliestTimestamp ?? cluster.timestamp),
         isLevelBoosted: true,
         levelBoostEvidence: LEVEL_BOOST_EVIDENCE.TIMESTAMP_CLUSTER,
-        levelBoostType: cluster.expansion,
+        levelBoostType: CHARACTER_LEVEL_BOOST_LEVEL_EXPANSION.get(cluster.boostLevel) ?? null,
         levelBoostedAt: toDate(cluster.timestamp),
       };
     }
   }
 
-  // PATTERN D: original Level 10 achievement proves natural leveling
+  // PATTERN B: the Level 10 milestone proves natural leveling
+  const level10Timestamp = milestones.find((milestone) => milestone.level === 10)?.timestamp ?? null;
   if (level10Timestamp !== null) {
     return {
-      createdApprox: toDate(level10Timestamp),
+      createdApprox: toDate(earliestTimestamp ?? level10Timestamp),
       isLevelBoosted: false,
       levelBoostEvidence: LEVEL_BOOST_EVIDENCE.ORIGINAL_LEVEL_10_PRESENT,
       levelBoostType: null,
@@ -176,24 +143,9 @@ export const detectCharacterAgeAndLevelBoost = (
     };
   }
 
-  // PATTERN B: expansion leveling present but the original ladder is fully absent
-  if (!isInferenceExcluded && originalChainTimestamps.length === 0 && expansionEntriesFlat.length > 0) {
-    const earliest = expansionEntriesFlat.reduce((left, right) => (right.timestamp < left.timestamp ? right : left));
-
-    return {
-      createdApprox: toDate(earliest.timestamp),
-      isLevelBoosted: true,
-      levelBoostEvidence: LEVEL_BOOST_EVIDENCE.ORIGINAL_CHAIN_ABSENT,
-      levelBoostType: earliest.expansion,
-      levelBoostedAt: null,
-    };
-  }
-
-  // PATTERN E: indeterminate, age from whatever tracked data remains
-  const earliest = minTimestamp([...originalChainTimestamps, ...expansionEntriesFlat.map((flat) => flat.timestamp)]);
-
+  // PATTERN C: indeterminate, age from whatever tracked data remains
   return {
-    ...(earliest !== null ? { createdApprox: toDate(earliest) } : {}),
+    ...(earliestTimestamp !== null ? { createdApprox: toDate(earliestTimestamp) } : {}),
     isLevelBoosted: null,
     levelBoostEvidence: LEVEL_BOOST_EVIDENCE.INDETERMINATE,
     levelBoostType: null,
