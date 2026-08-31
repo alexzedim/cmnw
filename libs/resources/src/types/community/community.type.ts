@@ -1,4 +1,4 @@
-import type { API_HEADERS_ENUM, TOLERANCE_ENUM } from '@app/resources/constants';
+import type { API_HEADERS_ENUM, TOLERANCE_ENUM, WCL_PAYLOAD_SOURCE } from '@app/resources/constants';
 
 export type LogCharacter = {
   guid: string;
@@ -35,8 +35,9 @@ export type RankedCharacters = {
 };
 
 export type RaidLogReport = {
+  startTime: number;
   rankedCharacters: Array<RankedCharacters>;
-  masterData: Array<Actors>;
+  masterData: { actors: Array<Actors> };
 };
 
 export type CharacterRaidLogResponse = {
@@ -76,3 +77,32 @@ export type FightsAPIResponse = {
   gameVersion: number;
   phases: Array<unknown>;
 };
+
+export type WclGraphQLReportBody = {
+  data?: CharacterRaidLogResponse;
+  errors?: Array<{ message: string }>;
+};
+
+export type WclRaidLogPayload = {
+  fetchedAt: string;
+  source: WCL_PAYLOAD_SOURCE;
+  data: FightsAPIResponse | WclGraphQLReportBody;
+};
+
+export type WclZoneReportsRow = {
+  logId: string;
+  startedAt: Date | null;
+};
+
+export type WclFetchResult<T> =
+  | { status: 'ok'; data: T }
+  | { status: 'not_found' }
+  | { status: 'blocked' }
+  | { status: 'error'; message: string };
+
+export type WclNavigationResult =
+  | { status: 'ok'; html: string }
+  | { status: 'blocked' }
+  | { status: 'error'; message: string };
+
+export type WclDownloadOutcome = 'downloaded' | 'not_found' | 'failed';

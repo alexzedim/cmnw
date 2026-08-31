@@ -15,3 +15,4 @@ export * from './price-binning.util';
 export * from './redis-cache.util';
 export * from './render.util';
 export * from './session.util';
+export * from './warcraft-logs.util';

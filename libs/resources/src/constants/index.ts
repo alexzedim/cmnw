@@ -7,3 +7,4 @@ export * from './ladder.constants';
 export * from './market.constants';
 export * from './osint.constants';
 export * from './status.constants';
+export * from './warcraft-logs.constants';
