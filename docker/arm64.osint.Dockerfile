@@ -52,8 +52,14 @@ RUN corepack enable && \
 COPY --from=builder /usr/src/app/dist ./dist
 
 # Install Playwright and dependencies
+# Browsers must land outside root's home: the app runs as uid 1001, whose
+# default PLAYWRIGHT_BROWSERS_PATH (~/.cache/ms-playwright) differs from
+# root's, so a plain install here is invisible at runtime.
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
 RUN npx playwright install-deps && \
-    npx playwright install chromium
+    npx playwright install chromium && \
+    chmod -R a+rX /ms-playwright
 
 RUN chown -R app:app /usr/src/app
 
