@@ -12,6 +12,7 @@ import {
   type GuildIdDto,
   GuildMessageDto,
   guildsQueue,
+  type IGuildLogEntry,
   type IGuildMessageBase,
   toGuid,
 } from '@app/resources';
@@ -286,7 +287,7 @@ export class GuildOsintService {
     }
   }
 
-  async getGuildLogs(input: GuildIdDto) {
+  async getGuildLogs(input: GuildIdDto): Promise<IGuildLogEntry[]> {
     const logTag = 'getGuildLogs';
     try {
       this.logger.log({
@@ -303,13 +304,32 @@ export class GuildOsintService {
         order: { createdAt: 'DESC' },
       });
 
+      const characterGuids = [
+        ...new Set(logs.map((log) => log.characterGuid).filter((guid): guid is string => guid != null)),
+      ];
+      const characters = characterGuids.length
+        ? await this.charactersRepository.find({
+            where: { guid: In(characterGuids) },
+            select: { guid: true, name: true, realm: true },
+          })
+        : [];
+      const characterByGuid = new Map(characters.map((character) => [character.guid, character]));
+
       this.logger.log({
         logTag,
         guildGuid: input.guid,
         logCount: logs.length,
         message: `Found ${logs.length} logs for guild: ${input.guid}`,
       });
-      return logs;
+
+      return logs.map((log) => {
+        const character = log.characterGuid ? characterByGuid.get(log.characterGuid) : undefined;
+        return {
+          ...log,
+          characterName: character?.name ?? null,
+          characterRealm: character?.realm ?? null,
+        };
+      });
     } catch (errorOrException) {
       this.logger.error({
         logTag,

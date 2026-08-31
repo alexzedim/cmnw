@@ -16,6 +16,7 @@ import type {
   GuildIdDto,
   IAddonScanEntryWithStatus,
   IAddonScanGuild,
+  IGuildLogEntry,
   RealmDto,
   UploadOsintDto,
 } from '@app/resources';
@@ -219,7 +220,7 @@ export class OsintController {
   @ApiInternalServerErrorResponse({ description: 'Internal server error' })
   @HttpCode(HttpStatus.OK)
   @Get('/guild/logs')
-  async getGuildLogs(@Query() input: GuildIdDto): Promise<{ logs: CharactersGuildsLogsEntity[] }> {
+  async getGuildLogs(@Query() input: GuildIdDto): Promise<{ logs: IGuildLogEntry[] }> {
     const logs = await this.guildOsintService.getGuildLogs(input);
     return { logs };
   }
