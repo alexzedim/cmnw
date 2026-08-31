@@ -2,6 +2,7 @@ import { BATTLE_NET_KEY_TAG_OSINT, BattleNetService, type IBattleNetClientConfig
 import {
   formatFinalSummary,
   formatProgressReport,
+  formatServiceErrorLog,
   formatWorkerErrorLog,
   formatWorkerLog,
   WorkerLogStatus,
@@ -186,6 +187,16 @@ export class GuildsWorker extends WorkerHost {
 
       const [logStatusResolved, masterStatusResolved] = await Promise.allSettled([logStatusResult, masterStatusResult]);
 
+      for (const [operation, settled] of [
+        ['logs', logStatusResolved],
+        ['master', masterStatusResolved],
+      ] as const) {
+        if (settled.status === 'rejected') {
+          const reason = settled.reason instanceof Error ? settled.reason.message : String(settled.reason);
+          this.logger.error(formatServiceErrorLog(`${operation} detection`, guildEntity.guid, 0, reason));
+        }
+      }
+
       const logStatus = logStatusResolved.status === 'fulfilled' ? logStatusResolved.value : undefined;
       const masterStatus = masterStatusResolved.status === 'fulfilled' ? masterStatusResolved.value : undefined;
 
@@ -259,8 +270,9 @@ export class GuildsWorker extends WorkerHost {
   }
 
   private async getLogStatusForNewGuild(guildSnapshot: GuildsEntity, guildEntity: GuildsEntity): Promise<string> {
+    if (guildSnapshot.id == null) return '-----' as const;
     const guildById = await this.guildService.findById(guildSnapshot.id, guildSnapshot.realm);
-    if (!guildById) return '-----' as const;
+    if (!guildById || guildById.guid === guildEntity.guid) return '-----' as const;
     return this.guildLogService.detectAndLogChanges(guildById, guildEntity);
   }
 

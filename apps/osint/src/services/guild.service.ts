@@ -116,7 +116,8 @@ export class GuildService {
     return this.guildsRepository.save(guild);
   }
 
-  async findById(id: number, realm: string): Promise<GuildsEntity | null> {
+  async findById(id: number | null | undefined, realm: string): Promise<GuildsEntity | null> {
+    if (id == null) return null;
     return this.guildsRepository.findOneBy({ id, realm });
   }
 

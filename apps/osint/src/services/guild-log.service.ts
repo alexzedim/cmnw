@@ -67,6 +67,15 @@ export class GuildLogService {
         return setGuildStatusString('-----', 'LOGS', GuildStatusState.SUCCESS);
       }
 
+      const isSameBlizzardGuild = original.id != null && original.id === updated.id;
+      if (!isSameBlizzardGuild) {
+        this.logger.warn(
+          `Guild ${updated.guid} change dropped: Blizzard id mismatch` +
+            ` (original ${original.guid}#${original.id ?? 'null'} vs updated ${updated.guid}#${updated.id ?? 'null'})`,
+        );
+        return setGuildStatusString('-----', 'LOGS', GuildStatusState.ERROR);
+      }
+
       if (isNameChanged) {
         await this.updateGuildGuidForAllLogs(original.guid, updated.guid);
         await this.logNameChange(original, updated);
