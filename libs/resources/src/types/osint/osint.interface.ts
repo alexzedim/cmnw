@@ -1,4 +1,4 @@
-import type { CharactersGuildsMembersEntity, CharactersProfileEntity } from '@app/pg';
+import type { CharactersGuildsLogsEntity, CharactersGuildsMembersEntity, CharactersProfileEntity } from '@app/pg';
 
 import type { BLIZZARD_EMPLOYEE_EVIDENCE, EXPANSIONS, LEVEL_BOOST_EVIDENCE } from '@app/resources/constants';
 
@@ -618,6 +618,11 @@ export interface IWarcraftLogsConfig {
  * Guild summaries & queue
  * -----------------------------------------------------------------------------
  */
+export interface IGuildLogEntry extends CharactersGuildsLogsEntity {
+  characterName: string | null;
+  characterRealm: string | null;
+}
+
 export interface ICharacterGuildMember {
   guid: string;
   id: number;
