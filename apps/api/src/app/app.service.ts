@@ -16,6 +16,7 @@ import {
   type AppHealthPayload,
   HASH_TYPE_REGEX,
   historyCacheKey,
+  type IBackdropFlows,
   type IRaidLogsStats,
   type ISearchResult,
   NUMERIC_ID_REGEX,
@@ -81,6 +82,65 @@ export class AppService {
       });
 
       throw new ServiceUnavailableException('Unable to load application metrics');
+    }
+  }
+
+  /**
+   * Recently-updated entities (updated_at / timestamp DESC) served as payload
+   * chips for the home backdrop flow schemas. Labels are prebuilt here so the
+   * client only picks randomly from the pools.
+   */
+  async getBackdropFlows(): Promise<IBackdropFlows> {
+    const logTag = 'getBackdropFlows';
+
+    try {
+      const [characters, guilds, orderRows] = await Promise.all([
+        this.charactersRepository.find({
+          order: { updatedAt: 'DESC' },
+          take: 14,
+          select: { guid: true, name: true, realm: true, averageItemLevel: true },
+        }),
+        this.guildsRepository.find({
+          order: { updatedAt: 'DESC' },
+          take: 10,
+          select: { guid: true, name: true, membersCount: true },
+        }),
+        this.marketRepository
+          .createQueryBuilder('m')
+          .leftJoin(ItemsEntity, 'i', 'i.id = m.itemId')
+          .orderBy('m.timestamp', 'DESC')
+          .limit(10)
+          .select('m.orderId', 'orderId')
+          .addSelect('m.itemId', 'itemId')
+          .addSelect('m.quantity', 'quantity')
+          .addSelect('i.name', 'itemName')
+          .getRawMany(),
+      ]);
+
+      return {
+        characters: characters
+          .filter((character) => character.name && character.realm)
+          .map((character) => ({
+            guid: character.guid,
+            label: `${character.name}@${character.realm} · ${character.averageItemLevel ?? '?'} ilvl`,
+          })),
+        guilds: guilds
+          .filter((guild) => guild.name)
+          .map((guild) => ({
+            guid: guild.guid,
+            label: `${guild.name} · ${guild.membersCount ?? 0} members`,
+          })),
+        orders: orderRows
+          .filter((row) => row.orderId)
+          .map((row) => ({
+            guid: String(row.orderId),
+            label: `order ${row.orderId} · ${row.itemName ?? `item ${row.itemId}`} · ×${row.quantity ?? 1}`,
+          })),
+      };
+    } catch (errorOrException) {
+      this.logger.error({ logTag, message: 'Failed to load backdrop flow payloads', errorOrException });
+
+      throw new ServiceUnavailableException('Unable to load backdrop flow payloads');
     }
   }
 

@@ -2,6 +2,8 @@ import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
 import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
 @Index('ix__guilds__realm_id', ['realmId'], {})
+// Serves the backdrop/flows endpoint: recent-entities scan by updated_at DESC.
+@Index('ix__guilds__updated_at', ['updatedAt'], {})
 @Index('ix__guilds__members_count', ['membersCount'], {})
 // Serves analytics age-distribution and topByAge ordering on created_timestamp.
 @Index('ix__guilds__created_timestamp', ['createdTimestamp'], {

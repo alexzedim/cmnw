@@ -7,6 +7,8 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryColumn, UpdateDateColum
 @Index('ix__characters__is_blizzard_employee', ['isBlizzardEmployee'], {})
 @Index('ix__characters__is_level_boosted', ['isLevelBoosted'], {})
 @Index('ix__characters__realm_id', ['realmId'], {})
+// Serves the backdrop/flows endpoint: recent-entities scan by updated_at DESC.
+@Index('ix__characters__updated_at', ['updatedAt'], {})
 @Index('ix__characters__level', ['level'], {})
 @Index('ix__characters__realm_level', ['realmId', 'level'], {})
 // Serves analytics achievements-distribution queries: level-prefixed scan

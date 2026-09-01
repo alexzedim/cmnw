@@ -3,6 +3,7 @@ import type {
   AnalyticsMetricHistoryDto,
   AnalyticsMetricSnapshotDto,
   AppHealthPayload,
+  IBackdropFlows,
   IRaidLogsStats,
   ISearchResult,
   RaidLogsStatsDto,
@@ -30,6 +31,18 @@ export class AppController {
   @Get('metrics')
   async getMetrics(): Promise<AppHealthPayload> {
     return this.appService.getMetrics();
+  }
+
+  @ApiOperation({
+    description:
+      'Recently-updated entities (characters, guilds, market orders) used as ' +
+      'payload chips by the home backdrop flow schemas.',
+  })
+  @ApiOkResponse({ description: 'Backdrop flow payload pools.' })
+  @ApiServiceUnavailableResponse({ description: 'Backdrop payloads are unavailable.' })
+  @Get('backdrop/flows')
+  async getBackdropFlows(): Promise<IBackdropFlows> {
+    return this.appService.getBackdropFlows();
   }
 
   @ApiOperation({
