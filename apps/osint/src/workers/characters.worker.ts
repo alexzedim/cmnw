@@ -415,17 +415,6 @@ export class CharactersWorker extends WorkerHost {
         durationMs: duration,
         status,
       });
-    } else {
-      // Background indexing: broadcast to everyone (unchanged behavior).
-      this.feedService.emitWorker(
-        feedStatus,
-        this.stats.total,
-        `character ${guid}`,
-        duration,
-        'osint.characters',
-        FeedEventCategory.CHARACTER,
-        { guid, status },
-      );
     }
   }
 

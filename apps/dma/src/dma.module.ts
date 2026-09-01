@@ -2,7 +2,6 @@ import { BattleNetModule } from '@app/battle-net';
 import { postgresConfig, REDIS_CONNECTION, redisConfig } from '@app/configuration';
 import { ItemsEntity, KeysEntity, MarketEntity, RealmsEntity } from '@app/pg';
 import { auctionsQueue, itemsQueue } from '@app/resources';
-import { FeedService } from '@app/resources/services/feed.service';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -35,6 +34,6 @@ import { AuctionsWorker, ItemsWorker } from './workers';
     }),
   ],
   controllers: [],
-  providers: [AuctionsWorker, ItemsWorker, FeedService],
+  providers: [AuctionsWorker, ItemsWorker],
 })
 export class DmaModule {}

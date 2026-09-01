@@ -79,26 +79,6 @@ export class FeedEventDto implements IFeedEventBase {
     return new FeedEventDto(event);
   }
 
-  static fromWorker(
-    status: FeedStatus,
-    count: number,
-    identifier: string,
-    durationMs: number,
-    source: string,
-    category: FeedEventCategory,
-    meta?: Record<string, unknown>,
-  ): IFeedEventBase {
-    const message = `[${count}] ${identifier.toLowerCase()} (${durationMs}ms)`;
-
-    return FeedEventDto.create({
-      category,
-      status,
-      message,
-      source,
-      meta: { count, identifier, durationMs, ...meta },
-    });
-  }
-
   toJSON(): IFeedEventBase {
     return {
       id: this.id,

@@ -365,17 +365,6 @@ export class GuildsWorker extends WorkerHost {
         durationMs: duration,
         status,
       });
-    } else {
-      // Background indexing: broadcast to everyone.
-      this.feedService.emitWorker(
-        feedStatus,
-        this.stats.total,
-        `guild ${guid}`,
-        duration,
-        'osint.guilds',
-        FeedEventCategory.GUILD,
-        { guid, status },
-      );
     }
   }
 

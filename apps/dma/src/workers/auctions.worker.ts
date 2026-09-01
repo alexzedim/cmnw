@@ -12,8 +12,6 @@ import { ItemsEntity, MarketEntity, RealmsEntity } from '@app/pg';
 import {
   auctionsQueue,
   type BlizzardApiAuctions,
-  FeedEventCategory,
-  FeedStatus,
   formatBytes,
   type IAuctionMessageBase,
   type IAuctionsOrder,
@@ -27,7 +25,6 @@ import {
   toGold,
   transformPrice,
 } from '@app/resources';
-import { FeedService } from '@app/resources/services/feed.service';
 import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -72,7 +69,6 @@ export class AuctionsWorker extends WorkerHost {
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
     private readonly battleNetService: BattleNetService,
-    private readonly feedService: FeedService,
   ) {
     super();
   }
@@ -263,15 +259,6 @@ export class AuctionsWorker extends WorkerHost {
           duration,
           `${iterator} orders`,
         ),
-      );
-      this.feedService.emitWorker(
-        FeedStatus.SUCCESS,
-        iterator,
-        `${isCommodity ? 'commodities' : `realm ${connectedRealmId}`} auctions`,
-        duration,
-        'dma.auctions',
-        FeedEventCategory.AUCTION,
-        { connectedRealmId, isCommodity, orders: iterator },
       );
 
       if (this.stats.total % 10 === 0) {

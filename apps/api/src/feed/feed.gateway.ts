@@ -96,9 +96,9 @@ export class FeedGateway implements OnApplicationBootstrap {
   }
 
   /**
-   * Routes a Redis message. If the payload's meta.sessionId is set, deliver only
-   * to sockets registered under that session (client-driven refresh events).
-   * Otherwise broadcast to every connected client (legacy global feed behavior).
+   * Routes a Redis message to the sockets registered under the payload's
+   * meta.sessionId (client-driven refresh events). Payloads without a valid
+   * sessionId are dropped.
    */
   private dispatch(raw: string): void {
     let sessionId: unknown;
@@ -106,13 +106,11 @@ export class FeedGateway implements OnApplicationBootstrap {
       const parsed = JSON.parse(raw) as { meta?: { sessionId?: unknown } };
       sessionId = parsed?.meta?.sessionId;
     } catch {
-      // malformed payload → treat as global broadcast
+      // malformed payload → nothing to route
     }
 
     if (typeof sessionId === 'string' && sessionId.length > 0) {
       this.routeToSession(sessionId, raw);
-    } else {
-      this.broadcast(raw);
     }
   }
 
@@ -124,14 +122,5 @@ export class FeedGateway implements OnApplicationBootstrap {
         client.send(raw);
       }
     }
-  }
-
-  private broadcast(raw: string): void {
-    if (!this.server) return;
-    this.server.clients.forEach((client) => {
-      if (client.readyState === client.OPEN) {
-        client.send(raw);
-      }
-    });
   }
 }
