@@ -9,6 +9,7 @@ import type {
   CharacterRealmClassAggregation,
   CharacterRealmFactionAggregation,
   CharacterRealmUniquePlayersAggregation,
+  GuildAgeDistributionRow,
   GuildTopByMembers,
 } from '@app/resources/types';
 import { Injectable, Logger } from '@nestjs/common';
@@ -99,6 +100,14 @@ export class CharacterMetricsService {
           if (maxLevel <= 0) return Promise.resolve();
 
           return this.collectCharacterAchievementsDistribution(manager, rows, existingKeys, snapshotDate, maxLevel);
+        },
+      ],
+      [
+        'characterAgeDistribution',
+        (manager, rows, existingKeys) => {
+          if (maxLevel <= 0) return Promise.resolve();
+
+          return this.collectCharacterAgeDistribution(manager, rows, existingKeys, snapshotDate, maxLevel);
         },
       ],
       [
@@ -706,6 +715,128 @@ export class CharacterMetricsService {
         }),
       );
     }
+  }
+
+  /**
+   * Age distribution for max-level characters over created_approx, using the
+   * same fixed year tiers as the guild distribution (<1y, 1-3y, 3-5y, 5-10y,
+   * 10-15y, 15+y) so both render through the same frontend buckets.
+   * created_approx is an approximate creation date backfilled by the OSINT
+   * pipeline; dates before the game's release (epoch garbage) are skipped.
+   * Global row plus one row per realm.
+   */
+  private async collectCharacterAgeDistribution(
+    manager: EntityManager,
+    rows: AnalyticsEntity[],
+    existingKeys: Set<string>,
+    snapshotDate: Date,
+    maxLevel: number,
+  ): Promise<void> {
+    const globalKey = analyticsKeyOf(AnalyticsMetricCategory.CHARACTERS, AnalyticsMetricType.AGE_DISTRIBUTION);
+    if (!existingKeys.has(globalKey)) {
+      const globalRow = await this.withAgeDistributionSelect(
+        manager.getRepository(CharactersEntity).createQueryBuilder('c'),
+        maxLevel,
+      ).getRawOne<GuildAgeDistributionRow>();
+
+      if (globalRow) {
+        rows.push(
+          manager.create(AnalyticsEntity, {
+            category: AnalyticsMetricCategory.CHARACTERS,
+            metricType: AnalyticsMetricType.AGE_DISTRIBUTION,
+            value: this.toAgeDistributionValue(globalRow),
+            snapshotDate,
+          }),
+        );
+      }
+    }
+
+    const byRealm = await this.withAgeDistributionSelect(
+      manager.getRepository(CharactersEntity).createQueryBuilder('c'),
+      maxLevel,
+    )
+      .addSelect('c.realm_id', 'realm_id')
+      .groupBy('c.realm_id')
+      .getRawMany<GuildAgeDistributionRow>();
+
+    for (const realmRow of byRealm) {
+      if (!realmRow?.realm_id) continue;
+
+      const key = analyticsKeyOf(
+        AnalyticsMetricCategory.CHARACTERS,
+        AnalyticsMetricType.AGE_DISTRIBUTION,
+        realmRow.realm_id,
+      );
+      if (existingKeys.has(key)) continue;
+
+      rows.push(
+        manager.create(AnalyticsEntity, {
+          category: AnalyticsMetricCategory.CHARACTERS,
+          metricType: AnalyticsMetricType.AGE_DISTRIBUTION,
+          realmId: realmRow.realm_id,
+          value: this.toAgeDistributionValue(realmRow),
+          snapshotDate,
+        }),
+      );
+    }
+  }
+
+  private withAgeDistributionSelect(
+    qb: SelectQueryBuilder<CharactersEntity>,
+    maxLevel: number,
+  ): SelectQueryBuilder<CharactersEntity> {
+    const age = 'now() - c.created_approx';
+
+    return qb
+      .select(`SUM(CASE WHEN ${age} < INTERVAL '1 year' THEN 1 ELSE 0 END)`, 'under1y')
+      .addSelect(
+        `SUM(CASE WHEN ${age} >= INTERVAL '1 year' AND ${age} < INTERVAL '3 years' THEN 1 ELSE 0 END)`,
+        'range1y3y',
+      )
+      .addSelect(
+        `SUM(CASE WHEN ${age} >= INTERVAL '3 years' AND ${age} < INTERVAL '5 years' THEN 1 ELSE 0 END)`,
+        'range3y5y',
+      )
+      .addSelect(
+        `SUM(CASE WHEN ${age} >= INTERVAL '5 years' AND ${age} < INTERVAL '10 years' THEN 1 ELSE 0 END)`,
+        'range5y10y',
+      )
+      .addSelect(
+        `SUM(CASE WHEN ${age} >= INTERVAL '10 years' AND ${age} < INTERVAL '15 years' THEN 1 ELSE 0 END)`,
+        'range10y15y',
+      )
+      .addSelect(`SUM(CASE WHEN ${age} >= INTERVAL '15 years' THEN 1 ELSE 0 END)`, 'over15y')
+      .addSelect('COUNT(*)', 'total')
+      .addSelect(`AVG(EXTRACT(EPOCH FROM ${age}) / 31557600.0)`, 'avg_age_years')
+      .addSelect(
+        `PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM ${age}) / 31557600.0)`,
+        'median_age_years',
+      )
+      .addSelect(`MIN(EXTRACT(EPOCH FROM ${age}) / 86400.0)`, 'newest_days')
+      .addSelect(`MAX(EXTRACT(EPOCH FROM ${age}) / 86400.0)`, 'oldest_days')
+      .where('c.level = :maxLevel', { maxLevel })
+      .andWhere('c.created_approx IS NOT NULL')
+      .andWhere('c.created_approx > :wowRelease', { wowRelease: '2004-11-23' });
+  }
+
+  private toAgeDistributionValue(row: GuildAgeDistributionRow): Record<string, any> {
+    return {
+      total: parseInt(row.total || '0', 10),
+      ranges: {
+        under1y: parseInt(row.under1y || '0', 10),
+        '1y-3y': parseInt(row.range1y3y || '0', 10),
+        '3y-5y': parseInt(row.range3y5y || '0', 10),
+        '5y-10y': parseInt(row.range5y10y || '0', 10),
+        '10y-15y': parseInt(row.range10y15y || '0', 10),
+        over15y: parseInt(row.over15y || '0', 10),
+      },
+      stats: {
+        avgYears: Math.round(Number(row.avg_age_years || 0) * 100) / 100,
+        medianYears: Math.round(Number(row.median_age_years || 0) * 100) / 100,
+        oldestDays: Math.round(Number(row.oldest_days || 0)),
+        newestDays: Math.round(Number(row.newest_days || 0)),
+      },
+    };
   }
 
   /**
