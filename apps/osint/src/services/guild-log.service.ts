@@ -1,6 +1,6 @@
 import { formatServiceErrorLog } from '@app/logger';
 import { CharactersGuildsLogsEntity, type GuildsEntity } from '@app/pg';
-import { ACTION_LOG, GuildStatusState, setGuildStatusString, toNormalizedString } from '@app/resources';
+import { ACTION_LOG, GuildStatusState, setGuildStatusString, toNormalizedString, toSlug } from '@app/resources';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import type { Repository } from 'typeorm';
@@ -17,6 +17,19 @@ export class GuildLogService {
   ) {}
 
   async logNameChange(original: GuildsEntity, updated: GuildsEntity): Promise<void> {
+    const isAlreadyLogged = await this.logsRepository.existsBy({
+      guildGuid: updated.guid,
+      original: original.name,
+      updated: updated.name,
+      action: ACTION_LOG.NAME,
+      createdAt: updated.updatedAt,
+    });
+
+    if (isAlreadyLogged) {
+      this.logger.debug(`Guild ${updated.guid} name change already logged: ${original.name} → ${updated.name}`);
+      return;
+    }
+
     const logEntity = this.logsRepository.create({
       guildGuid: updated.guid,
       original: original.name,
@@ -58,7 +71,7 @@ export class GuildLogService {
       const originalFaction = toNormalizedString(original.faction);
       const updatedFaction = toNormalizedString(updated.faction);
 
-      const isNameChanged = original.name !== updated.name;
+      const isNameChanged = toSlug(original.name) !== toSlug(updated.name);
       const isFactionChanged =
         Boolean(originalFaction) && Boolean(updatedFaction) && originalFaction !== updatedFaction;
 
