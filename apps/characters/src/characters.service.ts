@@ -7,6 +7,7 @@ import {
   charactersQueue,
   type ICharacterMessageBase,
   OSINT_CHARACTER_LIMIT,
+  TIME_MS,
 } from '@app/resources';
 import { S3Service } from '@app/s3';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -17,11 +18,10 @@ import { InjectRedis } from '@nestjs-modules/ioredis';
 import type { Queue } from 'bullmq';
 import type Redis from 'ioredis';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
-import type { Repository } from 'typeorm';
+import { LessThan, type Repository } from 'typeorm';
 
 @Injectable()
 export class CharactersService implements OnApplicationBootstrap {
-  private offset = 0;
   private readonly logger = new Logger(CharactersService.name, {
     timestamp: true,
   });
@@ -46,25 +46,22 @@ export class CharactersService implements OnApplicationBootstrap {
   private async indexCharacters(): Promise<void> {
     const logTag = this.indexCharacters.name;
     try {
-      let characterIteration = 0;
+      const staleBefore = new Date(Date.now() - TIME_MS.TWENTY_FOUR_HOURS);
 
       const characters = await this.charactersRepository.find({
-        order: { updatedAt: 'ASC', hashA: 'ASC' },
+        select: { guid: true, name: true, realm: true },
+        where: { updatedAt: LessThan(staleBefore) },
+        order: { updatedAt: 'ASC' },
         take: OSINT_CHARACTER_LIMIT,
-        skip: this.offset,
       });
 
-      const charactersCount = await this.charactersRepository.count();
-      this.offset = this.offset + OSINT_CHARACTER_LIMIT;
-
-      if (this.offset >= charactersCount) {
-        this.logger.warn({
+      if (characters.length === 0) {
+        this.logger.log({
           logTag,
-          offset: this.offset,
-          charactersCount,
-          message: `End of characters reached, resetting offset`,
+          staleBefore: staleBefore.toISOString(),
+          message: 'No stale characters to index',
         });
-        this.offset = 0;
+        return;
       }
 
       await lastValueFrom(
@@ -74,35 +71,9 @@ export class CharactersService implements OnApplicationBootstrap {
               guid: character.guid,
               name: character.name,
               realm: character.realm,
-              iteration: characterIteration,
-              id: character.id,
-              realmId: character.realmId,
-              realmName: character.realmName,
-              guild: character.guild,
-              guildGuid: character.guildGuid,
-              guildId: character.guildId,
-              guildRank: character.guildRank,
-              race: character.race,
-              class: character.class,
-              specialization: character.specialization,
-              gender: character.gender,
-              faction: character.faction,
-              level: character.level,
-              achievementPoints: character.achievementPoints,
-              averageItemLevel: character.averageItemLevel,
-              equippedItemLevel: character.equippedItemLevel,
-              covenantId: character.covenantId,
-              avatarImage: character.avatarImage,
-              mountsNumber: character.mountsNumber,
-              petsNumber: character.petsNumber,
-              hashA: character.hashA,
-              hashB: character.hashB,
-              lastModified: character.lastModified,
             });
 
             await this.charactersQueue.add(dto.name, dto.data, dto.opts);
-
-            characterIteration = characterIteration + 1;
           }, 10),
         ),
         { defaultValue: undefined },
@@ -110,9 +81,9 @@ export class CharactersService implements OnApplicationBootstrap {
 
       this.logger.log({
         logTag,
-        offset: this.offset,
+        staleBefore: staleBefore.toISOString(),
         characterCount: characters.length,
-        message: `Processed ${characters.length} characters at offset ${this.offset}`,
+        message: `Enqueued ${characters.length} stale characters`,
       });
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });

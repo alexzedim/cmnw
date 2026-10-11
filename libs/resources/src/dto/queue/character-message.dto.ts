@@ -390,78 +390,20 @@ export class CharacterMessageDto {
    *
    * Priority: 5 (Medium - periodic database indexing)
    */
-  static fromCharacterIndex(params: {
-    guid: string;
-    name: string;
-    realm: string;
-    iteration: number;
-    id?: number;
-    realmId?: number;
-    realmName?: string;
-    guild?: string;
-    guildGuid?: string;
-    guildId?: number;
-    guildRank?: number;
-    race?: string;
-    class?: string;
-    specialization?: string;
-    gender?: string;
-    faction?: string;
-    level?: number;
-    achievementPoints?: number;
-    averageItemLevel?: number;
-    equippedItemLevel?: number;
-    covenantId?: number;
-    avatarImage?: string;
-    mountsNumber?: number;
-    petsNumber?: number;
-    hashA?: string;
-    hashB?: string;
-    lastModified?: Date;
-    clientId?: string;
-    clientSecret?: string;
-    accessToken?: string;
-  }): CharacterMessageDto {
+  static fromCharacterIndex(params: { guid: string; name: string; realm: string }): CharacterMessageDto {
     const characterData: ICharacterMessageBase = {
       guid: params.guid,
       name: params.name,
       realm: params.realm,
-      id: params.id,
-      realmId: params.realmId,
-      realmName: params.realmName,
-      guild: params.guild,
-      guildGuid: params.guildGuid,
-      guildId: params.guildId,
-      guildRank: params.guildRank,
-      race: params.race,
-      class: params.class,
-      specialization: params.specialization,
-      gender: params.gender,
-      faction: params.faction,
-      level: params.level,
-      achievementPoints: params.achievementPoints,
-      averageItemLevel: params.averageItemLevel,
-      equippedItemLevel: params.equippedItemLevel,
-      covenantId: params.covenantId,
-      avatarImage: params.avatarImage,
-      mountsNumber: params.mountsNumber,
-      petsNumber: params.petsNumber,
-      hashA: params.hashA,
-      hashB: params.hashB,
-      lastModified: params.lastModified,
+      region: 'eu',
       forceUpdate: TIME_MS.TWENTY_FOUR_HOURS,
       createOnlyUnique: false,
-      region: 'eu',
       createdBy: OSINT_SOURCE.CHARACTER_INDEX,
       updatedBy: OSINT_SOURCE.CHARACTER_INDEX,
-      clientId: params.clientId,
-      clientSecret: params.clientSecret,
-      accessToken: params.accessToken,
-      iteration: params.iteration,
     };
 
     const opts: JobsOptions = {
-      jobId: characterData.guid,
+      jobId: params.guid,
       ...charactersQueue.defaultJobOptions,
       priority: 5,
     };
