@@ -18,6 +18,7 @@ export enum CMNW_ENTITY_ENUM {
   ITEMS = 'items',
   KEYS = 'keys',
   MARKET = 'market',
+  MARKET_SNAPSHOTS = 'market_snapshots',
   MOUNTS = 'mounts',
   PETS = 'pets',
   PRICING = 'pricing',

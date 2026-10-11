@@ -23,6 +23,7 @@ export * from './items.entity';
 export * from './keys.entity';
 /** DMA ENTITY */
 export * from './market.entity';
+export * from './market-snapshots.entity';
 export * from './mounts.entity';
 export * from './pets.entity';
 export * from './pricing.entity';

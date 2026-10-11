@@ -1,43 +1,77 @@
 import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
 import type { IActionsModifier, IPetList } from '@app/resources';
-import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
 
-@Index('ix__market__item_id', ['itemId'], {})
-@Index('ix__market__connected_realm_id', ['connectedRealmId'], {})
-@Index('ix__market__timestamp', ['timestamp'], {})
-@Index('ix__market__timestamp_item', ['timestamp', 'itemId'], {})
-@Index('ix__market__timestamp_realm', ['timestamp', 'connectedRealmId'], {})
+@Index('ix__market__reconstruction', ['itemId', 'connectedRealmId', 'validFrom'], {})
+@Index('ix__market__ttl', ['validTo'], {})
+@Index('ix__market__live', ['connectedRealmId'], { where: 'valid_to IS NULL' })
 @Entity({ name: CMNW_ENTITY_ENUM.MARKET })
 export class MarketEntity {
-  @PrimaryGeneratedColumn('uuid')
-  readonly uuid: string;
+  @PrimaryColumn({
+    nullable: false,
+    type: 'int',
+    name: 'connected_realm_id',
+  })
+  connectedRealmId: number;
 
-  @Column({
-    nullable: true,
+  @PrimaryColumn({
+    nullable: false,
     type: 'varchar',
     name: 'order_id',
   })
-  orderId?: string;
+  orderId: string;
+
+  @PrimaryColumn({
+    nullable: false,
+    type: 'varchar',
+  })
+  type: string;
+
+  @PrimaryColumn({
+    nullable: false,
+    type: 'bigint',
+    name: 'valid_from',
+  })
+  validFrom: number;
+
+  @Column({
+    nullable: true,
+    type: 'bigint',
+    name: 'valid_to',
+  })
+  validTo: number | null;
+
+  @Column({
+    nullable: false,
+    type: 'int',
+    name: 'attr_hash',
+  })
+  attrHash: number;
 
   @Column({
     nullable: false,
     type: 'int',
     name: 'item_id',
   })
-  itemId?: number;
+  itemId: number;
 
   @Column({
     nullable: false,
-    type: 'int',
-    name: 'connected_realm_id',
+    type: 'real',
   })
-  connectedRealmId?: number;
+  price: number;
+
+  @Column({
+    nullable: true,
+    type: 'real',
+  })
+  bid: number | null;
 
   @Column({
     nullable: true,
     type: 'int',
   })
-  context?: number;
+  context: number | null;
 
   @Column({
     array: true,
@@ -50,7 +84,6 @@ export class MarketEntity {
   @Column({
     type: 'jsonb',
     array: false,
-    // default: () => "'[]'",
     nullable: true,
   })
   modifiers?: Array<IActionsModifier> | null;
@@ -58,23 +91,10 @@ export class MarketEntity {
   @Column({
     type: 'jsonb',
     array: false,
-    // default: () => "'[]'",
     nullable: true,
     name: 'pet_list',
   })
   petList?: Array<IPetList> | null;
-
-  @Column({
-    nullable: false,
-    type: 'real',
-  })
-  price: number;
-
-  @Column({
-    nullable: true,
-    type: 'real',
-  })
-  bid: number;
 
   @Column({
     default: 1,
@@ -87,52 +107,31 @@ export class MarketEntity {
     nullable: true,
     type: 'real',
   })
-  value?: number;
+  value?: number | null;
 
   @Column({
     nullable: true,
     type: 'varchar',
     name: 'time_left',
   })
-  timeLeft?: string;
+  timeLeft?: string | null;
 
   @Column({
     nullable: true,
     type: 'varchar',
   })
-  faction: string;
+  faction: string | null;
 
   @Column({
     nullable: true,
     type: 'varchar',
   })
-  counterparty: string;
+  counterparty: string | null;
 
   @Column({
     nullable: true,
     type: 'boolean',
     name: 'is_online',
   })
-  isOnline: boolean;
-
-  @Column({
-    default: 'AUCTION',
-    nullable: true,
-    type: 'varchar',
-  })
-  type?: string;
-
-  @Column({
-    nullable: true,
-    type: 'bigint',
-  })
-  timestamp?: number;
-
-  @CreateDateColumn({
-    type: 'timestamp with time zone',
-    name: 'created_at',
-    nullable: true,
-    default: () => 'CURRENT_TIMESTAMP',
-  })
-  createdAt?: Date;
+  isOnline: boolean | null;
 }
