@@ -26,7 +26,7 @@ export const hashQueue: IBullMQQueueOptions = {
     queueName: 'osint.hash',
     connection: REDIS_CONNECTION,
     concurrency: 5,
-    maxStalledCount: 500,
+    maxStalledCount: 3,
     stalledInterval: 30000,
   },
 };
