@@ -60,6 +60,13 @@ export class GuildMemberService {
       const comparison = await this.compareRosters(guildEntity, updatedRosterMembers);
       const rosterUpdateAt = roster.updatedAt;
 
+      if (comparison.isFirstTimeRosterIndexed && !isNew) {
+        this.logger.warn(
+          `Roster first-index for known guild ${guildEntity.guid} (id ${guildEntity.id}): ` +
+            `${updatedRosterMembers.length} members inserted without JOIN history`,
+        );
+      }
+
       const shouldProcessLeaves = this.isRosterTrustworthyForLeaves(
         guildEntity,
         updatedRosterMembers.length,

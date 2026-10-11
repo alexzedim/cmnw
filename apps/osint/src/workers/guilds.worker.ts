@@ -145,15 +145,26 @@ export class GuildsWorker extends WorkerHost {
       const config = await this.battleNetService.initialize(BATTLE_NET_KEY_TAG_OSINT);
 
       const conditionalDate = !isNew && guildEntity.id != null ? guildEntity.lastModified : null;
+      const rosterConditionalDate =
+        !isNew && guildEntity.id != null ? guildEntity.rosterLastModified ?? conditionalDate : null;
 
-      const guildData = await this.fetchGuildData(nameSlug, guildEntity, config, conditionalDate);
+      const guildData = await this.fetchGuildData(
+        nameSlug,
+        guildEntity,
+        config,
+        conditionalDate,
+        rosterConditionalDate,
+      );
 
       const { status: summaryStatus, statusCode: summaryStatusCode, ...summaryFields } = guildData.summaryResult;
       Object.assign(guildEntity, summaryFields);
 
-      const dataLastModified = guildData.summaryResult.dataLastModified ?? guildData.rosterResult.dataLastModified;
-      if (dataLastModified) {
-        guildEntity.lastModified = dataLastModified;
+      if (guildData.summaryResult.dataLastModified) {
+        guildEntity.lastModified = guildData.summaryResult.dataLastModified;
+      }
+
+      if (guildData.rosterResult.dataLastModified) {
+        guildEntity.rosterLastModified = guildData.rosterResult.dataLastModified;
       }
 
       const isSummarySuccess = isGuildOperationSuccessInString(summaryStatus ?? '-----', 'SUMMARY');
@@ -281,13 +292,14 @@ export class GuildsWorker extends WorkerHost {
     guildEntity: GuildsEntity,
     config: IBattleNetClientConfig,
     conditionalDate: Date | null,
+    rosterConditionalDate: Date | null,
   ): Promise<{
     summaryResult: Partial<IGuildSummary>;
     rosterResult: IGuildRoster;
   }> {
     const [summaryResult, rosterResult] = await Promise.allSettled([
       this.guildSummaryService.getSummary(nameSlug, guildEntity.realm, config, conditionalDate),
-      this.guildRosterService.fetchRoster(guildEntity, config, conditionalDate),
+      this.guildRosterService.fetchRoster(guildEntity, config, rosterConditionalDate),
     ]);
 
     return {

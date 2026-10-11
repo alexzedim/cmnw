@@ -134,6 +134,12 @@ export class GuildsEntity {
   })
   lastModified?: Date;
 
+  @Column('timestamp with time zone', {
+    name: 'roster_last_modified',
+    nullable: true,
+  })
+  rosterLastModified?: Date;
+
   @CreateDateColumn({
     type: 'timestamp with time zone',
     name: 'created_at',
