@@ -6,8 +6,6 @@ export * from './analytics.entity';
 export * from './characters.entity';
 export * from './characters-guilds-logs.entity';
 export * from './characters-guilds-members.entity';
-export * from './characters-mounts.entity';
-export * from './characters-pets.entity';
 export * from './characters-professions.entity';
 export * from './characters-profile.entity';
 export * from './characters-raid-logs.entity';
