@@ -241,7 +241,9 @@ export class CharactersWorker extends WorkerHost {
 
     status = this.processResult(status, 'SUMMARY', summaryResult, (data) => {
       enrichEntity(characterEntity, data);
-      if (data.isGuildless) {
+      // a hollow partial summary passes isCharacterSummary but omits level —
+      // only trust its guildless verdict on a complete profile
+      if (data.isGuildless && data.level != null) {
         characterEntity.guild = null;
         characterEntity.guildGuid = null;
         characterEntity.guildId = null;
