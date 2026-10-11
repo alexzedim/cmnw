@@ -81,10 +81,9 @@ export class TestsBench implements OnApplicationBootstrap {
 
     const contractData = await this.marketRepository
       .createQueryBuilder('m')
-      .where({
+      .where('m.item_id = :itemId AND m.price < :priceTop', {
         itemId: itemId,
-        timestamp: timestamp,
-        price: LessThan(p95Cont),
+        priceTop: p95Cont,
       })
       .select('SUM(m.value)', 'totalAmount')
       .getRawOne<any>();
@@ -256,14 +255,13 @@ export class TestsBench implements OnApplicationBootstrap {
 
     await lastValueFrom(
       from(timestampArray).pipe(
-        mergeMap(async (timestamp, itx) => {
+        mergeMap(async (_timestamp, itx) => {
           // TODO cover with index
           const marketOrders = await this.marketRepository.find({
             where: {
               itemId,
-              timestamp,
             },
-            order: { price: 'ASC' },
+            order: { validFrom: 'DESC' },
           });
 
           // TODO push to global by TS
@@ -407,7 +405,8 @@ export class TestsBench implements OnApplicationBootstrap {
               isOnline,
               counterparty,
               price,
-              timestamp,
+              validFrom: timestamp,
+              validTo: null,
             });
 
             marketOrders.push(marketEntity);
