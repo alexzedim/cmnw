@@ -8,10 +8,12 @@ import {
   WorkerLogStatus,
   type WorkerStats,
 } from '@app/logger';
-import { ItemsEntity, MarketEntity, RealmsEntity } from '@app/pg';
+import { ItemsEntity, MarketEntity, MarketSnapshotsEntity, RealmsEntity } from '@app/pg';
 import {
   auctionsQueue,
   type BlizzardApiAuctions,
+  computeMarketRowAttrHash,
+  diffSnapshot,
   formatBytes,
   type IAuctionMessageBase,
   type IAuctionsOrder,
@@ -19,8 +21,10 @@ import {
   type IPetList,
   ITEM_KEY_GUARD,
   isAuctions,
+  loadLiveMarketRows,
   MARKET_TYPE,
   PETS_KEY_GUARD,
+  persistMarketDiff,
   REALM_ENTITY_ANY,
   toGold,
   transformPrice,
@@ -33,8 +37,6 @@ import { isAxiosError } from 'axios';
 import type { Job } from 'bullmq';
 import type Redis from 'ioredis';
 import { DateTime } from 'luxon';
-import { from, lastValueFrom } from 'rxjs';
-import { bufferCount, concatMap } from 'rxjs/operators';
 import type { Repository } from 'typeorm';
 
 @Injectable()
@@ -68,6 +70,8 @@ export class AuctionsWorker extends WorkerHost {
     __itemsRepository: Repository<ItemsEntity>,
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
+    @InjectRepository(MarketSnapshotsEntity)
+    private readonly marketSnapshotsRepository: Repository<MarketSnapshotsEntity>,
     private readonly battleNetService: BattleNetService,
   ) {
     super();
@@ -179,8 +183,7 @@ export class AuctionsWorker extends WorkerHost {
         return;
       }
 
-      let iterator = 0;
-      let hasPersistedOrders = false;
+      let diffSummary = 'no data';
 
       if (auctions.length === 0) {
         this.stats.noData++;
@@ -195,52 +198,35 @@ export class AuctionsWorker extends WorkerHost {
           ),
         );
       } else {
-        await lastValueFrom(
-          from(auctions).pipe(
-            bufferCount(5_000),
-            concatMap(async (ordersBatch) => {
-              try {
-                const ordersBulkAuctions = this.transformOrders(ordersBatch, timestamp, connectedRealmId, isCommodity);
+        const type = isCommodity ? MARKET_TYPE.C : MARKET_TYPE.A;
 
-                await this.marketRepository.save(ordersBulkAuctions);
+        const orders = this.transformOrders(auctions, timestamp, connectedRealmId, isCommodity);
 
-                if (ordersBulkAuctions.length > 0) {
-                  hasPersistedOrders = true;
-                }
+        const liveRows = await loadLiveMarketRows(this.marketRepository, connectedRealmId, type);
 
-                iterator += ordersBulkAuctions.length;
-                this.logger.debug(
-                  formatWorkerLog(
-                    WorkerLogStatus.INFO,
-                    this.stats.total,
-                    `realm ${connectedRealmId}`,
-                    0,
-                    `${iterator} orders saved`,
-                  ),
-                );
-              } catch (errorOrException) {
-                this.logger.error(
-                  formatWorkerErrorLog(
-                    this.stats.total,
-                    `realm ${connectedRealmId}`,
-                    0,
-                    errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
-                    'ordersBatch',
-                  ),
-                );
-              }
-            }),
-          ),
-          { defaultValue: undefined },
-        );
-      }
+        const diff = diffSnapshot(liveRows, orders);
 
-      if (hasPersistedOrders) {
+        await persistMarketDiff(this.marketRepository, {
+          connectedRealmId,
+          timestamp,
+          type,
+          fresh: diff.fresh,
+          changed: diff.changed,
+          timeleftOnly: diff.timeleftOnly,
+          ended: diff.ended,
+        });
+
+        await this.marketSnapshotsRepository
+          .createQueryBuilder()
+          .insert()
+          .into(MarketSnapshotsEntity)
+          .values({ connectedRealmId, timestamp, source: type })
+          .orIgnore()
+          .execute();
+
+        diffSummary = `live ${liveRows.length}, fresh ${diff.fresh.length}, changed ${diff.changed.length}, tl ${diff.timeleftOnly.length}, ended ${diff.ended.length}`;
+
         await this.redisService.set(auctionsHashKey, auctionsHash, 'EX', 86400);
-      }
-
-      if (isCommodity) {
-        await this.redisService.set(`COMMODITY:TS:${timestamp}`, timestamp, 'EX', 86400);
       }
 
       const updateQuery: Partial<RealmsEntity> = isCommodity
@@ -257,7 +243,7 @@ export class AuctionsWorker extends WorkerHost {
           this.stats.total,
           `realm ${connectedRealmId}`,
           duration,
-          `${iterator} orders`,
+          `${auctions.length} orders: ${diffSummary}`,
         ),
       );
 
@@ -327,7 +313,8 @@ export class AuctionsWorker extends WorkerHost {
           itemId: order.item.id,
           connectedRealmId: connectedRealmId,
           timeLeft: order.time_left,
-          timestamp: timestamp,
+          validFrom: timestamp,
+          validTo: null,
         });
 
         const isPetOrder = marketEntity.itemId === 82800;
@@ -363,6 +350,8 @@ export class AuctionsWorker extends WorkerHost {
 
         const isValue = Boolean(price) && Boolean(quantity);
         if (isValue) marketEntity.value = price * quantity;
+
+        marketEntity.attrHash = computeMarketRowAttrHash(marketEntity);
 
         return marketEntity;
       })
