@@ -1,5 +1,11 @@
 import { AnalyticsEntity, MarketEntity } from '@app/pg';
-import { AnalyticsMetricCategory, AnalyticsMetricType, EXCLUDED_ITEM_IDS, MARKET_TYPE } from '@app/resources';
+import {
+  AnalyticsMetricCategory,
+  AnalyticsMetricType,
+  EXCLUDED_ITEM_IDS,
+  MARKET_TYPE,
+  marketSeenInWindowSql,
+} from '@app/resources';
 import { analyticsKeyOf } from '@app/resources/dao';
 import type {
   MarketAggregateCount,
@@ -12,7 +18,7 @@ import type {
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
 import { DateTime } from 'luxon';
-import { type DataSource, type EntityManager, MoreThan, type Repository } from 'typeorm';
+import { type DataSource, type EntityManager, type Repository } from 'typeorm';
 
 import { type MetricsCollector, runMetricsCollector } from './collector-runner';
 
@@ -90,18 +96,19 @@ export class MarketMetricsService {
     if (existingKeys.has(key)) return;
 
     const marketRepo = manager.getRepository(MarketEntity);
-    const totalCount = await marketRepo.count({
-      where: { timestamp: MoreThan(threshold24h) },
-    });
+    const totalCount = await marketRepo
+      .createQueryBuilder('m')
+      .where(marketSeenInWindowSql('m', 'threshold'), { threshold: threshold24h })
+      .getCount();
     const totalVolume = await marketRepo
       .createQueryBuilder('m')
       .select('SUM(m.value)', 'sum')
-      .where('m.timestamp > :threshold', { threshold: threshold24h })
+      .where(marketSeenInWindowSql('m', 'threshold'), { threshold: threshold24h })
       .getRawOne<MarketTotalMetrics>();
     const uniqueItemsAuctions = await marketRepo
       .createQueryBuilder('m')
       .select('COUNT(DISTINCT m.item_id)', 'count')
-      .where('m.timestamp > :threshold AND m.type = :type', {
+      .where(`${marketSeenInWindowSql('m', 'threshold')} AND m.type = :type`, {
         threshold: threshold24h,
         type: MARKET_TYPE.A,
       })
@@ -109,7 +116,7 @@ export class MarketMetricsService {
     const uniqueItemsCommdty = await marketRepo
       .createQueryBuilder('m')
       .select('COUNT(DISTINCT m.item_id)', 'count')
-      .where('m.timestamp > :threshold AND m.type = :type', {
+      .where(`${marketSeenInWindowSql('m', 'threshold')} AND m.type = :type`, {
         threshold: threshold24h,
         type: MARKET_TYPE.C,
       })
@@ -145,7 +152,7 @@ export class MarketMetricsService {
       .addSelect('SUM(m.value)', 'volume')
       .addSelect('COUNT(DISTINCT CASE WHEN m.type = :auctionsType THEN m.item_id END)', 'unique_items_auctions')
       .addSelect('COUNT(DISTINCT CASE WHEN m.type = :commdtyType THEN m.item_id END)', 'unique_items_commdty')
-      .where('m.timestamp > :threshold', {
+      .where(marketSeenInWindowSql('m', 'threshold'), {
         threshold: threshold24h,
         auctionsType: MARKET_TYPE.A,
         commdtyType: MARKET_TYPE.C,
@@ -196,7 +203,7 @@ export class MarketMetricsService {
       .addSelect(`SUM(CASE WHEN m.price >= 10000 AND m.price < 100000 THEN 1 ELSE 0 END)`, 'range10k100k')
       .addSelect(`SUM(CASE WHEN m.price >= 100000 AND m.price < 1000000 THEN 1 ELSE 0 END)`, 'range100k1m')
       .addSelect(`SUM(CASE WHEN m.price >= 1000000 THEN 1 ELSE 0 END)`, 'over1m')
-      .where('m.timestamp > :threshold', { threshold: threshold24h })
+      .where(marketSeenInWindowSql('m', 'threshold'), { threshold: threshold24h })
       .getRawOne<MarketPriceRanges>();
 
     rows.push(
@@ -231,7 +238,7 @@ export class MarketMetricsService {
       .select('m.item_id')
       .addSelect('SUM(m.value)', 'volume')
       .addSelect('COUNT(*)', 'auctions')
-      .where('m.timestamp > :threshold', { threshold: threshold24h })
+      .where(marketSeenInWindowSql('m', 'threshold'), { threshold: threshold24h })
       .andWhere('m.item_id NOT IN (:...excludedIds)', { excludedIds: EXCLUDED_ITEM_IDS })
       .groupBy('m.item_id')
       .orderBy('volume', 'DESC')
@@ -272,7 +279,7 @@ export class MarketMetricsService {
       .createQueryBuilder('m')
       .select('m.item_id')
       .addSelect('COUNT(*)', 'auctions')
-      .where('m.timestamp > :threshold', { threshold: threshold24h })
+      .where(marketSeenInWindowSql('m', 'threshold'), { threshold: threshold24h })
       .andWhere('m.item_id NOT IN (:...excludedIds)', { excludedIds: EXCLUDED_ITEM_IDS })
       .groupBy('m.item_id')
       .orderBy('auctions', 'DESC')
