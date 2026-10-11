@@ -1,11 +1,15 @@
-import { MarketEntity, RealmsEntity } from '@app/pg';
+import { MarketEntity, MarketSnapshotsEntity, RealmsEntity } from '@app/pg';
 import {
+  computeMarketRowAttrHash,
   DMA_SOURCE_GOLD,
+  diffSnapshot,
   FACTION,
   GOLD_ITEM_ENTITY,
   type IGold,
   isGold,
+  loadLiveMarketRowsForType,
   MARKET_TYPE,
+  persistMarketDiff,
   REALM_ENTITY_ANY,
   REALM_NAME_NORMALIZATION,
   round,
@@ -31,20 +35,22 @@ export class GoldService implements OnApplicationBootstrap {
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
+    @InjectRepository(MarketSnapshotsEntity)
+    private readonly marketSnapshotsRepository: Repository<MarketSnapshotsEntity>,
     private readonly realmsCacheService: RealmsCacheService,
   ) {}
 
   async onApplicationBootstrap() {
     const logTag = this.onApplicationBootstrap.name;
     const cutoff = DateTime.now().minus({ hours: 1 }).toMillis();
-    const isGoldPlaced = await this.marketRepository.exists({
-      where: { itemId: GOLD_ITEM_ENTITY.id, timestamp: MoreThan(cutoff) },
+    const isGoldPlaced = await this.marketSnapshotsRepository.exists({
+      where: { source: MARKET_TYPE.G, timestamp: MoreThan(cutoff) },
     });
 
     if (isGoldPlaced) {
       this.logger.log({
         logTag,
-        message: 'Gold orders already placed within the last hour, skipping bootstrap scrape',
+        message: 'Gold snapshot already placed within the last hour, skipping bootstrap scrape',
       });
       return;
     }
@@ -61,7 +67,6 @@ export class GoldService implements OnApplicationBootstrap {
       const exchangeListingPage = parse(response.data);
 
       const goldOrders: Array<Partial<IGold>> = [];
-      const marketOrders: Array<MarketEntity> = [];
       const realmsEntity = new Map<string, RealmsEntity>([]);
       const connectedRealmIds = new Set<number>();
       const timestamp = DateTime.now().toMillis();
@@ -93,25 +98,30 @@ export class GoldService implements OnApplicationBootstrap {
         { defaultValue: undefined },
       );
 
-      // Filter out null entities before adding to marketOrders
+      // Filter out null entities before diffing
       const validGoldMarketEntities = goldMarketEntities.filter((entity): entity is MarketEntity => entity !== null);
 
-      marketOrders.push(...validGoldMarketEntities);
-
-      const ordersCount = marketOrders.length;
+      const ordersCount = validGoldMarketEntities.length;
 
       if (!ordersCount) return;
 
-      const marketEntities = await this.marketRepository.save(marketOrders);
-      const marketEntitiesCount = marketEntities.length;
+      const diffSummary = await this.persistGoldDiff(validGoldMarketEntities, timestamp);
+
+      await this.marketSnapshotsRepository
+        .createQueryBuilder()
+        .insert()
+        .into(MarketSnapshotsEntity)
+        .values({ connectedRealmId: REALM_ENTITY_ANY.id, timestamp, source: MARKET_TYPE.G })
+        .orIgnore()
+        .execute();
 
       this.logger.log({
         logTag,
         ordersCount,
-        marketEntitiesCount,
         timestamp,
         connectedRealmCount: connectedRealmIds.size,
-        message: `Inserted ${marketEntitiesCount} of ${ordersCount} gold orders for timestamp ${timestamp}`,
+        diff: diffSummary,
+        message: `Gold snapshot ${timestamp}: ${diffSummary}`,
       });
 
       // Update only the realms that had gold orders processed
@@ -122,8 +132,54 @@ export class GoldService implements OnApplicationBootstrap {
         );
       }
     } catch (errorOrException) {
-      this.logger.error({ logTag, errorOrException });
+      this.logger.error({ logTag, error: errorOrException });
     }
+  }
+
+  private async persistGoldDiff(incoming: MarketEntity[], timestamp: number): Promise<string> {
+    const incomingByRealm = new Map<number, MarketEntity[]>();
+    for (const order of incoming) {
+      const group = incomingByRealm.get(order.connectedRealmId) ?? [];
+      group.push(order);
+      incomingByRealm.set(order.connectedRealmId, group);
+    }
+
+    const liveRows = await loadLiveMarketRowsForType(this.marketRepository, MARKET_TYPE.G);
+
+    const liveByRealm = new Map<number, typeof liveRows>();
+    for (const row of liveRows) {
+      const group = liveByRealm.get(row.connectedRealmId) ?? [];
+      group.push(row);
+      liveByRealm.set(row.connectedRealmId, group);
+    }
+
+    let fresh = 0;
+    let changed = 0;
+    let timeleft = 0;
+    let ended = 0;
+
+    const realms = new Set<number>([...incomingByRealm.keys(), ...liveByRealm.keys()]);
+
+    for (const realm of realms) {
+      const diff = diffSnapshot(liveByRealm.get(realm) ?? [], incomingByRealm.get(realm) ?? []);
+
+      await persistMarketDiff(this.marketRepository, {
+        connectedRealmId: realm,
+        timestamp,
+        type: MARKET_TYPE.G,
+        fresh: diff.fresh,
+        changed: diff.changed,
+        timeleftOnly: diff.timeleftOnly,
+        ended: diff.ended,
+      });
+
+      fresh += diff.fresh.length;
+      changed += diff.changed.length;
+      timeleft += diff.timeleftOnly.length;
+      ended += diff.ended.length;
+    }
+
+    return `live ${liveRows.length}, fresh ${fresh}, changed ${changed}, ended ${ended} (timeleft ${timeleft})`;
   }
 
   private async createMarketEntity(
@@ -189,7 +245,6 @@ export class GoldService implements OnApplicationBootstrap {
 
       const isQuantityLimit = quantity > 100_000_000;
       if (isQuantityLimit) {
-        // this.logger.debug(`${logTag}: Quantity limit exceeded for ${orderId}: ${quantity}`);
         return null;
       }
 
@@ -202,7 +257,7 @@ export class GoldService implements OnApplicationBootstrap {
       if (isAlliance) faction = FACTION.A;
       if (isHorde) faction = FACTION.H;
 
-      return this.marketRepository.create({
+      const marketEntity = this.marketRepository.create({
         connectedRealmId,
         itemId: GOLD_ITEM_ENTITY.id,
         type: MARKET_TYPE.G,
@@ -213,8 +268,13 @@ export class GoldService implements OnApplicationBootstrap {
         isOnline,
         counterparty,
         price,
-        timestamp,
+        validFrom: timestamp,
+        validTo: null,
       });
+
+      marketEntity.attrHash = computeMarketRowAttrHash(marketEntity);
+
+      return marketEntity;
     } catch (errorOrException) {
       this.logger.error({ logTag, errorOrException });
       return null;

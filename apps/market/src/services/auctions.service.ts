@@ -1,10 +1,11 @@
 import { BATTLE_NET_KEY_TAG_DMA, BattleNetNamespace, BattleNetService } from '@app/battle-net';
-import { dmaConfig } from '@app/configuration';
-import { MarketEntity, RealmsEntity } from '@app/pg';
+import { dmaConfig, marketConfig } from '@app/configuration';
+import { MarketEntity, MarketSnapshotsEntity, RealmsEntity } from '@app/pg';
 import {
   AuctionMessageDto,
   auctionsQueue,
   type BlizzardApiWowToken,
+  computeMarketRowAttrHash,
   type IAuctionMessageBase,
   isWowToken,
   MARKET_TYPE,
@@ -32,6 +33,8 @@ export class AuctionsService implements OnApplicationBootstrap {
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
+    @InjectRepository(MarketSnapshotsEntity)
+    private readonly marketSnapshotsRepository: Repository<MarketSnapshotsEntity>,
     @InjectQueue(auctionsQueue.name)
     private readonly queue: Queue<IAuctionMessageBase>,
     private readonly battleNetService: BattleNetService,
@@ -148,7 +151,7 @@ export class AuctionsService implements OnApplicationBootstrap {
 
       const isWowTokenExists = await this.marketRepository.exists({
         where: {
-          timestamp: timestamp,
+          validFrom: timestamp,
           itemId: WOW_TOKEN_ITEM_ID,
           connectedRealmId: REALM_ENTITY_ANY.id,
           type: MARKET_TYPE.T,
@@ -167,10 +170,21 @@ export class AuctionsService implements OnApplicationBootstrap {
         quantity: 1,
         connectedRealmId: REALM_ENTITY_ANY.id,
         type: MARKET_TYPE.T,
-        timestamp,
+        validFrom: timestamp,
+        validTo: timestamp,
       });
 
-      await this.marketRepository.save(wowTokenEntity);
+      wowTokenEntity.attrHash = computeMarketRowAttrHash(wowTokenEntity);
+
+      await this.marketRepository.insert(wowTokenEntity);
+
+      await this.marketSnapshotsRepository
+        .createQueryBuilder()
+        .insert()
+        .into(MarketSnapshotsEntity)
+        .values({ connectedRealmId: REALM_ENTITY_ANY.id, timestamp, source: MARKET_TYPE.T })
+        .orIgnore()
+        .execute();
     } catch (errorOrException) {
       this.logger.error({
         logTag,
@@ -180,32 +194,46 @@ export class AuctionsService implements OnApplicationBootstrap {
   }
 
   // --- TTL Logic --- //
-  @Cron(CronExpression.EVERY_12_HOURS)
+  // Batched deletes of fully-ended rows only; autovacuum reclaims space on
+  // its own, no manual VACUUM passes.
+  @Cron(CronExpression.EVERY_HOUR)
   async deleteExpiredMarketData(): Promise<void> {
     const logTag = this.deleteExpiredMarketData.name;
     this.logger.log('Starting deletion of expired market data...');
 
     try {
-      // Calculate the cutoff timestamp (24 hours ago from now)
-      const now = new Date();
-      const twentyFourHoursAgo = new Date(now.setHours(now.getHours() - 24)).getTime();
+      const cutoff = Date.now() - marketConfig.retentionHours * 3_600_000;
 
-      // Perform the deletion
-      const deleteResult = await this.marketRepository
-        .createQueryBuilder()
-        .delete()
-        .from(MarketEntity)
-        .where('timestamp < :cutoff', { cutoff: twentyFourHoursAgo })
-        .execute();
+      let deletedTotal = 0;
+      let deletedInBatch = 0;
 
-      this.logger.log(`Deleted ${deleteResult.affected} rows from 'market' table.`);
+      do {
+        const result = await this.marketRepository.query(
+          `WITH expired AS (
+             SELECT connected_realm_id, order_id, type, valid_from FROM market
+             WHERE valid_to IS NOT NULL AND valid_to < $1
+             LIMIT $2
+           )
+           DELETE FROM market m
+           USING expired e
+           WHERE m.connected_realm_id = e.connected_realm_id
+             AND m.order_id = e.order_id
+             AND m.type = e.type
+             AND m.valid_from = e.valid_from`,
+          [cutoff, marketConfig.ttlBatchSize],
+        );
 
-      // --- Important: PostgreSQL VACUUM for reclaiming space --- //
-      // VACUUM operations can be resource-intensive
-      // VACUUM ANALYZE is generally good after deletions.
-      // For very large tables, consider auto-vacuum settings or pg_repack.
-      await this.marketRepository.query('VACUUM (ANALYZE, VERBOSE) market;');
-      this.logger.log('VACUUM ANALYZE completed for "market" table.');
+        deletedInBatch = result.rowCount ?? 0;
+        deletedTotal += deletedInBatch;
+      } while (deletedInBatch >= marketConfig.ttlBatchSize);
+
+      const snapshotsResult = await this.marketSnapshotsRepository.delete({
+        timestamp: LessThan(cutoff),
+      });
+
+      this.logger.log(
+        `Deleted ${deletedTotal} ended rows and ${snapshotsResult.affected ?? 0} snapshot markers older than ${marketConfig.retentionHours}h.`,
+      );
     } catch (error) {
       this.logger.error({
         logTag,

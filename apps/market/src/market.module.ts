@@ -5,6 +5,7 @@ import {
   EvaluationEntity,
   ItemsEntity,
   MarketEntity,
+  MarketSnapshotsEntity,
   PricingEntity,
   RealmsEntity,
   SkillLineEntity,
@@ -40,6 +41,7 @@ import {
     TypeOrmModule.forFeature([
       RealmsEntity,
       MarketEntity,
+      MarketSnapshotsEntity,
       ContractEntity,
       ItemsEntity,
       PricingEntity,
