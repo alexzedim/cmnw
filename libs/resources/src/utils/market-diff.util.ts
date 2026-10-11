@@ -52,8 +52,10 @@ const stableStringify = (value: unknown): string => {
   return JSON.stringify(value);
 };
 
+// farmhash returns unsigned uint32; the attr_hash column is signed int4,
+// so reinterpret as int32 to keep every value in range
 export const computeAttrHash = (attrs: Partial<IMarketVersionAttrs>): number => {
-  return hash32(stableStringify(attrs));
+  return hash32(stableStringify(attrs)) | 0;
 };
 
 export interface IMarketHashInput {
