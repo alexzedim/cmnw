@@ -190,6 +190,56 @@ export class CharacterLifecycleService {
     }
 
     await this.diffAndLogChanges(original, updated);
+    await this.logGuildTransition(original, updated);
+  }
+
+  private async logGuildTransition(original: CharactersEntity, updated: CharactersEntity): Promise<void> {
+    const hasLeft = Boolean(original.guildGuid) && original.guildGuid !== updated.guildGuid;
+    const hasJoined = Boolean(updated.guildGuid) && original.guildGuid !== updated.guildGuid;
+
+    if (!hasLeft && !hasJoined) return;
+
+    const scannedAt = toDate(original.lastModified || original.updatedAt);
+    const transitions: CharactersGuildsLogsEntity[] = [];
+
+    if (hasLeft) {
+      transitions.push(
+        this.charactersGuildsLogsRepository.create({
+          characterGuid: updated.guid,
+          guildGuid: original.guildGuid,
+          original: original.guild,
+          action: ACTION_LOG.LEAVE,
+          scannedAt,
+          createdAt: new Date(),
+        }),
+      );
+    }
+
+    if (hasJoined) {
+      transitions.push(
+        this.charactersGuildsLogsRepository.create({
+          characterGuid: updated.guid,
+          guildGuid: updated.guildGuid,
+          updated: updated.guild,
+          action: ACTION_LOG.JOIN,
+          scannedAt,
+          createdAt: new Date(),
+        }),
+      );
+    }
+
+    try {
+      await this.charactersGuildsLogsRepository.save(transitions);
+    } catch (errorOrException) {
+      this.logger.error(
+        formatServiceErrorLog(
+          'logGuildTransition',
+          updated.guid,
+          0,
+          errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
+        ),
+      );
+    }
   }
 
   async findByGuid(guid: string): Promise<CharactersEntity | null> {

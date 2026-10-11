@@ -146,7 +146,7 @@ export class GuildsWorker extends WorkerHost {
 
       const conditionalDate = !isNew && guildEntity.id != null ? guildEntity.lastModified : null;
       const rosterConditionalDate =
-        !isNew && guildEntity.id != null ? guildEntity.rosterLastModified ?? conditionalDate : null;
+        !isNew && guildEntity.id != null ? (guildEntity.rosterLastModified ?? conditionalDate) : null;
 
       const guildData = await this.fetchGuildData(
         nameSlug,

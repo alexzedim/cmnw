@@ -9,6 +9,7 @@ import {
   ACTION_LOG,
   GUILD_ROSTER_MASS_LEAVE_MIN_SIZE,
   GUILD_ROSTER_MASS_LEAVE_RATIO,
+  GUILD_TRANSIT_DEDUP_WINDOW_DAYS,
   GuildStatusState,
   type IGuildMember,
   type IGuildRoster,
@@ -16,13 +17,14 @@ import {
   OSINT_SOURCE,
   type RosterComparisonResult,
   setGuildStatusString,
+  TIME_MS,
 } from '@app/resources';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { difference, intersection } from 'lodash';
 import { from, lastValueFrom } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
-import type { Repository } from 'typeorm';
+import { MoreThan, type Repository } from 'typeorm';
 
 @Injectable()
 export class GuildMemberService {
@@ -136,6 +138,17 @@ export class GuildMemberService {
         `summary member_count ${summaryMembersCount} — skipping ${leaveCount} leave logs`,
     );
     return false;
+  }
+
+  private async hasRecentTransitLog(characterGuid: string, guildGuid: string, action: ACTION_LOG): Promise<boolean> {
+    const loggedSince = new Date(Date.now() - GUILD_TRANSIT_DEDUP_WINDOW_DAYS * TIME_MS.TWENTY_FOUR_HOURS);
+
+    return this.charactersGuildsLogsRepository.existsBy({
+      characterGuid,
+      guildGuid,
+      action,
+      createdAt: MoreThan(loggedSince),
+    });
   }
 
   private async processRosterChanges(
@@ -307,7 +320,10 @@ export class GuildMemberService {
        * through guild ownership events instead.
        */
       const shouldLogJoin = isNotGuildMaster && !isFirstTimeRosterIndexed;
-      if (shouldLogJoin) {
+      const isJoinAlreadyLogged = shouldLogJoin
+        ? await this.hasRecentTransitLog(guildMemberUpdated.guid, guildEntity.guid, ACTION_LOG.JOIN)
+        : false;
+      if (shouldLogJoin && !isJoinAlreadyLogged) {
         const logEntityGuildMemberJoin = this.charactersGuildsLogsRepository.create({
           characterGuid: guildMemberUpdated.guid,
           guildGuid: guildEntity.guid,
@@ -367,8 +383,11 @@ export class GuildMemberService {
     try {
       const guildMemberOriginal = originalRoster.get(guildMemberId);
       const isNotGuildMaster = guildMemberOriginal.rank !== OSINT_GM_RANK;
+      const isLeaveAlreadyLogged = isNotGuildMaster
+        ? await this.hasRecentTransitLog(guildMemberOriginal.characterGuid, guildEntity.guid, ACTION_LOG.LEAVE)
+        : false;
 
-      if (isNotGuildMaster) {
+      if (isNotGuildMaster && !isLeaveAlreadyLogged) {
         const logEntityGuildMemberLeave = this.charactersGuildsLogsRepository.create({
           characterGuid: guildMemberOriginal.characterGuid,
           guildGuid: guildEntity.guid,
