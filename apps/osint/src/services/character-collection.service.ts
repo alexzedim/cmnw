@@ -1,11 +1,5 @@
 import { formatServiceErrorLog } from '@app/logger';
-import {
-  CharactersMountsEntity,
-  CharactersPetsEntity,
-  CharactersProfessionsEntity,
-  MountsEntity,
-  PetsEntity,
-} from '@app/pg';
+import { CharactersProfessionsEntity, MountsEntity, PetsEntity } from '@app/pg';
 import {
   type BlizzardApiCharacterProfessions,
   type BlizzardApiMountsCollection,
@@ -16,7 +10,7 @@ import {
   type IPets,
   toGuid,
 } from '@app/resources';
-import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { InjectRedis } from '@nestjs-modules/ioredis';
 import { hash32 } from 'farmhash';
@@ -26,7 +20,7 @@ import type { Repository } from 'typeorm';
 import { CharacterEntityIndexingService } from './character-entity-indexing.service';
 
 @Injectable()
-export class CharacterCollectionService implements OnApplicationBootstrap {
+export class CharacterCollectionService {
   private readonly logger = new Logger(CharacterCollectionService.name, {
     timestamp: true,
   });
@@ -38,43 +32,10 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
     private readonly mountsRepository: Repository<MountsEntity>,
     @InjectRepository(PetsEntity)
     private readonly petsRepository: Repository<PetsEntity>,
-    @InjectRepository(CharactersMountsEntity)
-    private readonly charactersMountsRepository: Repository<CharactersMountsEntity>,
-    @InjectRepository(CharactersPetsEntity)
-    private readonly charactersPetsRepository: Repository<CharactersPetsEntity>,
     @InjectRepository(CharactersProfessionsEntity)
     private readonly charactersProfessionsRepository: Repository<CharactersProfessionsEntity>,
     private readonly entityIndexingService: CharacterEntityIndexingService,
   ) {}
-
-  async onApplicationBootstrap(): Promise<void> {
-    await this.truncateCollectionsTables();
-  }
-
-  private async truncateCollectionsTables(): Promise<void> {
-    try {
-      const mountsCount = await this.charactersMountsRepository.count();
-      if (mountsCount > 0) {
-        await this.charactersMountsRepository.clear();
-        this.logger.log(`Truncated characters_mounts (${mountsCount} rows removed)`);
-      }
-
-      const petsCount = await this.charactersPetsRepository.count();
-      if (petsCount > 0) {
-        await this.charactersPetsRepository.clear();
-        this.logger.log(`Truncated characters_pets (${petsCount} rows removed)`);
-      }
-    } catch (errorOrException) {
-      this.logger.error(
-        formatServiceErrorLog(
-          'truncateCollectionsTables',
-          'bootstrap',
-          0,
-          errorOrException instanceof Error ? errorOrException.message : String(errorOrException),
-        ),
-      );
-    }
-  }
 
   async syncCharacterMounts(
     nameSlug: string,
@@ -333,8 +294,7 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
       }
 
       if (professionRecords.length > 0) {
-        await this.charactersProfessionsRepository.delete({ characterGuid });
-        await this.charactersProfessionsRepository.save(professionRecords);
+        await this.upsertProfessions(characterGuid, professionRecords);
       }
 
       return professionsSummary;
@@ -349,5 +309,75 @@ export class CharacterCollectionService implements OnApplicationBootstrap {
       );
       return null;
     }
+  }
+
+  private async upsertProfessions(characterGuid: string, records: CharactersProfessionsEntity[]): Promise<void> {
+    const upsertParams: Array<string | number | boolean | null> = [];
+
+    const upsertValues = records
+      .map((record) => {
+        upsertParams.push(
+          characterGuid,
+          record.professionId,
+          record.professionName ?? null,
+          record.tierId ?? null,
+          record.tierName ?? null,
+          record.skillPoints ?? null,
+          record.maxSkillPoints ?? null,
+          record.isPrimary,
+          record.specialization ?? null,
+        );
+        const base = upsertParams.length - 9;
+        return `(gen_random_uuid(), $${base + 1}, $${base + 2}, $${base + 3}, $${base + 4}, $${base + 5}, $${base + 6}, $${base + 7}, $${base + 8}, $${base + 9})`;
+      })
+      .join(', ');
+
+    const upsert = await this.charactersProfessionsRepository.query(
+      `INSERT INTO characters_professions
+         (uuid, character_guid, profession_id, profession_name, tier_id, tier_name,
+          skill_points, max_skill_points, is_primary, specialization)
+       VALUES ${upsertValues}
+       ON CONFLICT (character_guid, profession_id, tier_id) DO UPDATE SET
+         profession_name = EXCLUDED.profession_name,
+         tier_name = EXCLUDED.tier_name,
+         skill_points = EXCLUDED.skill_points,
+         max_skill_points = EXCLUDED.max_skill_points,
+         is_primary = EXCLUDED.is_primary,
+         specialization = EXCLUDED.specialization,
+         updated_at = now()
+       WHERE characters_professions.profession_name IS DISTINCT FROM EXCLUDED.profession_name
+          OR characters_professions.tier_name IS DISTINCT FROM EXCLUDED.tier_name
+          OR characters_professions.skill_points IS DISTINCT FROM EXCLUDED.skill_points
+          OR characters_professions.max_skill_points IS DISTINCT FROM EXCLUDED.max_skill_points
+          OR characters_professions.is_primary IS DISTINCT FROM EXCLUDED.is_primary
+          OR characters_professions.specialization IS DISTINCT FROM EXCLUDED.specialization`,
+      upsertParams,
+    );
+
+    // drop professions/tiers no longer present on the character
+    // (COALESCE sentinel kills NULL semantics of NOT IN against tier-less rows)
+    const deleteParams: Array<string | number | null> = [characterGuid];
+
+    const deleteValues = records
+      .map((record) => {
+        deleteParams.push(record.professionId, record.tierId ?? -1);
+        return `($${deleteParams.length - 1}::int, $${deleteParams.length}::int)`;
+      })
+      .join(', ');
+
+    const removed = await this.charactersProfessionsRepository.query(
+      `DELETE FROM characters_professions
+       WHERE character_guid = $1
+         AND ROW(profession_id, COALESCE(tier_id, -1)) NOT IN (VALUES ${deleteValues})`,
+      deleteParams,
+    );
+
+    this.logger.verbose({
+      logTag: 'upsertProfessions',
+      characterGuid,
+      total: records.length,
+      changed: upsert.rowCount ?? 0,
+      removed: removed.rowCount ?? 0,
+    });
   }
 }
