@@ -10,6 +10,7 @@ export * from './circuit-breaker.util';
 export * from './concurrency.util';
 export * from './headers';
 export * from './helpers';
+export * from './market-diff.util';
 export * from './percentile';
 export * from './price-binning.util';
 export * from './redis-cache.util';

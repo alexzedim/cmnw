@@ -4,6 +4,7 @@ export { coreConfig } from './core.config';
 export { dmaConfig } from './dma.config';
 export * from './interfaces';
 export { lokiConfig } from './loki.config';
+export { marketConfig } from './market.config';
 export { osintConfig } from './osint.config';
 export { postgresConfig } from './postgres.config';
 export {
