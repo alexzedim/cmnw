@@ -6,6 +6,7 @@ import {
   GuildsEntity,
   ItemsEntity,
   MarketEntity,
+  MarketSnapshotsEntity,
   RealmsEntity,
 } from '@app/pg';
 import { Module } from '@nestjs/common';
@@ -23,6 +24,7 @@ import { AppService } from './app.service';
       GuildsEntity,
       ItemsEntity,
       MarketEntity,
+      MarketSnapshotsEntity,
       RealmsEntity,
     ]),
     RedisModule.forRoot({

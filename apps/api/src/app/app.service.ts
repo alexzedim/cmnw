@@ -7,6 +7,7 @@ import {
   GuildsEntity,
   ItemsEntity,
   MarketEntity,
+  MarketSnapshotsEntity,
   RealmsEntity,
 } from '@app/pg';
 import {
@@ -19,6 +20,7 @@ import {
   type IBackdropFlows,
   type IRaidLogsStats,
   type ISearchResult,
+  MARKET_TYPE,
   NUMERIC_ID_REGEX,
   type RaidLogsStatsDto,
   raidLogsCacheKey,
@@ -54,6 +56,8 @@ export class AppService {
     private readonly itemsRepository: Repository<ItemsEntity>,
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
+    @InjectRepository(MarketSnapshotsEntity)
+    private readonly marketSnapshotsRepository: Repository<MarketSnapshotsEntity>,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
   ) {
@@ -108,7 +112,7 @@ export class AppService {
         this.marketRepository
           .createQueryBuilder('m')
           .leftJoin(ItemsEntity, 'i', 'i.id = m.itemId')
-          .orderBy('m.timestamp', 'DESC')
+          .orderBy('m.valid_from', 'DESC')
           .limit(10)
           .select('m.orderId', 'orderId')
           .addSelect('m.itemId', 'itemId')
@@ -483,23 +487,16 @@ export class AppService {
   }
 
   private async getLatestCommodityTimestamp(): Promise<number | null> {
-    const latestCommodity = await this.marketRepository
-      .createQueryBuilder('market')
-      .select('market.timestamp', 'timestamp')
-      .where('market.type = :type', { type: 'COMMDTY' })
-      .andWhere('market.timestamp IS NOT NULL')
-      .orderBy('market.timestamp', 'DESC')
-      .limit(1)
-      .getRawOne<{ timestamp: string | number | null }>();
+    const latestCommodity = await this.marketSnapshotsRepository.findOne({
+      where: { source: MARKET_TYPE.C },
+      order: { timestamp: 'DESC' },
+    });
 
     if (!latestCommodity?.timestamp) {
       return null;
     }
 
-    const numericTimestamp =
-      typeof latestCommodity.timestamp === 'string'
-        ? parseInt(latestCommodity.timestamp, 10)
-        : Number(latestCommodity.timestamp);
+    const numericTimestamp = Number(latestCommodity.timestamp);
 
     return Number.isFinite(numericTimestamp) ? numericTimestamp : null;
   }

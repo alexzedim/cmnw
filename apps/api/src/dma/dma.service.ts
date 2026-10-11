@@ -1,5 +1,5 @@
 import { formatServiceErrorLog } from '@app/logger';
-import { ContractEntity, ItemsEntity, KeysEntity, MarketEntity } from '@app/pg';
+import { ContractEntity, ItemsEntity, KeysEntity, MarketEntity, MarketSnapshotsEntity } from '@app/pg';
 import {
   assignPriceBucket,
   buildHybridPriceBins,
@@ -12,6 +12,7 @@ import {
   ItemQuotesResponseDto,
   type ItemRealmDto,
   MARKET_TYPE,
+  marketAliveAtSql,
   NUMERIC_ID_REGEX,
   REALM_ENTITY_ANY,
   type ReqGetItemDto,
@@ -39,6 +40,8 @@ export class DmaService {
     private readonly itemsRepository: Repository<ItemsEntity>,
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
+    @InjectRepository(MarketSnapshotsEntity)
+    private readonly marketSnapshotsRepository: Repository<MarketSnapshotsEntity>,
     @InjectRepository(ContractEntity)
     private readonly contractRepository: Repository<ContractEntity>,
   ) {}
@@ -78,17 +81,16 @@ export class DmaService {
   }
 
   /**
-   * @description Auctions DMA store in Redis Latest TimeStamp
-   * @description We receive available timestamps for COMMODITY items
+   * @description Auctions DMA snapshot timeline for COMMODITY items
+   * @description The x-axis source of truth is the market_snapshots table
    */
   async getLatestTimestampCommodity(itemId: number) {
-    const commodityTimestampKeys = await this.redisService.keys('COMMODITY:TS:*');
+    const snapshots = await this.marketSnapshotsRepository.find({
+      where: { source: MARKET_TYPE.C, connectedRealmId: REALM_ENTITY_ANY.id },
+      order: { timestamp: 'ASC' },
+    });
 
-    const commodityTimestamp = await this.redisService.mget(commodityTimestampKeys);
-
-    // TODO in case of Redis not found!
-
-    const timestamps = commodityTimestamp.map((t) => Number(t)).sort((a, b) => a - b);
+    const timestamps = snapshots.map((snapshot) => Number(snapshot.timestamp)).sort((a, b) => a - b);
 
     const latestCommodityTimestamp = timestamps.slice(-1);
 
@@ -124,7 +126,10 @@ export class DmaService {
       itemId: item.id,
     });
 
-    const { dataset, xAxis } = await this.buildChartDataset(yPriceAxis, timestamps, item.id);
+    const { dataset, xAxis } = await this.buildChartDataset(yPriceAxis, timestamps, item.id, {
+      type: MARKET_TYPE.C,
+      realmId: REALM_ENTITY_ANY.id,
+    });
 
     const chart = JSON.stringify({
       yAxis: yPriceAxis,
@@ -150,21 +155,19 @@ export class DmaService {
     const goldItemId = 1;
 
     // Get latest timestamps for gold market data
-    const timestamps = await this.marketRepository
-      .createQueryBuilder('market')
-      .select('DISTINCT market.timestamp')
-      .where('market.itemId = :itemId', { itemId: goldItemId })
-      .orderBy('market.timestamp', 'DESC')
-      .limit(50)
-      .getRawMany();
+    const snapshots = await this.marketSnapshotsRepository.find({
+      where: { source: MARKET_TYPE.G },
+      order: { timestamp: 'DESC' },
+      take: 50,
+    });
 
-    const timestampValues = timestamps.map((t) => t.timestamp);
+    const timestampValues = snapshots.map((snapshot) => Number(snapshot.timestamp)).reverse();
 
     const yPriceAxis = await this.priceAxisCommodity({
       itemId: goldItemId,
     });
 
-    const { dataset, xAxis } = await this.buildChartDataset(yPriceAxis, timestampValues, goldItemId);
+    const { dataset, xAxis } = await this.buildChartDataset(yPriceAxis, timestampValues, goldItemId, this.goldStream());
 
     return { yAxis: yPriceAxis, xAxis, dataset };
   }
@@ -208,8 +211,25 @@ export class DmaService {
     };
   }
 
+  private goldStream(): { type: string } {
+    return { type: MARKET_TYPE.G };
+  }
+
+  private async getLatestSnapshotTimestamp(source: string, realmId?: number): Promise<number | null> {
+    const where: Record<string, unknown> = { source };
+    if (realmId) where.connectedRealmId = realmId;
+
+    const snapshot = await this.marketSnapshotsRepository.findOne({
+      where,
+      order: { timestamp: 'DESC' },
+    });
+
+    return snapshot ? Number(snapshot.timestamp) : null;
+  }
+
   /**
-   * Build the Y-axis price edges for an item.
+   * Build the Y-axis price edges for an item from the orders alive at the
+   * latest snapshot of the item's stream.
    *
    * Delegates to the pure helpers in `@app/resources` (`price-binning.util.ts`):
    *   - filters outliers (order-count-weighted IQR on log10 price),
@@ -221,10 +241,26 @@ export class DmaService {
    * Returns an empty array if there is no usable market data.
    */
   private async getPriceEdges(itemId: number, blocks = DEFAULT_BLOCKS): Promise<number[]> {
-    const marketData = await this.marketRepository.find({
-      where: { itemId },
-      select: { price: true, quantity: true },
-    });
+    const isGold = itemId === 1;
+    const streamType = isGold ? MARKET_TYPE.G : MARKET_TYPE.C;
+    const realmId = isGold ? undefined : REALM_ENTITY_ANY.id;
+
+    const timestamp = await this.getLatestSnapshotTimestamp(streamType, realmId);
+    if (!timestamp) return [];
+
+    const queryBuilder = this.marketRepository
+      .createQueryBuilder('m')
+      .select('m.price', 'price')
+      .addSelect('m.quantity', 'quantity')
+      .where('m.item_id = :itemId', { itemId })
+      .andWhere('m.type = :type', { type: streamType })
+      .andWhere(marketAliveAtSql('m', 'timestamp'), { timestamp });
+
+    if (realmId) {
+      queryBuilder.andWhere('m.connected_realm_id = :realmId', { realmId });
+    }
+
+    const marketData = await queryBuilder.getRawMany<{ price: number; quantity: number }>();
 
     return buildHybridPriceBins(marketData, blocks);
   }
@@ -234,7 +270,8 @@ export class DmaService {
   }
 
   /**
-   * Processes market orders for a single timestamp and creates price level dataset.
+   * Processes market orders alive at a single snapshot timestamp and creates
+   * price level dataset.
    *
    * `yPriceAxis` is BOTH the displayed axis labels AND the bucket edges — they
    * are the same array now, so an order lands in exactly the row whose label
@@ -245,16 +282,21 @@ export class DmaService {
     itx: number,
     yPriceAxis: number[],
     itemId: number,
+    stream: { type: string; realmId?: number },
   ): Promise<IChartOrder[]> {
     try {
-      // TODO cover find with index
-      const marketOrders = await this.marketRepository.find({
-        where: {
-          itemId,
-          timestamp,
-        },
-        order: { price: 'ASC' },
-      });
+      const queryBuilder = this.marketRepository
+        .createQueryBuilder('m')
+        .where('m.item_id = :itemId', { itemId })
+        .andWhere('m.type = :type', { type: stream.type })
+        .andWhere(marketAliveAtSql('m', 'timestamp'), { timestamp })
+        .orderBy('m.price', 'ASC');
+
+      if (stream.realmId) {
+        queryBuilder.andWhere('m.connected_realm_id = :realmId', { realmId: stream.realmId });
+      }
+
+      const marketOrders = await queryBuilder.getMany();
 
       // Create price level dataset for this timestamp
       const priceLevelDataset = yPriceAxis.map((priceLevel, ytx) => ({
@@ -316,6 +358,7 @@ export class DmaService {
     yPriceAxis: number[],
     xTimestampAxis: number[],
     itemId: number,
+    stream: { type: string; realmId?: number },
   ): Promise<{ dataset: IChartOrder[]; xAxis: number[] }> {
     if (!yPriceAxis.length) return { dataset: [], xAxis: xTimestampAxis };
 
@@ -323,7 +366,7 @@ export class DmaService {
       const dataset = await lastValueFrom(
         from(xTimestampAxis).pipe(
           mergeMap(async (timestamp, itx) => {
-            return await this.processTimestampData(timestamp, itx, yPriceAxis, itemId);
+            return await this.processTimestampData(timestamp, itx, yPriceAxis, itemId, stream);
           }),
           reduce((acc: IChartOrder[], curr: IChartOrder[]) => [...acc, ...curr], [] as IChartOrder[]),
         ),
@@ -396,7 +439,7 @@ export class DmaService {
     // Find recent market data for this item
     const feed = await this.marketRepository.find({
       where: { itemId: item.id },
-      order: { createdAt: 'DESC' },
+      order: { validFrom: 'DESC' },
       take: 50, // Limit to recent 50 entries
     });
 
@@ -406,8 +449,17 @@ export class DmaService {
   async getItemQuotes(input: ItemRealmDto): Promise<ItemQuotesDto> {
     const item = await this.queryItem(input.id);
 
-    // Get aggregated market data for quotes
-    const rawQuotes = await this.marketRepository
+    const isGold = item.id === 1;
+    const streamType = isGold ? MARKET_TYPE.G : MARKET_TYPE.C;
+    const realmId = isGold ? undefined : REALM_ENTITY_ANY.id;
+
+    // Get aggregated market data for quotes over orders alive at the latest snapshot
+    const timestamp = await this.getLatestSnapshotTimestamp(streamType, realmId);
+    if (!timestamp) {
+      return { quotes: [] };
+    }
+
+    const queryBuilder = this.marketRepository
       .createQueryBuilder('market')
       .select([
         'market.price as price',
@@ -416,10 +468,17 @@ export class DmaService {
         'SUM(market.value) as open_interest',
       ])
       .where('market.itemId = :itemId', { itemId: item.id })
+      .andWhere('market.type = :type', { type: streamType })
+      .andWhere(marketAliveAtSql('market', 'timestamp'), { timestamp })
       .groupBy('market.price')
       .orderBy('market.price', 'ASC')
-      .limit(100)
-      .getRawMany();
+      .limit(100);
+
+    if (realmId) {
+      queryBuilder.andWhere('market.connected_realm_id = :realmId', { realmId });
+    }
+
+    const rawQuotes = await queryBuilder.getRawMany();
 
     const quotes = ItemQuotesResponseDto.remapQuotes(rawQuotes);
 
@@ -463,7 +522,7 @@ export class DmaService {
         connectedRealmId: REALM_ENTITY_ANY.connectedRealmId,
         type: MARKET_TYPE.T,
       },
-      order: { createdAt: 'DESC' },
+      order: { validFrom: 'DESC' },
       take: input.limit ? input.limit : 1,
     });
   }

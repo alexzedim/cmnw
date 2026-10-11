@@ -1,5 +1,5 @@
 import { postgresConfig, REDIS_CONNECTION, redisConfig } from '@app/configuration';
-import { ContractEntity, ItemsEntity, KeysEntity, MarketEntity } from '@app/pg';
+import { ContractEntity, ItemsEntity, KeysEntity, MarketEntity, MarketSnapshotsEntity } from '@app/pg';
 import { auctionsQueue, itemsQueue, valuationsQueue } from '@app/resources';
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
@@ -11,7 +11,7 @@ import { DmaService } from './dma.service';
 @Module({
   imports: [
     TypeOrmModule.forRoot(postgresConfig),
-    TypeOrmModule.forFeature([ItemsEntity, KeysEntity, MarketEntity, ContractEntity]),
+    TypeOrmModule.forFeature([ItemsEntity, KeysEntity, MarketEntity, MarketSnapshotsEntity, ContractEntity]),
     RedisModule.forRoot({
       type: 'single',
       options: {
