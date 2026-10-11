@@ -658,10 +658,10 @@ export class XvaService implements OnApplicationBootstrap {
         case 'auctions': {
           const marketCount = await this.marketRepository.count();
           const latestMarket = await this.marketRepository.find({
-            order: { createdAt: 'DESC' },
+            order: { validFrom: 'DESC' },
             take: 1,
           });
-          stateData = `${marketCount}:${latestMarket[0]?.createdAt || ''}`;
+          stateData = `${marketCount}:${latestMarket[0]?.validFrom || ''}`;
           break;
         }
 

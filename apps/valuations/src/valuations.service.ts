@@ -164,6 +164,7 @@ export class ValuationsService implements OnApplicationBootstrap {
             }
             const auctionData = await this.marketRepository.findOne({
               where: { itemId: itemAuction._id },
+              order: { validFrom: 'DESC' },
             });
             if (auctionData?.price) {
               if (!item.assetClass.includes(VALUATION_TYPE.COMMDTY)) {

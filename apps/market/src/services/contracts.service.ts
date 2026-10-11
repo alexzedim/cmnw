@@ -1,4 +1,4 @@
-import { ContractEntity, ItemsEntity, MarketEntity } from '@app/pg';
+import { ContractEntity, ItemsEntity, MarketEntity, MarketSnapshotsEntity } from '@app/pg';
 import {
   CONTRACT_TYPE,
   GOLD_ITEM_ENTITY,
@@ -6,6 +6,8 @@ import {
   type IItemOpenInterest,
   type IItemPriceAndQuantity,
   isContractArraysEmpty,
+  MARKET_TYPE,
+  marketAliveAtSql,
   REALM_ENTITY_ANY,
   validateContractData,
   WOW_TOKEN_ITEM_ID,
@@ -15,7 +17,7 @@ import { Cron } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DateTime } from 'luxon';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
-import { LessThan, MoreThan, Not, type Repository } from 'typeorm';
+import { Not, type Repository } from 'typeorm';
 
 @Injectable()
 export class ContractsService implements OnApplicationBootstrap {
@@ -28,6 +30,8 @@ export class ContractsService implements OnApplicationBootstrap {
     private readonly itemsRepository: Repository<ItemsEntity>,
     @InjectRepository(MarketEntity)
     private readonly marketRepository: Repository<MarketEntity>,
+    @InjectRepository(MarketSnapshotsEntity)
+    private readonly marketSnapshotsRepository: Repository<MarketSnapshotsEntity>,
     @InjectRepository(ContractEntity)
     private readonly contractRepository: Repository<ContractEntity>,
   ) {}
@@ -58,6 +62,7 @@ export class ContractsService implements OnApplicationBootstrap {
       const commodityItems = await this.marketRepository
         .createQueryBuilder('markets')
         .where({ connectedRealmId: REALM_ENTITY_ANY.connectedRealmId })
+        .andWhere('markets.type = :type', { type: MARKET_TYPE.C })
         .select('markets.item_id', 'itemId')
         .distinct(true)
         .getRawMany<Pick<MarketEntity, 'itemId'>>();
@@ -129,18 +134,16 @@ export class ContractsService implements OnApplicationBootstrap {
       const today = DateTime.now();
       const ytd = today.minus({ days: 1 }).toMillis();
 
-      const timestamps = await this.marketRepository
-        .createQueryBuilder('markets')
-        .where('markets.item_id NOT IN (:...itemIds)', {
-          itemIds: [GOLD_ITEM_ENTITY.id, WOW_TOKEN_ITEM_ID],
+      const timestamps = await this.marketSnapshotsRepository
+        .createQueryBuilder('snapshots')
+        .where('snapshots.source = :source', { source: MARKET_TYPE.C })
+        .andWhere('snapshots.connected_realm_id = :realmId', {
+          realmId: REALM_ENTITY_ANY.connectedRealmId,
         })
-        .andWhere({
-          connectedRealmId: REALM_ENTITY_ANY.connectedRealmId,
-          timestamp: MoreThan(ytd),
-        })
-        .select('timestamp')
+        .andWhere('snapshots.timestamp > :ytd', { ytd })
+        .select('snapshots.timestamp', 'timestamp')
         .distinct(true)
-        .getRawMany<Pick<MarketEntity, 'timestamp'>>();
+        .getRawMany<Pick<MarketSnapshotsEntity, 'timestamp'>>();
 
       const commodityItemsIds = commodityItems.map((item) => item.id);
       const commodityTimestamps = timestamps.map((t) => t.timestamp);
@@ -192,15 +195,13 @@ export class ContractsService implements OnApplicationBootstrap {
       const today = DateTime.now();
       const ytd = today.minus({ days: 1 }).toMillis();
 
-      const timestamps = await this.marketRepository
-        .createQueryBuilder('markets')
-        .where({
-          itemId: GOLD_ITEM_ENTITY.id,
-          timestamp: MoreThan(ytd),
-        })
-        .select('markets.timestamp', 'timestamp')
+      const timestamps = await this.marketSnapshotsRepository
+        .createQueryBuilder('snapshots')
+        .where('snapshots.source = :source', { source: MARKET_TYPE.G })
+        .andWhere('snapshots.timestamp > :ytd', { ytd })
+        .select('snapshots.timestamp', 'timestamp')
         .distinct(true)
-        .getRawMany<Pick<MarketEntity, 'timestamp'>>();
+        .getRawMany<Pick<MarketSnapshotsEntity, 'timestamp'>>();
 
       const goldTimestamps = timestamps.map((t) => t.timestamp);
 
@@ -242,26 +243,29 @@ export class ContractsService implements OnApplicationBootstrap {
         return;
       }
 
-      // Gold is cross-realm: aggregate across all realms (no connectedRealmId).
-      // Commodities are realm-agnostic by design (REALM_ENTITY_ANY).
-      const itemPriceAndQuantityWhere = isGold
-        ? {
-            itemId: itemId,
-            timestamp: timestamp,
-            isOnline: true,
-          }
-        : {
-            itemId: itemId,
-            timestamp: timestamp,
-          };
+      // Gold is cross-realm (type GOLD, online sellers only); commodities are
+      // scoped to the cross-realm pseudo-realm (type COMMDTY). Both aggregate
+      // orders alive at the snapshot timestamp.
+      const streamType = isGold ? MARKET_TYPE.G : MARKET_TYPE.C;
 
-      const itemPriceAndQuantity = await this.marketRepository
+      const priceAndQuantityQuery = this.marketRepository
         .createQueryBuilder('m')
-        .where(itemPriceAndQuantityWhere)
+        .where('m.item_id = :itemId', { itemId: itemId })
+        .andWhere('m.type = :streamType', { streamType })
+        .andWhere(marketAliveAtSql('m', 'timestamp'), { timestamp })
         .select('SUM(m.quantity)', 'q')
         .addSelect('MIN(m.price)', 'p')
-        .addSelect('COUNT(m.uuid)', 'orders')
-        .getRawOne<IItemPriceAndQuantity>();
+        .addSelect('COUNT(*)', 'orders');
+
+      if (isGold) {
+        priceAndQuantityQuery.andWhere('m.is_online = true');
+      } else {
+        priceAndQuantityQuery.andWhere('m.connected_realm_id = :realmId', {
+          realmId: REALM_ENTITY_ANY.connectedRealmId,
+        });
+      }
+
+      const itemPriceAndQuantity = await priceAndQuantityQuery.getRawOne<IItemPriceAndQuantity>();
 
       const orders = Number(itemPriceAndQuantity.orders);
       const ordersNotEnough = orders < 10;
@@ -276,18 +280,23 @@ export class ContractsService implements OnApplicationBootstrap {
         await getPercentileTypeByItemAndTimestamp(this.marketRepository, 'DISC', 0.98, itemId, timestamp, isGold),
       ]);
 
-      const itemOpenInterestWhere = {
-        itemId: itemId,
-        timestamp: timestamp,
-        price: LessThan(percentile98),
-        ...(isGold ? { isOnline: true } : {}),
-      };
-
-      const itemOpenInterest = await this.marketRepository
+      const openInterestQuery = this.marketRepository
         .createQueryBuilder('m')
-        .where(itemOpenInterestWhere)
-        .select('SUM(m.value)', 'oi')
-        .getRawOne<IItemOpenInterest>();
+        .where('m.item_id = :itemId', { itemId: itemId })
+        .andWhere('m.type = :streamType', { streamType })
+        .andWhere(marketAliveAtSql('m', 'timestamp'), { timestamp })
+        .andWhere('m.price < :priceTop', { priceTop: percentile98 })
+        .select('SUM(m.value)', 'oi');
+
+      if (isGold) {
+        openInterestQuery.andWhere('m.is_online = true');
+      } else {
+        openInterestQuery.andWhere('m.connected_realm_id = :realmId', {
+          realmId: REALM_ENTITY_ANY.connectedRealmId,
+        });
+      }
+
+      const itemOpenInterest = await openInterestQuery.getRawOne<IItemOpenInterest>();
 
       // Validate and convert quantity and openInterest using type guards
       const validation = validateContractData(itemPriceAndQuantity.q, itemOpenInterest.oi);

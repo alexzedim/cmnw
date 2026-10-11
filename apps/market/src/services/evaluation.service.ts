@@ -640,7 +640,7 @@ export class EvaluationService implements OnApplicationBootstrap {
       // Fallback to market entity (raw data)
       const markets = await this.marketRepository.find({
         where: { itemId, connectedRealmId },
-        order: { timestamp: 'DESC' },
+        order: { validFrom: 'DESC' },
         take: 100,
       });
 
@@ -667,7 +667,7 @@ export class EvaluationService implements OnApplicationBootstrap {
     try {
       const markets = await this.marketRepository.find({
         where: { itemId, connectedRealmId },
-        order: { timestamp: 'DESC' },
+        order: { validFrom: 'DESC' },
         take: 100,
       });
 
@@ -733,7 +733,7 @@ export class EvaluationService implements OnApplicationBootstrap {
             itemId: In(missingItemIds),
             connectedRealmId,
           },
-          order: { timestamp: 'DESC' },
+          order: { validFrom: 'DESC' },
           take: 1000,
         });
 
