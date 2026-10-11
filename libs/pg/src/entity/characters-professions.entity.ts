@@ -2,7 +2,6 @@ import { CMNW_ENTITY_ENUM } from '@app/pg/enum';
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 
 @Index('ix__cp__character_guid', ['characterGuid'], {})
-// the real index is UNIQUE ... NULLS NOT DISTINCT, created by scripts/v619-professions-constraint-and-zombies.sql
 @Index('ix__cp__character_profession_tier', ['characterGuid', 'professionId', 'tierId'], {})
 @Entity({ name: CMNW_ENTITY_ENUM.CHARACTERS_PROFESSIONS })
 export class CharactersProfessionsEntity {
