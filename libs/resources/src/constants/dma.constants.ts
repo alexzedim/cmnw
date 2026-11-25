@@ -21,6 +21,10 @@ export const WOW_TOKEN_ITEM_ID = 122284;
 export const PET_CAGE_ITEM_ID = 82800;
 export const EXCLUDED_ITEM_IDS = [WOW_TOKEN_ITEM_ID, PET_CAGE_ITEM_ID];
 
+// Safety cap for per-item contract reads (one row per item per snapshot;
+// a 1-month window is ~700 rows, the cap only guards pathological items).
+export const CONTRACTS_QUERY_LIMIT = 10_000;
+
 export enum DMA_SOURCE {
   API = 'DMA-API',
   LAB = 'DMA-LAB',

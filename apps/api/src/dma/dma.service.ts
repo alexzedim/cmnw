@@ -3,6 +3,7 @@ import { ContractEntity, ItemsEntity, KeysEntity, MarketEntity, MarketSnapshotsE
 import {
   assignPriceBucket,
   buildHybridPriceBins,
+  CONTRACTS_QUERY_LIMIT,
   DEFAULT_BLOCKS,
   type IBuildYAxis,
   type IChartOrder,
@@ -570,20 +571,19 @@ export class DmaService {
     const startTimestamp = startTime.toMillis();
     const endTimestamp = now.toMillis();
 
-    // Query contracts for the specified period
-    const contracts = await this.contractRepository.find({
-      where: {
-        itemId,
-      },
-      order: { timestamp: 'DESC' },
-    });
+    // Query contracts for the specified period in SQL: the period filter keeps
+    // the read on ix__contract__item_timestamp instead of loading every
+    // contract ever written for the item and filtering in JS.
+    const contracts = await this.contractRepository
+      .createQueryBuilder('contract')
+      .where('contract.item_id = :itemId', { itemId })
+      .andWhere('contract.timestamp >= :startTimestamp', { startTimestamp })
+      .andWhere('contract.timestamp <= :endTimestamp', { endTimestamp })
+      .orderBy({ timestamp: 'DESC' })
+      .take(CONTRACTS_QUERY_LIMIT)
+      .getMany();
 
-    // Filter by timestamp range
-    const filtered = contracts.filter(
-      (contract) => contract.timestamp >= startTimestamp && contract.timestamp <= endTimestamp,
-    );
-
-    return { contracts: filtered };
+    return { contracts };
   }
 
   async searchItems(query: string, limit: number = 25) {
