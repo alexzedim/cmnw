@@ -50,3 +50,11 @@ export function raidLogsCacheKey(query: RaidLogsStatsDto): string {
 export function searchCacheKey(query: SearchQueryDto): string {
   return `${CACHE_NAMESPACE}:search:${encodeURIComponent(query.searchQuery)}`;
 }
+
+export function backdropFlowsCacheKey(): string {
+  return `${CACHE_NAMESPACE}:backdrop:flows`;
+}
+
+// The uncached backdrop payload costs a full market scan; five minutes
+// coalesces bursts of homepage loads onto a single pass.
+export const BACKDROP_FLOWS_CACHE_TTL_SECONDS = 300;

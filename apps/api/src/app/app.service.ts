@@ -15,6 +15,8 @@ import {
   type AnalyticsMetricSnapshotDto,
   AnalyticsMetricType,
   type AppHealthPayload,
+  BACKDROP_FLOWS_CACHE_TTL_SECONDS,
+  backdropFlowsCacheKey,
   HASH_TYPE_REGEX,
   historyCacheKey,
   type IBackdropFlows,
@@ -93,59 +95,73 @@ export class AppService {
    * Recently-updated entities (updated_at / timestamp DESC) served as payload
    * chips for the home backdrop flow schemas. Labels are prebuilt here so the
    * client only picks randomly from the pools.
+   *
+   * The market tail query is a full pass over `market` without an index on
+   * valid_from, so the payload is served through a read-through cache: every
+   * uncached request would otherwise cost a full table scan.
    */
   async getBackdropFlows(): Promise<IBackdropFlows> {
     const logTag = 'getBackdropFlows';
 
     try {
-      const [characters, guilds, orderRows] = await Promise.all([
-        this.charactersRepository.find({
-          order: { updatedAt: 'DESC' },
-          take: 14,
-          select: { guid: true, name: true, realm: true, averageItemLevel: true },
-        }),
-        this.guildsRepository.find({
-          order: { updatedAt: 'DESC' },
-          take: 10,
-          select: { guid: true, name: true, membersCount: true },
-        }),
-        this.marketRepository
-          .createQueryBuilder('m')
-          .leftJoin(ItemsEntity, 'i', 'i.id = m.itemId')
-          .orderBy('m.valid_from', 'DESC')
-          .limit(10)
-          .select('m.orderId', 'orderId')
-          .addSelect('m.itemId', 'itemId')
-          .addSelect('m.quantity', 'quantity')
-          .addSelect('i.name', 'itemName')
-          .getRawMany(),
-      ]);
-
-      return {
-        characters: characters
-          .filter((character) => character.name && character.realm)
-          .map((character) => ({
-            guid: character.guid,
-            label: `${character.name}@${character.realm} · ${character.averageItemLevel ?? '?'} ilvl`,
-          })),
-        guilds: guilds
-          .filter((guild) => guild.name)
-          .map((guild) => ({
-            guid: guild.guid,
-            label: `${guild.name} · ${guild.membersCount ?? 0} members`,
-          })),
-        orders: orderRows
-          .filter((row) => row.orderId)
-          .map((row) => ({
-            guid: String(row.orderId),
-            label: `order ${row.orderId} · ${row.itemName ?? `item ${row.itemId}`} · ×${row.quantity ?? 1}`,
-          })),
-      };
+      return await readThroughCache(
+        this.redis,
+        backdropFlowsCacheKey(),
+        { ttlSeconds: BACKDROP_FLOWS_CACHE_TTL_SECONDS },
+        () => this.loadBackdropFlows(),
+        (message) => this.logger.warn({ logTag, message }),
+      );
     } catch (errorOrException) {
       this.logger.error({ logTag, message: 'Failed to load backdrop flow payloads', errorOrException });
 
       throw new ServiceUnavailableException('Unable to load backdrop flow payloads');
     }
+  }
+
+  private async loadBackdropFlows(): Promise<IBackdropFlows> {
+    const [characters, guilds, orderRows] = await Promise.all([
+      this.charactersRepository.find({
+        order: { updatedAt: 'DESC' },
+        take: 14,
+        select: { guid: true, name: true, realm: true, averageItemLevel: true },
+      }),
+      this.guildsRepository.find({
+        order: { updatedAt: 'DESC' },
+        take: 10,
+        select: { guid: true, name: true, membersCount: true },
+      }),
+      this.marketRepository
+        .createQueryBuilder('m')
+        .leftJoin(ItemsEntity, 'i', 'i.id = m.itemId')
+        .orderBy('m.valid_from', 'DESC')
+        .limit(10)
+        .select('m.orderId', 'orderId')
+        .addSelect('m.itemId', 'itemId')
+        .addSelect('m.quantity', 'quantity')
+        .addSelect('i.name', 'itemName')
+        .getRawMany(),
+    ]);
+
+    return {
+      characters: characters
+        .filter((character) => character.name && character.realm)
+        .map((character) => ({
+          guid: character.guid,
+          label: `${character.name}@${character.realm} · ${character.averageItemLevel ?? '?'} ilvl`,
+        })),
+      guilds: guilds
+        .filter((guild) => guild.name)
+        .map((guild) => ({
+          guid: guild.guid,
+          label: `${guild.name} · ${guild.membersCount ?? 0} members`,
+        })),
+      orders: orderRows
+        .filter((row) => row.orderId)
+        .map((row) => ({
+          guid: String(row.orderId),
+          label: `order ${row.orderId} · ${row.itemName ?? `item ${row.itemId}`} · ×${row.quantity ?? 1}`,
+        })),
+    };
   }
 
   async getRaidLogsStats(input: RaidLogsStatsDto): Promise<IRaidLogsStats> {
