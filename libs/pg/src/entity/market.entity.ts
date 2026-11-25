@@ -5,6 +5,7 @@ import { Column, Entity, Index, PrimaryColumn } from 'typeorm';
 @Index('ix__market__reconstruction', ['itemId', 'connectedRealmId', 'validFrom'], {})
 @Index('ix__market__ttl', ['validTo'], {})
 @Index('ix__market__live', ['connectedRealmId'], { where: 'valid_to IS NULL' })
+@Index('ix__market__live_recent', ['validFrom'], { where: 'valid_to IS NULL' })
 @Entity({ name: CMNW_ENTITY_ENUM.MARKET })
 export class MarketEntity {
   @PrimaryColumn({
