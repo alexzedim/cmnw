@@ -79,6 +79,11 @@ export class GuildSummaryService {
       if (value === null || !GUILD_SUMMARY_KEYS.includes(key as any)) {
         return;
       }
+      // Non-finite numbers (NaN) serialize as 'NaN' in SQL parameters and fail
+      // the integer insert; drop them instead of poisoning the row.
+      if (typeof value === 'number' && !Number.isFinite(value)) {
+        return;
+      }
       summary[changeCase.camelCase(key)] = typeof value === 'object' ? normalizeLocaleField(value) : value;
     });
 
