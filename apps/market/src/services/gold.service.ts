@@ -23,7 +23,7 @@ import { DateTime } from 'luxon';
 import { parse } from 'node-html-parser';
 import { from, lastValueFrom, toArray } from 'rxjs';
 import { mergeMap } from 'rxjs/operators';
-import { In, IsNull, MoreThan, Not, type Repository } from 'typeorm';
+import { In, MoreThan, type Repository } from 'typeorm';
 
 @Injectable()
 export class GoldService implements OnApplicationBootstrap {
@@ -144,20 +144,7 @@ export class GoldService implements OnApplicationBootstrap {
       incomingByRealm.set(order.connectedRealmId, group);
     }
 
-    // Realms that ever had gold listings: their stale live rows must close even
-    // when today's listing has none for them, so the list comes from
-    // realms.gold_timestamp, not from the current scrape.
-    const goldRealms = await this.realmsRepository.find({
-      where: { goldTimestamp: Not(IsNull()) },
-      select: { connectedRealmId: true },
-    });
-
-    // With a realm list the query hits ix__market__live instead of a full seq scan.
-    const liveRows = await loadLiveMarketRowsForType(
-      this.marketRepository,
-      MARKET_TYPE.G,
-      goldRealms.map((realm) => realm.connectedRealmId),
-    );
+    const liveRows = await loadLiveMarketRowsForType(this.marketRepository, MARKET_TYPE.G, GOLD_ITEM_ENTITY.id);
 
     const liveByRealm = new Map<number, typeof liveRows>();
     for (const row of liveRows) {

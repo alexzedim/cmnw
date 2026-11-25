@@ -110,7 +110,7 @@ export interface IMarketLiveRowWithRealm extends IMarketLiveRow {
 export const loadLiveMarketRowsForType = async (
   repository: Repository<MarketEntity>,
   type: string,
-  connectedRealmIds?: number[],
+  itemId?: number,
 ): Promise<IMarketLiveRowWithRealm[]> => {
   const queryBuilder = repository
     .createQueryBuilder('m')
@@ -122,8 +122,8 @@ export const loadLiveMarketRowsForType = async (
     .where('m.type = :type', { type })
     .andWhere('m.valid_to IS NULL');
 
-  if (connectedRealmIds?.length) {
-    queryBuilder.andWhere('m.connected_realm_id IN (:...realms)', { realms: connectedRealmIds });
+  if (itemId !== undefined) {
+    queryBuilder.andWhere('m.item_id = :itemId', { itemId });
   }
 
   const rows = await queryBuilder.getRawMany<{
