@@ -4,11 +4,11 @@ import { analyticsKeyOf } from '@app/resources/dao';
 import type {
   AchievementsDistributionRow,
   CharacterAverages,
+  CharacterDimensionAggregateRow,
   CharacterExtreme,
   CharacterGlobalAggregationRow,
-  CharacterRealmClassAggregation,
-  CharacterRealmFactionAggregation,
-  CharacterRealmUniquePlayersAggregation,
+  CharacterRealmAggregateRow,
+  CharacterRealmDimensionAggregateRow,
   GuildAgeDistributionRow,
   GuildTopByMembers,
 } from '@app/resources/types';
@@ -48,40 +48,50 @@ export class CharacterMetricsService {
   async snapshotCharacterMetrics(snapshotDate: Date): Promise<number> {
     const startTime = Date.now();
 
-    // Every collector commits in its own transaction: a slow or failing
-    // query (e.g. a heavy distribution aggregation) can no longer pin or
-    // roll back the metrics captured by the other collectors.
+    // The collectors below used to run ~20 separate scans of characters. They
+    // now consume aggregates from three shared GROUPING SETS passes (global
+    // dimensions, realm totals/unique/faction/class, realm max-level
+    // faction/class); extremes, averages and the distribution collectors keep
+    // their own queries. Per-metric skip logic and per-collector transactions
+    // are unchanged.
     const maxLevel = await this.getCharacterMaxLevel(this.dataSource.manager);
+
+    const globalDimensionRows = await this.loadGlobalDimensionAggregates();
+    const maxLevelDimensionRows = maxLevel > 0 ? await this.loadGlobalDimensionAggregates(maxLevel) : [];
+    const realmRows = await this.loadRealmAggregates();
+    const maxLevelRealmRows = maxLevel > 0 ? await this.loadRealmMaxLevelAggregates(maxLevel) : [];
 
     const collectors: Array<[string, MetricsCollector]> = [
       [
         'characterTotal',
-        (manager, rows, existingKeys) => this.collectCharacterTotal(manager, rows, existingKeys, snapshotDate),
+        (manager, rows, existingKeys) =>
+          this.collectCharacterTotal(manager, rows, existingKeys, snapshotDate, realmRows),
       ],
-      // Global dimension aggregations: faction / class / race / level in one UNION ALL query.
+      // Global dimension aggregations: faction / class / race / level.
       [
         'characterGlobalDimensions',
         async (manager, rows, existingKeys) => {
-          const globalAggregations = await this.getGlobalAggregations(manager);
+          const globalAggregations = this.decodeGlobalDimensionRows(globalDimensionRows);
           this.pushGlobalDimensionRows(rows, manager, existingKeys, snapshotDate, globalAggregations);
         },
       ],
       // Realm totals + unique players + realm/faction + realm/class.
       [
         'characterRealmAggregations',
-        (manager, rows, existingKeys) => this.collectRealmAggregations(manager, rows, existingKeys, snapshotDate),
+        (manager, rows, existingKeys) =>
+          this.collectRealmAggregations(manager, rows, existingKeys, snapshotDate, realmRows),
       ],
       [
         'characterMaxLevelDimensions',
         async (manager, rows, existingKeys) => {
           if (maxLevel <= 0) return;
 
-          // Max-level dimension aggregations: faction / class / race / level in one UNION ALL query.
-          const maxLevelAggregations = await this.getGlobalAggregations(manager, maxLevel);
+          // Max-level dimension aggregations: faction / class / race / level.
+          const maxLevelAggregations = this.decodeGlobalDimensionRows(maxLevelDimensionRows);
           this.pushMaxLevelDimensionRows(rows, manager, existingKeys, snapshotDate, maxLevelAggregations, maxLevel);
 
           // Realm + faction max-level and realm + class max-level.
-          await this.collectRealmMaxLevelAggregations(manager, rows, existingKeys, snapshotDate, maxLevel);
+          this.pushRealmMaxLevelRows(rows, manager, existingKeys, snapshotDate, maxLevelRealmRows);
         },
       ],
       [
@@ -135,74 +145,93 @@ export class CharacterMetricsService {
     return result?.max_level || 0;
   }
 
-  private async collectCharacterTotal(
-    manager: EntityManager,
-    rows: AnalyticsEntity[],
-    existingKeys: Set<string>,
-    snapshotDate: Date,
-  ): Promise<void> {
-    const key = analyticsKeyOf(AnalyticsMetricCategory.CHARACTERS, AnalyticsMetricType.TOTAL);
-    if (existingKeys.has(key)) return;
+  /**
+   * One pass over characters grouped by GROUPING SETS ((faction),(class),
+   * (race),(level)) — replaces the four-armed UNION ALL that scanned the
+   * table once per dimension. grouping() flags identify the active set;
+   * FILTER-ed counts exclude the NULL groups the old WHERE clauses dropped.
+   */
+  private async loadGlobalDimensionAggregates(maxLevel?: number): Promise<CharacterDimensionAggregateRow[]> {
+    const levelClause = maxLevel !== undefined ? 'WHERE c.level = $1' : '';
+    const params = maxLevel !== undefined ? [maxLevel] : [];
 
-    const result = await manager
-      .getRepository(CharactersEntity)
-      .createQueryBuilder('c')
-      .select('COUNT(*)', 'total')
-      .addSelect(`SUM(CASE WHEN c.guild_guid IS NOT NULL THEN 1 ELSE 0 END)`, 'in_guilds')
-      .getRawOne<{ total: string; in_guilds: string }>();
-
-    const totalCount = parseInt(result?.total || '0', 10);
-    const inGuildsCount = parseInt(result?.in_guilds || '0', 10);
-
-    rows.push(
-      manager.create(AnalyticsEntity, {
-        category: AnalyticsMetricCategory.CHARACTERS,
-        metricType: AnalyticsMetricType.TOTAL,
-        value: {
-          count: totalCount,
-          inGuilds: inGuildsCount,
-          notInGuilds: totalCount - inGuildsCount,
-        },
-        snapshotDate,
-      }),
+    return this.dataSource.query<Array<CharacterDimensionAggregateRow>>(
+      `SELECT grouping(c.faction) AS gf,
+              grouping(c.class) AS gc,
+              grouping(c.race) AS gr,
+              grouping(c.level) AS gl,
+              c.faction AS faction,
+              c.class AS class,
+              c.race AS race,
+              CAST(c.level AS VARCHAR) AS level,
+              count(*) FILTER (WHERE c.faction IS NOT NULL) AS fc,
+              count(*) FILTER (WHERE c.class IS NOT NULL) AS cc,
+              count(*) FILTER (WHERE c.race IS NOT NULL) AS rc,
+              count(*) AS lc
+       FROM characters c
+       ${levelClause}
+       GROUP BY GROUPING SETS ((c.faction), (c.class), (c.race), (c.level))`,
+      params,
     );
   }
 
+  /** Decodes the GROUPING SETS rows back into the UNION ALL row shape. */
+  private decodeGlobalDimensionRows(rows: CharacterDimensionAggregateRow[]): CharacterGlobalAggregationRow[] {
+    const decoded: CharacterGlobalAggregationRow[] = [];
+    for (const row of rows) {
+      if (row.gf === 0 && row.faction !== null) {
+        decoded.push({ dimension: 'faction', value: row.faction, count: row.fc });
+      } else if (row.gc === 0 && row.class !== null) {
+        decoded.push({ dimension: 'class', value: row.class, count: row.cc });
+      } else if (row.gr === 0 && row.race !== null) {
+        decoded.push({ dimension: 'race', value: row.race, count: row.rc });
+      } else if (row.gl === 0 && row.level !== null) {
+        decoded.push({ dimension: 'level', value: row.level, count: row.lc });
+      }
+    }
+    return decoded;
+  }
+
   /**
-   * Collapses 4 separate GROUP BY queries (faction / class / race / level) into a
-   * single UNION ALL round-trip. Each row is tagged with its dimension so the
-   * caller can split the result back into 4 metric payloads.
+   * One pass over characters grouped by GROUPING SETS ((realm_id),
+   * (realm_id,faction), (realm_id,class), ()) — replaces five queries:
+   * realm totals + in-guilds, global/per-realm unique players, realm faction
+   * and realm class breakdowns, plus the global totals the separate
+   * characterTotal collector used to scan for on its own.
    */
-  private async getGlobalAggregations(
-    manager: EntityManager,
-    maxLevel?: number,
-  ): Promise<CharacterGlobalAggregationRow[]> {
-    const levelClause = maxLevel !== undefined ? 'AND c.level = $1' : '';
-    const params = maxLevel !== undefined ? [maxLevel] : [];
+  private async loadRealmAggregates(): Promise<CharacterRealmAggregateRow[]> {
+    return this.dataSource.query<Array<CharacterRealmAggregateRow>>(
+      `SELECT grouping(c.realm_id) AS gid,
+              grouping(c.faction) AS gf,
+              grouping(c.class) AS gc,
+              c.realm_id AS realm_id,
+              c.faction AS faction,
+              c.class AS class,
+              count(*) AS total,
+              sum(CASE WHEN c.guild_guid IS NOT NULL THEN 1 ELSE 0 END) AS in_guilds,
+              count(DISTINCT c.hash_a) AS unique_players,
+              count(*) FILTER (WHERE c.faction IS NOT NULL) AS fc,
+              count(*) FILTER (WHERE c.class IS NOT NULL) AS cc
+       FROM characters c
+       GROUP BY GROUPING SETS ((c.realm_id), (c.realm_id, c.faction), (c.realm_id, c.class), ())`,
+    );
+  }
 
-    const sql = `
-      SELECT 'faction' AS dimension, c.faction AS value, COUNT(*) AS count
-      FROM characters c
-      WHERE c.faction IS NOT NULL ${levelClause}
-      GROUP BY c.faction
-      UNION ALL
-      SELECT 'class' AS dimension, c.class AS value, COUNT(*) AS count
-      FROM characters c
-      WHERE c.class IS NOT NULL ${levelClause}
-      GROUP BY c.class
-      UNION ALL
-      SELECT 'race' AS dimension, c.race AS value, COUNT(*) AS count
-      FROM characters c
-      WHERE c.race IS NOT NULL ${levelClause}
-      GROUP BY c.race
-      UNION ALL
-      SELECT 'level' AS dimension, CAST(c.level AS VARCHAR) AS value, COUNT(*) AS count
-      FROM characters c
-      WHERE c.level IS NOT NULL ${levelClause}
-      GROUP BY c.level
-    `;
-
-    return manager.query(sql, params);
+  /** One pass for realm+faction and realm+class max-level breakdowns. */
+  private async loadRealmMaxLevelAggregates(maxLevel: number): Promise<CharacterRealmDimensionAggregateRow[]> {
+    return this.dataSource.query<Array<CharacterRealmDimensionAggregateRow>>(
+      `SELECT grouping(c.faction) AS gf,
+              grouping(c.class) AS gc,
+              c.realm_id AS realm_id,
+              c.faction AS faction,
+              c.class AS class,
+              count(*) FILTER (WHERE c.faction IS NOT NULL) AS fc,
+              count(*) FILTER (WHERE c.class IS NOT NULL) AS cc
+       FROM characters c
+       WHERE c.level = $1
+       GROUP BY GROUPING SETS ((c.realm_id, c.faction), (c.realm_id, c.class))`,
+      [maxLevel],
+    );
   }
 
   private buildDimensionValueMap(
@@ -297,30 +326,56 @@ export class CharacterMetricsService {
     }
   }
 
+  private async collectCharacterTotal(
+    manager: EntityManager,
+    rows: AnalyticsEntity[],
+    existingKeys: Set<string>,
+    snapshotDate: Date,
+    realmRows: CharacterRealmAggregateRow[],
+  ): Promise<void> {
+    const key = analyticsKeyOf(AnalyticsMetricCategory.CHARACTERS, AnalyticsMetricType.TOTAL);
+    if (existingKeys.has(key)) return;
+
+    const globalRow = realmRows.find((row) => row.gid === 1);
+    if (!globalRow) return;
+
+    const totalCount = parseInt(globalRow.total || '0', 10);
+    const inGuildsCount = parseInt(globalRow.in_guilds || '0', 10);
+
+    rows.push(
+      manager.create(AnalyticsEntity, {
+        category: AnalyticsMetricCategory.CHARACTERS,
+        metricType: AnalyticsMetricType.TOTAL,
+        value: {
+          count: totalCount,
+          inGuilds: inGuildsCount,
+          notInGuilds: totalCount - inGuildsCount,
+        },
+        snapshotDate,
+      }),
+    );
+  }
+
   /**
-   * Emits per-realm TOTAL + UNIQUE_PLAYERS + BY_FACTION + BY_CLASS metric rows.
-   * Realm totals are aggregated in JS from a single GROUP BY realm_id query (with
-   * a SUM(CASE WHEN guild_guid ...) for in-guild counts). UNIQUE_PLAYERS uses a
-   * separate per-realm COUNT(DISTINCT hash_a) query (cannot be summed from the
-   * grouped rows). Realm/faction and realm/class are each a single grouped query.
+   * Emits per-realm TOTAL + UNIQUE_PLAYERS + BY_FACTION + BY_CLASS and the
+   * global TOTAL + UNIQUE_PLAYERS rows from the decoded GROUPING SETS pass
+   * (see loadRealmAggregates) — previously five separate scans.
    */
   private async collectRealmAggregations(
     manager: EntityManager,
     rows: AnalyticsEntity[],
     existingKeys: Set<string>,
     snapshotDate: Date,
+    realmRows: CharacterRealmAggregateRow[],
   ): Promise<void> {
-    // Per-realm totals (count + in-guilds)
-    const byRealm = await manager
-      .getRepository(CharactersEntity)
-      .createQueryBuilder('c')
-      .select('c.realm_id', 'realm_id')
-      .addSelect('COUNT(*)', 'total')
-      .addSelect(`SUM(CASE WHEN c.guild_guid IS NOT NULL THEN 1 ELSE 0 END)`, 'in_guilds')
-      .groupBy('c.realm_id')
-      .getRawMany<{ realm_id: number; total: string; in_guilds: string }>();
+    const globalRow = realmRows.find((row) => row.gid === 1);
 
-    for (const realmData of byRealm) {
+    // Per-realm totals (count + in-guilds): the (realm_id) set alone —
+    // grouping flags isolate it from the (realm_id, faction/class) sets.
+    for (const realmData of realmRows) {
+      const isRealmSet = realmData.gid === 0 && realmData.gf === 1 && realmData.gc === 1;
+      if (!isRealmSet || realmData.realm_id === null) continue;
+
       const key = analyticsKeyOf(AnalyticsMetricCategory.CHARACTERS, AnalyticsMetricType.TOTAL, realmData.realm_id);
       if (existingKeys.has(key)) continue;
 
@@ -337,35 +392,24 @@ export class CharacterMetricsService {
       );
     }
 
-    // Global + per-realm unique players (COUNT(DISTINCT hash_a))
+    // Global unique players (COUNT(DISTINCT hash_a))
     const globalUniqueKey = analyticsKeyOf(AnalyticsMetricCategory.CHARACTERS, AnalyticsMetricType.UNIQUE_PLAYERS);
-    if (!existingKeys.has(globalUniqueKey)) {
-      const globalRow = await manager
-        .getRepository(CharactersEntity)
-        .createQueryBuilder('c')
-        .select('COUNT(DISTINCT c.hash_a)', 'unique_players')
-        .where('c.hash_a IS NOT NULL')
-        .getRawOne<{ unique_players: string }>();
+    if (!existingKeys.has(globalUniqueKey) && globalRow) {
       rows.push(
         manager.create(AnalyticsEntity, {
           category: AnalyticsMetricCategory.CHARACTERS,
           metricType: AnalyticsMetricType.UNIQUE_PLAYERS,
-          value: { count: parseInt(globalRow?.unique_players || '0', 10) },
+          value: { count: parseInt(globalRow.unique_players || '0', 10) },
           snapshotDate,
         }),
       );
     }
 
-    const uniqueByRealm = await manager
-      .getRepository(CharactersEntity)
-      .createQueryBuilder('c')
-      .select('c.realm_id', 'realm_id')
-      .addSelect('COUNT(DISTINCT c.hash_a)', 'unique_players')
-      .where('c.hash_a IS NOT NULL')
-      .groupBy('c.realm_id')
-      .getRawMany<CharacterRealmUniquePlayersAggregation>();
+    // Per-realm unique players: same (realm_id) set isolation.
+    for (const realmData of realmRows) {
+      const isRealmSet = realmData.gid === 0 && realmData.gf === 1 && realmData.gc === 1;
+      if (!isRealmSet || realmData.realm_id === null) continue;
 
-    for (const realmData of uniqueByRealm) {
       const key = analyticsKeyOf(
         AnalyticsMetricCategory.CHARACTERS,
         AnalyticsMetricType.UNIQUE_PLAYERS,
@@ -385,15 +429,9 @@ export class CharacterMetricsService {
     }
 
     // Per-realm faction breakdown
-    const byRealmFaction = await manager
-      .getRepository(CharactersEntity)
-      .createQueryBuilder('c')
-      .select('c.realm_id', 'realm_id')
-      .addSelect('c.faction', 'faction')
-      .addSelect('COUNT(*)', 'count')
-      .where('c.faction IS NOT NULL')
-      .groupBy('c.realm_id, c.faction')
-      .getRawMany<CharacterRealmFactionAggregation>();
+    const byRealmFaction = realmRows
+      .filter((row) => row.gf === 0 && row.realm_id !== null && row.faction !== null)
+      .map((row) => ({ realm_id: row.realm_id as number, faction: row.faction as string, count: row.fc }));
 
     const realmFactionMap = this.groupRealmBreakdown(byRealmFaction, 'faction');
     for (const [realmId, factionCounts] of Object.entries(realmFactionMap)) {
@@ -413,15 +451,9 @@ export class CharacterMetricsService {
     }
 
     // Per-realm class breakdown
-    const byRealmClass = await manager
-      .getRepository(CharactersEntity)
-      .createQueryBuilder('c')
-      .select('c.realm_id', 'realm_id')
-      .addSelect('c.class', 'character_class')
-      .addSelect('COUNT(*)', 'count')
-      .where('c.class IS NOT NULL')
-      .groupBy('c.realm_id, c.class')
-      .getRawMany<CharacterRealmClassAggregation>();
+    const byRealmClass = realmRows
+      .filter((row) => row.gc === 0 && row.realm_id !== null && row.class !== null)
+      .map((row) => ({ realm_id: row.realm_id as number, character_class: row.class as string, count: row.cc }));
 
     const realmClassMap = this.groupRealmBreakdown(byRealmClass, 'character_class');
     for (const [realmId, classCounts] of Object.entries(realmClassMap)) {
@@ -457,25 +489,32 @@ export class CharacterMetricsService {
     );
   }
 
-  private async collectRealmMaxLevelAggregations(
-    manager: EntityManager,
+  /** Emits realm+faction and realm+class max-level rows from one decoded pass. */
+  private pushRealmMaxLevelRows(
     rows: AnalyticsEntity[],
+    manager: EntityManager,
     existingKeys: Set<string>,
     snapshotDate: Date,
-    maxLevel: number,
-  ): Promise<void> {
-    const byRealmFactionMaxLevel = await manager
-      .getRepository(CharactersEntity)
-      .createQueryBuilder('c')
-      .select('c.realm_id', 'realm_id')
-      .addSelect('c.faction', 'faction')
-      .addSelect('COUNT(*)', 'count')
-      .where('c.faction IS NOT NULL AND c.level = :maxLevel', { maxLevel })
-      .groupBy('c.realm_id, c.faction')
-      .getRawMany<CharacterRealmFactionAggregation>();
+    maxLevelRows: CharacterRealmDimensionAggregateRow[],
+  ): void {
+    const factionMap: Record<number, Record<string, number>> = {};
+    const classMap: Record<number, Record<string, number>> = {};
 
-    const realmFactionMap = this.groupRealmBreakdown(byRealmFactionMaxLevel, 'faction');
-    for (const [realmId, factionCounts] of Object.entries(realmFactionMap)) {
+    for (const row of maxLevelRows) {
+      if (row.realm_id === null) continue;
+
+      if (row.gf === 0 && row.faction !== null) {
+        factionMap[row.realm_id] = factionMap[row.realm_id] || {};
+        factionMap[row.realm_id][row.faction] = parseInt(row.fc, 10);
+      }
+
+      if (row.gc === 0 && row.class !== null) {
+        classMap[row.realm_id] = classMap[row.realm_id] || {};
+        classMap[row.realm_id][row.class] = parseInt(row.cc, 10);
+      }
+    }
+
+    for (const [realmId, factionCounts] of Object.entries(factionMap)) {
       const realmIdNum = parseInt(realmId, 10);
       const key = analyticsKeyOf(
         AnalyticsMetricCategory.CHARACTERS,
@@ -495,18 +534,7 @@ export class CharacterMetricsService {
       );
     }
 
-    const byRealmClassMaxLevel = await manager
-      .getRepository(CharactersEntity)
-      .createQueryBuilder('c')
-      .select('c.realm_id', 'realm_id')
-      .addSelect('c.class', 'character_class')
-      .addSelect('COUNT(*)', 'count')
-      .where('c.class IS NOT NULL AND c.level = :maxLevel', { maxLevel })
-      .groupBy('c.realm_id, c.class')
-      .getRawMany<CharacterRealmClassAggregation>();
-
-    const realmClassMap = this.groupRealmBreakdown(byRealmClassMaxLevel, 'character_class');
-    for (const [realmId, classCounts] of Object.entries(realmClassMap)) {
+    for (const [realmId, classCounts] of Object.entries(classMap)) {
       const realmIdNum = parseInt(realmId, 10);
       const key = analyticsKeyOf(
         AnalyticsMetricCategory.CHARACTERS,

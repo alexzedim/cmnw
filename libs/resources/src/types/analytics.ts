@@ -258,6 +258,56 @@ export interface IMarketMetricsAggregates {
   topByAuctions: MarketTopRow[];
 }
 
+/**
+ * One row of the merged character global-dimensions pass (GROUPING SETS
+ * ((faction),(class),(race),(level))); grouping() flags identify the active
+ * set, FILTER-ed counts exclude the NULL groups.
+ */
+export interface CharacterDimensionAggregateRow {
+  gf: number;
+  gc: number;
+  gr: number;
+  gl: number;
+  faction: string | null;
+  class: string | null;
+  race: string | null;
+  level: string | null;
+  fc: string;
+  cc: string;
+  rc: string;
+  lc: string;
+}
+
+/**
+ * One row of the merged character realm pass (GROUPING SETS ((realm_id),
+ * (realm_id,faction), (realm_id,class), ())): global totals on the empty set,
+ * realm totals + unique players on (realm_id), breakdowns on the rest.
+ */
+export interface CharacterRealmAggregateRow {
+  gid: number;
+  gf: number;
+  gc: number;
+  realm_id: number | null;
+  faction: string | null;
+  class: string | null;
+  total: string;
+  in_guilds: string;
+  unique_players: string;
+  fc: string;
+  cc: string;
+}
+
+/** One row of the merged character realm max-level pass. */
+export interface CharacterRealmDimensionAggregateRow {
+  gf: number;
+  gc: number;
+  realm_id: number | null;
+  faction: string | null;
+  class: string | null;
+  fc: string;
+  cc: string;
+}
+
 export interface ContractTotalMetrics {
   total_quantity: string;
   total_open_interest: string;
