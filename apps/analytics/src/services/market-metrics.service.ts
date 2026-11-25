@@ -1,19 +1,11 @@
 import { AnalyticsEntity, MarketEntity } from '@app/pg';
-import {
-  AnalyticsMetricCategory,
-  AnalyticsMetricType,
-  EXCLUDED_ITEM_IDS,
-  MARKET_TYPE,
-  marketSeenInWindowSql,
-} from '@app/resources';
+import { AnalyticsMetricCategory, AnalyticsMetricType, EXCLUDED_ITEM_IDS, MARKET_TYPE } from '@app/resources';
 import { analyticsKeyOf } from '@app/resources/dao';
 import type {
-  MarketAggregateCount,
+  IMarketMetricsAggregates,
   MarketByConnectedRealm,
-  MarketPriceRanges,
-  MarketTopByAuctions,
-  MarketTopByVolume,
-  MarketTotalMetrics,
+  MarketRealmAggregateRow,
+  MarketTopRow,
 } from '@app/resources/types';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectDataSource, InjectRepository } from '@nestjs/typeorm';
@@ -40,34 +32,37 @@ export class MarketMetricsService {
   async snapshotMarketMetrics(snapshotDate: Date): Promise<number> {
     const startTime = Date.now();
 
-    // Every collector commits in its own transaction, so one failing or
-    // slow metric cannot roll back or pin the rest of the market snapshot.
-    // The 24h threshold is captured per collector, inside its transaction.
+    // The five collectors below used to run eight separate full scans of
+    // market. They now consume aggregates from two shared passes (globals +
+    // per-realm via GROUPING SETS, tops via a grouped pass), so the nightly
+    // snapshot reads market exactly twice. Per-metric skip logic (existing
+    // keys) and per-collector transactions are unchanged.
+    const aggregates = await this.loadMarketAggregates(this.marketThreshold24h());
+
     const collectors: Array<[string, MetricsCollector]> = [
       [
         'marketTotal',
-        (manager, rows, existingKeys) =>
-          this.collectMarketTotal(manager, rows, existingKeys, snapshotDate, this.marketThreshold24h()),
+        (manager, rows, existingKeys) => this.collectMarketTotal(manager, rows, existingKeys, snapshotDate, aggregates),
       ],
       [
         'marketByConnectedRealm',
         (manager, rows, existingKeys) =>
-          this.collectMarketByConnectedRealm(manager, rows, existingKeys, snapshotDate, this.marketThreshold24h()),
+          this.collectMarketByConnectedRealm(manager, rows, existingKeys, snapshotDate, aggregates),
       ],
       [
         'marketPriceRanges',
         (manager, rows, existingKeys) =>
-          this.collectMarketPriceRanges(manager, rows, existingKeys, snapshotDate, this.marketThreshold24h()),
+          this.collectMarketPriceRanges(manager, rows, existingKeys, snapshotDate, aggregates),
       ],
       [
         'marketTopByVolume',
         (manager, rows, existingKeys) =>
-          this.collectMarketTopByVolume(manager, rows, existingKeys, snapshotDate, this.marketThreshold24h()),
+          this.collectMarketTopByVolume(manager, rows, existingKeys, snapshotDate, aggregates),
       ],
       [
         'marketTopByAuctions',
         (manager, rows, existingKeys) =>
-          this.collectMarketTopByAuctions(manager, rows, existingKeys, snapshotDate, this.marketThreshold24h()),
+          this.collectMarketTopByAuctions(manager, rows, existingKeys, snapshotDate, aggregates),
       ],
     ];
 
@@ -85,52 +80,85 @@ export class MarketMetricsService {
     return DateTime.now().minus({ hours: 24 }).toMillis();
   }
 
+  /**
+   * Pass 1: one scan grouped by GROUPING SETS ((connected_realm_id), ()) — the
+   * empty set reproduces the global totals (count / volume / per-type distinct
+   * items / price buckets) with the same expressions the old per-metric
+   * queries used; the realm set yields the per-realm breakdown.
+   * Pass 2: one scan grouped by item_id with two ROW_NUMBER rankings —
+   * reproduces top-by-volume and top-by-auctions without two extra scans.
+   */
+  private async loadMarketAggregates(threshold24h: number): Promise<IMarketMetricsAggregates> {
+    const groupedRows = await this.dataSource.query<Array<MarketRealmAggregateRow>>(
+      `SELECT grouping(m.connected_realm_id) AS is_total,
+              m.connected_realm_id AS realm,
+              count(*) AS auctions,
+              sum(m.value) AS volume,
+              count(DISTINCT CASE WHEN m.type = '${MARKET_TYPE.A}' THEN m.item_id END) AS unique_items_auctions,
+              count(DISTINCT CASE WHEN m.type = '${MARKET_TYPE.C}' THEN m.item_id END) AS unique_items_commdty,
+              sum(CASE WHEN m.price < 1000 THEN 1 ELSE 0 END) AS under1k,
+              sum(CASE WHEN m.price >= 1000 AND m.price < 10000 THEN 1 ELSE 0 END) AS range1k10k,
+              sum(CASE WHEN m.price >= 10000 AND m.price < 100000 THEN 1 ELSE 0 END) AS range10k100k,
+              sum(CASE WHEN m.price >= 100000 AND m.price < 1000000 THEN 1 ELSE 0 END) AS range100k1m,
+              sum(CASE WHEN m.price >= 1000000 THEN 1 ELSE 0 END) AS over1m
+       FROM market m
+       WHERE (m.valid_to IS NULL OR m.valid_to > $1)
+       GROUP BY GROUPING SETS ((m.connected_realm_id), ())`,
+      [threshold24h],
+    );
+
+    const topRows = await this.dataSource.query<Array<MarketTopRow>>(
+      `SELECT t.item_id, t.volume, t.auctions, t.rv, t.ra
+       FROM (
+         SELECT m.item_id AS item_id,
+                sum(m.value) AS volume,
+                count(*) AS auctions,
+                row_number() OVER (ORDER BY sum(m.value) DESC) AS rv,
+                row_number() OVER (ORDER BY count(*) DESC) AS ra
+         FROM market m
+         WHERE (m.valid_to IS NULL OR m.valid_to > $1) AND m.item_id <> ALL($2::int[])
+         GROUP BY m.item_id
+       ) t
+       WHERE t.rv <= 10 OR t.ra <= 10`,
+      [threshold24h, EXCLUDED_ITEM_IDS],
+    );
+
+    const global = groupedRows.find((row) => Number(row.is_total) === 1);
+    const byConnectedRealm: MarketByConnectedRealm[] = groupedRows
+      .filter((row) => Number(row.is_total) === 0)
+      .map((row) => ({
+        connected_realm_id: row.realm,
+        auctions: row.auctions,
+        volume: row.volume,
+        unique_items_auctions: row.unique_items_auctions,
+        unique_items_commdty: row.unique_items_commdty,
+      }));
+
+    const topByVolume = topRows.filter((row) => Number(row.rv) <= 10).sort((a, b) => Number(a.rv) - Number(b.rv));
+    const topByAuctions = topRows.filter((row) => Number(row.ra) <= 10).sort((a, b) => Number(a.ra) - Number(b.ra));
+
+    return { global, byConnectedRealm, topByVolume, topByAuctions };
+  }
+
   private async collectMarketTotal(
     manager: EntityManager,
     rows: AnalyticsEntity[],
     existingKeys: Set<string>,
     snapshotDate: Date,
-    threshold24h: number,
+    aggregates: IMarketMetricsAggregates,
   ): Promise<void> {
     const key = analyticsKeyOf(AnalyticsMetricCategory.MARKET, AnalyticsMetricType.TOTAL);
-    if (existingKeys.has(key)) return;
-
-    const marketRepo = manager.getRepository(MarketEntity);
-    const totalCount = await marketRepo
-      .createQueryBuilder('m')
-      .where(marketSeenInWindowSql('m', 'threshold'), { threshold: threshold24h })
-      .getCount();
-    const totalVolume = await marketRepo
-      .createQueryBuilder('m')
-      .select('SUM(m.value)', 'sum')
-      .where(marketSeenInWindowSql('m', 'threshold'), { threshold: threshold24h })
-      .getRawOne<MarketTotalMetrics>();
-    const uniqueItemsAuctions = await marketRepo
-      .createQueryBuilder('m')
-      .select('COUNT(DISTINCT m.item_id)', 'count')
-      .where(`${marketSeenInWindowSql('m', 'threshold')} AND m.type = :type`, {
-        threshold: threshold24h,
-        type: MARKET_TYPE.A,
-      })
-      .getRawOne<MarketAggregateCount>();
-    const uniqueItemsCommdty = await marketRepo
-      .createQueryBuilder('m')
-      .select('COUNT(DISTINCT m.item_id)', 'count')
-      .where(`${marketSeenInWindowSql('m', 'threshold')} AND m.type = :type`, {
-        threshold: threshold24h,
-        type: MARKET_TYPE.C,
-      })
-      .getRawOne<MarketAggregateCount>();
+    if (existingKeys.has(key) || !aggregates.global) return;
 
     rows.push(
       manager.create(AnalyticsEntity, {
         category: AnalyticsMetricCategory.MARKET,
         metricType: AnalyticsMetricType.TOTAL,
         value: {
-          auctions: totalCount,
-          volume: parseFloat(totalVolume?.sum || '0'),
-          uniqueItemsAuctions: parseInt(uniqueItemsAuctions?.count || '0', 10),
-          uniqueItemsCommdty: parseInt(uniqueItemsCommdty?.count || '0', 10),
+          auctions: parseInt(String(aggregates.global.auctions ?? '0'), 10),
+          volume: parseFloat(String(aggregates.global.volume ?? '0')),
+          uniqueItemsAuctions: parseInt(String(aggregates.global.unique_items_auctions ?? '0'), 10),
+          uniqueItemsCommdty: parseInt(String(aggregates.global.unique_items_commdty ?? '0'), 10),
         },
         snapshotDate,
       }),
@@ -142,25 +170,9 @@ export class MarketMetricsService {
     rows: AnalyticsEntity[],
     existingKeys: Set<string>,
     snapshotDate: Date,
-    threshold24h: number,
+    aggregates: IMarketMetricsAggregates,
   ): Promise<void> {
-    const byConnectedRealm = await manager
-      .getRepository(MarketEntity)
-      .createQueryBuilder('m')
-      .select('m.connected_realm_id')
-      .addSelect('COUNT(*)', 'auctions')
-      .addSelect('SUM(m.value)', 'volume')
-      .addSelect('COUNT(DISTINCT CASE WHEN m.type = :auctionsType THEN m.item_id END)', 'unique_items_auctions')
-      .addSelect('COUNT(DISTINCT CASE WHEN m.type = :commdtyType THEN m.item_id END)', 'unique_items_commdty')
-      .where(marketSeenInWindowSql('m', 'threshold'), {
-        threshold: threshold24h,
-        auctionsType: MARKET_TYPE.A,
-        commdtyType: MARKET_TYPE.C,
-      })
-      .groupBy('m.connected_realm_id')
-      .getRawMany<MarketByConnectedRealm>();
-
-    for (const realm of byConnectedRealm) {
+    for (const realm of aggregates.byConnectedRealm) {
       const key = analyticsKeyOf(
         AnalyticsMetricCategory.MARKET,
         AnalyticsMetricType.BY_CONNECTED_REALM,
@@ -174,10 +186,10 @@ export class MarketMetricsService {
           metricType: AnalyticsMetricType.BY_CONNECTED_REALM,
           realmId: realm.connected_realm_id,
           value: {
-            auctions: parseInt(realm.auctions, 10),
-            volume: parseFloat(realm.volume || '0'),
-            uniqueItemsAuctions: parseInt(realm.unique_items_auctions || '0', 10),
-            uniqueItemsCommdty: parseInt(realm.unique_items_commdty || '0', 10),
+            auctions: parseInt(String(realm.auctions ?? '0'), 10),
+            volume: parseFloat(String(realm.volume ?? '0')),
+            uniqueItemsAuctions: parseInt(String(realm.unique_items_auctions ?? '0'), 10),
+            uniqueItemsCommdty: parseInt(String(realm.unique_items_commdty ?? '0'), 10),
           },
           snapshotDate,
         }),
@@ -190,32 +202,21 @@ export class MarketMetricsService {
     rows: AnalyticsEntity[],
     existingKeys: Set<string>,
     snapshotDate: Date,
-    threshold24h: number,
+    aggregates: IMarketMetricsAggregates,
   ): Promise<void> {
     const key = analyticsKeyOf(AnalyticsMetricCategory.MARKET, AnalyticsMetricType.PRICE_RANGES);
-    if (existingKeys.has(key)) return;
-
-    const priceRanges = await manager
-      .getRepository(MarketEntity)
-      .createQueryBuilder('m')
-      .select(`SUM(CASE WHEN m.price < 1000 THEN 1 ELSE 0 END)`, 'under1k')
-      .addSelect(`SUM(CASE WHEN m.price >= 1000 AND m.price < 10000 THEN 1 ELSE 0 END)`, 'range1k10k')
-      .addSelect(`SUM(CASE WHEN m.price >= 10000 AND m.price < 100000 THEN 1 ELSE 0 END)`, 'range10k100k')
-      .addSelect(`SUM(CASE WHEN m.price >= 100000 AND m.price < 1000000 THEN 1 ELSE 0 END)`, 'range100k1m')
-      .addSelect(`SUM(CASE WHEN m.price >= 1000000 THEN 1 ELSE 0 END)`, 'over1m')
-      .where(marketSeenInWindowSql('m', 'threshold'), { threshold: threshold24h })
-      .getRawOne<MarketPriceRanges>();
+    if (existingKeys.has(key) || !aggregates.global) return;
 
     rows.push(
       manager.create(AnalyticsEntity, {
         category: AnalyticsMetricCategory.MARKET,
         metricType: AnalyticsMetricType.PRICE_RANGES,
         value: {
-          under1k: parseInt(priceRanges?.under1k || '0', 10),
-          '1k-10k': parseInt(priceRanges?.range1k10k || '0', 10),
-          '10k-100k': parseInt(priceRanges?.range10k100k || '0', 10),
-          '100k-1m': parseInt(priceRanges?.range100k1m || '0', 10),
-          over1m: parseInt(priceRanges?.over1m || '0', 10),
+          under1k: parseInt(String(aggregates.global.under1k ?? '0'), 10),
+          '1k-10k': parseInt(String(aggregates.global.range1k10k ?? '0'), 10),
+          '10k-100k': parseInt(String(aggregates.global.range10k100k ?? '0'), 10),
+          '100k-1m': parseInt(String(aggregates.global.range100k1m ?? '0'), 10),
+          over1m: parseInt(String(aggregates.global.over1m ?? '0'), 10),
         },
         snapshotDate,
       }),
@@ -227,30 +228,17 @@ export class MarketMetricsService {
     rows: AnalyticsEntity[],
     existingKeys: Set<string>,
     snapshotDate: Date,
-    threshold24h: number,
+    aggregates: IMarketMetricsAggregates,
   ): Promise<void> {
     const key = analyticsKeyOf(AnalyticsMetricCategory.MARKET, AnalyticsMetricType.TOP_BY_VOLUME);
     if (existingKeys.has(key)) return;
 
-    const topByVolume = await manager
-      .getRepository(MarketEntity)
-      .createQueryBuilder('m')
-      .select('m.item_id')
-      .addSelect('SUM(m.value)', 'volume')
-      .addSelect('COUNT(*)', 'auctions')
-      .where(marketSeenInWindowSql('m', 'threshold'), { threshold: threshold24h })
-      .andWhere('m.item_id NOT IN (:...excludedIds)', { excludedIds: EXCLUDED_ITEM_IDS })
-      .groupBy('m.item_id')
-      .orderBy('volume', 'DESC')
-      .limit(10)
-      .getRawMany<MarketTopByVolume>();
-
     const value: Record<string, { itemId: number; volume: number; auctions: number }> = {};
-    for (const item of topByVolume) {
+    for (const item of aggregates.topByVolume) {
       value[String(item.item_id)] = {
         itemId: item.item_id,
-        volume: parseFloat(item.volume),
-        auctions: parseInt(item.auctions, 10),
+        volume: parseFloat(String(item.volume ?? '0')),
+        auctions: parseInt(String(item.auctions ?? '0'), 10),
       };
     }
 
@@ -269,28 +257,16 @@ export class MarketMetricsService {
     rows: AnalyticsEntity[],
     existingKeys: Set<string>,
     snapshotDate: Date,
-    threshold24h: number,
+    aggregates: IMarketMetricsAggregates,
   ): Promise<void> {
     const key = analyticsKeyOf(AnalyticsMetricCategory.MARKET, AnalyticsMetricType.TOP_BY_AUCTIONS);
     if (existingKeys.has(key)) return;
 
-    const topByAuctions = await manager
-      .getRepository(MarketEntity)
-      .createQueryBuilder('m')
-      .select('m.item_id')
-      .addSelect('COUNT(*)', 'auctions')
-      .where(marketSeenInWindowSql('m', 'threshold'), { threshold: threshold24h })
-      .andWhere('m.item_id NOT IN (:...excludedIds)', { excludedIds: EXCLUDED_ITEM_IDS })
-      .groupBy('m.item_id')
-      .orderBy('auctions', 'DESC')
-      .limit(10)
-      .getRawMany<MarketTopByAuctions>();
-
     const value: Record<string, { itemId: number; auctions: number }> = {};
-    for (const item of topByAuctions) {
+    for (const item of aggregates.topByAuctions) {
       value[String(item.item_id)] = {
         itemId: item.item_id,
-        auctions: parseInt(item.auctions, 10),
+        auctions: parseInt(String(item.auctions ?? '0'), 10),
       };
     }
 

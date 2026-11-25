@@ -224,6 +224,40 @@ export interface MarketTopByAuctions {
   auctions: string;
 }
 
+/**
+ * One row of the merged market-metrics pass 1 (GROUPING SETS):
+ * is_total = 1 → the global () set, is_total = 0 → a per-realm group.
+ */
+export interface MarketRealmAggregateRow {
+  is_total: number;
+  realm: number | null;
+  auctions: string;
+  volume: string;
+  unique_items_auctions: string;
+  unique_items_commdty: string;
+  under1k: string;
+  range1k10k: string;
+  range10k100k: string;
+  range100k1m: string;
+  over1m: string;
+}
+
+/** One row of the merged market-metrics pass 2 (item-level tops). */
+export interface MarketTopRow {
+  item_id: number;
+  volume: string;
+  auctions: string;
+  rv: string;
+  ra: string;
+}
+
+export interface IMarketMetricsAggregates {
+  global: MarketRealmAggregateRow | undefined;
+  byConnectedRealm: MarketByConnectedRealm[];
+  topByVolume: MarketTopRow[];
+  topByAuctions: MarketTopRow[];
+}
+
 export interface ContractTotalMetrics {
   total_quantity: string;
   total_open_interest: string;
