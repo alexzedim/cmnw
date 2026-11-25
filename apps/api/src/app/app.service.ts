@@ -96,9 +96,9 @@ export class AppService {
    * chips for the home backdrop flow schemas. Labels are prebuilt here so the
    * client only picks randomly from the pools.
    *
-   * The market tail query is a full pass over `market` without an index on
-   * valid_from, so the payload is served through a read-through cache: every
-   * uncached request would otherwise cost a full table scan.
+   * The market tail is scoped to live orders (valid_to IS NULL) so the read
+   * hits the partial valid_from index, and served through a read-through
+   * cache: every uncached request would otherwise cost a full table scan.
    */
   async getBackdropFlows(): Promise<IBackdropFlows> {
     const logTag = 'getBackdropFlows';
@@ -133,6 +133,7 @@ export class AppService {
       this.marketRepository
         .createQueryBuilder('m')
         .leftJoin(ItemsEntity, 'i', 'i.id = m.itemId')
+        .where('m.valid_to IS NULL')
         .orderBy('m.valid_from', 'DESC')
         .limit(10)
         .select('m.orderId', 'orderId')
