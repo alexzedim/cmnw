@@ -4,6 +4,7 @@ import { Column, CreateDateColumn, Entity, Index, PrimaryColumn } from 'typeorm'
 @Index('ix__contract__timestamp', ['timestamp'], {})
 @Index('ix__contract__timestamp_realm', ['timestamp', 'connectedRealmId'], {})
 @Index('ix__contract__timestamp_item', ['timestamp', 'itemId'], {})
+@Index('ix__contract__item_timestamp', ['itemId', 'timestamp'], {})
 @Entity({ name: CMNW_ENTITY_ENUM.CONTRACTS })
 export class ContractEntity {
   @PrimaryColumn('varchar')
@@ -77,8 +78,12 @@ export class ContractEntity {
 
   @Column({
     nullable: false,
-    type: 'int',
+    type: 'bigint',
     name: 'quantity',
+    transformer: {
+      to: (value: number) => value,
+      from: (value: string) => Number(value),
+    },
   })
   quantity: number;
 
