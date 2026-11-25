@@ -4,4 +4,5 @@ export const marketConfig = {
   // columns, so multi-row INSERT batches must stay well under 3400
   diffBatchSize: Number(process.env.MARKET_DIFF_BATCH_SIZE) || 2_000,
   ttlBatchSize: Number(process.env.MARKET_TTL_BATCH_SIZE) || 50_000,
+  ttlMaxBatchesPerRun: Number(process.env.MARKET_TTL_MAX_BATCHES_PER_RUN) || 10,
 };

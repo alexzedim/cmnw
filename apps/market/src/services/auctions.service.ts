@@ -8,6 +8,7 @@ import {
   computeMarketRowAttrHash,
   type IAuctionMessageBase,
   isWowToken,
+  MARKET_TTL_CURSOR_KEY,
   MARKET_TYPE,
   REALM_ENTITY_ANY,
   toGold,
@@ -17,7 +18,9 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger, type OnApplicationBootstrap } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
+import { InjectRedis } from '@nestjs-modules/ioredis';
 import type { Queue } from 'bullmq';
+import type Redis from 'ioredis';
 import { DateTime } from 'luxon';
 import { from, lastValueFrom, mergeMap } from 'rxjs';
 import { LessThan, Not, type Repository } from 'typeorm';
@@ -29,6 +32,8 @@ export class AuctionsService implements OnApplicationBootstrap {
   });
 
   constructor(
+    @InjectRedis()
+    private readonly redisService: Redis,
     @InjectRepository(RealmsEntity)
     private readonly realmsRepository: Repository<RealmsEntity>,
     @InjectRepository(MarketEntity)
@@ -203,36 +208,54 @@ export class AuctionsService implements OnApplicationBootstrap {
 
     try {
       const cutoff = Date.now() - marketConfig.retentionHours * 3_600_000;
+      let cursor = Number(await this.redisService.get(MARKET_TTL_CURSOR_KEY)) || 0;
 
       let deletedTotal = 0;
-      let deletedInBatch = 0;
+      let batches = 0;
 
-      do {
-        const result = await this.marketRepository.query(
+      while (batches < marketConfig.ttlMaxBatchesPerRun) {
+        const [batch] = (await this.marketRepository.query(
           `WITH expired AS (
-             SELECT connected_realm_id, order_id, type, valid_from FROM market
-             WHERE valid_to IS NOT NULL AND valid_to < $1
-             LIMIT $2
+             SELECT connected_realm_id, order_id, type, valid_from, valid_to FROM market
+             WHERE valid_to > $1 AND valid_to < $2
+             ORDER BY valid_to
+             LIMIT $3
+           ),
+           deleted AS (
+             DELETE FROM market m
+             USING expired e
+             WHERE m.connected_realm_id = e.connected_realm_id
+               AND m.order_id = e.order_id
+               AND m.type = e.type
+               AND m.valid_from = e.valid_from
+             RETURNING 1
            )
-           DELETE FROM market m
-           USING expired e
-           WHERE m.connected_realm_id = e.connected_realm_id
-             AND m.order_id = e.order_id
-             AND m.type = e.type
-             AND m.valid_from = e.valid_from`,
-          [cutoff, marketConfig.ttlBatchSize],
-        );
+           SELECT (SELECT max(valid_to) FROM expired) AS last_valid_to,
+                  (SELECT count(*) FROM deleted) AS deleted`,
+          [cursor, cutoff, marketConfig.ttlBatchSize],
+        )) as Array<{ last_valid_to: string | null; deleted: string }>;
 
-        deletedInBatch = result.rowCount ?? 0;
+        if (!batch?.last_valid_to) break;
+
+        const deletedInBatch = Number(batch.deleted);
+        const isDrained = deletedInBatch < marketConfig.ttlBatchSize;
+        const lastValidTo = Number(batch.last_valid_to);
+
         deletedTotal += deletedInBatch;
-      } while (deletedInBatch >= marketConfig.ttlBatchSize);
+        batches += 1;
+        cursor = isDrained ? lastValidTo : lastValidTo - 1;
+
+        await this.redisService.set(MARKET_TTL_CURSOR_KEY, String(cursor));
+
+        if (isDrained) break;
+      }
 
       const snapshotsResult = await this.marketSnapshotsRepository.delete({
         timestamp: LessThan(cutoff),
       });
 
       this.logger.log(
-        `Deleted ${deletedTotal} ended rows and ${snapshotsResult.affected ?? 0} snapshot markers older than ${marketConfig.retentionHours}h.`,
+        `Deleted ${deletedTotal} ended rows in ${batches} batches and ${snapshotsResult.affected ?? 0} snapshot markers older than ${marketConfig.retentionHours}h.`,
       );
     } catch (error) {
       this.logger.error({
